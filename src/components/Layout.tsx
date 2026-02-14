@@ -1,0 +1,143 @@
+import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
+
+const navItems = [
+  { path: "/", label: "Startseite" },
+  { path: "/epochen/mittelalter", label: "1290–1310" },
+  { path: "/epochen/wk1", label: "1916/17" },
+  { path: "/epochen/1815", label: "1815" },
+  { path: "/galerie", label: "Galerie" },
+  { path: "/verein", label: "Der Verein" },
+];
+
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide">
+            Diu lebendec Histôrje
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted hover:text-foreground ${
+                  location.pathname === item.path
+                    ? "text-primary bg-muted"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              to="/login"
+              className="ml-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Mitglieder
+            </Link>
+          </nav>
+
+          {/* Mobile Toggle */}
+          <button
+            className="md:hidden p-2 text-foreground"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menü"
+          >
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+
+        {/* Mobile Nav */}
+        {menuOpen && (
+          <nav className="md:hidden border-t bg-background px-4 pb-4 pt-2 space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setMenuOpen(false)}
+                className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted ${
+                  location.pathname === item.path
+                    ? "text-primary bg-muted"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Mitglieder
+            </Link>
+          </nav>
+        )}
+      </header>
+
+      {/* Main */}
+      <main className="flex-1">{children}</main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card">
+        <div className="container py-8 md:py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h3 className="font-serif text-lg font-semibold text-primary mb-3">
+                Diu lebendec Histôrje e.V.
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Living History aus Wiesbaden – Geschichte erleben.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-serif text-sm font-semibold mb-3">Navigation</h4>
+              <ul className="space-y-1">
+                {navItems.map((item) => (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-serif text-sm font-semibold mb-3">Rechtliches</h4>
+              <ul className="space-y-1">
+                <li>
+                  <Link to="/impressum" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Impressum
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/datenschutz" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Datenschutz
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Diu lebendec Histôrje e.V. Alle Rechte vorbehalten.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Layout;
