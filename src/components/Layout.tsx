@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/", label: "Startseite" },
@@ -14,6 +15,7 @@ const navItems = [
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -40,10 +42,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </Link>
             ))}
             <Link
-              to="/login"
+              to={user ? "/intern" : "/login"}
               className="ml-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Mitglieder
+              {user ? "Intern" : "Mitglieder"}
             </Link>
           </nav>
 
@@ -75,11 +77,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </Link>
             ))}
             <Link
-              to="/login"
+              to={user ? "/intern" : "/login"}
               onClick={() => setMenuOpen(false)}
               className="block px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Mitglieder
+              {user ? "Intern" : "Mitglieder"}
             </Link>
           </nav>
         )}
