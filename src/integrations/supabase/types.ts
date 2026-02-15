@@ -102,12 +102,70 @@ export type Database = {
           },
         ]
       }
+      election_audit_log: {
+        Row: {
+          deleted_at: string
+          deleted_by: string
+          election_description: string | null
+          election_title: string
+          group_title: string | null
+          id: string
+          result_snapshot: Json | null
+          total_votes: number | null
+        }
+        Insert: {
+          deleted_at?: string
+          deleted_by: string
+          election_description?: string | null
+          election_title: string
+          group_title?: string | null
+          id?: string
+          result_snapshot?: Json | null
+          total_votes?: number | null
+        }
+        Update: {
+          deleted_at?: string
+          deleted_by?: string
+          election_description?: string | null
+          election_title?: string
+          group_title?: string | null
+          id?: string
+          result_snapshot?: Json | null
+          total_votes?: number | null
+        }
+        Relationships: []
+      }
+      election_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          title: string
+          votes_per_member: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          title: string
+          votes_per_member?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          title?: string
+          votes_per_member?: number
+        }
+        Relationships: []
+      }
       elections: {
         Row: {
           closed_at: string | null
           created_at: string
           created_by: string
           description: string | null
+          group_id: string | null
           id: string
           status: string
           title: string
@@ -118,6 +176,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          group_id?: string | null
           id?: string
           status?: string
           title: string
@@ -128,12 +187,21 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          group_id?: string | null
           id?: string
           status?: string
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "elections_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "election_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -280,6 +348,11 @@ export type Database = {
       }
     }
     Functions: {
+      can_vote: {
+        Args: { _election_id: string; _user_id: string }
+        Returns: boolean
+      }
+      count_members: { Args: never; Returns: number }
       has_voted: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean

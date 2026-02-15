@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, UserPlus, Trash2, Shield, User } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Shield, User, FileText } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -71,7 +71,16 @@ const Admin = () => {
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
-        <h1 className="font-serif text-2xl font-bold mb-6">Mitgliederverwaltung</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="font-serif text-2xl font-bold">Mitgliederverwaltung</h1>
+          <Link
+            to="/intern/verwaltung/protokoll"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+          >
+            <FileText size={16} />
+            Abstimmungs-Protokoll
+          </Link>
+        </div>
 
         <div className="p-4 rounded-lg border bg-card mb-8 space-y-3">
           <h2 className="font-semibold text-sm">Neues Mitglied einladen</h2>

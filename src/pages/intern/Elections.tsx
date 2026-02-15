@@ -1,28 +1,57 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Play, Square, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, FolderPlus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import ElectionCard from "@/components/elections/ElectionCard";
+import type { Election, ElectionGroup, ElectionResult } from "@/components/elections/types";
 
 const Elections = () => {
   const { user, isVorstand } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", candidates: "" });
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupForm, setGroupForm] = useState({ title: "", votes_per_member: 1 });
+  const [showElectionForm, setShowElectionForm] = useState<string | null>(null);
+  const [electionForm, setElectionForm] = useState({ title: "", description: "", candidates: "" });
 
-  const { data: elections = [], isLoading } = useQuery({
+  // Realtime subscription for elections
+  useEffect(() => {
+    const channel = supabase
+      .channel("elections-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "elections" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["elections"] });
+        queryClient.invalidateQueries({ queryKey: ["election_results"] });
+        queryClient.invalidateQueries({ queryKey: ["my_votes"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
+  const { data: groups = [], isLoading: loadingGroups } = useQuery({
+    queryKey: ["election_groups"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("election_groups" as any)
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as unknown as ElectionGroup[];
+    },
+  });
+
+  const { data: elections = [], isLoading: loadingElections } = useQuery({
     queryKey: ["elections"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("elections")
         .select("*, candidates(*)")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data;
+      return data as unknown as Election[];
     },
   });
 
@@ -31,7 +60,7 @@ const Elections = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("election_results").select("*");
       if (error) throw error;
-      return data;
+      return data as unknown as ElectionResult[];
     },
   });
 
@@ -41,66 +70,101 @@ const Elections = () => {
       if (!user) return [];
       const { data, error } = await supabase.from("votes").select("election_id").eq("voter_id", user.id);
       if (error) return [];
-      return data.map((v) => v.election_id);
+      return data;
     },
   });
 
-  const createElection = useMutation({
+  const { data: totalMembers = 1 } = useQuery({
+    queryKey: ["total_members"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("count_members");
+      if (error) return 1;
+      return Number(data) || 1;
+    },
+  });
+
+  const getMyVoteCount = (electionId: string) =>
+    myVotes.filter((v) => v.election_id === electionId).length;
+
+  const createGroup = useMutation({
     mutationFn: async () => {
+      const { error } = await supabase.from("election_groups" as any).insert({
+        title: groupForm.title,
+        votes_per_member: groupForm.votes_per_member,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["election_groups"] });
+      setShowGroupForm(false);
+      setGroupForm({ title: "", votes_per_member: 1 });
+      toast({ title: "Klammer erstellt" });
+    },
+    onError: () => toast({ title: "Fehler", variant: "destructive" }),
+  });
+
+  const createElection = useMutation({
+    mutationFn: async (groupId: string) => {
       const { data: election, error } = await supabase
         .from("elections")
-        .insert({ title: form.title, description: form.description || null, created_by: user!.id })
+        .insert({
+          title: electionForm.title,
+          description: electionForm.description || null,
+          created_by: user!.id,
+          group_id: groupId,
+        } as any)
         .select()
         .single();
       if (error) throw error;
-      const candidateNames = form.candidates.split("\n").map((c) => c.trim()).filter(Boolean);
-      if (candidateNames.length > 0) {
-        const { error: cErr } = await supabase.from("candidates").insert(
-          candidateNames.map((name) => ({ election_id: election.id, name }))
-        );
+      const names = electionForm.candidates.split("\n").map((c) => c.trim()).filter(Boolean);
+      if (names.length > 0) {
+        const { error: cErr } = await supabase
+          .from("candidates")
+          .insert(names.map((name) => ({ election_id: (election as any).id, name })));
         if (cErr) throw cErr;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["elections"] });
-      setShowForm(false);
-      setForm({ title: "", description: "", candidates: "" });
+      setShowElectionForm(null);
+      setElectionForm({ title: "", description: "", candidates: "" });
       toast({ title: "Abstimmung erstellt" });
     },
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const updates: Record<string, unknown> = { status };
-      if (status === "closed") updates.closed_at = new Date().toISOString();
-      const { error } = await supabase.from("elections").update(updates).eq("id", id);
+  const deleteGroup = useMutation({
+    mutationFn: async (groupId: string) => {
+      const { error } = await supabase.from("election_groups" as any).delete().eq("id", groupId);
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["election_groups"] });
       queryClient.invalidateQueries({ queryKey: ["elections"] });
-      toast({ title: "Status aktualisiert" });
+      toast({ title: "Klammer gelöscht" });
     },
   });
 
-  const castVote = useMutation({
-    mutationFn: async ({ electionId, candidateId }: { electionId: string; candidateId: string }) => {
-      const { error } = await supabase.from("votes").insert({
-        election_id: electionId,
-        candidate_id: candidateId,
-        voter_id: user!.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["elections", "election_results", "my_votes"] });
-      toast({ title: "Stimme abgegeben" });
-    },
-    onError: () => toast({ title: "Fehler bei der Stimmabgabe", variant: "destructive" }),
-  });
+  const refreshAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["elections"] });
+    queryClient.invalidateQueries({ queryKey: ["election_results"] });
+    queryClient.invalidateQueries({ queryKey: ["my_votes"] });
+    queryClient.invalidateQueries({ queryKey: ["election_groups"] });
+    toast({ title: "Aktualisiert" });
+  };
 
-  const getResults = (electionId: string) =>
-    results.filter((r) => r.election_id === electionId).sort((a, b) => (b.vote_count as number) - (a.vote_count as number));
+  const isLoading = loadingGroups || loadingElections;
+
+  // Filter elections: non-Vorstand only see active/closed
+  const visibleElections = isVorstand
+    ? elections
+    : elections.filter((e) => e.status !== "draft");
+
+  const getGroupElections = (groupId: string) =>
+    visibleElections.filter((e) => e.group_id === groupId);
+
+  const ungroupedElections = visibleElections.filter((e) => !e.group_id);
 
   return (
     <div className="container py-12 max-w-4xl">
@@ -108,41 +172,51 @@ const Elections = () => {
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
           <h1 className="font-serif text-2xl font-bold">Abstimmungen</h1>
-          {isVorstand && (
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowForm(!showForm)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={refreshAll}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              title="Aktualisieren"
             >
-              <Plus size={16} /> Neue Abstimmung
+              <RefreshCw size={16} />
             </button>
-          )}
+            {isVorstand && (
+              <button
+                onClick={() => setShowGroupForm(!showGroupForm)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <FolderPlus size={16} /> Neue Klammer
+              </button>
+            )}
+          </div>
         </div>
 
-        {showForm && (
+        {/* Create group form */}
+        {showGroupForm && (
           <div className="p-4 rounded-lg border bg-card mb-6 space-y-3">
+            <h3 className="text-sm font-semibold">Neue Klammer erstellen</h3>
             <input
-              placeholder="Titel der Abstimmung *"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Titel (z.B. JHV 2026) *"
+              value={groupForm.title}
+              onChange={(e) => setGroupForm({ ...groupForm, title: e.target.value })}
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
             />
-            <textarea
-              placeholder="Beschreibung (optional)"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
-            />
-            <textarea
-              placeholder="Kandidaten / Optionen (eine pro Zeile) *"
-              value={form.candidates}
-              onChange={(e) => setForm({ ...form, candidates: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
-            />
+            <div className="flex items-center gap-3">
+              <label className="text-sm">Stimmen pro Mitglied:</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={groupForm.votes_per_member}
+                onChange={(e) => setGroupForm({ ...groupForm, votes_per_member: Math.max(1, parseInt(e.target.value) || 1) })}
+                className="w-20 h-10 rounded-md border border-input bg-background px-3 text-sm text-center"
+              />
+            </div>
             <button
-              onClick={() => form.title && form.candidates && createElection.mutate()}
-              disabled={!form.title || !form.candidates || createElection.isPending}
+              onClick={() => groupForm.title && createGroup.mutate()}
+              disabled={!groupForm.title || createGroup.isPending}
               className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               Erstellen
@@ -152,100 +226,120 @@ const Elections = () => {
 
         {isLoading ? (
           <div className="text-center text-muted-foreground py-12">Laden...</div>
-        ) : elections.length === 0 ? (
+        ) : groups.length === 0 && ungroupedElections.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">Noch keine Abstimmungen.</div>
         ) : (
-          <div className="space-y-4">
-            {elections.map((election) => {
-              const hasVoted = myVotes.includes(election.id);
-              const electionResults = getResults(election.id);
-              const totalVotes = electionResults.reduce((sum, r) => sum + (r.vote_count as number), 0);
+          <div className="space-y-8">
+            {/* Groups */}
+            {groups.map((group) => {
+              const groupElections = getGroupElections(group.id);
+              // Non-Vorstand: hide empty groups (all drafts)
+              if (!isVorstand && groupElections.length === 0) return null;
 
               return (
-                <div key={election.id} className="p-5 rounded-lg border bg-card">
-                  <div className="flex items-start justify-between mb-3">
+                <div key={group.id} className="space-y-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-serif text-lg font-semibold">{election.title}</h3>
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          election.status === "active" ? "bg-primary/10 text-primary" :
-                          election.status === "closed" ? "bg-muted text-muted-foreground" :
-                          "bg-accent/20 text-accent-foreground"
-                        }`}>
-                          {election.status === "active" ? "Aktiv" : election.status === "closed" ? "Geschlossen" : "Entwurf"}
-                        </span>
-                      </div>
-                      {election.description && <p className="text-sm text-muted-foreground mt-1">{election.description}</p>}
+                      <h2 className="font-serif text-xl font-bold">{group.title}</h2>
+                      <p className="text-xs text-muted-foreground">
+                        {group.votes_per_member} Stimme{group.votes_per_member !== 1 ? "n" : ""} pro Mitglied
+                      </p>
                     </div>
-                    {isVorstand && (
-                      <div className="flex gap-1">
-                        {election.status === "draft" && (
+                    <div className="flex gap-2">
+                      {isVorstand && (
+                        <>
                           <button
-                            onClick={() => updateStatus.mutate({ id: election.id, status: "active" })}
-                            className="p-1.5 rounded hover:bg-muted text-green-600"
-                            title="Starten"
+                            onClick={() => setShowElectionForm(showElectionForm === group.id ? null : group.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
                           >
-                            <Play size={16} />
+                            <Plus size={14} /> Abstimmung
                           </button>
-                        )}
-                        {election.status === "active" && (
-                          <button
-                            onClick={() => updateStatus.mutate({ id: election.id, status: "closed" })}
-                            className="p-1.5 rounded hover:bg-muted text-red-600"
-                            title="Beenden"
-                          >
-                            <Square size={16} />
-                          </button>
-                        )}
-                      </div>
-                    )}
+                          {groupElections.length === 0 && (
+                            <button
+                              onClick={() => deleteGroup.mutate(group.id)}
+                              className="px-3 py-1.5 text-xs rounded-md border text-destructive hover:bg-destructive/10"
+                            >
+                              Klammer löschen
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Voting area */}
-                  {election.status === "active" && !hasVoted && (
-                    <div className="space-y-2 mt-4">
-                      <p className="text-sm font-medium">Deine Stimme abgeben:</p>
-                      {election.candidates?.map((c: { id: string; name: string }) => (
-                        <button
-                          key={c.id}
-                          onClick={() => castVote.mutate({ electionId: election.id, candidateId: c.id })}
-                          disabled={castVote.isPending}
-                          className="block w-full text-left px-4 py-2.5 text-sm rounded-md border hover:bg-primary/5 hover:border-primary transition-colors"
-                        >
-                          {c.name}
-                        </button>
+                  {/* Create election form within group */}
+                  {showElectionForm === group.id && (
+                    <div className="p-4 rounded-lg border bg-card space-y-3">
+                      <input
+                        placeholder="Titel der Abstimmung *"
+                        value={electionForm.title}
+                        onChange={(e) => setElectionForm({ ...electionForm, title: e.target.value })}
+                        className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                      />
+                      <textarea
+                        placeholder="Beschreibung (optional)"
+                        value={electionForm.description}
+                        onChange={(e) => setElectionForm({ ...electionForm, description: e.target.value })}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
+                      />
+                      <textarea
+                        placeholder="Kandidaten / Optionen (eine pro Zeile) *"
+                        value={electionForm.candidates}
+                        onChange={(e) => setElectionForm({ ...electionForm, candidates: e.target.value })}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
+                      />
+                      <button
+                        onClick={() => electionForm.title && electionForm.candidates && createElection.mutate(group.id)}
+                        disabled={!electionForm.title || !electionForm.candidates || createElection.isPending}
+                        className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        Erstellen
+                      </button>
+                    </div>
+                  )}
+
+                  {groupElections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic pl-1">Noch keine Abstimmungen in dieser Klammer.</p>
+                  ) : (
+                    <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+                      {groupElections.map((election) => (
+                        <ElectionCard
+                          key={election.id}
+                          election={election}
+                          results={results}
+                          myVoteCount={getMyVoteCount(election.id)}
+                          maxVotes={group.votes_per_member}
+                          totalMembers={totalMembers}
+                          isVorstand={isVorstand}
+                        />
                       ))}
-                    </div>
-                  )}
-
-                  {election.status === "active" && hasVoted && (
-                    <div className="mt-4 p-3 rounded-md bg-muted text-sm text-muted-foreground flex items-center gap-2">
-                      <CheckCircle2 size={16} className="text-primary" />
-                      Du hast bereits abgestimmt. Das Ergebnis wird nach Abschluss sichtbar.
-                    </div>
-                  )}
-
-                  {/* Results */}
-                  {election.status === "closed" && electionResults.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-sm font-medium">Ergebnis ({totalVotes} Stimmen):</p>
-                      {electionResults.map((r) => {
-                        const pct = totalVotes > 0 ? Math.round(((r.vote_count as number) / totalVotes) * 100) : 0;
-                        return (
-                          <div key={r.candidate_id} className="flex items-center gap-3">
-                            <span className="text-sm w-32 truncate">{r.candidate_name}</span>
-                            <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-                              <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                            </div>
-                            <span className="text-sm font-medium w-16 text-right">{r.vote_count} ({pct}%)</span>
-                          </div>
-                        );
-                      })}
                     </div>
                   )}
                 </div>
               );
             })}
+
+            {/* Ungrouped elections (legacy) */}
+            {ungroupedElections.length > 0 && (
+              <div className="space-y-3">
+                {groups.length > 0 && (
+                  <h2 className="font-serif text-xl font-bold text-muted-foreground">Sonstige</h2>
+                )}
+                <div className="space-y-3">
+                  {ungroupedElections.map((election) => (
+                    <ElectionCard
+                      key={election.id}
+                      election={election}
+                      results={results}
+                      myVoteCount={getMyVoteCount(election.id)}
+                      maxVotes={1}
+                      totalMembers={totalMembers}
+                      isVorstand={isVorstand}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </motion.div>
