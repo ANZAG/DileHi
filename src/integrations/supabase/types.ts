@@ -137,23 +137,29 @@ export type Database = {
       }
       election_groups: {
         Row: {
+          closed_at: string | null
           created_at: string
           created_by: string
           id: string
+          status: string
           title: string
           votes_per_member: number
         }
         Insert: {
+          closed_at?: string | null
           created_at?: string
           created_by: string
           id?: string
+          status?: string
           title: string
           votes_per_member?: number
         }
         Update: {
+          closed_at?: string | null
           created_at?: string
           created_by?: string
           id?: string
+          status?: string
           title?: string
           votes_per_member?: number
         }
@@ -203,6 +209,41 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          represented_by: string | null
+          user_id: string
+          vote_count: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          represented_by?: string | null
+          user_id: string
+          vote_count?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          represented_by?: string | null
+          user_id?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "election_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -223,6 +264,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      representation_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          details: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          details: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          details?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "representation_log_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "election_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sources: {
         Row: {
@@ -352,7 +428,15 @@ export type Database = {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
       }
+      cast_votes: {
+        Args: { _election_id: string; _voter_id: string; _votes: Json }
+        Returns: undefined
+      }
       count_members: { Args: never; Returns: number }
+      get_user_vote_count: {
+        Args: { _election_id: string; _user_id: string }
+        Returns: number
+      }
       has_voted: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
