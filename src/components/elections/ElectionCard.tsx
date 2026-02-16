@@ -3,15 +3,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Trash2, Pencil, CheckCircle2 } from "lucide-react";
+import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus } from "lucide-react";
 import type { Election, ElectionResult } from "./types";
 
 interface Props {
   election: Election;
   results: ElectionResult[];
+  hasVoted: boolean;
   myVoteCount: number;
-  maxVotes: number;
   totalMembers: number;
+  totalPossibleVotes: number;
   isVorstand: boolean;
 }
 
@@ -21,11 +22,10 @@ const formatTimestamp = (iso: string) => {
     " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", hour12: false });
 };
 
-const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, isVorstand }: Props) => {
+const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, isVorstand }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -34,12 +34,15 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
     candidates: election.candidates.map((c) => c.name).join("\n"),
   });
 
+  // Vote allocation state: { candidateId: count }
+  const [voteAllocation, setVoteAllocation] = useState<Record<string, number>>({});
+  const allocatedTotal = Object.values(voteAllocation).reduce((s, v) => s + v, 0);
+
   const electionResults = results
     .filter((r) => r.election_id === election.id)
     .sort((a, b) => b.vote_count - a.vote_count);
   const totalVotes = electionResults.reduce((sum, r) => sum + r.vote_count, 0);
-  const totalPossibleVotes = maxVotes * totalMembers;
-  const canVote = election.status === "active" && myVoteCount < maxVotes;
+  const canVote = election.status === "active" && !hasVoted && myVoteCount > 0;
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["elections"] });
@@ -60,33 +63,37 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
     },
   });
 
-  const castVote = useMutation({
+  const castVotes = useMutation({
     mutationFn: async () => {
-      if (!selectedCandidate || !user) return;
-      const { error } = await supabase.from("votes").insert({
-        election_id: election.id,
-        candidate_id: selectedCandidate,
-        voter_id: user.id,
+      if (!user) return;
+      const votes = Object.entries(voteAllocation)
+        .filter(([, count]) => count > 0)
+        .map(([candidate_id, count]) => ({ candidate_id, count }));
+      const { error } = await supabase.rpc("cast_votes", {
+        _election_id: election.id,
+        _voter_id: user.id,
+        _votes: votes,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       invalidateAll();
-      setSelectedCandidate(null);
-      toast({ title: "Stimme abgegeben" });
+      setVoteAllocation({});
+      toast({ title: "Stimmen abgegeben" });
     },
-    onError: () => toast({ title: "Fehler bei der Stimmabgabe", variant: "destructive" }),
+    onError: (err: any) => {
+      const msg = err?.message || "Fehler bei der Stimmabgabe";
+      toast({ title: msg, variant: "destructive" });
+    },
   });
 
   const deleteElection = useMutation({
     mutationFn: async () => {
-      // If closed, create audit log entry first
       if (election.status === "closed") {
         const snapshot = electionResults.map((r) => ({
           candidate: r.candidate_name,
           votes: r.vote_count,
         }));
-        // Get group title
         let groupTitle = null;
         if (election.group_id) {
           const { data } = await supabase
@@ -105,7 +112,6 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
           deleted_by: user!.id,
         });
       }
-      // Delete votes first, then candidates, then election
       await supabase.from("votes").delete().eq("election_id", election.id);
       await supabase.from("candidates").delete().eq("election_id", election.id);
       const { error } = await supabase.from("elections").delete().eq("id", election.id);
@@ -126,7 +132,6 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
         .update({ title: editForm.title, description: editForm.description || null })
         .eq("id", election.id);
       if (error) throw error;
-      // Update candidates: delete old, insert new
       await supabase.from("candidates").delete().eq("election_id", election.id);
       const names = editForm.candidates.split("\n").map((c) => c.trim()).filter(Boolean);
       if (names.length > 0) {
@@ -143,6 +148,15 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
     },
     onError: () => toast({ title: "Fehler beim Speichern", variant: "destructive" }),
   });
+
+  const adjustVote = (candidateId: string, delta: number) => {
+    setVoteAllocation((prev) => {
+      const current = prev[candidateId] || 0;
+      const newVal = Math.max(0, current + delta);
+      if (delta > 0 && allocatedTotal >= myVoteCount) return prev;
+      return { ...prev, [candidateId]: newVal };
+    });
+  };
 
   if (editing && election.status === "draft") {
     return (
@@ -211,36 +225,20 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
           <div className="flex gap-1">
             {election.status === "draft" && (
               <>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-                  title="Bearbeiten"
-                >
+                <button onClick={() => setEditing(true)} className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Bearbeiten">
                   <Pencil size={16} />
                 </button>
-                <button
-                  onClick={() => updateStatus.mutate("active")}
-                  className="p-1.5 rounded hover:bg-muted text-primary"
-                  title="Starten"
-                >
+                <button onClick={() => updateStatus.mutate("active")} className="p-1.5 rounded hover:bg-muted text-primary" title="Starten">
                   <Play size={16} />
                 </button>
               </>
             )}
             {election.status === "active" && (
-              <button
-                onClick={() => updateStatus.mutate("closed")}
-                className="p-1.5 rounded hover:bg-muted text-destructive"
-                title="Beenden"
-              >
+              <button onClick={() => updateStatus.mutate("closed")} className="p-1.5 rounded hover:bg-muted text-destructive" title="Beenden">
                 <Square size={16} />
               </button>
             )}
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-1.5 rounded hover:bg-muted text-destructive"
-              title="Löschen"
-            >
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 rounded hover:bg-muted text-destructive" title="Löschen">
               <Trash2 size={16} />
             </button>
           </div>
@@ -262,56 +260,81 @@ const ElectionCard = ({ election, results, myVoteCount, maxVotes, totalMembers, 
             >
               Ja, löschen
             </button>
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted"
-            >
+            <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
               Abbrechen
             </button>
           </div>
         </div>
       )}
 
-      {/* Voting area - two-step: select then confirm */}
+      {/* Cumulative voting area */}
       {canVote && (
-        <div className="space-y-2 mt-4">
-          <p className="text-sm font-medium">
-            Deine Stimme abgeben{maxVotes > 1 ? ` (${myVoteCount + 1}/${maxVotes})` : ""}:
-          </p>
-          {election.candidates?.map((c) => (
-            <label
-              key={c.id}
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-md border cursor-pointer transition-colors ${
-                selectedCandidate === c.id
-                  ? "bg-primary/10 border-primary"
-                  : "hover:bg-muted"
-              }`}
-            >
-              <input
-                type="radio"
-                name={`vote-${election.id}`}
-                checked={selectedCandidate === c.id}
-                onChange={() => setSelectedCandidate(c.id)}
-                className="accent-primary"
-              />
-              {c.name}
-            </label>
-          ))}
+        <div className="space-y-3 mt-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">
+              Deine Stimmen verteilen:
+            </p>
+            <span className={`text-sm font-medium ${allocatedTotal === myVoteCount ? "text-primary" : allocatedTotal > myVoteCount ? "text-destructive" : "text-muted-foreground"}`}>
+              {allocatedTotal} / {myVoteCount} Stimmen vergeben
+            </span>
+          </div>
+          {election.candidates?.map((c) => {
+            const count = voteAllocation[c.id] || 0;
+            return (
+              <div key={c.id} className="flex items-center justify-between px-4 py-2.5 rounded-md border">
+                <span className="text-sm">{c.name}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => adjustVote(c.id, -1)}
+                    disabled={count === 0}
+                    className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="text-sm font-medium w-8 text-center">{count}</span>
+                  <button
+                    onClick={() => adjustVote(c.id, 1)}
+                    disabled={allocatedTotal >= myVoteCount}
+                    className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
           <button
-            onClick={() => castVote.mutate()}
-            disabled={!selectedCandidate || castVote.isPending}
-            className="mt-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            onClick={() => {
+              if (allocatedTotal !== myVoteCount) {
+                toast({
+                  title: `Du musst genau ${myVoteCount} Stimme${myVoteCount !== 1 ? "n" : ""} vergeben`,
+                  description: `Aktuell: ${allocatedTotal} von ${myVoteCount}`,
+                  variant: "destructive",
+                });
+                return;
+              }
+              castVotes.mutate();
+            }}
+            disabled={castVotes.isPending}
+            className="mt-1 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            Stimme abgeben
+            Stimmen abgeben
           </button>
         </div>
       )}
 
-      {/* Already voted message */}
-      {election.status === "active" && myVoteCount >= maxVotes && (
+      {/* Already voted */}
+      {election.status === "active" && hasVoted && (
         <div className="mt-4 p-3 rounded-md bg-muted text-sm text-muted-foreground flex items-center gap-2">
           <CheckCircle2 size={16} className="text-primary" />
           Du hast bereits abgestimmt. Das Ergebnis wird nach Abschluss sichtbar.
+        </div>
+      )}
+
+      {/* No votes (represented) */}
+      {election.status === "active" && !hasVoted && myVoteCount === 0 && (
+        <div className="mt-4 p-3 rounded-md bg-muted text-sm text-muted-foreground">
+          Du wirst in dieser Abstimmung vertreten und kannst nicht selbst abstimmen.
         </div>
       )}
 

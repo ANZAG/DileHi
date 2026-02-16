@@ -22,8 +22,28 @@ export interface ElectionGroup {
   id: string;
   title: string;
   votes_per_member: number;
+  status: string;
+  closed_at: string | null;
   created_by: string;
   created_at: string;
+}
+
+export interface GroupMember {
+  id: string;
+  group_id: string;
+  user_id: string;
+  vote_count: number;
+  represented_by: string | null;
+  created_at: string;
+}
+
+export interface RepresentationLogEntry {
+  id: string;
+  group_id: string;
+  action: string;
+  details: string;
+  changed_by: string;
+  changed_at: string;
 }
 
 export interface ElectionResult {
