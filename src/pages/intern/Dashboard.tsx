@@ -1,16 +1,17 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings } from "lucide-react";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User, Globe } from "lucide-react";
 
 const cards = [
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
-  { title: "Pinnwand", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
+  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse für die Mitgliederversammlung.", icon: Vote, path: "/intern/abstimmungen" },
 ];
 
 const Dashboard = () => {
-  const { user, signOut, isVorstand } = useAuth();
+  const { user, signOut, isVorstand, isHerold } = useAuth();
+  const canSiteAdmin = isVorstand || isHerold;
 
   return (
     <div className="container py-12 max-w-4xl">
@@ -21,9 +22,26 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Angemeldet als {user?.email}
               {isVorstand && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Vorstand</span>}
+              {isHerold && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Herold</span>}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
+            <Link
+              to="/intern/profil"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+            >
+              <User size={16} />
+              Profil
+            </Link>
+            {canSiteAdmin && (
+              <Link
+                to="/intern/siteadmin"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              >
+                <Globe size={16} />
+                Siteadministration
+              </Link>
+            )}
             {isVorstand && (
               <Link
                 to="/intern/verwaltung"
