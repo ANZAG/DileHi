@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   isVorstand: boolean;
   isMember: boolean;
+  isHerold: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isVorstand, setIsVorstand] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  const [isHerold, setIsHerold] = useState(false);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
@@ -29,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data) {
       const roles = data.map((r) => r.role);
       setIsVorstand(roles.includes("vorstand"));
+      setIsHerold(roles.includes("herold"));
       setIsMember(roles.length > 0);
     }
   };
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => fetchRoles(session.user.id), 0);
         } else {
           setIsVorstand(false);
+          setIsHerold(false);
           setIsMember(false);
         }
         setLoading(false);
@@ -70,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

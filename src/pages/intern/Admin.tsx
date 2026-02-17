@@ -3,16 +3,25 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, UserPlus, Trash2, Shield, User, FileText } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Shield, User, FileText, Pencil, KeyRound, X, Crown } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
+const ROLES = [
+  { value: "mitglied", label: "Mitglied", icon: User },
+  { value: "vorstand", label: "Vorstand", icon: Shield },
+  { value: "herold", label: "Herold", icon: Crown },
+];
 
 const Admin = () => {
   const { isVorstand } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"mitglied" | "vorstand">("mitglied");
+  const [role, setRole] = useState<string>("mitglied");
+  const [editingMember, setEditingMember] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("");
 
   if (!isVorstand) return <Navigate to="/intern" replace />;
 
@@ -24,7 +33,6 @@ const Admin = () => {
         .select("*")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      // Fetch profiles separately
       const userIds = roles.map((r) => r.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
@@ -39,7 +47,6 @@ const Admin = () => {
 
   const inviteMember = useMutation({
     mutationFn: async () => {
-      // Use edge function to invite
       const { data, error } = await supabase.functions.invoke("invite-member", {
         body: { email, role },
       });
@@ -65,6 +72,50 @@ const Admin = () => {
     },
   });
 
+  const updateMember = useMutation({
+    mutationFn: async ({ userId, displayName, newRole }: { userId: string; displayName: string; newRole: string }) => {
+      const { data, error } = await supabase.functions.invoke("manage-member", {
+        body: { action: "update_profile", userId, displayName },
+      });
+      if (error) throw error;
+
+      // Update role if changed
+      const currentMember = members.find((m) => m.user_id === userId);
+      if (currentMember && currentMember.role !== newRole) {
+        const { error: roleErr } = await supabase.functions.invoke("manage-member", {
+          body: { action: "update_role", userId, role: newRole },
+        });
+        if (roleErr) throw roleErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      setEditingMember(null);
+      toast({ title: "Mitglied aktualisiert" });
+    },
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("manage-member", {
+        body: { action: "reset_password", userId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast({ title: "Passwort-Reset", description: `Reset-Link wurde für ${data?.email || "den Benutzer"} generiert.` });
+    },
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+  });
+
+  const startEdit = (member: any) => {
+    setEditingMember(member.user_id);
+    setEditName(member.display_name);
+    setEditRole(member.role);
+  };
+
   return (
     <div className="container py-12 max-w-4xl">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -78,7 +129,7 @@ const Admin = () => {
             className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
           >
             <FileText size={16} />
-            Abstimmungs-Protokoll
+            Abstimmungsaudit
           </Link>
         </div>
 
@@ -94,11 +145,12 @@ const Admin = () => {
             />
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as "mitglied" | "vorstand")}
+              onChange={(e) => setRole(e.target.value)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="mitglied">Mitglied</option>
-              <option value="vorstand">Vorstand</option>
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
             </select>
             <button
               onClick={() => email && inviteMember.mutate()}
@@ -115,20 +167,74 @@ const Admin = () => {
           <div className="text-center text-muted-foreground py-8">Laden...</div>
         ) : (
           <div className="space-y-2">
-            {members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                <div className="flex items-center gap-3">
-                  {m.role === "vorstand" ? <Shield size={16} className="text-primary" /> : <User size={16} className="text-muted-foreground" />}
-                  <div>
-                    <span className="text-sm font-medium">{m.display_name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">{m.role === "vorstand" ? "Vorstand" : "Mitglied"}</span>
-                  </div>
+            {members.map((m) => {
+              const roleInfo = ROLES.find((r) => r.value === m.role) || ROLES[0];
+              const RoleIcon = roleInfo.icon;
+              const isEditing = editingMember === m.user_id;
+
+              return (
+                <div key={m.id} className="p-3 rounded-lg border bg-card">
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Anzeigename"
+                          className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        />
+                        <select
+                          value={editRole}
+                          onChange={(e) => setEditRole(e.target.value)}
+                          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateMember.mutate({ userId: m.user_id, displayName: editName, newRole: editRole })}
+                          disabled={updateMember.isPending}
+                          className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          Speichern
+                        </button>
+                        <button
+                          onClick={() => resetPassword.mutate(m.user_id)}
+                          disabled={resetPassword.isPending}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted"
+                        >
+                          <KeyRound size={14} /> Passwort zurücksetzen
+                        </button>
+                        <button onClick={() => setEditingMember(null)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <RoleIcon size={16} className={m.role === "vorstand" ? "text-primary" : "text-muted-foreground"} />
+                        <div>
+                          <span className="text-sm font-medium">{m.display_name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{roleInfo.label}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEdit(m)} className="text-muted-foreground hover:text-foreground p-1" title="Bearbeiten">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive p-1" title="Entfernen">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive p-1">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </motion.div>

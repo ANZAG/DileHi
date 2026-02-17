@@ -15,12 +15,15 @@ import About from "./pages/About";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/intern/Dashboard";
+import Profile from "./pages/intern/Profile";
 import Sources from "./pages/intern/Sources";
 import Announcements from "./pages/intern/Announcements";
 import Elections from "./pages/intern/Elections";
 import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
+import SiteAdmin from "./pages/intern/SiteAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,12 +46,15 @@ const App = () => (
               <Route path="/impressum" element={<Impressum />} />
               <Route path="/datenschutz" element={<Datenschutz />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/passwort-zuruecksetzen" element={<ResetPassword />} />
               <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/intern/quellen" element={<ProtectedRoute><Sources /></ProtectedRoute>} />
               <Route path="/intern/pinnwand" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/intern/siteadmin" element={<ProtectedRoute><SiteAdmin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

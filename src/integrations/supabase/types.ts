@@ -46,6 +46,38 @@ export type Database = {
           },
         ]
       }
+      announcement_replies: {
+        Row: {
+          announcement_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+        }
+        Insert: {
+          announcement_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+        }
+        Update: {
+          announcement_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_replies_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string
@@ -300,6 +332,41 @@ export type Database = {
           },
         ]
       }
+      source_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          epoch: string
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          epoch: string
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          epoch?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "source_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sources: {
         Row: {
           content: string | null
@@ -307,6 +374,7 @@ export type Database = {
           created_by: string
           epoch: string
           file_path: string | null
+          folder_id: string | null
           id: string
           title: string
           updated_at: string
@@ -318,6 +386,7 @@ export type Database = {
           created_by: string
           epoch: string
           file_path?: string | null
+          folder_id?: string | null
           id?: string
           title: string
           updated_at?: string
@@ -329,12 +398,21 @@ export type Database = {
           created_by?: string
           epoch?: string
           file_path?: string | null
+          folder_id?: string | null
           id?: string
           title?: string
           updated_at?: string
           url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sources_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "source_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -441,11 +519,12 @@ export type Database = {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
       }
+      is_herold: { Args: { _user_id: string }; Returns: boolean }
       is_member: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "vorstand" | "mitglied"
+      app_role: "vorstand" | "mitglied" | "herold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -573,7 +652,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["vorstand", "mitglied"],
+      app_role: ["vorstand", "mitglied", "herold"],
     },
   },
 } as const

@@ -47,7 +47,7 @@ const AuditLog = () => {
         <Link to="/intern/verwaltung" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück zur Verwaltung
         </Link>
-        <h1 className="font-serif text-2xl font-bold mb-6">Abstimmungs-Protokoll</h1>
+        <h1 className="font-serif text-2xl font-bold mb-6">Abstimmungsaudit</h1>
         <p className="text-sm text-muted-foreground mb-6">
           Hier werden gelöschte, geschlossene Abstimmungen mit ihrem Ergebnis protokolliert.
         </p>
