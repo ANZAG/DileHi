@@ -18,7 +18,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    // Verify caller is vorstand
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -38,11 +37,32 @@ serve(async (req) => {
 
     const { email, role } = await req.json();
     if (!email || !role) throw new Error("E-Mail und Rolle erforderlich");
-    if (!["mitglied", "vorstand"].includes(role)) throw new Error("Ungültige Rolle");
+    if (!["mitglied", "vorstand", "herold"].includes(role)) throw new Error("Ungültige Rolle");
 
-    // Invite user via admin API
+    // Check if user already exists
+    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+
+    if (existingUser) {
+      // User exists - just assign role
+      // Delete old roles first
+      await adminClient.from("user_roles").delete().eq("user_id", existingUser.id);
+      const { error: roleError } = await adminClient.from("user_roles").insert({
+        user_id: existingUser.id,
+        role,
+      });
+      if (roleError) throw roleError;
+
+      return new Response(JSON.stringify({ success: true, message: "Rolle zugewiesen (Benutzer existiert bereits)" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Invite new user
+    const origin = req.headers.get("origin") || "https://id-preview--1009136a-7a27-45bd-908f-7c25329a933a.lovable.app";
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { display_name: email.split("@")[0] },
+      redirectTo: `${origin}/passwort-zuruecksetzen`,
     });
     if (inviteError) throw inviteError;
 

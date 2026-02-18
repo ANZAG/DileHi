@@ -134,6 +134,30 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+        }
+        Relationships: []
+      }
       election_audit_log: {
         Row: {
           deleted_at: string
@@ -240,6 +264,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gallery_images: {
+        Row: {
+          alt_text: string
+          created_at: string
+          created_by: string
+          epoch: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          created_by: string
+          epoch?: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          created_by?: string
+          epoch?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: []
       }
       group_members: {
         Row: {

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings, User, Globe } from "lucide-react";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User } from "lucide-react";
 
 const cards = [
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
@@ -11,7 +11,7 @@ const cards = [
 
 const Dashboard = () => {
   const { user, signOut, isVorstand, isHerold } = useAuth();
-  const canSiteAdmin = isVorstand || isHerold;
+  const canAdmin = isVorstand || isHerold;
 
   return (
     <div className="container py-12 max-w-4xl">
@@ -30,33 +30,21 @@ const Dashboard = () => {
               to="/intern/profil"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
-              <User size={16} />
-              Profil
+              <User size={16} /> Profil
             </Link>
-            {canSiteAdmin && (
-              <Link
-                to="/intern/siteadmin"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-              >
-                <Globe size={16} />
-                Siteadministration
-              </Link>
-            )}
-            {isVorstand && (
+            {canAdmin && (
               <Link
                 to="/intern/verwaltung"
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
               >
-                <Settings size={16} />
-                Verwaltung
+                <Settings size={16} /> Verwaltung
               </Link>
             )}
             <button
               onClick={signOut}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
-              <LogOut size={16} />
-              Abmelden
+              <LogOut size={16} /> Abmelden
             </button>
           </div>
         </div>

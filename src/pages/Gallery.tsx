@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+// Static fallback images
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
@@ -8,7 +12,7 @@ import heroImage from "@/assets/hero-medieval.jpg";
 
 type Epoch = "alle" | "mittelalter" | "wk1" | "1815";
 
-const images = [
+const staticImages = [
   { src: heroImage, alt: "Rittergruppe im Wald", epoch: "mittelalter" as const },
   { src: epochMedieval, alt: "Ritter vor Fachwerkhaus", epoch: "mittelalter" as const },
   { src: epochWW1, alt: "Pioniere im Schützengraben", epoch: "wk1" as const },
@@ -17,16 +21,36 @@ const images = [
 
 const filters: { value: Epoch; label: string }[] = [
   { value: "alle", label: "Alle Epochen" },
-  { value: "mittelalter", label: "1290–1310" },
-  { value: "wk1", label: "1916/17" },
-  { value: "1815", label: "1815" },
+  { value: "mittelalter", label: "Hochmittelalter" },
+  { value: "1815", label: "Napoleonik" },
+  { value: "wk1", label: "Erster Weltkrieg" },
 ];
 
 const Gallery = () => {
   const [filter, setFilter] = useState<Epoch>("alle");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const filtered = filter === "alle" ? images : images.filter((img) => img.epoch === filter);
+  const { data: dbImages = [] } = useQuery({
+    queryKey: ["gallery_images"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_images" as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (data as any[]).map((img: any) => {
+        const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
+        return {
+          src: urlData.publicUrl,
+          alt: img.alt_text || "Galeriebild",
+          epoch: img.epoch as string,
+        };
+      });
+    },
+  });
+
+  const allImages = [...dbImages, ...staticImages];
+  const filtered = filter === "alle" ? allImages : allImages.filter((img) => img.epoch === filter);
 
   return (
     <div className="container py-12 md:py-20">
@@ -35,7 +59,6 @@ const Gallery = () => {
         <p className="text-muted-foreground mb-8">Eindrücke aus unseren Darstellungen und Veranstaltungen.</p>
       </motion.div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-8">
         {filters.map((f) => (
           <button
@@ -52,14 +75,13 @@ const Gallery = () => {
         ))}
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((img, i) => (
           <motion.button
             key={img.src + img.alt}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
+            transition={{ delay: i * 0.05 }}
             onClick={() => setLightbox(i)}
             className="aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer"
           >
@@ -73,11 +95,12 @@ const Gallery = () => {
         ))}
       </div>
 
-      <p className="text-center text-sm text-muted-foreground mt-12">
-        Weitere Bilder werden in Kürze hinzugefügt. Besucht uns auch auf unserer Facebook-Seite.
-      </p>
+      {filtered.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground mt-12">
+          Keine Bilder in dieser Kategorie.
+        </p>
+      )}
 
-      {/* Lightbox */}
       <AnimatePresence>
         {lightbox !== null && (
           <motion.div

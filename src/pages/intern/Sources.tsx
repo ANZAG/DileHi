@@ -8,13 +8,13 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const EPOCHS = [
-  { value: "mittelalter", label: "1290–1310" },
-  { value: "wk1", label: "1916/17" },
-  { value: "1815", label: "1815" },
+  { value: "mittelalter", label: "Hochmittelalter" },
+  { value: "1815", label: "Napoleonik" },
+  { value: "wk1", label: "Erster Weltkrieg" },
 ];
 
 const Sources = () => {
-  const { user } = useAuth();
+  const { user, isVorstand } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [epochFilter, setEpochFilter] = useState("");
@@ -24,6 +24,7 @@ const Sources = () => {
   const [folderName, setFolderName] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [form, setForm] = useState({ epoch: "mittelalter", title: "", content: "", url: "" });
+  const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<string | null>(null);
 
   const activeEpoch = epochFilter || "mittelalter";
 
@@ -118,12 +119,15 @@ const Sources = () => {
 
   const deleteFolder = useMutation({
     mutationFn: async (id: string) => {
+      // Cascade delete is handled by DB constraint
       const { error } = await (supabase.from("source_folders" as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["source_folders"] });
-      toast({ title: "Ordner gelöscht" });
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      setFolderDeleteConfirm(null);
+      toast({ title: "Ordner und Inhalt gelöscht" });
     },
   });
 
@@ -132,9 +136,6 @@ const Sources = () => {
       const path = `sources/${activeEpoch}/${Date.now()}_${file.name}`;
       const { error: uploadErr } = await supabase.storage.from("internal-files").upload(path, file);
       if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from("internal-files").getPublicUrl(path);
-
       const { error: dbErr } = await supabase.from("sources").insert({
         epoch: activeEpoch,
         title: file.name,
@@ -144,7 +145,6 @@ const Sources = () => {
         created_by: user!.id,
       } as any);
       if (dbErr) throw dbErr;
-
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       toast({ title: "Datei hochgeladen" });
     } catch (err: any) {
@@ -166,7 +166,6 @@ const Sources = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Search across all sources
   const searchResults = search
     ? sources.filter(
         (s) => s.title.toLowerCase().includes(search.toLowerCase()) || s.content?.toLowerCase().includes(search.toLowerCase())
@@ -182,93 +181,43 @@ const Sources = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-serif text-2xl font-bold">Quellensammlung</h1>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowFolderForm(!showFolderForm)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted"
-            >
+            <button onClick={() => setShowFolderForm(!showFolderForm)} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted">
               <FolderPlus size={16} /> Ordner
             </button>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
+            <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus size={16} /> Neue Quelle
             </button>
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
               <Upload size={16} /> Datei
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadSourceFile(file);
-                  e.target.value = "";
-                }}
-              />
+              <input type="file" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadSourceFile(file); e.target.value = ""; }} />
             </label>
           </div>
         </div>
 
-        {/* Folder form */}
         {showFolderForm && (
           <div className="p-4 rounded-lg border bg-card mb-4 flex gap-2">
-            <input
-              placeholder="Ordnername *"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
-            />
-            <button
-              onClick={() => folderName && createFolder.mutate()}
-              disabled={!folderName || createFolder.isPending}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <input placeholder="Ordnername *" value={folderName} onChange={(e) => setFolderName(e.target.value)} className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm" />
+            <button onClick={() => folderName && createFolder.mutate()} disabled={!folderName || createFolder.isPending} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
               Erstellen
             </button>
           </div>
         )}
 
-        {/* Source form */}
         {showForm && (
           <div className="p-4 rounded-lg border bg-card mb-4 space-y-3">
-            <input
-              placeholder="Titel *"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            />
-            <textarea
-              placeholder="Beschreibung / Inhalt"
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
-            />
-            <input
-              placeholder="URL (optional)"
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            />
-            <button
-              onClick={() => form.title && addSource.mutate()}
-              disabled={!form.title || addSource.isPending}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <input placeholder="Titel *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+            <textarea placeholder="Beschreibung / Inhalt" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]" />
+            <input placeholder="URL (optional)" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" />
+            <button onClick={() => form.title && addSource.mutate()} disabled={!form.title || addSource.isPending} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
               Speichern
             </button>
           </div>
         )}
 
-        {/* Search and epoch filter */}
         <div className="flex gap-2 mb-6 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              placeholder="Suchen..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm"
-            />
+            <input placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm" />
           </div>
           <div className="flex gap-1">
             {EPOCHS.map((e) => (
@@ -283,7 +232,6 @@ const Sources = () => {
           </div>
         </div>
 
-        {/* Search results */}
         {searchResults ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
@@ -293,12 +241,8 @@ const Sources = () => {
           </div>
         ) : (
           <>
-            {/* Breadcrumb */}
             {currentFolderId && (
-              <button
-                onClick={() => setCurrentFolderId(parentFolder?.parent_id || null)}
-                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
-              >
+              <button onClick={() => setCurrentFolderId(parentFolder?.parent_id || null)} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
                 <ArrowUp size={14} /> Übergeordneter Ordner
               </button>
             )}
@@ -307,25 +251,41 @@ const Sources = () => {
               <div className="text-center text-muted-foreground py-12">Laden...</div>
             ) : (
               <div className="space-y-2">
-                {/* Folders */}
                 {currentFolders.map((f: any) => (
-                  <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                    <button
-                      onClick={() => setCurrentFolderId(f.id)}
-                      className="flex items-center gap-2 text-sm font-medium"
-                    >
-                      <Folder size={18} className="text-primary" />
-                      {f.name}
-                    </button>
-                    {(f.created_by === user?.id) && (
-                      <button onClick={() => deleteFolder.mutate(f.id)} className="text-muted-foreground hover:text-destructive p-1">
-                        <Trash2 size={14} />
-                      </button>
+                  <div key={f.id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                    {folderDeleteConfirm === f.id ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-destructive font-medium">
+                          Ordner „{f.name}" und alle Inhalte wirklich löschen?
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => deleteFolder.mutate(f.id)}
+                            disabled={deleteFolder.isPending}
+                            className="px-3 py-1.5 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                          >
+                            Ja, löschen
+                          </button>
+                          <button onClick={() => setFolderDeleteConfirm(null)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
+                            Abbrechen
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <button onClick={() => setCurrentFolderId(f.id)} className="flex items-center gap-2 text-sm font-medium">
+                          <Folder size={18} className="text-primary" /> {f.name}
+                        </button>
+                        {(f.created_by === user?.id || isVorstand) && (
+                          <button onClick={() => setFolderDeleteConfirm(f.id)} className="text-muted-foreground hover:text-destructive p-1">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
 
-                {/* Sources */}
                 {currentSources.length === 0 && currentFolders.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">Keine Quellen in diesem Ordner.</div>
                 ) : (
