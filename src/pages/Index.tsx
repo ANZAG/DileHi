@@ -7,28 +7,34 @@ import epoch1815 from "@/assets/epoch-1815.jpg";
 
 const epochs = [
   {
-    title: "1290–1310",
+    title: "Hochmittelalter",
+    years: "1290–1310",
     subtitle: "Nassauer Land",
     description: "Hochmittelalterliches Leben im Nassauer Land – Ritter, Handwerker und Alltag rund um Wiesbaden.",
     image: epochMedieval,
     path: "/epochen/mittelalter",
     badge: null,
+    timelineYear: 1300,
   },
   {
-    title: "1916/17",
-    subtitle: "1. Nass. Pionier-Btl. Nr. 21",
-    description: "Das Leben und Wirken des 1. Nassauischen Pionier-Bataillons Nr. 21 im Ersten Weltkrieg.",
-    image: epochWW1,
-    path: "/epochen/wk1",
-    badge: null,
-  },
-  {
-    title: "1815",
+    title: "Napoleonik",
+    years: "1809–1815",
     subtitle: "1. Komp., 1. Linien-Rgt. Grenadiere",
     description: "Nassauische Grenadiere in den Befreiungskriegen – dieses Projekt befindet sich im Aufbau.",
     image: epoch1815,
     path: "/epochen/1815",
     badge: "Im Aufbau",
+    timelineYear: 1815,
+  },
+  {
+    title: "Erster Weltkrieg",
+    years: "1916/17",
+    subtitle: "1. Nass. Pionier-Btl. Nr. 21",
+    description: "Das Leben und Wirken des 1. Nassauischen Pionier-Bataillons Nr. 21 im Ersten Weltkrieg.",
+    image: epochWW1,
+    path: "/epochen/wk1",
+    badge: null,
+    timelineYear: 1916,
   },
 ];
 
@@ -75,12 +81,41 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* Epochs */}
+      {/* Timeline */}
       <section className="bg-card py-16 md:py-24">
         <div className="container">
-          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-12">
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-16">
             Unsere Darstellungen
           </h2>
+
+          {/* Timeline bar */}
+          <div className="relative mb-16 hidden md:block">
+            <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-border" />
+            <div className="flex justify-between relative">
+              {epochs.map((epoch, i) => (
+                <motion.div
+                  key={epoch.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.2 }}
+                  className="flex flex-col items-center group"
+                >
+                  <Link to={epoch.path} className="flex flex-col items-center">
+                    <span className="text-xs text-muted-foreground mb-2 group-hover:text-primary transition-colors font-medium">
+                      {epoch.years}
+                    </span>
+                    <div className="w-4 h-4 rounded-full bg-primary border-4 border-background shadow-md group-hover:scale-150 transition-transform" />
+                    <span className="mt-2 text-sm font-semibold group-hover:text-primary transition-colors">
+                      {epoch.title}
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {epochs.map((epoch, i) => (
               <motion.div
@@ -111,6 +146,7 @@ const Index = () => {
                     <h3 className="font-serif text-xl font-semibold mb-1">
                       {epoch.title}
                     </h3>
+                    <p className="text-xs text-muted-foreground mb-1">{epoch.years}</p>
                     <p className="text-sm font-medium text-primary mb-2">
                       {epoch.subtitle}
                     </p>
@@ -140,12 +176,20 @@ const Index = () => {
           <p className="text-muted-foreground mb-8">
             Erfahrt mehr über unseren Verein, unsere Arbeit und wie ihr uns bei Veranstaltungen erleben könnt.
           </p>
-          <Link
-            to="/verein"
-            className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-          >
-            Mehr über uns
-          </Link>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link
+              to="/verein"
+              className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            >
+              Mehr über uns
+            </Link>
+            <Link
+              to="/kontakt"
+              className="inline-flex items-center px-6 py-3 rounded-md border font-medium hover:bg-muted transition-colors"
+            >
+              Kontakt aufnehmen
+            </Link>
+          </div>
         </motion.div>
       </section>
     </div>
