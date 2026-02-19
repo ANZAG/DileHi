@@ -1,8 +1,187 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 const FuerVeranstalter = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    organisation: "",
+    email: "",
+    eventType: "",
+    date: "",
+    location: "",
+    visitors: "",
+    epoch: "",
+    message: "",
+  });
+
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!form.name || !form.organisation || !form.email || !form.eventType || !form.date || !form.location) {
+      toast({ title: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    const messageText = [
+      `Name: ${form.name}`,
+      `Organisation: ${form.organisation}`,
+      `Art: ${form.eventType}`,
+      `Datum: ${form.date}`,
+      `Ort: ${form.location}`,
+      form.visitors ? `Besucherzahl: ${form.visitors}` : null,
+      form.epoch ? `Epoche: ${form.epoch}` : null,
+      form.message ? `Nachricht: ${form.message}` : null,
+    ].filter(Boolean).join("\n");
+
+    const { error } = await supabase.from("contact_messages").insert({
+      name: form.name.trim().slice(0, 100),
+      email: form.email.trim().slice(0, 255),
+      message: messageText.slice(0, 5000),
+    });
+
+    setLoading(false);
+    if (error) {
+      toast({ title: "Fehler beim Senden.", variant: "destructive" });
+    } else {
+      toast({ title: "Anfrage gesendet!", description: "Wir melden uns bei Ihnen." });
+      setForm({ name: "", organisation: "", email: "", eventType: "", date: "", location: "", visitors: "", epoch: "", message: "" });
+    }
+  };
+
   return (
-    <div className="container py-16 md:py-24 max-w-3xl mx-auto">
-      <h1 className="font-serif text-3xl md:text-4xl font-bold mb-6">Für Veranstalter</h1>
-      <p className="text-muted-foreground">Inhalte folgen in Kürze.</p>
+    <div>
+      {/* Hero */}
+      <section className="bg-card py-16 md:py-20">
+        <div className="container max-w-3xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">Für Veranstalter</h1>
+            <p className="text-muted-foreground leading-relaxed">
+              Wir arbeiten mit Partnern zusammen, die historische Bildung und Authentizität in den Mittelpunkt stellen.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      <div className="container max-w-3xl mx-auto py-12 md:py-16 space-y-12">
+        {/* Mit wem wir arbeiten */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Mit wem wir arbeiten</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch. Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob dem Rheingau-Taunus-Kreis und dem Lahn-Dill-Kreis entspricht. Dieser regionale Fokus spiegelt sich in unseren Darstellungen wider.
+          </p>
+        </motion.section>
+
+        {/* Was wir bieten */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Was wir bieten</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4">
+            <p>
+              Im Mittelpunkt unserer Auftritte steht Displayarbeit und Wissensvermittlung. Wir präsentieren rekonstruierte Alltagsgegenstände, Kleidung, Ausrüstung und Handwerk und erklären den historischen Kontext fundiert und zugänglich. Viele unserer Objekte stellen wir selbst her – orientiert an Museumsfunden und aktuellem Forschungsstand.
+            </p>
+            <p>Aktuell decken wir drei Epochen ab:</p>
+            <ul className="list-disc list-inside space-y-1 pl-2">
+              <li>Hochmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden</li>
+              <li>Napoleonische Kriege (1815) – Nassauische Grenadiere</li>
+              <li>Erster Weltkrieg (1916/17) – Nassauische Pioniere</li>
+            </ul>
+          </div>
+        </motion.section>
+
+        {/* Was wir nicht bieten */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <div className="rounded-lg bg-muted/50 border p-6">
+            <h2 className="font-serif text-lg font-semibold mb-3 text-muted-foreground">Was wir nicht bieten</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Unser Angebot richtet sich an Veranstalter, die historische Bildung und Authentizität schätzen. Reine Unterhaltungsformate, Fantasy-Elemente oder Auftritte ohne historischen Bildungsanspruch sind nicht unser Feld – dieses überlassen wir gerne anderen.
+            </p>
+          </div>
+        </motion.section>
+
+        {/* Formular */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="font-serif text-2xl font-semibold mb-6">Anfrage stellen</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" value={form.name} onChange={(e) => handleChange("name", e.target.value)} required maxLength={100} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="organisation">Organisation / Institution *</Label>
+                <Input id="organisation" value={form.organisation} onChange={(e) => handleChange("organisation", e.target.value)} required maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-Mail *</Label>
+                <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required maxLength={255} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="eventType">Art der Veranstaltung *</Label>
+                <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} required maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Datum / Zeitraum *</Label>
+                <Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} required maxLength={100} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Ort der Veranstaltung *</Label>
+                <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} required maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label>Erwartete Besucherzahl</Label>
+                <Select value={form.visitors} onValueChange={(v) => handleChange("visitors", v)}>
+                  <SelectTrigger><SelectValue placeholder="Bitte wählen" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bis 100">bis 100</SelectItem>
+                    <SelectItem value="100–500">100–500</SelectItem>
+                    <SelectItem value="500–1000">500–1.000</SelectItem>
+                    <SelectItem value="über 1000">über 1.000</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Gewünschte Epoche</Label>
+                <Select value={form.epoch} onValueChange={(v) => handleChange("epoch", v)}>
+                  <SelectTrigger><SelectValue placeholder="Bitte wählen" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hochmittelalter">Hochmittelalter</SelectItem>
+                    <SelectItem value="Napoleonik">Napoleonik</SelectItem>
+                    <SelectItem value="Erster Weltkrieg">Erster Weltkrieg</SelectItem>
+                    <SelectItem value="Mehrere">Mehrere</SelectItem>
+                    <SelectItem value="Offen">Offen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="message">Nachricht / Weitere Informationen</Label>
+              <Textarea id="message" value={form.message} onChange={(e) => handleChange("message", e.target.value)} rows={4} maxLength={5000} />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full md:w-auto">
+              {loading ? "Wird gesendet…" : "Anfrage senden"}
+            </Button>
+          </form>
+        </motion.section>
+      </div>
     </div>
   );
 };
