@@ -8,8 +8,9 @@ const navItems = [
   { path: "/epochen/mittelalter", label: "Hochmittelalter" },
   { path: "/epochen/1815", label: "Napoleonik" },
   { path: "/epochen/wk1", label: "Erster Weltkrieg" },
+  { path: "/fuer-veranstalter", label: "Für Veranstalter" },
   { path: "/galerie", label: "Galerie" },
-  { path: "/verein", label: "Der Verein" },
+  { path: "/verein", label: "Über uns" },
   { path: "/kontakt", label: "Kontakt" },
 ];
 
@@ -38,12 +39,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {item.label}
               </Link>
             ))}
-            <Link
-              to={user ? "/intern" : "/login"}
-              className="ml-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              {user ? "Intern" : "Mitglieder"}
-            </Link>
           </nav>
 
           <button className="md:hidden p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
@@ -65,13 +60,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {item.label}
               </Link>
             ))}
-            <Link
-              to={user ? "/intern" : "/login"}
-              onClick={() => setMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {user ? "Intern" : "Mitglieder"}
-            </Link>
           </nav>
         )}
       </header>
@@ -102,6 +90,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <ul className="space-y-1">
                 <li><Link to="/impressum" className="text-sm text-muted-foreground hover:text-primary transition-colors">Impressum</Link></li>
                 <li><Link to="/datenschutz" className="text-sm text-muted-foreground hover:text-primary transition-colors">Datenschutz</Link></li>
+                <li><Link to={user ? "/intern" : "/login"} className="text-sm text-muted-foreground hover:text-primary transition-colors">Mitgliederbereich</Link></li>
               </ul>
             </div>
           </div>

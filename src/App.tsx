@@ -13,6 +13,7 @@ import Epoch1815 from "./pages/Epoch1815";
 import Gallery from "./pages/Gallery";
 import About from "./pages/About";
 import Kontakt from "./pages/Kontakt";
+import FuerVeranstalter from "./pages/FuerVeranstalter";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import Login from "./pages/Login";
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/epochen/mittelalter" element={<EpochMedieval />} />
               <Route path="/epochen/wk1" element={<EpochWW1 />} />
               <Route path="/epochen/1815" element={<Epoch1815 />} />
+              <Route path="/fuer-veranstalter" element={<FuerVeranstalter />} />
               <Route path="/galerie" element={<Gallery />} />
               <Route path="/verein" element={<About />} />
               <Route path="/kontakt" element={<Kontakt />} />
