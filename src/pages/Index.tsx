@@ -9,7 +9,7 @@ const epochs = [
   {
     title: "Hochmittelalter",
     years: "1290–1310",
-    subtitle: "Nassauer Land",
+    subtitle: "Grafschaft Nassau",
     image: epochMedieval,
     path: "/epochen/mittelalter",
   },
@@ -52,7 +52,7 @@ const Index = () => {
             Quellenbasiert. Lebendig.
           </h1>
           <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes im Raum Wiesbaden – von der mittelalterlichen Grafschaft bis zum Ersten Weltkrieg. Unser Anspruch: quellenbasiert, wissenschaftlich fundiert und so nah wie möglich an den Menschen, die damals wirklich gelebt haben.
+            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – von der mittelalterlichen Grafschaft bis zum Ersten Weltkrieg. Unser Anspruch: quellenbasiert, wissenschaftlich fundiert und so nah wie möglich an den Menschen, die damals wirklich gelebt haben.
           </p>
         </motion.div>
       </section>
@@ -108,7 +108,7 @@ const Index = () => {
             Wer wir sind
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein eingetragener gemeinnütziger Verein aus Wiesbaden. Wir stellen nassauische Geschichte nicht als Kulisse nach, sondern vermitteln sie: quellenbasiert, ohne Klischees und mit Respekt vor den Menschen, die sie gelebt haben.
+            Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein eingetragener gemeinnütziger Verein aus Wiesbaden. Wir stellen nassauische Geschichte nicht als Kulisse nach, sondern vermitteln sie: quellenbasiert, ohne Klischees und mit Respekt vor den Menschen, die sie gelebt haben. Unser geografischer Schwerpunkt liegt auf dem Raum Wiesbaden und dem historischen Nassauer Land – einer Region, deren Geschichte von der Stauferzeit bis in die Moderne reicht und die bis heute im Stadtbild, in Ortsnamen und in der Kulturlandschaft sichtbar ist.
           </p>
         </motion.div>
       </section>
@@ -126,7 +126,7 @@ const Index = () => {
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Veranstalter</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Sie planen eine Veranstaltung und suchen authentische Geschichtsvermittlung?
+                Sie planen eine Veranstaltung mit historischem Bildungsanspruch? Wir freuen uns über Ihre Anfrage.
               </p>
               <Link
                 to="/fuer-veranstalter"
@@ -136,9 +136,9 @@ const Index = () => {
               </Link>
             </div>
             <div className="text-center p-8 rounded-lg border bg-background">
-              <h3 className="font-serif text-xl font-semibold mb-3">Über uns</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Für Interessierte</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Erfahren Sie mehr über unseren Verein, unsere Arbeit und unsere Grundsätze.
+                Geschichte begeistert Sie – und vielleicht möchten Sie mehr als nur zuschauen?
               </p>
               <Link
                 to="/verein"
