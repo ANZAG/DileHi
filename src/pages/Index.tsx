@@ -9,7 +9,7 @@ const epochs = [
   {
     title: "Hochmittelalter",
     years: "1290–1310",
-    subtitle: "Nassauer Land",
+    subtitle: "Grafschaft Nassau",
     image: epochMedieval,
     path: "/epochen/mittelalter",
   },
@@ -52,7 +52,7 @@ const Index = () => {
             Quellenbasiert. Lebendig.
           </h1>
           <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes im Raum Wiesbaden – von der mittelalterlichen Grafschaft bis zum Ersten Weltkrieg. Unser Anspruch: quellenbasiert, wissenschaftlich fundiert und so nah wie möglich an den Menschen, die damals wirklich gelebt haben.
+            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – von der mittelalterlichen Grafschaft bis zum Ersten Weltkrieg. Unser Anspruch: quellenbasiert, wissenschaftlich fundiert und so nah wie möglich an den Menschen, die damals wirklich gelebt haben.
           </p>
         </motion.div>
       </section>
@@ -108,7 +108,7 @@ const Index = () => {
             Wer wir sind
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein eingetragener gemeinnütziger Verein aus Wiesbaden. Wir stellen nassauische Geschichte nicht als Kulisse nach, sondern vermitteln sie: quellenbasiert, ohne Klischees und mit Respekt vor den Menschen, die sie gelebt haben.
+            Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein eingetragener gemeinnütziger Verein aus Wiesbaden. Wir stellen nassauische Geschichte nicht als Kulisse nach, sondern vermitteln sie: quellenbasiert, ohne Klischees und mit Respekt vor den Menschen, die sie gelebt haben. Unser geografischer Schwerpunkt liegt auf dem Raum Wiesbaden und dem historischen Nassauer Land – einer Region, deren Geschichte von der Stauferzeit bis in die Moderne reicht und die bis heute im Stadtbild, in Ortsnamen und in der Kulturlandschaft sichtbar ist.
           </p>
         </motion.div>
       </section>
