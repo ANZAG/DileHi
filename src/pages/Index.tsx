@@ -126,7 +126,7 @@ const Index = () => {
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Veranstalter</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Sie planen eine Veranstaltung und suchen authentische Geschichtsvermittlung?
+                Sie planen eine Veranstaltung mit historischem Bildungsanspruch? Wir freuen uns über Ihre Anfrage.
               </p>
               <Link
                 to="/fuer-veranstalter"
@@ -136,9 +136,9 @@ const Index = () => {
               </Link>
             </div>
             <div className="text-center p-8 rounded-lg border bg-background">
-              <h3 className="font-serif text-xl font-semibold mb-3">Über uns</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Für Interessierte</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Erfahren Sie mehr über unseren Verein, unsere Arbeit und unsere Grundsätze.
+                Geschichte begeistert Sie – und vielleicht möchten Sie mehr als nur zuschauen?
               </p>
               <Link
                 to="/verein"
