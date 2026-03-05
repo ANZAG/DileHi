@@ -76,7 +76,7 @@ const FuerVeranstalter = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">Für Veranstalter</h1>
             <p className="text-muted-foreground leading-relaxed">
-              Wir arbeiten mit Partnern zusammen, die historische Bildung und Authentizität in den Mittelpunkt stellen.
+              Wir arbeiten mit Partnern zusammen, die historische Bildung und Authentizität in den Mittelpunkt stellen – nicht als Dekoration, sondern als Inhalt.
             </p>
           </motion.div>
         </div>
@@ -87,7 +87,7 @@ const FuerVeranstalter = () => {
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <h2 className="font-serif text-2xl font-semibold mb-4">Mit wem wir arbeiten</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch. Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob dem Rheingau-Taunus-Kreis und dem Lahn-Dill-Kreis entspricht. Dieser regionale Fokus spiegelt sich in unseren Darstellungen wider.
+            Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch. Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob den Rheingau-Taunus-Kreis, den Lahn-Dill-Kreis und angrenzende Regionen umfasst. Dieser regionale Fokus spiegelt sich in unseren Darstellungen wider: Wir zeigen nassauische Geschichte – mit dem Anspruch, genau diese Region und ihre Menschen zu verstehen.
           </p>
         </motion.section>
 
@@ -96,13 +96,15 @@ const FuerVeranstalter = () => {
           <h2 className="font-serif text-2xl font-semibold mb-4">Was wir bieten</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4">
             <p>
-              Im Mittelpunkt unserer Auftritte steht Displayarbeit und Wissensvermittlung. Wir präsentieren rekonstruierte Alltagsgegenstände, Kleidung, Ausrüstung und Handwerk und erklären den historischen Kontext fundiert und zugänglich. Viele unserer Objekte stellen wir selbst her – orientiert an Museumsfunden und aktuellem Forschungsstand.
+              Im Mittelpunkt unserer Auftritte stehen Displayarbeit und Wissensvermittlung. Wir präsentieren rekonstruierte Alltagsgegenstände, Kleidung, Ausrüstung und Handwerk – und erklären den historischen Kontext fundiert und zugänglich für jedes Publikum. Wir sind keine Kulisse, sondern Gesprächspartner.
             </p>
-            <p>Aktuell decken wir drei Epochen ab:</p>
+            <p>
+              Viele unserer Objekte stellen wir selbst her, orientiert an Museumsfunden und aktuellem Forschungsstand. Aktuell decken wir drei Epochen ab:
+            </p>
             <ul className="list-disc list-inside space-y-1 pl-2">
-              <li>Hochmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden</li>
-              <li>Napoleonische Kriege (1815) – Nassauische Grenadiere</li>
-              <li>Erster Weltkrieg (1916/17) – Nassauische Pioniere</li>
+              <li>Hochmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden, vom Niederadel bis zum Handwerk</li>
+              <li>Napoleonische Kriege (1815) – Nassauische Grenadiere des 1. Linien-Regiments</li>
+              <li>Erster Weltkrieg (1916/17) – 1. Nassauisches Pionier-Bataillon Nr. 21</li>
             </ul>
           </div>
         </motion.section>
@@ -119,7 +121,10 @@ const FuerVeranstalter = () => {
 
         {/* Formular */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="font-serif text-2xl font-semibold mb-6">Anfrage stellen</h2>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Anfrage stellen</h2>
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            Sie möchten uns für eine Veranstaltung anfragen? Wir freuen uns darüber. Je mehr Sie uns bereits mitteilen können, desto besser können wir einschätzen, ob und wie wir zusammenpassen.
+          </p>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
