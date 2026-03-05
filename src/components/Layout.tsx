@@ -90,7 +90,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <ul className="space-y-1">
                 <li><Link to="/impressum" className="text-sm text-muted-foreground hover:text-primary transition-colors">Impressum</Link></li>
                 <li><Link to="/datenschutz" className="text-sm text-muted-foreground hover:text-primary transition-colors">Datenschutz</Link></li>
-                <li><Link to={user ? "/intern" : "/login"} className="text-sm text-muted-foreground hover:text-primary transition-colors">Mitgliederbereich</Link></li>
+                <li><Link to={user ? "/intern" : "/login"} className="inline-flex items-center px-4 py-2 rounded-md bg-yellow-500 text-yellow-950 font-medium text-sm hover:bg-yellow-400 transition-colors">Mitgliederbereich</Link></li>
               </ul>
             </div>
           </div>
