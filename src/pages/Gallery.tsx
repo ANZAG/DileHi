@@ -21,7 +21,7 @@ const staticImages = [
 
 const filters: { value: Epoch; label: string }[] = [
   { value: "alle", label: "Alle Epochen" },
-  { value: "mittelalter", label: "Hochmittelalter" },
+  { value: "mittelalter", label: "Spätmittelalter" },
   { value: "1815", label: "Napoleonik" },
   { value: "wk1", label: "Erster Weltkrieg" },
 ];

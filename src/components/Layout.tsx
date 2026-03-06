@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/", label: "Startseite" },
-  { path: "/epochen/mittelalter", label: "Hochmittelalter" },
+  { path: "/epochen/mittelalter", label: "Spätmittelalter" },
   { path: "/epochen/1815", label: "Napoleonik" },
   { path: "/epochen/wk1", label: "Erster Weltkrieg" },
   { path: "/fuer-veranstalter", label: "Für Veranstalter" },

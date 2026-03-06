@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const EPOCHS = [
-  { value: "mittelalter", label: "Hochmittelalter" },
+  { value: "mittelalter", label: "Spätmittelalter" },
   { value: "1815", label: "Napoleonik" },
   { value: "wk1", label: "Erster Weltkrieg" },
 ];
