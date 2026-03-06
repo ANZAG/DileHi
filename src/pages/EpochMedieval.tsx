@@ -62,7 +62,7 @@ const EpochMedieval = () => (
         <ul className="space-y-3 text-muted-foreground mb-12">
           <li className="flex items-start gap-2">
             <span className="text-primary mt-1">•</span>
-            <span>Alltagsleben im hochmittelalterlichen Nassau</span>
+            <span>Alltagsleben im spätmittelalterlichen Nassau</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-1">•</span>

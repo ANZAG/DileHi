@@ -102,7 +102,7 @@ const FuerVeranstalter = () => {
               Viele unserer Objekte stellen wir selbst her, orientiert an Museumsfunden und aktuellem Forschungsstand. Aktuell decken wir drei Epochen ab:
             </p>
             <ul className="list-disc list-inside space-y-1 pl-2">
-              <li>Hochmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden, vom Niederadel bis zum Handwerk</li>
+              <li>Spätmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden, vom Niederadel bis zum Handwerk</li>
               <li>Napoleonische Kriege (1815) – Nassauische Grenadiere des 1. Linien-Regiments</li>
               <li>Erster Weltkrieg (1916/17) – 1. Nassauisches Pionier-Bataillon Nr. 21</li>
             </ul>
@@ -168,7 +168,7 @@ const FuerVeranstalter = () => {
                 <Select value={form.epoch} onValueChange={(v) => handleChange("epoch", v)}>
                   <SelectTrigger><SelectValue placeholder="Bitte wählen" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Hochmittelalter">Hochmittelalter</SelectItem>
+                    <SelectItem value="Spätmittelalter">Spätmittelalter</SelectItem>
                     <SelectItem value="Napoleonik">Napoleonik</SelectItem>
                     <SelectItem value="Erster Weltkrieg">Erster Weltkrieg</SelectItem>
                     <SelectItem value="Mehrere">Mehrere</SelectItem>

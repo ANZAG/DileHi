@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
@@ -7,13 +8,15 @@ import epoch1815 from "@/assets/epoch-1815.jpg";
 
 const epochs = [
   {
-    title: "Hochmittelalter",
+    id: "mittelalter",
+    title: "Spätmittelalter",
     years: "1290–1310",
     subtitle: "Grafschaft Nassau",
     image: epochMedieval,
     path: "/epochen/mittelalter",
   },
   {
+    id: "1815",
     title: "Napoleonik",
     years: "1815",
     subtitle: "Herzogtum Nassau",
@@ -21,15 +24,18 @@ const epochs = [
     path: "/epochen/1815",
   },
   {
+    id: "wk1",
     title: "Erster Weltkrieg",
     years: "1916/17",
-    subtitle: "Nassauische Pioniere",
+    subtitle: "Provinz Hessen-Nassau",
     image: epochWW1,
     path: "/epochen/wk1",
   },
 ];
 
 const Index = () => {
+  const [activeEpoch, setActiveEpoch] = useState(0);
+
   return (
     <div>
       {/* Hero */}
@@ -57,41 +63,84 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* Epochen */}
+      {/* Epochen – Timeline + Image */}
       <section className="bg-card py-16 md:py-24">
         <div className="container">
           <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-12">
             Unsere Darstellungen
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {epochs.map((epoch, i) => (
-              <motion.div
-                key={epoch.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.15 }}
-              >
-                <Link
-                  to={epoch.path}
-                  className="group block rounded-lg overflow-hidden border bg-background shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={epoch.image}
-                      alt={epoch.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
+
+          <div className="max-w-4xl mx-auto">
+            {/* Image */}
+            <Link to={epochs[activeEpoch].path} className="block relative aspect-[16/9] rounded-lg overflow-hidden mb-8 group">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={epochs[activeEpoch].id}
+                  src={epochs[activeEpoch].image}
+                  alt={epochs[activeEpoch].title}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1">{epochs[activeEpoch].subtitle}</p>
+                <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">{epochs[activeEpoch].title}</h3>
+              </div>
+            </Link>
+
+            {/* Timeline */}
+            <div className="relative">
+              {/* Line */}
+              <div className="absolute top-3 left-0 right-0 h-px bg-border" />
+              {/* Active segment indicator */}
+              <div
+                className="absolute top-3 h-px bg-primary transition-all duration-300"
+                style={{
+                  left: `${(activeEpoch / (epochs.length - 1)) * 100}%`,
+                  width: `0%`,
+                }}
+              />
+
+              <div className="relative flex justify-between">
+                {epochs.map((epoch, i) => (
+                  <Link
+                    key={epoch.id}
+                    to={epoch.path}
+                    onMouseEnter={() => setActiveEpoch(i)}
+                    className={`group flex flex-col items-center text-center cursor-pointer transition-colors duration-200 ${
+                      i === activeEpoch ? "" : ""
+                    }`}
+                  >
+                    {/* Dot */}
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full border-2 transition-all duration-200 mb-3 ${
+                        i === activeEpoch
+                          ? "bg-primary border-primary scale-125"
+                          : "bg-background border-muted-foreground/40 group-hover:border-primary"
+                      }`}
                     />
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-serif text-xl font-semibold mb-1">{epoch.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-1">{epoch.years}</p>
-                    <p className="text-sm font-medium text-primary">{epoch.subtitle}</p>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <span
+                      className={`font-serif text-sm md:text-base font-semibold transition-colors duration-200 ${
+                        i === activeEpoch ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                      }`}
+                    >
+                      {epoch.years}
+                    </span>
+                    <span
+                      className={`text-xs md:text-sm mt-0.5 transition-colors duration-200 ${
+                        i === activeEpoch ? "text-foreground" : "text-muted-foreground/60 group-hover:text-muted-foreground"
+                      }`}
+                    >
+                      {epoch.subtitle}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
