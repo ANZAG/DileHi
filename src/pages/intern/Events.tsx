@@ -442,11 +442,17 @@ const EventsPage = () => {
                           ${today ? "ring-2 ring-inset ring-primary/30" : ""}
                         `}
                       >
-                        <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""}`}>
+                        <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""} ${isSelected ? "text-accent-foreground" : ""}`}>
                           {format(day, "d")}
                         </span>
                         {holiday && (
-                          <div className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-destructive/10 text-destructive">
+                          <div
+                            className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded ${
+                              isSelected
+                                ? "bg-background/90 text-destructive"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
                             {holiday}
                           </div>
                         )}
@@ -456,13 +462,17 @@ const EventsPage = () => {
                             <div
                               key={ev.id}
                               onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                              className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                              className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors ${
+                                isSelected
+                                  ? "bg-background/90 text-foreground border-border hover:bg-background"
+                                  : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                              }`}
                             >
                               {ev.title}
                             </div>
                           ))}
                           {singleDayEvents.length > (holiday ? 1 : 2) && (
-                            <span className="text-[10px] text-muted-foreground">+{singleDayEvents.length - (holiday ? 1 : 2)} weitere</span>
+                            <span className={`text-[10px] ${isSelected ? "text-accent-foreground/80" : "text-muted-foreground"}`}>+{singleDayEvents.length - (holiday ? 1 : 2)} weitere</span>
                           )}
                         </div>
                       </button>
