@@ -130,8 +130,8 @@ const FuerVeranstalter = () => {
         </motion.section>
 
         {/* Foto nach Darstellungen */}
-        <div className="rounded-lg bg-muted/50 border p-8 text-center">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Epochen-Übersicht]</p>
+        <div className="rounded-lg overflow-hidden">
+          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" className="w-full h-auto object-cover" />
         </div>
 
         {/* Mit wem wir arbeiten */}
