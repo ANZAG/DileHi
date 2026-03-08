@@ -193,14 +193,6 @@ const EpochWW1 = () => {
             <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
           )}
 
-          {/* Hinweis */}
-          <div className="p-6 rounded-lg bg-card border">
-            <h3 className="font-serif text-lg font-semibold mb-2">Quellenhinweis</h3>
-            <p className="text-sm text-muted-foreground">
-              Dieser Bereich wird laufend mit neuen Informationen, Bildern und Quellenangaben ergänzt.
-            </p>
-          </div>
-
         </motion.div>
       </section>
 
