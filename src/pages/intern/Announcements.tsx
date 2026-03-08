@@ -125,7 +125,8 @@ const Announcements = () => {
   const uploadFile = async (announcementId: string, file: File) => {
     setUploadingFile(announcementId);
     try {
-      const path = `announcements/${announcementId}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `announcements/${announcementId}/${Date.now()}_${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from("internal-files")
         .upload(path, file);
