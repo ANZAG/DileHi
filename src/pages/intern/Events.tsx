@@ -54,6 +54,7 @@ const EventsPage = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showCalendarSync, setShowCalendarSync] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
