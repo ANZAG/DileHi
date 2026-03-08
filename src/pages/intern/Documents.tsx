@@ -28,9 +28,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const CATEGORIES = [
+const ALL_CATEGORIES = [
   { value: "satzung", label: "Satzung & Ordnungen" },
   { value: "protokoll", label: "Protokolle" },
+  { value: "vorstand", label: "Vorstand" },
   { value: "sonstiges", label: "Sonstiges" },
 ];
 
