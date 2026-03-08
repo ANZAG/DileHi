@@ -5,6 +5,7 @@ import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
+import gruppenfoto from "@/assets/gruppenfoto.jpg";
 const epochs = [
   {
     id: "mittelalter",
@@ -185,8 +186,8 @@ const Index = () => {
               Unsere Arbeit zeigen wir vor allem auf Veranstaltungen von Museen und historischen Einrichtungen, wo wir Geschichte durch Gespräche, Vorführungen und Displayarbeit für Besucher greifbar machen.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6 mb-4">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Gruppenfoto]</p>
+          <div className="rounded-lg overflow-hidden mt-6 mb-4">
+            <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" className="w-full h-auto object-cover" />
           </div>
           <Link to="/verein" className="inline-flex items-center mt-2 text-primary hover:underline font-medium">
             Mehr über unseren Verein →
