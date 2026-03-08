@@ -9,7 +9,11 @@ function escapeIcal(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
-function toIcalDate(iso: string): string {
+function formatIcalDate(iso: string, allDay: boolean): string {
+  if (allDay) {
+    // VALUE=DATE format: YYYYMMDD
+    return iso.slice(0, 10).replace(/-/g, "");
+  }
   return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "").replace(/\+00:00$/, "Z");
 }
 
@@ -37,19 +41,33 @@ Deno.serve(async (req) => {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//SpäMi e.V.//Veranstaltungen//DE",
+    "PRODID:-//Diu lebendec Historje e.V.//Veranstaltungen//DE",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:SpäMi Veranstaltungen",
+    "X-WR-CALNAME:Diu lebendec Historje Veranstaltungen",
   ];
 
   for (const ev of events || []) {
+    const allDay = ev.all_day ?? false;
+
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${ev.id}@spaemi.de`);
-    lines.push(`DTSTART:${toIcalDate(ev.start_date)}`);
-    if (ev.end_date) {
-      lines.push(`DTEND:${toIcalDate(ev.end_date)}`);
+    lines.push(`UID:${ev.id}@dilehi.de`);
+
+    if (allDay) {
+      lines.push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
+      if (ev.end_date) {
+        // iCal all-day DTEND is exclusive, so add one day
+        const endDate = new Date(ev.end_date);
+        endDate.setDate(endDate.getDate() + 1);
+        lines.push(`DTEND;VALUE=DATE:${endDate.toISOString().slice(0, 10).replace(/-/g, "")}`);
+      }
+    } else {
+      lines.push(`DTSTART:${formatIcalDate(ev.start_date, false)}`);
+      if (ev.end_date) {
+        lines.push(`DTEND:${formatIcalDate(ev.end_date, false)}`);
+      }
     }
+
     lines.push(`SUMMARY:${escapeIcal(ev.title)}`);
     if (ev.description) {
       lines.push(`DESCRIPTION:${escapeIcal(ev.description)}`);
@@ -57,7 +75,7 @@ Deno.serve(async (req) => {
     if (ev.location) {
       lines.push(`LOCATION:${escapeIcal(ev.location)}`);
     }
-    lines.push(`DTSTAMP:${toIcalDate(ev.created_at)}`);
+    lines.push(`DTSTAMP:${formatIcalDate(ev.created_at, false)}`);
     lines.push("END:VEVENT");
   }
 
@@ -67,7 +85,7 @@ Deno.serve(async (req) => {
     headers: {
       ...corsHeaders,
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="spaemi-kalender.ics"',
+      "Content-Disposition": 'attachment; filename="dilehi-kalender.ics"',
     },
   });
 });

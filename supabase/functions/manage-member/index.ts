@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,6 +25,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Verify caller is Vorstand
     const { data: callerRole } = await adminClient
       .from("user_roles")
       .select("role")
@@ -53,7 +53,6 @@ serve(async (req) => {
     if (action === "update_role") {
       if (!userId || !role) throw new Error("userId und role erforderlich");
       if (!["mitglied", "vorstand", "herold"].includes(role)) throw new Error("Ungültige Rolle");
-      // Delete existing role, insert new one
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       const { error } = await adminClient.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
@@ -64,10 +63,8 @@ serve(async (req) => {
 
     if (action === "reset_password") {
       if (!userId) throw new Error("userId erforderlich");
-      // Get user email
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
       if (userError || !userData?.user?.email) throw new Error("Benutzer nicht gefunden");
-      // Generate password reset link
       const { error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email: userData.user.email,
@@ -79,8 +76,9 @@ serve(async (req) => {
     }
 
     throw new Error("Unbekannte Aktion");
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
