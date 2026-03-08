@@ -167,7 +167,7 @@ const Admin = () => {
                 {/* Invite form */}
                 <div className="space-y-3 mb-6">
                   <h3 className="font-semibold text-sm">Neues Mitglied einladen</h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="email"
                       placeholder="E-Mail-Adresse"
@@ -175,22 +175,24 @@ const Admin = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
                     />
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => email && inviteMember.mutate()}
-                      disabled={!email || inviteMember.isPending}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      <UserPlus size={16} /> Einladen
-                    </button>
+                    <div className="flex gap-2">
+                      <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm flex-1 sm:flex-none"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => email && inviteMember.mutate()}
+                        disabled={!email || inviteMember.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        <UserPlus size={16} /> Einladen
+                      </button>
+                    </div>
                   </div>
                 </div>
 
