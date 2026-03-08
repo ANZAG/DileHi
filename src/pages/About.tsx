@@ -67,8 +67,8 @@ const About = () => (
             Ein großer Teil der Kleidung und Ausrüstung, die wir in unseren Darstellungen verwenden, entsteht so Schritt für Schritt innerhalb der Gruppe.
           </p>
         </div>
-        <div className="rounded-lg overflow-hidden mt-6">
-          <img src={detailHandwerk} alt="Detailfoto Handwerk – Zirkelarbeit am Tisch" className="w-full h-auto object-cover" />
+        <div className="rounded-lg overflow-hidden mt-6 max-w-md mx-auto">
+          <img src={detailHandwerk} alt="Detailfoto Handwerk – Zirkelarbeit am Tisch" className="w-full h-auto object-cover rounded-lg" />
         </div>
       </section>
 
