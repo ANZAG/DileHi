@@ -142,9 +142,9 @@ const FuerVeranstalter = () => {
 
         {/* Unser Schwerpunkt */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <div className="rounded-lg bg-muted/50 border p-6">
-            <h2 className="font-serif text-lg font-semibold mb-3 text-muted-foreground">Unser Schwerpunkt</h2>
-            <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
+          <div className="p-8 rounded-xl bg-primary/5 border border-primary/20">
+            <h2 className="font-serif text-lg font-semibold mb-3 text-primary">Unser Schwerpunkt</h2>
+            <div className="text-sm text-foreground/80 leading-relaxed space-y-2">
               <p>
                 Unser Angebot richtet sich vor allem an Veranstalter, die historischen Inhalt und Vermittlung in den Mittelpunkt stellen.
               </p>
