@@ -66,7 +66,34 @@ const Epoch1815 = () => {
             </div>
           </div>
 
-          {/* 1 – Unsere Darstellung */}
+          {/* 1 – Regionsbezug */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Regionsbezug</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
+            <p>
+              Wiesbaden war seit 1806 Residenzstadt des Herzogtums Nassau – eines Staates, der Napoleon seine Existenz verdankte. Von hier aus wurden Truppen ausgehoben, ausgebildet und in den Krieg geschickt. Das 1. Nassauische Linien-Regiment rekrutierte seine Männer aus dem gesamten Herzogtum: aus dem Taunus, dem Lahnthal, dem Westerwald und der Residenzstadt selbst.
+            </p>
+            <p>
+              Die Geschichte dieser Männer ist die Geschichte unserer Region: nassauische Soldaten, die durch die Umwälzungen der napoleonischen Zeit von einem Schlachtfeld zum nächsten geworfen wurden – von Spanien über Russland bis nach Waterloo.
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Residenzstadt Wiesbaden um 1815]</p>
+          </div>
+
+          {/* 2 – Was Besucher erleben können */}
+          <VisitorHighlight
+            intro="Auf Veranstaltungen machen wir die Welt der nassauischen Soldaten um 1815 anschaulich und verständlich."
+            items={[
+              "Einblicke in Kleidung, Uniformierung und Ausrüstung eines nassauischen Grenadiers",
+              "Präsentationen von Alltagsgegenständen und persönlicher Ausrüstung",
+              "Nassaus Weg durch die Napoleonischen Kriege – vom Rheinbund bis Waterloo",
+              "Die Rolle Wiesbadens als Garnisons- und Residenzstadt",
+              "Gespräche über das Leben, Marschieren und Kämpfen in dieser Zeit",
+            ]}
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
+
+          {/* 3 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
@@ -80,20 +107,7 @@ const Epoch1815 = () => {
             <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Napoleonik-Darstellung]</p>
           </div>
 
-          {/* 2 – Was Besucher erleben können (hervorgehoben) */}
-          <VisitorHighlight
-            intro="Auf Veranstaltungen machen wir die Welt der nassauischen Soldaten um 1815 anschaulich und verständlich."
-            items={[
-              "Einblicke in Kleidung, Uniformierung und Ausrüstung eines nassauischen Grenadiers",
-              "Präsentationen von Alltagsgegenständen und persönlicher Ausrüstung",
-              "Nassaus Weg durch die Napoleonischen Kriege – vom Rheinbund bis Waterloo",
-              "Die Rolle Wiesbadens als Garnisons- und Residenzstadt",
-              "Gespräche über das Leben, Marschieren und Kämpfen in dieser Zeit",
-            ]}
-            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
-          />
-
-          {/* 3 – Historischer Kontext */}
+          {/* 4 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             Unser Blick gilt dem Herzogtum Nassau und seiner Residenzstadt Wiesbaden – einem Territorium, das durch Napoleon grundlegend neu geformt wurde und dessen Männer in einige der folgenreichsten Schlachten der europäischen Geschichte zogen.
@@ -122,10 +136,10 @@ const Epoch1815 = () => {
             <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Uniform / Ausrüstung 1815]</p>
           </div>
 
-          {/* 4 – Unsere Quellen (aus DB) */}
+          {/* 5 – Unsere Quellen (aus DB) */}
           <EpochSources epoch="1815" />
 
-          {/* 5 – Galerie */}
+          {/* 6 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
           {allImages.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
