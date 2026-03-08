@@ -503,8 +503,15 @@ const EventsPage = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalIcon size={16} />
-                  {format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy, HH:mm", { locale: de })}
-                  {selectedEvent.end_date && ` – ${format(parseISO(selectedEvent.end_date), "HH:mm")}`}
+                  {selectedEvent.all_day
+                    ? (selectedEvent.end_date && !isSameDay(parseISO(selectedEvent.start_date), parseISO(selectedEvent.end_date))
+                      ? `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM", { locale: de })} – ${format(parseISO(selectedEvent.end_date), "EEEE, d. MMMM yyyy", { locale: de })}`
+                      : `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy", { locale: de })} (Ganztägig)`)
+                    : <>
+                        {format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy, HH:mm", { locale: de })}
+                        {selectedEvent.end_date && ` – ${format(parseISO(selectedEvent.end_date), "HH:mm")}`}
+                      </>
+                  }
                 </div>
                 {selectedEvent.location && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
