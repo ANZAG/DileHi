@@ -68,13 +68,16 @@ const EpochWW1 = () => {
 
           {/* 1 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
               Unsere Darstellung des Ersten Weltkriegs konzentriert sich auf den Zeitraum November 1916 bis März 1917. Die Pioniere des Bataillons Nr. 21 waren Spezialisten des Stellungskriegs: Sie bauten Schützengräben, schlugen Brücken, sprengten Hindernisse und errichteten Befestigungen – unverzichtbar und oft unsichtbar. Keine Sturmtruppe, sondern die Männer, ohne die eine Front nicht funktionierte.
             </p>
             <p>
               Im Mittelpunkt stehen für uns der historische Kontext und die menschliche Dimension: Wie lebten die Soldaten im Alltag der Westfront? Welche Ausrüstung trugen die Pioniere? Was bedeutete der Krieg für die Menschen in Wiesbaden und Nassau? Diese Fragen treiben unsere Arbeit an.
             </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto WK1-Darstellung]</p>
           </div>
 
           {/* 2 – Was Besucher erleben können (hervorgehoben) */}
@@ -114,6 +117,9 @@ const EpochWW1 = () => {
                 Der Erste Weltkrieg ist für viele heute weit weg. Für die Menschen damals war er ein Bruch mit allem, was sie kannten – und der Beginn einer Gewaltspirale, deren Folgen Europa jahrzehntelang prägen sollten. Im Gedenken an die Opfer und zur Mahnung zeigen wir, wie schnell Frieden zur Ausnahme werden kann. Wir stellen keine Helden dar, sondern Menschen.
               </p>
             </div>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Ausrüstung / Stellungsbau]</p>
           </div>
 
           {/* 4 – Unsere Quellen (aus DB) */}

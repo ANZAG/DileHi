@@ -97,6 +97,9 @@ const FuerVeranstalter = () => {
               Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
             </p>
           </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Displayarbeit / Veranstaltung]</p>
+          </div>
         </motion.section>
 
         {/* Unsere Darstellungen */}
@@ -123,6 +126,11 @@ const FuerVeranstalter = () => {
             </li>
           </ul>
         </motion.section>
+
+        {/* Foto nach Darstellungen */}
+        <div className="rounded-lg bg-muted/50 border p-8 text-center">
+          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Epochen-Übersicht]</p>
+        </div>
 
         {/* Mit wem wir arbeiten */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>

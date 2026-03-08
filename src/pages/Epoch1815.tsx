@@ -68,13 +68,16 @@ const Epoch1815 = () => {
 
           {/* 1 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
               Unsere Napoleonik-Darstellung widmet sich der 1. Kompanie des 1. Nassauischen Linien-Regiments Grenadiere im Jahr 1815 – mitten in der Zeit der Befreiungskriege und des Wiener Kongresses. Die nassauischen Truppen spielten in den Koalitionskriegen gegen Napoleon eine wichtige, oft unterschätzte Rolle.
             </p>
             <p>
               Unser Ziel ist es, die Lebenswelt eines nassauischen Grenadiers möglichst greifbar nachzubilden: von der Uniformierung und Bewaffnung über den militärischen Alltag bis hin zum politischen Kontext, in dem sich das Herzogtum Nassau zwischen den Großmächten bewegte.
             </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Napoleonik-Darstellung]</p>
           </div>
 
           {/* 2 – Was Besucher erleben können (hervorgehoben) */}
@@ -114,6 +117,9 @@ const Epoch1815 = () => {
                 Im Juni 1815 kämpften nassauische Einheiten bei Quatre Bras und Waterloo – verteilt über das gesamte Schlachtfeld, von Hougoumont bis Papelotte. Für viele Männer aus Wiesbaden, Dillenburg und dem Nassauer Land waren es die letzten Tage eines langen Krieges, der Europa grundlegend verändert hatte.
               </p>
             </div>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Uniform / Ausrüstung 1815]</p>
           </div>
 
           {/* 4 – Unsere Quellen (aus DB) */}
