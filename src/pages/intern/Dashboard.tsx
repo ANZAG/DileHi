@@ -62,9 +62,9 @@ const Dashboard = () => {
                 to={card.path}
                 className="flex flex-col p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full"
               >
-                <card.icon size={24} className="text-primary mb-2" />
-                <h2 className="font-serif text-base sm:text-lg font-semibold mb-1">{card.title}</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground">{card.desc}</p>
+                <card.icon size={24} className="text-primary mb-2 shrink-0" />
+                <h2 className="font-serif text-sm sm:text-lg font-semibold mb-1 break-words hyphens-auto" lang="de">{card.title}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground break-words">{card.desc}</p>
               </Link>
             </motion.div>
           ))}
