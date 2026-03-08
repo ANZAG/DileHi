@@ -9,6 +9,7 @@ interface AuthContextType {
   isVorstand: boolean;
   isMember: boolean;
   isHerold: boolean;
+  isSchatzmeister: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isVorstand, setIsVorstand] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isHerold, setIsHerold] = useState(false);
+  const [isSchatzmeister, setIsSchatzmeister] = useState(false);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
@@ -32,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const roles = data.map((r) => r.role);
       setIsVorstand(roles.includes("vorstand"));
       setIsHerold(roles.includes("herold"));
+      setIsSchatzmeister(roles.includes("schatzmeister"));
       setIsMember(roles.length > 0);
     }
   };
@@ -46,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setIsVorstand(false);
           setIsHerold(false);
+          setIsSchatzmeister(false);
           setIsMember(false);
         }
         setLoading(false);
@@ -74,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

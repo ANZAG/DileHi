@@ -11,8 +11,8 @@ const cards = [
 ];
 
 const Dashboard = () => {
-  const { user, signOut, isVorstand, isHerold } = useAuth();
-  const canAdmin = isVorstand || isHerold;
+  const { user, signOut, isVorstand, isHerold, isSchatzmeister } = useAuth();
+  const canAdmin = isVorstand || isHerold || isSchatzmeister;
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
@@ -24,6 +24,7 @@ const Dashboard = () => {
               Angemeldet als {user?.email}
               {isVorstand && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Vorstand</span>}
               {isHerold && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Herold</span>}
+              {isSchatzmeister && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Schatzmeister</span>}
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">

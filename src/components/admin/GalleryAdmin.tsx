@@ -94,10 +94,7 @@ const GalleryAdmin = () => {
   });
 
   return (
-    <div className="p-5 rounded-lg border bg-card">
-      <h2 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-        <Image size={20} /> Galerie verwalten
-      </h2>
+    <div className="space-y-4">
 
       {/* Upload form */}
       <div className="flex flex-wrap gap-2 mb-4 items-end">

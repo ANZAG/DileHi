@@ -422,27 +422,93 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      membership_files: {
         Row: {
-          calendar_token: string | null
           created_at: string
-          display_name: string
           id: string
-          updated_at: string
+          name: string
+          storage_path: string
+          uploaded_by: string
+          user_id: string
         }
         Insert: {
-          calendar_token?: string | null
           created_at?: string
-          display_name?: string
-          id: string
-          updated_at?: string
+          id?: string
+          name: string
+          storage_path: string
+          uploaded_by: string
+          user_id: string
         }
         Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          storage_path?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          birthdate: string | null
+          calendar_token: string | null
+          city: string | null
+          contribution_interval: string | null
+          created_at: string
+          display_name: string
+          entry_date: string | null
+          exit_date: string | null
+          first_name: string | null
+          id: string
+          is_active: boolean | null
+          last_name: string | null
+          membership_type: string | null
+          phone: string | null
+          salutation: string | null
+          street: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          birthdate?: string | null
           calendar_token?: string | null
+          city?: string | null
+          contribution_interval?: string | null
           created_at?: string
           display_name?: string
-          id?: string
+          entry_date?: string | null
+          exit_date?: string | null
+          first_name?: string | null
+          id: string
+          is_active?: boolean | null
+          last_name?: string | null
+          membership_type?: string | null
+          phone?: string | null
+          salutation?: string | null
+          street?: string | null
           updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          birthdate?: string | null
+          calendar_token?: string | null
+          city?: string | null
+          contribution_interval?: string | null
+          created_at?: string
+          display_name?: string
+          entry_date?: string | null
+          exit_date?: string | null
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name?: string | null
+          membership_type?: string | null
+          phone?: string | null
+          salutation?: string | null
+          street?: string | null
+          updated_at?: string
+          zip?: string | null
         }
         Relationships: []
       }
@@ -670,10 +736,11 @@ export type Database = {
       }
       is_herold: { Args: { _user_id: string }; Returns: boolean }
       is_member: { Args: { _user_id: string }; Returns: boolean }
+      is_schatzmeister: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "vorstand" | "mitglied" | "herold"
+      app_role: "vorstand" | "mitglied" | "herold" | "schatzmeister"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -801,7 +868,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["vorstand", "mitglied", "herold"],
+      app_role: ["vorstand", "mitglied", "herold", "schatzmeister"],
     },
   },
 } as const

@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const { email, role } = await req.json();
     if (!email || !role) throw new Error("E-Mail und Rolle erforderlich");
-    if (!["mitglied", "vorstand", "herold"].includes(role)) throw new Error("Ungültige Rolle");
+    if (!["mitglied", "vorstand", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
 
     // Check if user already exists by email
     const { data: existingUsers } = await adminClient.auth.admin.listUsers();
