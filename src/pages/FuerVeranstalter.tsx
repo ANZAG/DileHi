@@ -38,7 +38,7 @@ const FuerVeranstalter = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.name || !form.organisation || !form.email || !form.eventType || !form.date || !form.location) {
+    if (!form.name || !form.organisation || !form.email) {
       toast({ title: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return;
     }
