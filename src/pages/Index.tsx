@@ -5,9 +5,6 @@ import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
-import wappenLeft from "@/assets/wappen-nassau-left.png";
-import wappenRight from "@/assets/wappen-nassau-right.png";
-
 const epochs = [
   {
     id: "mittelalter",
@@ -48,17 +45,7 @@ const Index = () => {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
-        <div className="relative z-10 container flex items-center justify-center gap-6 md:gap-12 px-4">
-          {/* Left Wappen */}
-          <motion.img
-            src={wappenLeft}
-            alt="Wappen Grafschaft Nassau"
-            className="hidden md:block w-16 lg:w-20 opacity-60 flex-shrink-0"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 0.6, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          />
-
+        <div className="relative z-10 container flex items-center justify-center px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,16 +78,6 @@ const Index = () => {
               </Link>
             </div>
           </motion.div>
-
-          {/* Right Wappen */}
-          <motion.img
-            src={wappenRight}
-            alt="Wappen Herzogtum Nassau"
-            className="hidden md:block w-16 lg:w-20 opacity-60 flex-shrink-0"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 0.6, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          />
         </div>
       </section>
 
