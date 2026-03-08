@@ -243,6 +243,7 @@ const EventsPage = () => {
               const inMonth = isSameMonth(day, currentMonth);
               const today = isToday(day);
               const isSelected = selectedDate && isSameDay(day, selectedDate);
+              const holiday = getHolidayName(day, holidays);
               return (
                 <button
                   key={i}
@@ -256,8 +257,13 @@ const EventsPage = () => {
                   <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""}`}>
                     {format(day, "d")}
                   </span>
-                  <div className="mt-1 space-y-0.5">
-                    {dayEvents.slice(0, 2).map(ev => (
+                  {holiday && (
+                    <div className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-destructive/10 text-destructive">
+                      {holiday}
+                    </div>
+                  )}
+                  <div className="mt-0.5 space-y-0.5">
+                    {dayEvents.slice(0, holiday ? 1 : 2).map(ev => (
                       <div
                         key={ev.id}
                         onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
@@ -266,8 +272,8 @@ const EventsPage = () => {
                         {ev.title}
                       </div>
                     ))}
-                    {dayEvents.length > 2 && (
-                      <span className="text-[10px] text-muted-foreground">+{dayEvents.length - 2} weitere</span>
+                    {dayEvents.length > (holiday ? 1 : 2) && (
+                      <span className="text-[10px] text-muted-foreground">+{dayEvents.length - (holiday ? 1 : 2)} weitere</span>
                     )}
                   </div>
                 </button>
