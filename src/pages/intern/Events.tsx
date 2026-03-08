@@ -324,8 +324,12 @@ const EventsPage = () => {
                           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <CalIcon size={14} />
-                              {format(parseISO(ev.start_date), "HH:mm")}
-                              {ev.end_date && ` – ${format(parseISO(ev.end_date), "HH:mm")}`}
+                              {ev.all_day
+                                ? (ev.end_date && !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date))
+                                  ? `${format(parseISO(ev.start_date), "d. MMM", { locale: de })} – ${format(parseISO(ev.end_date), "d. MMM", { locale: de })}`
+                                  : "Ganztägig")
+                                : `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`
+                              }
                             </span>
                             {ev.location && (
                               <span className="inline-flex items-center gap-1">
