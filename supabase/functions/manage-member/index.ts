@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       .single();
     if (!callerRole) throw new Error("Nur der Vorstand kann Mitglieder verwalten");
 
-    const { action, userId, displayName, role, email } = await req.json();
+    const { action, userId, displayName, role, email, entryDate, exitDate, isActive } = await req.json();
 
     if (action === "update_profile") {
       if (!userId) throw new Error("userId erforderlich");
@@ -50,9 +50,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update_membership") {
+      if (!userId) throw new Error("userId erforderlich");
+      const updates: Record<string, any> = {};
+      if (entryDate !== undefined) updates.entry_date = entryDate;
+      if (exitDate !== undefined) updates.exit_date = exitDate;
+      if (isActive !== undefined) updates.is_active = isActive;
+      if (Object.keys(updates).length > 0) {
+        const { error } = await adminClient.from("profiles").update(updates).eq("id", userId);
+        if (error) throw error;
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "update_role") {
       if (!userId || !role) throw new Error("userId und role erforderlich");
-      if (!["mitglied", "vorstand", "herold"].includes(role)) throw new Error("Ungültige Rolle");
+      if (!["mitglied", "vorstand", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       const { error } = await adminClient.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
