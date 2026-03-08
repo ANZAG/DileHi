@@ -1,10 +1,11 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { AnimatePresence, } from "framer-motion";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-medieval.jpg";
+import VisitorHighlight from "@/components/epochs/VisitorHighlight";
+import EpochSources from "@/components/epochs/EpochSources";
 
 const EpochMedieval = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -76,12 +77,24 @@ const EpochMedieval = () => {
             </p>
           </div>
 
-          {/* 2 – Historischer Kontext */}
+          {/* 2 – Was Besucher erleben können (hervorgehoben) */}
+          <VisitorHighlight
+            intro="Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen."
+            items={[
+              "„Arming a Knight" – das Anlegen einer vollständigen Ritterrüstung",
+              "Einblicke in Kleidung und Mode des späten 13. Jahrhunderts",
+              "Präsentationen von Alltagsgegenständen, Glauben und Ausrüstung",
+              "Displays „Lederarbeiten", „Baustelle im Mittelalter", „Wundärzte im Mittelalter"",
+              "Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit",
+            ]}
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
+
+          {/* 3 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             Als Wiesbadener Verein liegt unser Fokus auf dem Nassauer Land im Raum Wiesbaden – einer Region, die um 1300 im Zentrum des Heiligen Römischen Reiches stand: als Heimat eines Königs, als Ort politischer Umbrüche und als Schauplatz des Auf- und Ausbaus nassauischer Herrschaft.
           </p>
-
           <div className="space-y-8 mb-12">
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Ein Nassauer wird König – und stirbt dafür</h3>
@@ -89,14 +102,12 @@ const EpochMedieval = () => {
                 1292 wählten die Kurfürsten Graf Adolf von Nassau zum König des Heiligen Römischen Reiches. Doch sein Königtum währte nur kurz: Sechs Jahre später setzten ihn dieselben Fürsten wieder ab – zum ersten Mal in der deutschen Geschichte ohne einen Bannspruch des Papstes. Am 2. Juli 1298 fiel Adolf in der Schlacht bei Göllheim im Kampf gegen seinen Nachfolger Albrecht von Österreich. Sein Herrschaftszentrum lag direkt vor den Toren des heutigen Wiesbaden: die Burg Sonnenberg.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Burg Sonnenberg und Kloster Klarenthal</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Adolf hatte die Burg Sonnenberg ausgebaut und 1296 das Kloster Klarenthal gegründet – als Hauskloster der nassauischen Familie. Nach seinem Tod übernahm sein Sohn Gerlach I. das Erbe. Er ließ den Leichnam des Vaters 1309 feierlich in den Speyerer Dom überführen und errichtete an der Stelle seines Todes bei Göllheim das älteste Flurkreuz der Pfalz. Die Spuren dieser Geschichte sind in Wiesbaden und Umgebung bis heute sichtbar.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Die Grafschaft ordnet sich neu</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -105,76 +116,8 @@ const EpochMedieval = () => {
             </div>
           </div>
 
-          {/* 3 – Was Besucher erleben können */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Was Besucher bei uns erleben können</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen.
-            </p>
-            <p>Dazu gehören unter anderem:</p>
-            <ul className="space-y-3 ml-1">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>„Arming a Knight" – das Anlegen einer vollständigen Ritterrüstung</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Einblicke in Kleidung und Mode des späten 13. Jahrhunderts</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Präsentationen von Alltagsgegenständen, Glauben und Ausrüstung</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Displays „Lederarbeiten", „Baustelle im Mittelalter", „Wundärzte im Mittelalter"</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit</span>
-              </li>
-            </ul>
-            <p>
-              Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen.
-            </p>
-          </div>
-
-          {/* 4 – Unsere Quellen */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Quellen</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Unsere Darstellung stützt sich auf eine Vielzahl von Quellen – archäologische Funde, zeitgenössische Abbildungen und wissenschaftliche Literatur. Im Folgenden eine Auswahl der wichtigsten Grundlagen unserer Arbeit:
-            </p>
-            <ul className="space-y-3 ml-1 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Kühnel, Harry: <em>Alltag im Spätmittelalter</em>, Graz 1984</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Bumke, Joachim: <em>Höfische Kultur</em>, München 1986</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Codex Manesse (Universitätsbibliothek Heidelberg, Cod. Pal. germ. 848)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Maciejowski-Bibel (Morgan Library, MS M.638)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Funde aus dem Rhein-Main-Gebiet (u. a. Landesmuseum Wiesbaden, Museum Wiesbaden)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Schubert, Ernst: <em>Alltag im Mittelalter</em>, Darmstadt 2002</span>
-              </li>
-            </ul>
-            <p className="text-sm italic">
-              Diese Liste wird laufend ergänzt. Bei Fragen zu einzelnen Quellen stehen wir gerne zur Verfügung.
-            </p>
-          </div>
+          {/* 4 – Unsere Quellen (aus DB) */}
+          <EpochSources epoch="mittelalter" />
 
           {/* 5 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>

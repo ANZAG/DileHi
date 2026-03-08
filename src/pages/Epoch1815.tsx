@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-1815.jpg";
+import VisitorHighlight from "@/components/epochs/VisitorHighlight";
+import EpochSources from "@/components/epochs/EpochSources";
 
 const Epoch1815 = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -38,7 +40,7 @@ const Epoch1815 = () => {
         <div className="relative z-10 container pb-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="font-serif text-3xl md:text-5xl font-bold mb-2">Napoleonik</h1>
-            <p className="text-lg text-primary font-medium"> Grenadiere des 1. Nassauischen Linien-Regiment bei Waterloo</p>
+            <p className="text-lg text-primary font-medium">Grenadiere des 1. Nassauischen Linien-Regiments bei Waterloo</p>
           </motion.div>
         </div>
       </section>
@@ -75,12 +77,24 @@ const Epoch1815 = () => {
             </p>
           </div>
 
-          {/* 2 – Historischer Kontext */}
+          {/* 2 – Was Besucher erleben können (hervorgehoben) */}
+          <VisitorHighlight
+            intro="Auf Veranstaltungen machen wir die Welt der nassauischen Soldaten um 1815 anschaulich und verständlich."
+            items={[
+              "Einblicke in Kleidung, Uniformierung und Ausrüstung eines nassauischen Grenadiers",
+              "Präsentationen von Alltagsgegenständen und persönlicher Ausrüstung",
+              "Nassaus Weg durch die Napoleonischen Kriege – vom Rheinbund bis Waterloo",
+              "Die Rolle Wiesbadens als Garnisons- und Residenzstadt",
+              "Gespräche über das Leben, Marschieren und Kämpfen in dieser Zeit",
+            ]}
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
+
+          {/* 3 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             Unser Blick gilt dem Herzogtum Nassau und seiner Residenzstadt Wiesbaden – einem Territorium, das durch Napoleon grundlegend neu geformt wurde und dessen Männer in einige der folgenreichsten Schlachten der europäischen Geschichte zogen.
           </p>
-
           <div className="space-y-8 mb-12">
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Vom Verbündeten zum Gegner</h3>
@@ -88,14 +102,12 @@ const Epoch1815 = () => {
                 Das Herzogtum Nassau verdankte Napoleon einiges: territoriale Gewinne, den Aufstieg zum Herzogtum und eine grundlegende Modernisierung der Verwaltung. Als Mitglied des Rheinbunds stellte Nassau Truppen für Napoleons Feldzüge – in Spanien, in Russland, an der Westfront. Doch als sich der Krieg gegen Frankreich wendete und die Kampfhandlungen in die Heimat getragen wurden, wechselte Nassau die Seiten.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Der Seitenwechsel und Wellington</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Regimentskommandeur August von Kruse – 1779 in Wiesbaden geboren – führte seine Männer durch diese Wendejahre. Am 10. Dezember 1813 erhielt er geheime Befehle, zur britischen Seite überzutreten. Geschickt manövrierte er das Regiment durch die Fronten, sodass der Übertritt gelang, ohne dass ein Schuss fiel. Wellington soll ihm vor der Schlacht bei Waterloo gesagt haben: „Ich hoffe, General, dass Ihre heutigen Aktionen genauso klug sind, wenn Sie für mich kämpfen, wie sie es in Spanien waren, als Sie gegen mich kämpften." Ein Satz, der die politische Komplexität der nassauischen Lage treffend auf den Punkt bringt.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Quatre Bras und Waterloo</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -104,72 +116,8 @@ const Epoch1815 = () => {
             </div>
           </div>
 
-          {/* 3 – Was Besucher erleben können */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Was Besucher bei uns erleben können</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Auf Veranstaltungen machen wir die Welt der nassauischen Soldaten um 1815 anschaulich und verständlich.
-            </p>
-            <p>Dazu gehören unter anderem:</p>
-            <ul className="space-y-3 ml-1">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Einblicke in Kleidung, Uniformierung und Ausrüstung eines nassauischen Grenadiers</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Präsentationen von Alltagsgegenständen und persönlicher Ausrüstung</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Nassaus Weg durch die Napoleonischen Kriege – vom Rheinbund bis Waterloo</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Die Rolle Wiesbadens als Garnisons- und Residenzstadt</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Gespräche über das Leben, Marschieren und Kämpfen in dieser Zeit</span>
-              </li>
-            </ul>
-            <p>
-              Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen.
-            </p>
-          </div>
-
-          {/* 4 – Unsere Quellen */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Quellen</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Unsere Darstellung stützt sich auf zeitgenössische Quellen, Regimentsgeschichten und aktuelle Forschungsliteratur. Eine Auswahl:
-            </p>
-            <ul className="space-y-3 ml-1 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>von Kruse, August: <em>Geschichte des nassauischen Militärs</em></span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Wentzcke, Paul: <em>Geschichte der nassauischen Truppen</em>, Wiesbaden 1930</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Hofschröer, Peter: <em>1815 – The Waterloo Campaign</em>, London 1998/1999</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Pivka, Otto von: <em>Napoleon's German Allies: Nassau and Oldenburg</em>, London 1976</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Bestände des Hessischen Hauptstaatsarchivs Wiesbaden</span>
-              </li>
-            </ul>
-            <p className="text-sm italic">
-              Diese Liste wird laufend ergänzt. Bei Fragen zu einzelnen Quellen stehen wir gerne zur Verfügung.
-            </p>
-          </div>
+          {/* 4 – Unsere Quellen (aus DB) */}
+          <EpochSources epoch="1815" />
 
           {/* 5 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>

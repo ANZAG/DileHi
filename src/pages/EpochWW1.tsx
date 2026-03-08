@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-ww1.jpg";
+import VisitorHighlight from "@/components/epochs/VisitorHighlight";
+import EpochSources from "@/components/epochs/EpochSources";
 
 const EpochWW1 = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -75,12 +77,24 @@ const EpochWW1 = () => {
             </p>
           </div>
 
-          {/* 2 – Historischer Kontext */}
+          {/* 2 – Was Besucher erleben können (hervorgehoben) */}
+          <VisitorHighlight
+            intro="Auf Veranstaltungen machen wir den Alltag der Soldaten im Ersten Weltkrieg anschaulich und greifbar – mit dem Ziel, Geschichte verständlich und verantwortungsvoll zu vermitteln."
+            items={[
+              "Einblicke in Kleidung, Uniformierung und persönliche Ausrüstung eines Pioniers",
+              "Präsentationen von Alltagsgegenständen und Ausrüstung der Westfront",
+              "Pioniertechnik und Stellungsbau – wie eine Front funktionierte",
+              "Regionale Bezüge: nassauische Einheiten im Weltkrieg",
+              "Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit",
+            ]}
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
+
+          {/* 3 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             Wiesbaden war 1914 Garnisonsstadt mehrerer nassauischer Truppenverbände. Einer von ihnen, das 1. Nassauische Pionier-Bataillon Nr. 21, rekrutierte sich überwiegend aus der preußischen Provinz Hessen-Nassau. Wir stellen ihre Geschichte dar – als Erinnerung und als Mahnung.
           </p>
-
           <div className="space-y-8 mb-12">
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Eine Spezialeinheit aus Wiesbaden</h3>
@@ -88,14 +102,12 @@ const EpochWW1 = () => {
                 Das 1. Nassauische Pionier-Bataillon Nr. 21 unterstand dem XVIII. Armeekorps mit Friedensstandort Mainz. Wiesbaden als Garnisonsstadt und Mainz als Festung – zwei Städte, deren Männer in denselben Schützengräben lagen. Neben der regulären Infanterieausbildung erhielten die Pioniere eine Spezialausbildung in Sprengdienst, Stellungs- und Brückenbau sowie Flusbootfahrt.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Stellungskrieg zwischen Maas und Mosel</h3>
               <p className="text-muted-foreground leading-relaxed">
                 Im Oktober und November 1916 war das Bataillon in Stellungskämpfen zwischen Maas und Mosel eingesetzt – auf den Maashöhen bei Spada, bei St. Mihiel, im Wald von Apremont und bei Ailly. Es waren keine Durchbrüche, keine glänzenden Siege. Sondern Graben, Warten, Aushalten – der bittere Alltag des Stellungskriegs.
               </p>
             </div>
-
             <div>
               <h3 className="font-serif text-xl font-semibold mb-3">Warum wir das darstellen</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -104,72 +116,8 @@ const EpochWW1 = () => {
             </div>
           </div>
 
-          {/* 3 – Was Besucher erleben können */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Was Besucher bei uns erleben können</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Auf Veranstaltungen machen wir den Alltag der Soldaten im Ersten Weltkrieg anschaulich und greifbar – mit dem Ziel, Geschichte verständlich und verantwortungsvoll zu vermitteln.
-            </p>
-            <p>Dazu gehören unter anderem:</p>
-            <ul className="space-y-3 ml-1">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Einblicke in Kleidung, Uniformierung und persönliche Ausrüstung eines Pioniers</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Präsentationen von Alltagsgegenständen und Ausrüstung der Westfront</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Pioniertechnik und Stellungsbau – wie eine Front funktionierte</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Regionale Bezüge: nassauische Einheiten im Weltkrieg</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit</span>
-              </li>
-            </ul>
-            <p>
-              Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen.
-            </p>
-          </div>
-
-          {/* 4 – Unsere Quellen */}
-          <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Quellen</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-            <p>
-              Unsere Darstellung stützt sich auf Regimentsgeschichten, zeitgenössische Dokumente und aktuelle Forschungsliteratur. Eine Auswahl:
-            </p>
-            <ul className="space-y-3 ml-1 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Regimentsgeschichte des 1. Nassauischen Pionier-Bataillons Nr. 21</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Cron, Hermann: <em>Geschichte des Deutschen Heeres im Weltkriege 1914–1918</em>, Berlin 1937</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Jünger, Ernst: <em>In Stahlgewittern</em>, 1920 (als zeitgenössische Quelle)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Bull, Stephen: <em>Trench Warfare</em>, Oxford 2003</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span>Bestände des Hessischen Hauptstaatsarchivs Wiesbaden</span>
-              </li>
-            </ul>
-            <p className="text-sm italic">
-              Diese Liste wird laufend ergänzt. Bei Fragen zu einzelnen Quellen stehen wir gerne zur Verfügung.
-            </p>
-          </div>
+          {/* 4 – Unsere Quellen (aus DB) */}
+          <EpochSources epoch="wk1" />
 
           {/* 5 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>

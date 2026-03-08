@@ -88,10 +88,10 @@ const Index = () => {
                   transition={{ duration: 0.4 }}
                 />
               </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1">{epochs[activeEpoch].subtitle}</p>
-                <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">{epochs[activeEpoch].title}</h3>
+                <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1 drop-shadow-md">{epochs[activeEpoch].subtitle}</p>
+                <h3 className="font-serif text-2xl md:text-3xl font-bold text-white drop-shadow-lg">{epochs[activeEpoch].title}</h3>
               </div>
             </Link>
 
