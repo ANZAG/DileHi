@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmailViaMsGraph, buildEmailWrapper } from "../_shared/ms-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,11 +81,45 @@ Deno.serve(async (req) => {
       if (!userId) throw new Error("userId erforderlich");
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
       if (userError || !userData?.user?.email) throw new Error("Benutzer nicht gefunden");
-      const { error } = await adminClient.auth.admin.generateLink({
+
+      const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || supabaseUrl;
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email: userData.user.email,
+        options: {
+          redirectTo: `${origin}/passwort-zuruecksetzen`,
+        },
       });
-      if (error) throw error;
+      if (linkError) throw linkError;
+
+      const tokenHash = linkData.properties?.hashed_token;
+      const resetUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=recovery&redirect_to=${encodeURIComponent(`${origin}/passwort-zuruecksetzen`)}`;
+
+      const htmlBody = buildEmailWrapper(`
+        <h2 style="color: #1a1a1a; margin: 0 0 16px;">Passwort zurücksetzen</h2>
+        <p style="color: #555; line-height: 1.6;">
+          Dein Passwort für den Mitgliederbereich von <strong>Die Lebendige Historie e.V.</strong> wurde zurückgesetzt.
+        </p>
+        <p style="color: #555; line-height: 1.6;">
+          Klicke auf den folgenden Button, um ein neues Passwort zu setzen:
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background: #1a1a1a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Neues Passwort setzen
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #999;">
+          Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+          <a href="${resetUrl}" style="color: #666; word-break: break-all;">${resetUrl}</a>
+        </p>
+      `);
+
+      try {
+        await sendEmailViaMsGraph(userData.user.email, "Passwort zurücksetzen – Die Lebendige Historie e.V.", htmlBody);
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+      }
+
       return new Response(JSON.stringify({ success: true, email: userData.user.email }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
