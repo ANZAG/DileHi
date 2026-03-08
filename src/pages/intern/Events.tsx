@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO, differenceInCalendarDays } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { getHessenHolidays, getHolidayName } from "@/lib/holidays";
 
@@ -34,6 +34,13 @@ interface Attendee {
   profiles?: { display_name: string } | null;
 }
 
+interface SpanSegment {
+  event: Event;
+  isStart: boolean;
+  isEnd: boolean;
+  spanCols: number; // how many cols this segment spans (from this day to end-of-row or event end)
+}
+
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const EventsPage = () => {
@@ -44,6 +51,8 @@ const EventsPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Form state
@@ -101,13 +110,8 @@ const EventsPage = () => {
         ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
         : null;
       const { error } = await supabase.from("events").insert({
-        title,
-        description: description || null,
-        location: location || null,
-        start_date: start,
-        end_date: end,
-        all_day: allDay,
-        created_by: user!.id,
+        title, description: description || null, location: location || null,
+        start_date: start, end_date: end, all_day: allDay, created_by: user!.id,
       });
       if (error) throw error;
     },
@@ -118,6 +122,31 @@ const EventsPage = () => {
       toast({ title: "Veranstaltung erstellt" });
     },
     onError: () => toast({ title: "Fehler beim Erstellen", variant: "destructive" }),
+  });
+
+  const updateEvent = useMutation({
+    mutationFn: async () => {
+      if (!editingEvent) return;
+      const start = allDay
+        ? new Date(`${startDate}T00:00:00`).toISOString()
+        : new Date(`${startDate}T${startTime}`).toISOString();
+      const end = endDate
+        ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
+        : null;
+      const { error } = await supabase.from("events").update({
+        title, description: description || null, location: location || null,
+        start_date: start, end_date: end, all_day: allDay,
+      }).eq("id", editingEvent.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setShowEdit(false);
+      setEditingEvent(null);
+      resetForm();
+      toast({ title: "Veranstaltung aktualisiert" });
+    },
+    onError: () => toast({ title: "Fehler beim Speichern", variant: "destructive" }),
   });
 
   const deleteEvent = useMutation({
@@ -144,9 +173,7 @@ const EventsPage = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_attendees"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_attendees"] }),
   });
 
   const resetForm = () => {
@@ -161,22 +188,34 @@ const EventsPage = () => {
     setShowCreate(true);
   };
 
+  const openEdit = (ev: Event) => {
+    const start = parseISO(ev.start_date);
+    const end = ev.end_date ? parseISO(ev.end_date) : null;
+    setTitle(ev.title);
+    setDescription(ev.description || "");
+    setLocation(ev.location || "");
+    setStartDate(format(start, "yyyy-MM-dd"));
+    setStartTime(format(start, "HH:mm"));
+    setEndDate(end ? format(end, "yyyy-MM-dd") : "");
+    setEndTime(end ? format(end, "HH:mm") : "16:00");
+    setAllDay(ev.all_day);
+    setEditingEvent(ev);
+    setShowEdit(true);
+  };
+
   const holidays = useMemo(() => {
     const y = currentMonth.getFullYear();
     return [...getHessenHolidays(y), ...getHessenHolidays(y - 1), ...getHessenHolidays(y + 1)];
   }, [currentMonth]);
 
-  // Calendar grid
   const calendarDays = useMemo(() => {
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    // Pad start to Monday
-    const firstDayOfWeek = (monthStart.getDay() + 6) % 7; // 0=Mon
+    const firstDayOfWeek = (monthStart.getDay() + 6) % 7;
     const padStart = Array.from({ length: firstDayOfWeek }, (_, i) => {
       const d = new Date(monthStart);
       d.setDate(d.getDate() - (firstDayOfWeek - i));
       return d;
     });
-    // Pad end to Sunday
     const lastDayOfWeek = (monthEnd.getDay() + 6) % 7;
     const padEnd = Array.from({ length: 6 - lastDayOfWeek }, (_, i) => {
       const d = new Date(monthEnd);
@@ -186,29 +225,120 @@ const EventsPage = () => {
     return [...padStart, ...days, ...padEnd];
   }, [currentMonth]);
 
+  // Helpers
+  const toDateOnly = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
   const eventsForDay = (day: Date) =>
     events.filter(e => {
       const start = parseISO(e.start_date);
       const end = e.end_date ? parseISO(e.end_date) : start;
-      // Normalize to date-only comparison
-      const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
-      const evStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-      const evEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-      return dayStart >= evStart && dayStart <= evEnd;
+      const dayStart = toDateOnly(day);
+      return dayStart >= toDateOnly(start) && dayStart <= toDateOnly(end);
     });
 
-  const eventAttendees = (eventId: string) =>
-    attendees.filter(a => a.event_id === eventId);
+  const isMultiDay = (ev: Event) => {
+    if (!ev.end_date) return false;
+    return !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date));
+  };
 
-  const isAttending = (eventId: string) =>
-    attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
+  // Compute spanning segments per row (week)
+  const rowSpanSegments = useMemo(() => {
+    const rows: SpanSegment[][] = [];
+    const numRows = calendarDays.length / 7;
+    for (let r = 0; r < numRows; r++) {
+      const rowStart = calendarDays[r * 7];
+      const rowEnd = calendarDays[r * 7 + 6];
+      const segments: SpanSegment[] = [];
 
-  const canDelete = (event: Event) =>
-    event.created_by === user?.id || isVorstand;
+      for (const ev of events) {
+        if (!isMultiDay(ev)) continue;
+        const evStart = toDateOnly(parseISO(ev.start_date));
+        const evEnd = toDateOnly(parseISO(ev.end_date!));
+        const rStart = toDateOnly(rowStart);
+        const rEnd = toDateOnly(rowEnd);
+
+        // Does this event overlap this row?
+        if (evEnd < rStart || evStart > rEnd) continue;
+
+        const segStart = evStart < rStart ? rStart : evStart;
+        const segEnd = evEnd > rEnd ? rEnd : evEnd;
+        const colStart = differenceInCalendarDays(segStart, rStart);
+        const spanCols = differenceInCalendarDays(segEnd, segStart) + 1;
+
+        segments.push({
+          event: ev,
+          isStart: evStart >= rStart,
+          isEnd: evEnd <= rEnd,
+          spanCols,
+        });
+      }
+      rows.push(segments);
+    }
+    return rows;
+  }, [calendarDays, events]);
+
+  const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
+  const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
+  const canEdit = (event: Event) => event.created_by === user?.id || isVorstand;
 
   const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-ical`;
-
   const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
+
+  const formatTimeDisplay = (ev: Event) => {
+    if (ev.all_day) {
+      if (ev.end_date && !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date))) {
+        return `${format(parseISO(ev.start_date), "d. MMM", { locale: de })} – ${format(parseISO(ev.end_date), "d. MMM", { locale: de })}`;
+      }
+      return "Ganztägig";
+    }
+    return `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`;
+  };
+
+  // Event form dialog (shared between create/edit)
+  const renderEventForm = (isEdit: boolean) => (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium">Titel *</label>
+        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="z.B. Marktlager Wiesbaden" />
+      </div>
+      <div>
+        <label className="text-sm font-medium">Ort</label>
+        <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="z.B. Schlossplatz, Wiesbaden" />
+      </div>
+      <div>
+        <label className="text-sm font-medium">Beschreibung</label>
+        <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
+        <label htmlFor={`allDay-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">Ganztägig</label>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm font-medium">Startdatum *</label>
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        </div>
+        {!allDay && (
+          <div>
+            <label className="text-sm font-medium">Startzeit</label>
+            <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm font-medium">Enddatum</label>
+          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        </div>
+        {!allDay && (
+          <div>
+            <label className="text-sm font-medium">Endzeit</label>
+            <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="container py-12 max-w-5xl">
@@ -248,54 +378,131 @@ const EventsPage = () => {
 
         {/* Calendar Grid */}
         <div className="border rounded-lg overflow-hidden bg-card">
+          {/* Weekday headers */}
           <div className="grid grid-cols-7">
             {WEEKDAYS.map(d => (
               <div key={d} className="p-2 text-center text-xs font-medium text-muted-foreground border-b bg-muted/50">
                 {d}
               </div>
             ))}
-            {calendarDays.map((day, i) => {
-              const dayEvents = eventsForDay(day);
-              const inMonth = isSameMonth(day, currentMonth);
-              const today = isToday(day);
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              const holiday = getHolidayName(day, holidays);
-              return (
-                <button
-                  key={i}
-                  onClick={() => setSelectedDate(day)}
-                  className={`min-h-[80px] md:min-h-[100px] p-1 border-b border-r text-left transition-colors hover:bg-accent/50
-                    ${!inMonth ? "opacity-40" : ""}
-                    ${isSelected ? "bg-accent" : ""}
-                    ${today ? "ring-2 ring-inset ring-primary/30" : ""}
-                  `}
-                >
-                  <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""}`}>
-                    {format(day, "d")}
-                  </span>
-                  {holiday && (
-                    <div className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-destructive/10 text-destructive">
-                      {holiday}
-                    </div>
-                  )}
-                  <div className="mt-0.5 space-y-0.5">
-                    {dayEvents.slice(0, holiday ? 1 : 2).map(ev => (
-                      <div
-                        key={ev.id}
-                        onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                        className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
-                      >
-                        {ev.title}
-                      </div>
-                    ))}
-                    {dayEvents.length > (holiday ? 1 : 2) && (
-                      <span className="text-[10px] text-muted-foreground">+{dayEvents.length - (holiday ? 1 : 2)} weitere</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
           </div>
+
+          {/* Calendar rows with spanning bars */}
+          {Array.from({ length: calendarDays.length / 7 }, (_, rowIdx) => {
+            const rowDays = calendarDays.slice(rowIdx * 7, rowIdx * 7 + 7);
+            const segments = rowSpanSegments[rowIdx] || [];
+
+            return (
+              <div key={rowIdx}>
+                {/* Day number row */}
+                <div className="grid grid-cols-7">
+                  {rowDays.map((day, colIdx) => {
+                    const inMonth = isSameMonth(day, currentMonth);
+                    const today = isToday(day);
+                    const isSelected = selectedDate && isSameDay(day, selectedDate);
+                    const holiday = getHolidayName(day, holidays);
+                    const singleDayEvents = eventsForDay(day).filter(e => !isMultiDay(e));
+
+                    return (
+                      <button
+                        key={colIdx}
+                        onClick={() => setSelectedDate(day)}
+                        className={`min-h-[80px] md:min-h-[100px] p-1 border-b border-r text-left transition-colors hover:bg-accent/50
+                          ${!inMonth ? "opacity-40" : ""}
+                          ${isSelected ? "bg-accent" : ""}
+                          ${today ? "ring-2 ring-inset ring-primary/30" : ""}
+                        `}
+                      >
+                        <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""}`}>
+                          {format(day, "d")}
+                        </span>
+                        {holiday && (
+                          <div className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-destructive/10 text-destructive">
+                            {holiday}
+                          </div>
+                        )}
+                        {/* Single-day events */}
+                        <div className="mt-0.5 space-y-0.5">
+                          {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
+                            <div
+                              key={ev.id}
+                              onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
+                              className="text-[10px] md:text-xs truncate px-1 py-0.5 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                            >
+                              {ev.title}
+                            </div>
+                          ))}
+                          {singleDayEvents.length > (holiday ? 1 : 2) && (
+                            <span className="text-[10px] text-muted-foreground">+{singleDayEvents.length - (holiday ? 1 : 2)} weitere</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Spanning bars for multi-day events */}
+                {segments.length > 0 && (
+                  <div className="grid grid-cols-7 -mt-6 mb-1 pointer-events-none relative z-10">
+                    {(() => {
+                      const cells: React.ReactNode[] = [];
+                      const occupied = new Set<number>();
+
+                      // Sort segments by start column
+                      const sorted = [...segments].sort((a, b) => {
+                        const aStart = toDateOnly(parseISO(a.event.start_date));
+                        const bStart = toDateOnly(parseISO(b.event.start_date));
+                        const rowStartDate = toDateOnly(rowDays[0]);
+                        const aCol = Math.max(0, differenceInCalendarDays(aStart, rowStartDate));
+                        const bCol = Math.max(0, differenceInCalendarDays(bStart, rowStartDate));
+                        return aCol - bCol;
+                      });
+
+                      for (const seg of sorted) {
+                        const evStart = toDateOnly(parseISO(seg.event.start_date));
+                        const rowStartDate = toDateOnly(rowDays[0]);
+                        const colStart = Math.max(0, differenceInCalendarDays(evStart, rowStartDate));
+
+                        // Add empty spacer columns
+                        for (let c = cells.length; c < colStart; c++) {
+                          if (!occupied.has(c)) {
+                            cells.push(<div key={`spacer-${c}`} className="col-span-1" />);
+                          }
+                        }
+
+                        // Mark columns as occupied
+                        for (let c = colStart; c < colStart + seg.spanCols; c++) {
+                          occupied.add(c);
+                        }
+
+                        cells.push(
+                          <div
+                            key={seg.event.id}
+                            style={{ gridColumn: `${colStart + 1} / span ${seg.spanCols}` }}
+                            className="pointer-events-auto"
+                          >
+                            <div
+                              onClick={() => setSelectedEvent(seg.event)}
+                              className={`text-[10px] md:text-xs truncate px-1.5 py-0.5 bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 font-medium
+                                ${seg.isStart && seg.isEnd ? "rounded" : ""}
+                                ${seg.isStart && !seg.isEnd ? "rounded-l" : ""}
+                                ${!seg.isStart && seg.isEnd ? "rounded-r" : ""}
+                                ${!seg.isStart && !seg.isEnd ? "" : ""}
+                              `}
+                            >
+                              {seg.isStart ? seg.event.title : `↳ ${seg.event.title}`}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return cells;
+                    })()}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Selected Day Events */}
@@ -323,13 +530,7 @@ const EventsPage = () => {
                           <h4 className="font-semibold">{ev.title}</h4>
                           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
-                              <CalIcon size={14} />
-                              {ev.all_day
-                                ? (ev.end_date && !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date))
-                                  ? `${format(parseISO(ev.start_date), "d. MMM", { locale: de })} – ${format(parseISO(ev.end_date), "d. MMM", { locale: de })}`
-                                  : "Ganztägig")
-                                : `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`
-                              }
+                              <CalIcon size={14} /> {formatTimeDisplay(ev)}
                             </span>
                             {ev.location && (
                               <span className="inline-flex items-center gap-1">
@@ -340,7 +541,12 @@ const EventsPage = () => {
                           {ev.description && <p className="text-sm mt-2">{ev.description}</p>}
                         </div>
                         <div className="flex gap-1">
-                          {canDelete(ev) && (
+                          {canEdit(ev) && (
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(ev)}>
+                              <Pencil size={16} />
+                            </Button>
+                          )}
+                          {canEdit(ev) && (
                             <Button variant="ghost" size="icon" onClick={() => deleteEvent.mutate(ev.id)}>
                               <Trash2 size={16} className="text-destructive" />
                             </Button>
@@ -435,58 +641,27 @@ const EventsPage = () => {
           <DialogHeader>
             <DialogTitle>Neue Veranstaltung</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Titel *</label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="z.B. Marktlager Wiesbaden" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Ort</label>
-              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="z.B. Schlossplatz, Wiesbaden" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Beschreibung</label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="allDay"
-                checked={allDay}
-                onChange={e => setAllDay(e.target.checked)}
-                className="rounded border-input"
-              />
-              <label htmlFor="allDay" className="text-sm font-medium cursor-pointer">Ganztägig</label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium">Startdatum *</label>
-                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-              </div>
-              {!allDay && (
-                <div>
-                  <label className="text-sm font-medium">Startzeit</label>
-                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium">Enddatum</label>
-                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              </div>
-              {!allDay && (
-                <div>
-                  <label className="text-sm font-medium">Endzeit</label>
-                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                </div>
-              )}
-            </div>
-          </div>
+          {renderEventForm(false)}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Abbrechen</Button>
             <Button onClick={() => createEvent.mutate()} disabled={!title || !startDate || createEvent.isPending}>
               Erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Event Dialog */}
+      <Dialog open={showEdit} onOpenChange={(open) => { if (!open) { setShowEdit(false); setEditingEvent(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Veranstaltung bearbeiten</DialogTitle>
+          </DialogHeader>
+          {renderEventForm(true)}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowEdit(false); setEditingEvent(null); }}>Abbrechen</Button>
+            <Button onClick={() => updateEvent.mutate()} disabled={!title || !startDate || updateEvent.isPending}>
+              Speichern
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -532,6 +707,11 @@ const EventsPage = () => {
                 </div>
               </div>
               <DialogFooter>
+                {canEdit(selectedEvent) && (
+                  <Button variant="outline" onClick={() => { openEdit(selectedEvent); setSelectedEvent(null); }}>
+                    <Pencil size={14} className="mr-1" /> Bearbeiten
+                  </Button>
+                )}
                 <Button
                   variant={isAttending(selectedEvent.id) ? "secondary" : "default"}
                   onClick={() => toggleRSVP.mutate(selectedEvent.id)}
