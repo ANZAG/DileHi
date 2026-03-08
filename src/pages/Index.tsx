@@ -5,6 +5,8 @@ import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
+import wappenLeft from "@/assets/wappen-nassau-left.png";
+import wappenRight from "@/assets/wappen-nassau-right.png";
 
 const epochs = [
   {
