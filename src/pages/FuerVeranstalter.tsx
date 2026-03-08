@@ -192,9 +192,8 @@ const FuerVeranstalter = () => {
                 <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required maxLength={255} />
               </div>
               <div className="space-y-2">
-              <Label htmlFor="eventType">Art der Veranstaltung</Label>
+                <Label htmlFor="eventType">Art der Veranstaltung</Label>
                 <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} maxLength={200} />
-                <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} required maxLength={200} />
               </div>
               <div className="space-y-2">
               <Label htmlFor="date">Datum / Zeitraum</Label>
