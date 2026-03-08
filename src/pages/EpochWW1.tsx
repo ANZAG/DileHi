@@ -38,7 +38,7 @@ const EpochWW1 = () => {
         <div className="relative z-10 container pb-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="font-serif text-3xl md:text-5xl font-bold mb-2">Erster Weltkrieg</h1>
-            <p className="text-lg text-primary font-medium">Wiesbaden · 1916/17 · 1. Nassauisches Pionier-Bataillon Nr. 21</p>
+            <p className="text-lg text-primary font-medium">1. Nassauisches Pionier-Bataillon Nr. 21</p>
           </motion.div>
         </div>
       </section>
