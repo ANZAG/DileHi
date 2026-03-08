@@ -17,22 +17,19 @@ const Epoch1815 = () => {
     queryKey: ["gallery_images", "1815"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("gallery_images" as any)
+        .from("gallery_images")
         .select("*")
         .eq("epoch", "1815")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (data as any[]).map((img: any) => {
+      return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild" };
       });
     },
   });
 
-  const allImages = [
-    { src: epochImage, alt: "Nassauische Grenadiere 1815" },
-    ...galleryImages,
-  ];
+  const allImages = galleryImages;
 
   return (
     <div>

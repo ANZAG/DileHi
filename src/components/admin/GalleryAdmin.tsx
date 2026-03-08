@@ -23,11 +23,11 @@ const GalleryAdmin = () => {
     queryKey: ["gallery_images_admin"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("gallery_images" as any)
+        .from("gallery_images")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (data as any[]).map((img: any) => {
+      return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { ...img, publicUrl: urlData.publicUrl };
       });
@@ -42,7 +42,7 @@ const GalleryAdmin = () => {
       const { error: uploadErr } = await supabase.storage.from("gallery").upload(path, file);
       if (uploadErr) throw uploadErr;
 
-      const { error: dbErr } = await supabase.from("gallery_images" as any).insert({
+      const { error: dbErr } = await supabase.from("gallery_images").insert({
         storage_path: path,
         alt_text: altText || file.name.replace(/\.[^/.]+$/, ""),
         epoch: selectedEpoch,
@@ -62,7 +62,7 @@ const GalleryAdmin = () => {
 
   const updateEpoch = useMutation({
     mutationFn: async ({ id, epoch }: { id: string; epoch: string }) => {
-      const { error } = await (supabase.from("gallery_images" as any) as any).update({ epoch }).eq("id", id);
+      const { error } = await supabase.from("gallery_images").update({ epoch }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -74,7 +74,7 @@ const GalleryAdmin = () => {
   const deleteImage = useMutation({
     mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
       await supabase.storage.from("gallery").remove([storagePath]);
-      const { error } = await (supabase.from("gallery_images" as any) as any).delete().eq("id", id);
+      const { error } = await supabase.from("gallery_images").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

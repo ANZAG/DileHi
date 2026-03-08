@@ -29,10 +29,7 @@ const EpochMedieval = () => {
     },
   });
 
-  const allImages = [
-    { src: epochImage, alt: "Spätmittelalterliche Darstellung" },
-    ...galleryImages,
-  ];
+  const allImages = galleryImages;
 
   return (
     <div>

@@ -29,10 +29,7 @@ const EpochWW1 = () => {
     },
   });
 
-  const allImages = [
-    { src: epochImage, alt: "Pioniere im Ersten Weltkrieg" },
-    ...galleryImages,
-  ];
+  const allImages = galleryImages;
 
   return (
     <div>
