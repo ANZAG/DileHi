@@ -38,7 +38,7 @@ const FuerVeranstalter = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.name || !form.organisation || !form.email || !form.eventType || !form.date || !form.location) {
+    if (!form.name || !form.organisation || !form.email) {
       toast({ title: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return;
     }
@@ -192,16 +192,16 @@ const FuerVeranstalter = () => {
                 <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required maxLength={255} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="eventType">Art der Veranstaltung *</Label>
-                <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} required maxLength={200} />
+                <Label htmlFor="eventType">Art der Veranstaltung</Label>
+                <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} maxLength={200} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date">Datum / Zeitraum *</Label>
-                <Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} required maxLength={100} />
+              <Label htmlFor="date">Datum / Zeitraum</Label>
+                <Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} maxLength={100} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">Ort der Veranstaltung *</Label>
-                <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} required maxLength={200} />
+              <Label htmlFor="location">Ort der Veranstaltung</Label>
+                <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} maxLength={200} />
               </div>
               <div className="space-y-2">
                 <Label>Erwartete Besucherzahl</Label>
