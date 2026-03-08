@@ -59,7 +59,7 @@ const Documents = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (!canSeeVorstand) {
-        query = query.neq("category", "vorstand");
+        query = query.not("category", "in", '("vorstand","vorlagen")');
       }
       const { data, error } = await query;
       if (error) throw error;
