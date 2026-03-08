@@ -17,7 +17,7 @@ const Dashboard = () => {
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
             <p className="text-sm text-muted-foreground mt-1 break-all sm:break-normal">
@@ -62,9 +62,9 @@ const Dashboard = () => {
                 to={card.path}
                 className="flex flex-col p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full"
               >
-                <card.icon size={28} className="text-primary mb-3" />
-                <h2 className="font-serif text-lg font-semibold mb-1">{card.title}</h2>
-                <p className="text-sm text-muted-foreground">{card.desc}</p>
+                <card.icon size={24} className="text-primary mb-2" />
+                <h2 className="font-serif text-base sm:text-lg font-semibold mb-1">{card.title}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">{card.desc}</p>
               </Link>
             </motion.div>
           ))}
