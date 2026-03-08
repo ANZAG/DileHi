@@ -377,7 +377,10 @@ const EventsPage = () => {
             </Button>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCalendarSync(true)}>
+              <LinkIcon size={16} className="mr-1" /> <span className="hidden sm:inline">Kalender </span>Abo
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <a href={icalUrl} target="_blank" rel="noopener noreferrer">
                 <Download size={16} className="mr-1" /> iCal
