@@ -68,13 +68,16 @@ const EpochMedieval = () => {
 
           {/* 1 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
-          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
               Unsere älteste Darstellung widmet sich dem Leben im Nassauer Land um die Wende vom 13. zum 14. Jahrhundert. Es ist eine Zeit, in der die Region von den Grafen von Nassau regiert wurde, Städte aufblühten und der Alltag der Menschen von Landwirtschaft, Handwerk und Glauben geprägt war.
             </p>
             <p>
               Wir zeigen dabei nicht nur den niederen Adel, sondern auch das Leben einfacher Menschen in der Region. Unsere Ausrüstung und Kleidung basieren auf archäologischen Funden und zeitgenössischen Abbildungen aus dem Rhein-Main-Gebiet – mit dem Ziel, ein möglichst quellennahes Bild dieser Epoche zu zeichnen.
             </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Mittelalter-Darstellung]</p>
           </div>
 
           {/* 2 – Was Besucher erleben können (hervorgehoben) */}
