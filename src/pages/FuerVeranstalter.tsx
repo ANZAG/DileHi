@@ -201,8 +201,8 @@ const FuerVeranstalter = () => {
                 <Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} maxLength={100} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">Ort der Veranstaltung *</Label>
-                <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} required maxLength={200} />
+              <Label htmlFor="location">Ort der Veranstaltung</Label>
+                <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} maxLength={200} />
               </div>
               <div className="space-y-2">
                 <Label>Erwartete Besucherzahl</Label>

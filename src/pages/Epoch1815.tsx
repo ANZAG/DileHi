@@ -104,7 +104,7 @@ const Epoch1815 = () => {
               Kleidung, Ausrüstung und Bewaffnung folgen dem aktuellen Forschungsstand zur nassauischen Armee der Befreiungskriege. Wir arbeiten quellenbasiert – mit besonderem Blick auf die nassauischen Regimentsgeschichten und die Bestände des Hessischen Hauptstaatsarchivs Wiesbaden.
             </p>
           </div>
-          <div className="rounded-lg overflow-hidden mb-12">
+          <div className="rounded-lg overflow-hidden mb-12 max-w-lg mx-auto">
             <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Uniformtafel nassauischer Grenadiere 1815 · Illustration: Alexis Cabaret / mont-saint-jean.com</p>
           </div>
