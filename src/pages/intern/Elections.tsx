@@ -248,14 +248,14 @@ const Elections = () => {
   const representationGroup = groups.find((g) => g.id === representationGroupId);
 
   return (
-    <div className="container py-12 max-w-4xl">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
-        <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <h1 className="font-serif text-2xl font-bold">Abstimmungen</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={refreshAll}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
