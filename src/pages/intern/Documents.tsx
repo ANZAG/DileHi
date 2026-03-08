@@ -43,7 +43,7 @@ const Documents = () => {
   const canSeeVorstand = isVorstand || isHerold || isSchatzmeister;
   const CATEGORIES = canSeeVorstand
     ? ALL_CATEGORIES
-    : ALL_CATEGORIES.filter((c) => c.value !== "vorstand");
+    : ALL_CATEGORIES.filter((c) => !RESTRICTED_CATEGORIES.includes(c.value));
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
