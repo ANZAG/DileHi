@@ -20,8 +20,8 @@ const Admin = () => {
   const tabs = [
     ...(isVorstand ? [
       { id: "members" as const, label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
-      { id: "messages" as const, label: "Nachrichten", icon: Mail, desc: "Kontaktnachrichten verwalten" },
     ] : []),
+    { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     { id: "gallery" as const, label: "Galerie", icon: Image, desc: "Bilder verwalten" },
     { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
   ];
@@ -70,7 +70,7 @@ const Admin = () => {
         {/* Tab content */}
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && isVorstand && <MemberRegistry />}
-          {activeTab === "messages" && isVorstand && <ContactMessages />}
+          {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
         </div>
