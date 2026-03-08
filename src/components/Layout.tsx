@@ -9,7 +9,6 @@ const navItems = [
   { path: "/epochen/1815", label: "Napoleonik" },
   { path: "/epochen/wk1", label: "Erster Weltkrieg" },
   { path: "/fuer-veranstalter", label: "Für Veranstalter" },
-  { path: "/galerie", label: "Galerie" },
   { path: "/verein", label: "Über uns" },
   { path: "/kontakt", label: "Kontakt" },
 ];
