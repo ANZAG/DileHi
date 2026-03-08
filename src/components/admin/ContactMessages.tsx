@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Trash2 } from "lucide-react";
 
 const ContactMessages = () => {
+  const { isVorstand } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: contactMessages = [] } = useQuery({
@@ -27,7 +29,9 @@ const ContactMessages = () => {
     },
   });
 
-  if (contactMessages.length === 0) return null;
+  if (contactMessages.length === 0) {
+    return <p className="text-sm text-muted-foreground py-4 text-center">Keine Nachrichten vorhanden.</p>;
+  }
 
   return (
     <div className="space-y-3">
@@ -42,9 +46,11 @@ const ContactMessages = () => {
               </p>
               <p className="text-sm mt-2">{msg.message}</p>
             </div>
-            <button onClick={() => deleteContactMessage.mutate(msg.id)} className="text-muted-foreground hover:text-destructive p-1">
-              <Trash2 size={14} />
-            </button>
+            {isVorstand && (
+              <button onClick={() => deleteContactMessage.mutate(msg.id)} className="text-muted-foreground hover:text-destructive p-1">
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
         </div>
       ))}
