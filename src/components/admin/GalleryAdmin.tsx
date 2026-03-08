@@ -3,13 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Image } from "lucide-react";
+import { Upload, Trash2, Image, ChevronLeft, ChevronRight } from "lucide-react";
 
 const EPOCH_OPTIONS = [
   { value: "mittelalter", label: "Spätmittelalter" },
   { value: "1815", label: "Napoleonik" },
   { value: "wk1", label: "Erster Weltkrieg" },
 ];
+
+const IMAGES_PER_PAGE = 6;
 
 const GalleryAdmin = () => {
   const { user } = useAuth();
@@ -18,6 +20,8 @@ const GalleryAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedEpoch, setSelectedEpoch] = useState("mittelalter");
   const [altText, setAltText] = useState("");
+  const [filterEpoch, setFilterEpoch] = useState("alle");
+  const [page, setPage] = useState(0);
 
   const { data: images = [], isLoading } = useQuery({
     queryKey: ["gallery_images_admin"],
@@ -33,6 +37,11 @@ const GalleryAdmin = () => {
       });
     },
   });
+
+  const filtered = filterEpoch === "alle" ? images : images.filter((img: any) => img.epoch === filterEpoch);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / IMAGES_PER_PAGE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(currentPage * IMAGES_PER_PAGE, (currentPage + 1) * IMAGES_PER_PAGE);
 
   const uploadImage = async (file: File) => {
     if (!user) return;
@@ -130,40 +139,83 @@ const GalleryAdmin = () => {
         </label>
       </div>
 
+      {/* Filter */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs text-muted-foreground">Filter:</span>
+        <select
+          value={filterEpoch}
+          onChange={(e) => { setFilterEpoch(e.target.value); setPage(0); }}
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+        >
+          <option value="alle">Alle Epochen</option>
+          {EPOCH_OPTIONS.map((e) => (
+            <option key={e.value} value={e.value}>{e.label}</option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {filtered.length} Bild{filtered.length !== 1 ? "er" : ""}
+        </span>
+      </div>
+
       {/* Image list */}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Laden...</p>
-      ) : images.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Noch keine Galerie-Bilder hochgeladen.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Keine Bilder gefunden.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {images.map((img: any) => (
-            <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
-              <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
-              <div className="p-2 space-y-1">
-                <p className="text-xs truncate">{img.alt_text || "–"}</p>
-                <div className="flex items-center gap-1">
-                  <select
-                    value={img.epoch}
-                    onChange={(e) => updateEpoch.mutate({ id: img.id, epoch: e.target.value })}
-                    className="flex-1 h-7 rounded border border-input bg-background px-1 text-xs"
-                  >
-                    {EPOCH_OPTIONS.map((e) => (
-                      <option key={e.value} value={e.value}>{e.label}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => deleteImage.mutate({ id: img.id, storagePath: img.storage_path })}
-                    className="p-1 text-muted-foreground hover:text-destructive"
-                    title="Löschen"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {paged.map((img: any) => (
+              <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
+                <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
+                <div className="p-2 space-y-1">
+                  <p className="text-xs truncate">{img.alt_text || "–"}</p>
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={img.epoch}
+                      onChange={(e) => updateEpoch.mutate({ id: img.id, epoch: e.target.value })}
+                      className="flex-1 h-7 rounded border border-input bg-background px-1 text-xs"
+                    >
+                      {EPOCH_OPTIONS.map((e) => (
+                        <option key={e.value} value={e.value}>{e.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => deleteImage.mutate({ id: img.id, storagePath: img.storage_path })}
+                      className="p-1 text-muted-foreground hover:text-destructive"
+                      title="Löschen"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted disabled:opacity-40"
+              >
+                <ChevronLeft size={14} /> Zurück
+              </button>
+              <span className="text-xs text-muted-foreground">
+                Seite {currentPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage >= totalPages - 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted disabled:opacity-40"
+              >
+                Weiter <ChevronRight size={14} />
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
