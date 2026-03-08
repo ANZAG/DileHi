@@ -79,8 +79,8 @@ const EpochMedieval = () => {
               Wir zeigen das Leben in diesem Umfeld: nicht die Fürsten und ihre Hofhaltung, sondern den Niederadel und die einfache Bevölkerung – die Menschen, die den Alltag dieser Region tragen.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Burg Sonnenberg]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={gruppenfotoSpaemi} alt="Vereinsmitglieder in spätmittelalterlicher Kleidung" className="w-full h-auto object-cover" />
           </div>
 
           {/* 2 – Was Besucher erleben können */}
