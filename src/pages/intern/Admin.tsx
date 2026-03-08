@@ -70,7 +70,7 @@ const Admin = () => {
         {/* Tab content */}
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && isVorstand && <MemberRegistry />}
-          {activeTab === "messages" && isVorstand && <ContactMessages />}
+          {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
         </div>
