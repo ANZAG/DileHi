@@ -150,13 +150,7 @@ const Admin = () => {
         <h1 className="font-serif text-2xl font-bold mb-6">Verwaltung</h1>
 
         <div className="space-y-8">
-          {/* Gallery - visible to Vorstand + Herold */}
-          <GalleryAdmin />
-
-          {/* Sources - visible to Vorstand + Herold */}
-          <SourcesAdmin />
-
-          {/* Member management - Vorstand only */}
+          {/* Member management - Vorstand only (moved above gallery) */}
           {isVorstand && (
             <>
               <div className="p-5 rounded-lg border bg-card">
@@ -306,6 +300,12 @@ const Admin = () => {
               )}
             </>
           )}
+
+          {/* Gallery - visible to Vorstand + Herold */}
+          <GalleryAdmin />
+
+          {/* Sources - visible to Vorstand + Herold */}
+          <SourcesAdmin />
         </div>
       </motion.div>
     </div>
