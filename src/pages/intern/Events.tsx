@@ -152,6 +152,7 @@ const EventsPage = () => {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
+    setAllDay(false);
   };
 
   const openCreate = (date?: Date) => {
