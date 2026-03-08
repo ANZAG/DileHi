@@ -21,8 +21,8 @@ const About = () => (
             Heute sind wir eine Gruppe von rund 15 Menschen aus Wiesbaden und Umgebung, die sich intensiv mit verschiedenen Epochen der regionalen Geschichte beschäftigt. Unser Schwerpunkt liegt dabei auf dem historischen Nassauer Land – von der mittelalterlichen Grafschaft über das Herzogtum Nassau bis in die Zeit des Ersten Weltkriegs.
           </p>
         </div>
-        <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Gruppenfoto]</p>
+        <div className="rounded-lg overflow-hidden mt-6">
+          <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" className="w-full h-auto object-cover" />
         </div>
       </section>
 
