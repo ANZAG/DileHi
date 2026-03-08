@@ -153,6 +153,9 @@ const Admin = () => {
           {/* Gallery - visible to Vorstand + Herold */}
           <GalleryAdmin />
 
+          {/* Sources - visible to Vorstand + Herold */}
+          <SourcesAdmin />
+
           {/* Member management - Vorstand only */}
           {isVorstand && (
             <>
