@@ -187,7 +187,15 @@ const EventsPage = () => {
   }, [currentMonth]);
 
   const eventsForDay = (day: Date) =>
-    events.filter(e => isSameDay(parseISO(e.start_date), day));
+    events.filter(e => {
+      const start = parseISO(e.start_date);
+      const end = e.end_date ? parseISO(e.end_date) : start;
+      // Normalize to date-only comparison
+      const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      const evStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const evEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      return dayStart >= evStart && dayStart <= evEnd;
+    });
 
   const eventAttendees = (eventId: string) =>
     attendees.filter(a => a.event_id === eventId);
