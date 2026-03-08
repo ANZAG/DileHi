@@ -66,7 +66,34 @@ const EpochMedieval = () => {
             </div>
           </div>
 
-          {/* 1 – Unsere Darstellung */}
+          {/* 1 – Regionsbezug */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Regionsbezug</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
+            <p>
+              Unsere älteste Darstellung ist untrennbar mit der Region verbunden: Die Grafschaft Nassau hatte ihr Zentrum im heutigen Rhein-Main-Gebiet. Die Burg Sonnenberg – direkt vor den Toren Wiesbadens – war Herrschaftssitz der walramischen Linie. Von hier aus wurde regiert, gerichtet und Krieg geführt.
+            </p>
+            <p>
+              Mit der Wahl Adolfs von Nassau zum König des Heiligen Römischen Reiches 1292 rückte die Region für kurze Zeit ins Zentrum der europäischen Politik. Die Spuren dieser Geschichte sind in Wiesbaden und Umgebung bis heute sichtbar – von der Burg Sonnenberg bis zum Kloster Klarenthal.
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Burg Sonnenberg]</p>
+          </div>
+
+          {/* 2 – Was Besucher erleben können */}
+          <VisitorHighlight
+            intro="Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen."
+            items={[
+              "\u201EArming a Knight\u201C \u2013 das Anlegen einer vollst\u00E4ndigen Ritterr\u00FCstung",
+              "Einblicke in Kleidung und Mode des sp\u00E4ten 13. Jahrhunderts",
+              "Pr\u00E4sentationen von Alltagsgegenst\u00E4nden, Glauben und Ausr\u00FCstung",
+              "Displays \u201ELederarbeiten\u201C, \u201EBaustelle im Mittelalter\u201C, \u201EWund\u00E4rzte im Mittelalter\u201C",
+              "Gespr\u00E4che \u00FCber das Leben, Arbeiten und K\u00E4mpfen in dieser Zeit",
+            ]}
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
+
+          {/* 3 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
@@ -80,20 +107,7 @@ const EpochMedieval = () => {
             <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Mittelalter-Darstellung]</p>
           </div>
 
-          {/* 2 – Was Besucher erleben können (hervorgehoben) */}
-          <VisitorHighlight
-            intro="Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen."
-            items={[
-              "\u201EArming a Knight\u201C \u2013 das Anlegen einer vollst\u00E4ndigen Ritterr\u00FCstung",
-              "Einblicke in Kleidung und Mode des sp\u00E4ten 13. Jahrhunderts",
-              "Pr\u00E4sentationen von Alltagsgegenst\u00E4nden, Glauben und Ausr\u00FCstung",
-              "Displays \u201ELederarbeiten\u201C, \u201EBaustelle im Mittelalter\u201C, \u201EWund\u00E4rzte im Mittelalter\u201C",
-              "Gespr\u00E4che \u00FCber das Leben, Arbeiten und K\u00E4mpfen in dieser Zeit",
-            ]}
-            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
-          />
-
-          {/* 3 – Historischer Kontext */}
+          {/* 4 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             Als Wiesbadener Verein liegt unser Fokus auf dem Nassauer Land im Raum Wiesbaden – einer Region, die um 1300 im Zentrum des Heiligen Römischen Reiches stand: als Heimat eines Königs, als Ort politischer Umbrüche und als Schauplatz des Auf- und Ausbaus nassauischer Herrschaft.
@@ -122,10 +136,10 @@ const EpochMedieval = () => {
             <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Burg Sonnenberg / historischer Ort]</p>
           </div>
 
-          {/* 4 – Unsere Quellen (aus DB) */}
+          {/* 5 – Unsere Quellen (aus DB) */}
           <EpochSources epoch="mittelalter" />
 
-          {/* 5 – Galerie */}
+          {/* 6 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
           {allImages.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
