@@ -4,20 +4,7 @@ import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Static fallback images
-import epochMedieval from "@/assets/epoch-medieval.jpg";
-import epochWW1 from "@/assets/epoch-ww1.jpg";
-import epoch1815 from "@/assets/epoch-1815.jpg";
-import heroImage from "@/assets/hero-medieval.jpg";
-
 type Epoch = "alle" | "mittelalter" | "wk1" | "1815";
-
-const staticImages = [
-  { src: heroImage, alt: "Rittergruppe im Wald", epoch: "mittelalter" as const },
-  { src: epochMedieval, alt: "Ritter vor Fachwerkhaus", epoch: "mittelalter" as const },
-  { src: epochWW1, alt: "Pioniere im Schützengraben", epoch: "wk1" as const },
-  { src: epoch1815, alt: "Nassauische Grenadiere", epoch: "1815" as const },
-];
 
 const filters: { value: Epoch; label: string }[] = [
   { value: "alle", label: "Alle Epochen" },
@@ -30,15 +17,15 @@ const Gallery = () => {
   const [filter, setFilter] = useState<Epoch>("alle");
   const [lightbox, setLightbox] = useState<number | null>(null);
 
-  const { data: dbImages = [] } = useQuery({
+  const { data: allImages = [] } = useQuery({
     queryKey: ["gallery_images"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("gallery_images" as any)
+        .from("gallery_images")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (data as any[]).map((img: any) => {
+      return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return {
           src: urlData.publicUrl,
@@ -49,7 +36,6 @@ const Gallery = () => {
     },
   });
 
-  const allImages = [...dbImages, ...staticImages];
   const filtered = filter === "alle" ? allImages : allImages.filter((img) => img.epoch === filter);
 
   return (

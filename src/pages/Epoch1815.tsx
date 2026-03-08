@@ -29,10 +29,7 @@ const Epoch1815 = () => {
     },
   });
 
-  const allImages = [
-    { src: epochImage, alt: "Nassauische Grenadiere 1815" },
-    ...galleryImages,
-  ];
+  const allImages = galleryImages;
 
   return (
     <div>
