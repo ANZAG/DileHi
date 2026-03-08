@@ -441,7 +441,7 @@ const EventsPage = () => {
                             ${today ? "ring-2 ring-inset ring-primary/30" : ""}
                           `}
                         >
-                          {isSelected && <span aria-hidden className="absolute inset-0 bg-accent" />}
+                          {isSelected && <span aria-hidden className="absolute inset-0 bg-accent/80" />}
 
                           <div className="relative z-10">
                             <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""} ${isSelected ? "text-accent-foreground" : ""}`}>
