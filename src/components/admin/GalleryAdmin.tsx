@@ -74,7 +74,7 @@ const GalleryAdmin = () => {
   const deleteImage = useMutation({
     mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
       await supabase.storage.from("gallery").remove([storagePath]);
-      const { error } = await (supabase.from("gallery_images" as any) as any).delete().eq("id", id);
+      const { error } = await supabase.from("gallery_images").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
