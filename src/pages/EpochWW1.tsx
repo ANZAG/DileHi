@@ -110,8 +110,9 @@ const EpochWW1 = () => {
               Unsere Darstellung zeigt den Alltag dieser Männer: die Ausrüstung, die Uniform, das Werkzeug des Feldpioniers. Den Feldrock M13 mit schwarzem Kragen und ponceauroten Schulterklappen. Die Beilpicke M1909 am Koppel. Die Gasmaske M16 in ihrer feldgrauen Bereitschaftsbüchse, die seit Juni 1916 zum Standard gehörte. Den Tornister, dessen Inhalt nach Vorschrift gepackt war – und dessen Zeltbahn die Soldaten zynisch Heldensarg nannten.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Ausrüstung / Uniform WK1]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Pioniere des 1. Nassauischen Pionier-Bataillons Nr. 21 in Felduniform</p>
           </div>
 
           {/* 4 – Historischer Kontext */}
