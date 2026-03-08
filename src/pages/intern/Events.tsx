@@ -448,25 +448,39 @@ const EventsPage = () => {
               <label className="text-sm font-medium">Beschreibung</label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
             </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={allDay}
+                onChange={e => setAllDay(e.target.checked)}
+                className="rounded border-input"
+              />
+              <label htmlFor="allDay" className="text-sm font-medium cursor-pointer">Ganztägig</label>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Startdatum *</label>
                 <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm font-medium">Startzeit</label>
-                <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-              </div>
+              {!allDay && (
+                <div>
+                  <label className="text-sm font-medium">Startzeit</label>
+                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Enddatum</label>
                 <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm font-medium">Endzeit</label>
-                <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-              </div>
+              {!allDay && (
+                <div>
+                  <label className="text-sm font-medium">Endzeit</label>
+                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
