@@ -158,6 +158,38 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_replies: {
+        Row: {
+          contact_message_id: string
+          created_at: string
+          id: string
+          message: string
+          replied_by: string
+        }
+        Insert: {
+          contact_message_id: string
+          created_at?: string
+          id?: string
+          message: string
+          replied_by: string
+        }
+        Update: {
+          contact_message_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          replied_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_replies_contact_message_id_fkey"
+            columns: ["contact_message_id"]
+            isOneToOne: false
+            referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       election_audit_log: {
         Row: {
           deleted_at: string
