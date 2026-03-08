@@ -211,7 +211,7 @@ const Admin = () => {
                         <div key={m.id} className="p-3 rounded-lg border bg-background">
                           {isEditing ? (
                             <div className="space-y-3">
-                              <div className="flex gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <input
                                   value={editName}
                                   onChange={(e) => setEditName(e.target.value)}
@@ -228,7 +228,7 @@ const Admin = () => {
                                   ))}
                                 </select>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => updateMember.mutate({ userId: m.user_id, displayName: editName, newRole: editRole })}
                                   disabled={updateMember.isPending}
@@ -241,7 +241,7 @@ const Admin = () => {
                                   disabled={resetPassword.isPending}
                                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted"
                                 >
-                                  <KeyRound size={14} /> Passwort zurücksetzen
+                                  <KeyRound size={14} /> Passwort
                                 </button>
                                 <button onClick={() => setEditingMember(null)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
                                   <X size={14} />
