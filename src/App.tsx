@@ -27,6 +27,9 @@ import Elections from "./pages/intern/Elections";
 import EventsPage from "./pages/intern/Events";
 import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
+import Documents from "./pages/intern/Documents";
+import Members from "./pages/intern/Members";
+import Contributions from "./pages/intern/Contributions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +64,9 @@ const App = () => (
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/intern/mitglieder" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+              <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
