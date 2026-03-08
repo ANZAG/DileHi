@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify auth - only Vorstand
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Nicht authentifiziert");
 
@@ -28,7 +27,7 @@ Deno.serve(async (req) => {
     const { data: isVorstand } = await supabase.rpc("is_vorstand", { _user_id: user.id });
     if (!isVorstand) throw new Error("Keine Berechtigung");
 
-    const { to, name, message } = await req.json();
+    const { to, name, message, contact_message_id } = await req.json();
     if (!to || !message) throw new Error("Empfänger und Nachricht erforderlich");
 
     const subject = `Antwort von Die Lebendige Historie e.V.`;
@@ -45,6 +44,15 @@ Deno.serve(async (req) => {
     `);
 
     await sendEmailViaMsGraph(to, subject, htmlBody);
+
+    // Save reply to database
+    if (contact_message_id) {
+      await supabase.from("contact_replies").insert({
+        contact_message_id,
+        replied_by: user.id,
+        message: message.trim(),
+      });
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
