@@ -32,15 +32,18 @@ const ALL_CATEGORIES = [
   { value: "satzung", label: "Satzung & Ordnungen" },
   { value: "protokoll", label: "Protokolle" },
   { value: "vorstand", label: "Vorstand" },
+  { value: "vorlagen", label: "Vorlagen" },
   { value: "sonstiges", label: "Sonstiges" },
 ];
+
+const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 
 const Documents = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
   const canSeeVorstand = isVorstand || isHerold || isSchatzmeister;
   const CATEGORIES = canSeeVorstand
     ? ALL_CATEGORIES
-    : ALL_CATEGORIES.filter((c) => c.value !== "vorstand");
+    : ALL_CATEGORIES.filter((c) => !RESTRICTED_CATEGORIES.includes(c.value));
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -56,7 +59,7 @@ const Documents = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (!canSeeVorstand) {
-        query = query.neq("category", "vorstand");
+        query = query.not("category", "in", '("vorstand","vorlagen")');
       }
       const { data, error } = await query;
       if (error) throw error;
