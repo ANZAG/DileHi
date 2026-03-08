@@ -341,15 +341,15 @@ const EventsPage = () => {
   );
 
   return (
-    <div className="container py-12 max-w-5xl">
+    <div className="container py-8 sm:py-12 max-w-5xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" asChild>
               <Link to="/intern"><ArrowLeft size={20} /></Link>
             </Button>
-            <h1 className="font-serif text-3xl font-bold">Veranstaltungen</h1>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
@@ -358,7 +358,7 @@ const EventsPage = () => {
               </a>
             </Button>
             <Button size="sm" onClick={() => openCreate()}>
-              <Plus size={16} className="mr-1" /> Neue Veranstaltung
+              <Plus size={16} className="mr-1" /> <span className="hidden sm:inline">Neue </span>Veranstaltung
             </Button>
           </div>
         </div>
