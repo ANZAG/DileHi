@@ -323,6 +323,7 @@ export type Database = {
       }
       events: {
         Row: {
+          all_day: boolean
           created_at: string
           created_by: string
           description: string | null
@@ -334,6 +335,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          all_day?: boolean
           created_at?: string
           created_by: string
           description?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          all_day?: boolean
           created_at?: string
           created_by?: string
           description?: string | null

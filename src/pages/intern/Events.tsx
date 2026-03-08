@@ -22,6 +22,7 @@ interface Event {
   location: string | null;
   start_date: string;
   end_date: string | null;
+  all_day: boolean;
   created_by: string;
   created_at: string;
 }
@@ -53,6 +54,7 @@ const EventsPage = () => {
   const [startTime, setStartTime] = useState("10:00");
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("16:00");
+  const [allDay, setAllDay] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -92,14 +94,19 @@ const EventsPage = () => {
 
   const createEvent = useMutation({
     mutationFn: async () => {
-      const start = new Date(`${startDate}T${startTime}`).toISOString();
-      const end = endDate ? new Date(`${endDate}T${endTime}`).toISOString() : null;
+      const start = allDay
+        ? new Date(`${startDate}T00:00:00`).toISOString()
+        : new Date(`${startDate}T${startTime}`).toISOString();
+      const end = endDate
+        ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
+        : null;
       const { error } = await supabase.from("events").insert({
         title,
         description: description || null,
         location: location || null,
         start_date: start,
         end_date: end,
+        all_day: allDay,
         created_by: user!.id,
       });
       if (error) throw error;
@@ -145,6 +152,7 @@ const EventsPage = () => {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
+    setAllDay(false);
   };
 
   const openCreate = (date?: Date) => {
@@ -179,7 +187,15 @@ const EventsPage = () => {
   }, [currentMonth]);
 
   const eventsForDay = (day: Date) =>
-    events.filter(e => isSameDay(parseISO(e.start_date), day));
+    events.filter(e => {
+      const start = parseISO(e.start_date);
+      const end = e.end_date ? parseISO(e.end_date) : start;
+      // Normalize to date-only comparison
+      const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      const evStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const evEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      return dayStart >= evStart && dayStart <= evEnd;
+    });
 
   const eventAttendees = (eventId: string) =>
     attendees.filter(a => a.event_id === eventId);
@@ -308,8 +324,12 @@ const EventsPage = () => {
                           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <CalIcon size={14} />
-                              {format(parseISO(ev.start_date), "HH:mm")}
-                              {ev.end_date && ` – ${format(parseISO(ev.end_date), "HH:mm")}`}
+                              {ev.all_day
+                                ? (ev.end_date && !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date))
+                                  ? `${format(parseISO(ev.start_date), "d. MMM", { locale: de })} – ${format(parseISO(ev.end_date), "d. MMM", { locale: de })}`
+                                  : "Ganztägig")
+                                : `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`
+                              }
                             </span>
                             {ev.location && (
                               <span className="inline-flex items-center gap-1">
@@ -428,25 +448,39 @@ const EventsPage = () => {
               <label className="text-sm font-medium">Beschreibung</label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
             </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="allDay"
+                checked={allDay}
+                onChange={e => setAllDay(e.target.checked)}
+                className="rounded border-input"
+              />
+              <label htmlFor="allDay" className="text-sm font-medium cursor-pointer">Ganztägig</label>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Startdatum *</label>
                 <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm font-medium">Startzeit</label>
-                <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-              </div>
+              {!allDay && (
+                <div>
+                  <label className="text-sm font-medium">Startzeit</label>
+                  <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Enddatum</label>
                 <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm font-medium">Endzeit</label>
-                <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-              </div>
+              {!allDay && (
+                <div>
+                  <label className="text-sm font-medium">Endzeit</label>
+                  <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -469,8 +503,15 @@ const EventsPage = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalIcon size={16} />
-                  {format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy, HH:mm", { locale: de })}
-                  {selectedEvent.end_date && ` – ${format(parseISO(selectedEvent.end_date), "HH:mm")}`}
+                  {selectedEvent.all_day
+                    ? (selectedEvent.end_date && !isSameDay(parseISO(selectedEvent.start_date), parseISO(selectedEvent.end_date))
+                      ? `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM", { locale: de })} – ${format(parseISO(selectedEvent.end_date), "EEEE, d. MMMM yyyy", { locale: de })}`
+                      : `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy", { locale: de })} (Ganztägig)`)
+                    : <>
+                        {format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy, HH:mm", { locale: de })}
+                        {selectedEvent.end_date && ` – ${format(parseISO(selectedEvent.end_date), "HH:mm")}`}
+                      </>
+                  }
                 </div>
                 {selectedEvent.location && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
