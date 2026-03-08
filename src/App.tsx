@@ -23,6 +23,7 @@ import Profile from "./pages/intern/Profile";
 import Sources from "./pages/intern/Sources";
 import Announcements from "./pages/intern/Announcements";
 import Elections from "./pages/intern/Elections";
+import EventsPage from "./pages/intern/Events";
 import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
 import NotFound from "./pages/NotFound";
