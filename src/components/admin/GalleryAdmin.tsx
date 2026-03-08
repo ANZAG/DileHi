@@ -42,7 +42,7 @@ const GalleryAdmin = () => {
       const { error: uploadErr } = await supabase.storage.from("gallery").upload(path, file);
       if (uploadErr) throw uploadErr;
 
-      const { error: dbErr } = await supabase.from("gallery_images" as any).insert({
+      const { error: dbErr } = await supabase.from("gallery_images").insert({
         storage_path: path,
         alt_text: altText || file.name.replace(/\.[^/.]+$/, ""),
         epoch: selectedEpoch,
