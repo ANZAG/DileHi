@@ -424,18 +424,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          calendar_token: string | null
           created_at: string
           display_name: string
           id: string
           updated_at: string
         }
         Insert: {
+          calendar_token?: string | null
           created_at?: string
           display_name?: string
           id: string
           updated_at?: string
         }
         Update: {
+          calendar_token?: string | null
           created_at?: string
           display_name?: string
           id?: string
