@@ -6,6 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Upload, Trash2, FileText, Download, FolderOpen } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,48 +196,52 @@ const Documents = () => {
             <p>Noch keine Dokumente vorhanden.</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <Accordion type="multiple" className="space-y-4">
             {grouped.map((group) => (
-              <div key={group.value}>
-                <h2 className="font-serif text-lg font-semibold mb-3">{group.label}</h2>
-                <div className="space-y-2">
-                  {group.docs.map((doc: any) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={18} className="text-primary shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{doc.title}</p>
-                          <p className="text-xs text-muted-foreground">{doc.file_name} · {new Date(doc.created_at).toLocaleDateString("de-DE")}</p>
+              <AccordionItem key={group.value} value={group.value} className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 font-serif text-lg font-semibold hover:no-underline">
+                  {group.label} ({group.docs.length})
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-2">
+                    {group.docs.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText size={18} className="text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.title}</p>
+                            <p className="text-xs text-muted-foreground">{doc.file_name} · {new Date(doc.created_at).toLocaleDateString("de-DE")}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" onClick={() => handleDownload(doc.storage_path, doc.file_name)}>
+                            <Download size={16} />
+                          </Button>
+                          {isVorstand && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 size={16} className="text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Dokument löschen?</AlertDialogTitle>
+                                  <AlertDialogDescription>„{doc.title}" wird unwiderruflich gelöscht.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteMutation.mutate(doc)}>Löschen</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc.storage_path, doc.file_name)}>
-                          <Download size={16} />
-                        </Button>
-                        {isVorstand && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon"><Trash2 size={16} className="text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Dokument löschen?</AlertDialogTitle>
-                                <AlertDialogDescription>„{doc.title}" wird unwiderruflich gelöscht.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMutation.mutate(doc)}>Löschen</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         )}
       </motion.div>
     </div>
