@@ -154,11 +154,11 @@ const Admin = () => {
           {isVorstand && (
             <>
               <div className="p-5 rounded-lg border bg-card">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <h2 className="font-serif text-lg font-semibold">Mitgliederverwaltung</h2>
                   <Link
                     to="/intern/verwaltung/protokoll"
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors w-fit"
                   >
                     <FileText size={16} /> Abstimmungsaudit
                   </Link>
@@ -167,7 +167,7 @@ const Admin = () => {
                 {/* Invite form */}
                 <div className="space-y-3 mb-6">
                   <h3 className="font-semibold text-sm">Neues Mitglied einladen</h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="email"
                       placeholder="E-Mail-Adresse"
@@ -175,22 +175,24 @@ const Admin = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
                     />
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => email && inviteMember.mutate()}
-                      disabled={!email || inviteMember.isPending}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      <UserPlus size={16} /> Einladen
-                    </button>
+                    <div className="flex gap-2">
+                      <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm flex-1 sm:flex-none"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => email && inviteMember.mutate()}
+                        disabled={!email || inviteMember.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        <UserPlus size={16} /> Einladen
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -209,7 +211,7 @@ const Admin = () => {
                         <div key={m.id} className="p-3 rounded-lg border bg-background">
                           {isEditing ? (
                             <div className="space-y-3">
-                              <div className="flex gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <input
                                   value={editName}
                                   onChange={(e) => setEditName(e.target.value)}
@@ -226,7 +228,7 @@ const Admin = () => {
                                   ))}
                                 </select>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => updateMember.mutate({ userId: m.user_id, displayName: editName, newRole: editRole })}
                                   disabled={updateMember.isPending}
@@ -239,7 +241,7 @@ const Admin = () => {
                                   disabled={resetPassword.isPending}
                                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted"
                                 >
-                                  <KeyRound size={14} /> Passwort zurücksetzen
+                                  <KeyRound size={14} /> Passwort
                                 </button>
                                 <button onClick={() => setEditingMember(null)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
                                   <X size={14} />
