@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-medieval.jpg";
+import gruppenfotoSpaemi from "@/assets/gruppenfoto-spaemi.jpg";
+import burgFrauenstein from "@/assets/burg-frauenstein-darstellung.jpg";
+import mittelalterTafel from "@/assets/mittelalter-tafel.jpg";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 
