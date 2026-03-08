@@ -49,12 +49,16 @@ const Documents = () => {
   const [file, setFile] = useState<File | null>(null);
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documents"],
+    queryKey: ["documents", canSeeVorstand],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("documents")
         .select("*")
         .order("created_at", { ascending: false });
+      if (!canSeeVorstand) {
+        query = query.neq("category", "vorstand");
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
