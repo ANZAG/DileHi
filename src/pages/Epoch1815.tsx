@@ -79,8 +79,9 @@ const Epoch1815 = () => {
               Einer der Männer, die dieses Regiment befehligen, ist in Wiesbaden geboren: August von Kruse, Jahrgang 1779, kommandierender Offizier des 1. Nassauischen Linien-Regiments.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Residenzstadt Wiesbaden um 1815]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel</p>
           </div>
 
           {/* 2 – Was Besucher erleben können */}
