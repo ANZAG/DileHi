@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Users, Coins } from "lucide-react";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins } from "lucide-react";
 
 const cards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
@@ -9,8 +9,6 @@ const cards = [
   { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
   { title: "Dokumente", desc: "Satzung, Ordnungen und Protokolle.", icon: FileText, path: "/intern/dokumente" },
-  { title: "Mitglieder", desc: "Verzeichnis aller aktiven Mitglieder.", icon: Users, path: "/intern/mitglieder" },
-  { title: "Beiträge", desc: "Beitragsstatus und Übersicht.", icon: Coins, path: "/intern/beitraege" },
 ];
 
 const Dashboard = () => {
@@ -45,6 +43,12 @@ const Dashboard = () => {
                 <Settings size={16} /> Verwaltung
               </Link>
             )}
+            <Link
+              to="/intern/beitraege"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+            >
+              <Coins size={16} /> Beiträge
+            </Link>
             <button
               onClick={signOut}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"

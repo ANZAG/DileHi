@@ -28,14 +28,19 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const CATEGORIES = [
+const ALL_CATEGORIES = [
   { value: "satzung", label: "Satzung & Ordnungen" },
   { value: "protokoll", label: "Protokolle" },
+  { value: "vorstand", label: "Vorstand" },
   { value: "sonstiges", label: "Sonstiges" },
 ];
 
 const Documents = () => {
-  const { isVorstand } = useAuth();
+  const { isVorstand, isHerold, isSchatzmeister } = useAuth();
+  const canSeeVorstand = isVorstand || isHerold || isSchatzmeister;
+  const CATEGORIES = canSeeVorstand
+    ? ALL_CATEGORIES
+    : ALL_CATEGORIES.filter((c) => c.value !== "vorstand");
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -44,12 +49,16 @@ const Documents = () => {
   const [file, setFile] = useState<File | null>(null);
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documents"],
+    queryKey: ["documents", canSeeVorstand],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("documents")
         .select("*")
         .order("created_at", { ascending: false });
+      if (!canSeeVorstand) {
+        query = query.neq("category", "vorstand");
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
