@@ -153,6 +153,11 @@ const EventsPage = () => {
     setShowCreate(true);
   };
 
+  const holidays = useMemo(() => {
+    const y = currentMonth.getFullYear();
+    return [...getHessenHolidays(y), ...getHessenHolidays(y - 1), ...getHessenHolidays(y + 1)];
+  }, [currentMonth]);
+
   // Calendar grid
   const calendarDays = useMemo(() => {
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
