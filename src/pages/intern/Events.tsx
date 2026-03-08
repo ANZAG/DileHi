@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Event {
@@ -192,7 +193,12 @@ const EventsPage = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="font-serif text-3xl font-bold">Veranstaltungen</h1>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/intern"><ArrowLeft size={20} /></Link>
+            </Button>
+            <h1 className="font-serif text-3xl font-bold">Veranstaltungen</h1>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
               <a href={icalUrl} target="_blank" rel="noopener noreferrer">
