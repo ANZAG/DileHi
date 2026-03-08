@@ -135,8 +135,8 @@ const EpochMedieval = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Burg Sonnenberg / historischer Ort]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={mittelalterTafel} alt="Mittelalterliche Tafelszene im Lagerleben" className="w-full h-auto object-cover" />
           </div>
 
           {/* 5 – Unsere Quellen (aus DB) */}
