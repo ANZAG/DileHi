@@ -24,6 +24,7 @@ const Dashboard = () => {
               Angemeldet als {user?.email}
               {isVorstand && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Vorstand</span>}
               {isHerold && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Herold</span>}
+              {isSchatzmeister && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Schatzmeister</span>}
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
