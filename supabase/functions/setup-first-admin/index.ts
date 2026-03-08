@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,7 +15,7 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if any vorstand exists already
+    // Ensure this can only run once
     const { data: existingVorstand } = await adminClient
       .from("user_roles")
       .select("id")
@@ -24,16 +23,15 @@ serve(async (req) => {
       .limit(1);
 
     if (existingVorstand && existingVorstand.length > 0) {
-      return new Response(JSON.stringify({ error: "Ein Vorstand existiert bereits. Diese Funktion kann nur einmal verwendet werden." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Ein Vorstand existiert bereits. Diese Funktion kann nur einmal verwendet werden." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const { email, password } = await req.json();
     if (!email || !password) throw new Error("E-Mail und Passwort erforderlich");
 
-    // Create user
     const { data: userData, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -42,7 +40,6 @@ serve(async (req) => {
     });
     if (createError) throw createError;
 
-    // Assign vorstand role
     const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: userData.user.id,
       role: "vorstand",
@@ -52,8 +49,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, message: "Vorstand-Account erstellt" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
