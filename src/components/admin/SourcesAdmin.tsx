@@ -61,8 +61,7 @@ const SourcesAdmin = () => {
   });
 
   return (
-    <div>
-      <h2 className="font-serif text-xl font-semibold mb-4">Quellen verwalten</h2>
+    <div className="space-y-4">
 
       {/* Epoch selector */}
       <div className="flex gap-2 mb-6">
