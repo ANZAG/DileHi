@@ -102,6 +102,31 @@ const EventsPage = () => {
     },
   });
 
+  const { data: calendarToken } = useQuery({
+    queryKey: ["calendar_token", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("calendar_token")
+        .eq("id", user!.id)
+        .single();
+      if (error) throw error;
+      return data?.calendar_token as string;
+    },
+    enabled: !!user,
+  });
+
+  const personalIcalUrl = calendarToken
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-personal-ical?token=${calendarToken}`
+    : null;
+
+  const copyCalendarUrl = () => {
+    if (personalIcalUrl) {
+      navigator.clipboard.writeText(personalIcalUrl);
+      toast({ title: "Kalender-URL kopiert", description: "Füge diese URL in deinem Kalender-Programm als Abo hinzu." });
+    }
+  };
+
   const createEvent = useMutation({
     mutationFn: async () => {
       const start = allDay
