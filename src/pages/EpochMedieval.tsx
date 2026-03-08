@@ -70,10 +70,10 @@ const EpochMedieval = () => {
           <h2 className="font-serif text-2xl font-semibold mb-6">Regionsbezug</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
-              Unsere älteste Darstellung ist untrennbar mit der Region verbunden: Die Grafschaft Nassau hatte ihr Zentrum im heutigen Rhein-Main-Gebiet. Die Burg Sonnenberg – direkt vor den Toren Wiesbadens – war Herrschaftssitz der walramischen Linie. Von hier aus wurde regiert, gerichtet und Krieg geführt.
+              Wiesbaden um 1300. Die Stadt ist kein bedeutendes Handelszentrum, keine freie Reichsstadt – aber sie liegt im Herzen einer Grafschaft, die gerade auf dem Höhepunkt ihrer Macht angekommen ist. Die Grafen von Nassau residieren auf der Burg Sonnenberg oberhalb der Stadt, verwalten ihre Ländereien von Idstein bis an den Rhein, und einer von ihnen sitzt seit 1292 auf dem deutschen Königsthron.
             </p>
             <p>
-              Mit der Wahl Adolfs von Nassau zum König des Heiligen Römischen Reiches 1292 rückte die Region für kurze Zeit ins Zentrum der europäischen Politik. Die Spuren dieser Geschichte sind in Wiesbaden und Umgebung bis heute sichtbar – von der Burg Sonnenberg bis zum Kloster Klarenthal.
+              Wir zeigen das Leben in diesem Umfeld: nicht die Fürsten und ihre Hofhaltung, sondern den Niederadel und die einfache Bevölkerung – die Menschen, die den Alltag dieser Region tragen.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
@@ -97,10 +97,10 @@ const EpochMedieval = () => {
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
-              Unsere älteste Darstellung widmet sich dem Leben im Nassauer Land um die Wende vom 13. zum 14. Jahrhundert. Es ist eine Zeit, in der die Region von den Grafen von Nassau regiert wurde, Städte aufblühten und der Alltag der Menschen von Landwirtschaft, Handwerk und Glauben geprägt war.
+              Wir bewegen uns im Zeitraum zwischen 1290 und 1310 – einer Phase, in der das Nassauer Land politisch aufgewühlt und gleichzeitig vergleichsweise dicht erschlossen ist. Es ist eine Zeit, in der die Region von den Grafen von Nassau regiert wurde, Städte aufblühten und der Alltag der Menschen von Landwirtschaft, Handwerk und Glauben geprägt war. Unsere Darstellung zeigt den Niederadel und die einfache Bevölkerung der Region: keine Könige, keine großen Schlachten, sondern das Leben derer, die eine Burg bewohnen, bewirtschaften und verteidigen.
             </p>
             <p>
-              Wir zeigen dabei nicht nur den niederen Adel, sondern auch das Leben einfacher Menschen in der Region. Unsere Ausrüstung und Kleidung basieren auf archäologischen Funden und zeitgenössischen Abbildungen aus dem Rhein-Main-Gebiet – mit dem Ziel, ein möglichst quellennahes Bild dieser Epoche zu zeichnen.
+              Kleidung, Bewaffnung, Alltagsgegenstände und Handwerk folgen dem aktuellen Forschungsstand. Wir arbeiten quellenbasiert – mit Blick auf archäologische Befunde, Schriftquellen und Bildquellen aus dem nassauisch-rheinischen Raum.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
@@ -110,25 +110,25 @@ const EpochMedieval = () => {
           {/* 4 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
-            Als Wiesbadener Verein liegt unser Fokus auf dem Nassauer Land im Raum Wiesbaden – einer Region, die um 1300 im Zentrum des Heiligen Römischen Reiches stand: als Heimat eines Königs, als Ort politischer Umbrüche und als Schauplatz des Auf- und Ausbaus nassauischer Herrschaft.
+            Die Jahre zwischen 1290 und 1310 sind für das Nassauer Land keine ruhige Zeit – sie sind geprägt von einem unerwarteten Aufstieg, einem politischen Sturz und seinen Folgen für eine Grafschaft, die danach nie wieder dieselbe sein wird.
           </p>
           <div className="space-y-8 mb-12">
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Ein Nassauer wird König – und stirbt dafür</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Adolf von Nassau – der König aus Wiesbaden, 1292–1298</h3>
               <p className="text-muted-foreground leading-relaxed">
-                1292 wählten die Kurfürsten Graf Adolf von Nassau zum König des Heiligen Römischen Reiches. Doch sein Königtum währte nur kurz: Sechs Jahre später setzten ihn dieselben Fürsten wieder ab – zum ersten Mal in der deutschen Geschichte ohne einen Bannspruch des Papstes. Am 2. Juli 1298 fiel Adolf in der Schlacht bei Göllheim im Kampf gegen seinen Nachfolger Albrecht von Österreich. Sein Herrschaftszentrum lag direkt vor den Toren des heutigen Wiesbaden: die Burg Sonnenberg.
+                1292 wählen die Kurfürsten Adolf von Nassau zum deutschen König – einen mittleren Grafen aus der Region, der als Kompromisskandidat gilt und gerade deshalb gewählt wird. Sein Herrschaftszentrum liegt in Wiesbaden und auf der Burg Sonnenberg. Sechs Jahre später, am 2. Juli 1298, wird er abgesetzt – als erster deutscher König überhaupt ohne päpstlichen Bann – und fällt noch am selben Tag in der Schlacht bei Göllheim gegen seinen Nachfolger Albrecht I. von Habsburg. Sein Sohn Gerlach I. lässt ihn 1309 nach Speyer überführen und errichtet an der Stelle seines Todes das älteste erhaltene Flurkreuz der Pfalz.
               </p>
             </div>
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Burg Sonnenberg und Kloster Klarenthal</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Kloster Klarenthal und Burg Sonnenberg – Nassau baut, 1296</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Adolf hatte die Burg Sonnenberg ausgebaut und 1296 das Kloster Klarenthal gegründet – als Hauskloster der nassauischen Familie. Nach seinem Tod übernahm sein Sohn Gerlach I. das Erbe. Er ließ den Leichnam des Vaters 1309 feierlich in den Speyerer Dom überführen und errichtete an der Stelle seines Todes bei Göllheim das älteste Flurkreuz der Pfalz. Die Spuren dieser Geschichte sind in Wiesbaden und Umgebung bis heute sichtbar.
+                Am 2. Februar 1296 legt Graf Gerlach I. von Nassau den Grundstein für das Klarissenkloster Klarenthal westlich von Wiesbaden – als Grablege und Stiftung der Familie. Gleichzeitig bleibt die Burg Sonnenberg das politische Zentrum der Grafschaft. Beide Orte sind keine abstrakten Herrschaftssymbole: Sie sind Baustellen, Arbeitsorte, Versorgungspunkte – belebt von Handwerkern, Mönchen, Soldaten, Knechten.
               </p>
             </div>
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Die Grafschaft ordnet sich neu</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Die Grafschaftsteilung 1303 – und was danach kommt</h3>
               <p className="text-muted-foreground leading-relaxed">
-                1303 teilte sich die nassauische Grafschaft erneut. Die walramische Linie – unserer Darstellung am nächsten – festigte ihre Herrschaft im Raum Wiesbaden, Idstein und Sonnenberg. Genau in diese Zeit fällt unser Darstellungsfenster: Nassau ist gerade königslos und politisch neu geordnet, baut aber gleichzeitig seinen Herrschaftssitz aktiv aus. Eine Gesellschaft im Wandel, mitten in der Aufbauphase.
+                1303 wird die Grafschaft Nassau geteilt: Die walramische Linie sichert sich Wiesbaden, Idstein und Sonnenberg – der Kern dessen, was später als Nassau-Weilburg und Nassau-Idstein weiterlebt. Diese Teilung beendet den kurzen Moment, in dem Nassau als geeinte Grafschaft eine Großmacht im Reichsgefüge sein konnte. Was bleibt, ist eine mittelgroße, gut organisierte Herrschaft – und ein Alltag, der weitergeht.
               </p>
             </div>
           </div>
