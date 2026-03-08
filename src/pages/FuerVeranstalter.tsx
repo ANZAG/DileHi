@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import lederworkshop from "@/assets/lederworkshop.jpg";
+import epochenUebersicht from "@/assets/epochen-uebersicht.jpg";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -97,8 +99,8 @@ const FuerVeranstalter = () => {
               Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Displayarbeit / Veranstaltung]</p>
+          <div className="rounded-lg overflow-hidden mt-6">
+            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover" />
           </div>
         </motion.section>
 
@@ -128,8 +130,8 @@ const FuerVeranstalter = () => {
         </motion.section>
 
         {/* Foto nach Darstellungen */}
-        <div className="rounded-lg bg-muted/50 border p-8 text-center">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Epochen-Übersicht]</p>
+        <div className="rounded-lg overflow-hidden">
+          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" className="w-full h-auto object-cover" />
         </div>
 
         {/* Mit wem wir arbeiten */}
