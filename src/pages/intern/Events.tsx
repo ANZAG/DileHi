@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { de } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { getHessenHolidays, getHolidayName } from "@/lib/holidays";
 
 interface Event {
   id: string;
