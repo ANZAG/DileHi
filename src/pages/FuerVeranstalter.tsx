@@ -83,48 +83,85 @@ const FuerVeranstalter = () => {
       </section>
 
       <div className="container max-w-3xl mx-auto py-12 md:py-16 space-y-12">
-        {/* Mit wem wir arbeiten */}
-        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="font-serif text-2xl font-semibold mb-4">Mit wem wir arbeiten</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch. Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob den Rheingau-Taunus-Kreis, den Lahn-Dill-Kreis und angrenzende Regionen umfasst. Dieser regionale Fokus spiegelt sich in unseren Darstellungen wider: Wir zeigen nassauische Geschichte – mit dem Anspruch, genau diese Region und ihre Menschen zu verstehen.
-          </p>
-        </motion.section>
-
         {/* Was wir bieten */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <h2 className="font-serif text-2xl font-semibold mb-4">Was wir bieten</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4">
             <p>
-              Im Mittelpunkt unserer Auftritte stehen Displayarbeit und Wissensvermittlung. Wir präsentieren rekonstruierte Alltagsgegenstände, Kleidung, Ausrüstung und Handwerk – und erklären den historischen Kontext fundiert und zugänglich für jedes Publikum. Wir sind keine Kulisse, sondern Gesprächspartner.
+              Im Mittelpunkt unserer Auftritte stehen Displayarbeit und Wissensvermittlung. Wir präsentieren rekonstruierte Alltagsgegenstände, Kleidung, Ausrüstung und Handwerk und erklären den historischen Kontext fundiert und verständlich für jedes Publikum.
             </p>
             <p>
-              Viele unserer Objekte stellen wir selbst her, orientiert an Museumsfunden und aktuellem Forschungsstand. Aktuell decken wir drei Epochen ab:
+              Wir verstehen uns dabei nicht als Kulisse, sondern als Gesprächspartner. Besucher können Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen.
             </p>
-            <ul className="list-disc list-inside space-y-1 pl-2">
-              <li>Spätmittelalter (1290–1310) – Grafschaft Nassau im Raum Wiesbaden, vom Niederadel bis zum Handwerk</li>
-              <li>Napoleonische Kriege (1815) – Nassauische Grenadiere des 1. Linien-Regiments</li>
-              <li>Erster Weltkrieg (1916/17) – 1. Nassauisches Pionier-Bataillon Nr. 21</li>
-            </ul>
+            <p>
+              Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
+            </p>
           </div>
         </motion.section>
 
-        {/* Was wir nicht bieten */}
+        {/* Unsere Darstellungen */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Unsere Darstellungen</h2>
+          <p className="text-muted-foreground leading-relaxed mb-4">
+            Aktuell decken wir drei Epochen der regionalen Geschichte ab:
+          </p>
+          <ul className="space-y-3 text-muted-foreground">
+            <li>
+              <span className="font-semibold text-foreground">Spätmittelalter (1290–1310)</span>
+              <br />
+              Grafschaft Nassau im Raum Wiesbaden – vom Niederadel bis zum Handwerk
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">Napoleonische Kriege (1815)</span>
+              <br />
+              Nassauische Grenadiere des 1. Linien-Regiments
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">Erster Weltkrieg (1916/17)</span>
+              <br />
+              Nassauisches Pionier-Bataillon Nr. 21
+            </li>
+          </ul>
+        </motion.section>
+
+        {/* Mit wem wir arbeiten */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Mit wem wir arbeiten</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4">
+            <p>
+              Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch.
+            </p>
+            <p>
+              Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob den Rheingau-Taunus-Kreis, den Lahn-Dill-Kreis und angrenzende Regionen umfasst.
+            </p>
+            <p>
+              Dieser regionale Fokus spiegelt sich auch in unseren Darstellungen wider: Wir beschäftigen uns bewusst mit der Geschichte dieser Region und den Menschen, die hier gelebt haben.
+            </p>
+          </div>
+        </motion.section>
+
+        {/* Unser Schwerpunkt */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <div className="rounded-lg bg-muted/50 border p-6">
-            <h2 className="font-serif text-lg font-semibold mb-3 text-muted-foreground">Was wir nicht bieten</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Unser Angebot richtet sich an Veranstalter, die historische Bildung und Authentizität schätzen. Reine Unterhaltungsformate, Fantasy-Elemente oder Auftritte ohne historischen Bildungsanspruch sind nicht unser Feld – dieses überlassen wir gerne anderen.
-            </p>
+            <h2 className="font-serif text-lg font-semibold mb-3 text-muted-foreground">Unser Schwerpunkt</h2>
+            <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
+              <p>
+                Unser Angebot richtet sich vor allem an Veranstalter, die historischen Inhalt und Vermittlung in den Mittelpunkt stellen.
+              </p>
+              <p>
+                Formate, die vor allem auf Unterhaltung oder Fantasy setzen, passen daher in der Regel weniger zu unserer Arbeit.
+              </p>
+            </div>
           </div>
         </motion.section>
 
         {/* Formular */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="font-serif text-2xl font-semibold mb-4">Anfrage stellen</h2>
-          <p className="text-muted-foreground leading-relaxed mb-6">
-            Sie möchten uns für eine Veranstaltung anfragen? Wir freuen uns darüber. Je mehr Sie uns bereits mitteilen können, desto besser können wir einschätzen, ob und wie wir zusammenpassen.
-          </p>
+          <h2 className="font-serif text-2xl font-semibold mb-4">Anfrage</h2>
+          <div className="text-muted-foreground leading-relaxed mb-6 space-y-2">
+            <p>Sie möchten uns für eine Veranstaltung anfragen? Wir freuen uns darüber.</p>
+            <p>Je mehr Informationen Sie uns bereits zu Termin, Ort und Art der Veranstaltung geben können, desto besser können wir einschätzen, ob und wie wir zusammenpassen.</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">

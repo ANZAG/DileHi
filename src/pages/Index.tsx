@@ -58,7 +58,10 @@ const Index = () => {
             Quellenbasiert. Lebendig.
           </h1>
           <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – von der mittelalterlichen Grafschaft bis zum Ersten Weltkrieg. Unser Anspruch: quellenbasiert, wissenschaftlich fundiert und so nah wie möglich an den Menschen, die damals wirklich gelebt haben.
+            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – vom Spätmittelalter bis zum Ersten Weltkrieg.
+          </p>
+          <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mt-3">
+            In unseren Darstellungen versuchen wir, diese Zeit möglichst authentisch erfahrbar zu machen und den Menschen von damals wieder ein Gesicht zu geben – auf Grundlage historischer Quellen und sorgfältiger Recherche.
           </p>
         </motion.div>
       </section>
@@ -156,9 +159,20 @@ const Index = () => {
           <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-6">
             Wer wir sind
           </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein eingetragener gemeinnütziger Verein aus Wiesbaden. Wir stellen nassauische Geschichte nicht als Kulisse nach, sondern vermitteln sie: quellenbasiert, ohne Klischees und mit Respekt vor den Menschen, die sie gelebt haben. Unser geografischer Schwerpunkt liegt auf dem Raum Wiesbaden und dem historischen Nassauer Land – einer Region, deren Geschichte von der Stauferzeit bis in die Moderne reicht und die bis heute im Stadtbild, in Ortsnamen und in der Kulturlandschaft sichtbar ist.
-          </p>
+          <div className="text-muted-foreground leading-relaxed space-y-4">
+            <p>
+              Diu lebendec Histôrje – mittelhochdeutsch für „die lebendige Geschichte" – ist ein gemeinnütziger Verein aus Wiesbaden. Seit 2011 beschäftigen wir uns mit der Geschichte des Nassauer Landes vom Spätmittelalter bis zum Ersten Weltkrieg.
+            </p>
+            <p>
+              In unseren Darstellungen versuchen wir, diese Zeit möglichst authentisch erfahrbar zu machen – auf Grundlage historischer Quellen, archäologischer Funde und eigener Rekonstruktionen. Besonders interessiert uns dabei der Alltag gewöhnlicher Menschen und nicht nur das Leben von Herrschern oder Militärs.
+            </p>
+            <p>
+              Unsere Arbeit zeigen wir vor allem auf Veranstaltungen von Museen und historischen Einrichtungen, wo wir Geschichte durch Gespräche, Vorführungen und Displayarbeit für Besucher greifbar machen.
+            </p>
+          </div>
+          <Link to="/verein" className="inline-flex items-center mt-6 text-primary hover:underline font-medium">
+            Mehr über unseren Verein →
+          </Link>
         </motion.div>
       </section>
 
