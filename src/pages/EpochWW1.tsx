@@ -140,8 +140,9 @@ const EpochWW1 = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Stellungsbau / Westfront]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={karteImage} alt="Historische Karte der Provinz Hessen-Nassau" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Karte der Provinz Hessen-Nassau – Heimatregion des XVIII. Armeekorps</p>
           </div>
 
           {/* 5 – Unsere Quellen (aus DB) */}
