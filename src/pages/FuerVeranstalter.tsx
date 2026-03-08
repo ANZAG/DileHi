@@ -97,6 +97,9 @@ const FuerVeranstalter = () => {
               Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
             </p>
           </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Displayarbeit / Veranstaltung]</p>
+          </div>
         </motion.section>
 
         {/* Unsere Darstellungen */}
