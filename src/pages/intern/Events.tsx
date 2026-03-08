@@ -432,51 +432,54 @@ const EventsPage = () => {
                     const holiday = getHolidayName(day, holidays);
                     const singleDayEvents = eventsForDay(day).filter(e => !isMultiDay(e));
 
-                    return (
-                      <button
-                        key={colIdx}
-                        onClick={() => setSelectedDate(day)}
-                        className={`min-h-[80px] md:min-h-[100px] p-1 border-b border-r text-left transition-colors hover:bg-accent/50
-                          ${!inMonth ? "opacity-40" : ""}
-                          ${isSelected ? "bg-accent" : ""}
-                          ${today ? "ring-2 ring-inset ring-primary/30" : ""}
-                        `}
-                      >
-                        <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""} ${isSelected ? "text-accent-foreground" : ""}`}>
-                          {format(day, "d")}
-                        </span>
-                        {holiday && (
-                          <div
-                            className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded ${
-                              isSelected
-                                ? "bg-background/90 text-destructive"
-                                : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            {holiday}
-                          </div>
-                        )}
-                        {/* Single-day events */}
-                        <div className="mt-0.5 space-y-0.5">
-                          {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
-                            <div
-                              key={ev.id}
-                              onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                              className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors ${
-                                isSelected
-                                  ? "bg-background/90 text-foreground border-border hover:bg-background"
-                                  : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                              }`}
-                            >
-                              {ev.title}
+                      return (
+                        <button
+                          key={colIdx}
+                          onClick={() => setSelectedDate(day)}
+                          className={`relative min-h-[80px] md:min-h-[100px] p-1 border-b border-r text-left transition-colors hover:bg-accent/50 overflow-hidden
+                            ${!inMonth ? "opacity-40" : ""}
+                            ${today ? "ring-2 ring-inset ring-primary/30" : ""}
+                          `}
+                        >
+                          {isSelected && <span aria-hidden className="absolute inset-0 bg-accent" />}
+
+                          <div className="relative z-10">
+                            <span className={`text-xs font-medium ${today ? "text-primary font-bold" : ""} ${isSelected ? "text-accent-foreground" : ""}`}>
+                              {format(day, "d")}
+                            </span>
+                            {holiday && (
+                              <div
+                                className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded ${
+                                  isSelected
+                                    ? "bg-background/90 text-destructive"
+                                    : "bg-destructive/10 text-destructive"
+                                }`}
+                              >
+                                {holiday}
+                              </div>
+                            )}
+                            {/* Single-day events */}
+                            <div className="mt-0.5 space-y-0.5">
+                              {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
+                                <div
+                                  key={ev.id}
+                                  onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
+                                  className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors ${
+                                    isSelected
+                                      ? "bg-background/90 text-foreground border-border hover:bg-background"
+                                      : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                                  }`}
+                                >
+                                  {ev.title}
+                                </div>
+                              ))}
+                              {singleDayEvents.length > (holiday ? 1 : 2) && (
+                                <span className={`text-[10px] ${isSelected ? "text-accent-foreground/80" : "text-muted-foreground"}`}>+{singleDayEvents.length - (holiday ? 1 : 2)} weitere</span>
+                              )}
                             </div>
-                          ))}
-                          {singleDayEvents.length > (holiday ? 1 : 2) && (
-                            <span className={`text-[10px] ${isSelected ? "text-accent-foreground/80" : "text-muted-foreground"}`}>+{singleDayEvents.length - (holiday ? 1 : 2)} weitere</span>
-                          )}
-                        </div>
-                      </button>
-                    );
+                          </div>
+                        </button>
+                      );
                   })}
                 </div>
 
