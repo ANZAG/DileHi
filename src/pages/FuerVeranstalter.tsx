@@ -99,8 +99,8 @@ const FuerVeranstalter = () => {
               Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
             </p>
           </div>
-          <div className="rounded-lg overflow-hidden mt-6">
-            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover" />
+          <div className="rounded-lg overflow-hidden mt-6 max-w-md mx-auto">
+            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover rounded-lg" />
           </div>
         </motion.section>
 
