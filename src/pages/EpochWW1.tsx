@@ -79,8 +79,9 @@ const EpochWW1 = () => {
               Wir stellen zwei von ihnen dar: Johann Treisbach aus Massenheim und Karl Henneke aus Hofheim – stellvertretend für die Tausenden einfacher Pioniere aus dieser Region, deren Namen auf Erkennungsmarken und in Kriegsstammrollen stehen, aber in keinem Geschichtsbuch auftauchen.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Garnisonsstadt Wiesbaden]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Kaserne Erzherzog Wilhelm des I. Nassauischen Pionier-Bat. No. 21, Mainz-Kastel</p>
           </div>
 
           {/* 2 – Was Besucher erleben können */}
