@@ -164,16 +164,16 @@ const Announcements = () => {
     replies.filter((r: any) => r.announcement_id === announcementId);
 
   return (
-    <div className="container py-12 max-w-4xl">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <h1 className="font-serif text-2xl font-bold">Versammlungen</h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
           >
             <Plus size={16} /> Neue Ankündigung
           </button>
