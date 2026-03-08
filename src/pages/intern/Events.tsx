@@ -22,6 +22,7 @@ interface Event {
   location: string | null;
   start_date: string;
   end_date: string | null;
+  all_day: boolean;
   created_by: string;
   created_at: string;
 }
