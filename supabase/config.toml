@@ -1,1 +1,4 @@
 project_id = "sstplyhfebexeyqehsvv"
+
+[functions.events-ical]
+verify_jwt = false
