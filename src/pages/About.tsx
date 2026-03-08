@@ -92,8 +92,8 @@ const About = () => (
             Dabei verstehen wir uns als Vermittler zwischen historischer Forschung und Öffentlichkeit.
           </p>
         </div>
-        <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto einer Vorführung]</p>
+        <div className="rounded-lg overflow-hidden mt-6">
+          <img src={vorfuehrung} alt="Vorführung bei einer Veranstaltung" className="w-full h-auto object-cover" />
         </div>
       </section>
 
