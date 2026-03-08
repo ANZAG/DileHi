@@ -1,13 +1,16 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays } from "lucide-react";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Users, Coins } from "lucide-react";
 
 const cards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
   { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
+  { title: "Dokumente", desc: "Satzung, Ordnungen und Protokolle.", icon: FileText, path: "/intern/dokumente" },
+  { title: "Mitglieder", desc: "Verzeichnis aller aktiven Mitglieder.", icon: Users, path: "/intern/mitglieder" },
+  { title: "Beiträge", desc: "Beitragsstatus und Übersicht.", icon: Coins, path: "/intern/beitraege" },
 ];
 
 const Dashboard = () => {
