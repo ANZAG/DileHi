@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.events-personal-ical]
 verify_jwt = false
+
+[functions.notify-contact]
+verify_jwt = false

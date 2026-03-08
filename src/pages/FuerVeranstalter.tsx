@@ -61,6 +61,11 @@ const FuerVeranstalter = () => {
       message: messageText.slice(0, 5000),
     });
 
+    // Fire-and-forget email notification
+    supabase.functions.invoke("notify-contact", {
+      body: { name: form.name.trim(), email: form.email.trim(), message: messageText },
+    }).catch(() => {});
+
     setLoading(false);
     if (error) {
       toast({ title: "Fehler beim Senden.", variant: "destructive" });

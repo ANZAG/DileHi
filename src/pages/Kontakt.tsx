@@ -41,6 +41,12 @@ const Kontakt = () => {
       email: form.email.trim(),
       message: form.message.trim(),
     });
+
+    // Fire-and-forget email notification
+    supabase.functions.invoke("notify-contact", {
+      body: { name: form.name.trim(), email: form.email.trim(), message: form.message.trim() },
+    }).catch(() => {});
+
     setSending(false);
 
     if (error) {
