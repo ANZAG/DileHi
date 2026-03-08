@@ -32,8 +32,11 @@ const ALL_CATEGORIES = [
   { value: "satzung", label: "Satzung & Ordnungen" },
   { value: "protokoll", label: "Protokolle" },
   { value: "vorstand", label: "Vorstand" },
+  { value: "vorlagen", label: "Vorlagen" },
   { value: "sonstiges", label: "Sonstiges" },
 ];
+
+const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 
 const Documents = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
