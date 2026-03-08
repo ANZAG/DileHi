@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-1815.jpg";
+import nassauRegiment from "@/assets/nassau-regiment-knotel.jpg";
+import nassauUniformtafel from "@/assets/nassau-uniformtafel.png";
+import nassauerBelleAlliance from "@/assets/nassauer-belle-alliance.jpg";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 
@@ -76,8 +79,9 @@ const Epoch1815 = () => {
               Einer der Männer, die dieses Regiment befehligen, ist in Wiesbaden geboren: August von Kruse, Jahrgang 1779, kommandierender Offizier des 1. Nassauischen Linien-Regiments.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Residenzstadt Wiesbaden um 1815]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel</p>
           </div>
 
           {/* 2 – Was Besucher erleben können */}
@@ -103,8 +107,9 @@ const Epoch1815 = () => {
               Kleidung, Ausrüstung und Bewaffnung folgen dem aktuellen Forschungsstand zur nassauischen Armee der Befreiungskriege. Wir arbeiten quellenbasiert – mit besonderem Blick auf die nassauischen Regimentsgeschichten und die Bestände des Hessischen Hauptstaatsarchivs Wiesbaden.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Napoleonik-Darstellung]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Uniformtafel nassauischer Grenadiere 1815 · Illustration: Alexis Cabaret / mont-saint-jean.com</p>
           </div>
 
           {/* 4 – Historischer Kontext */}
@@ -132,8 +137,9 @@ const Epoch1815 = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Uniform / Ausrüstung 1815]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={nassauerBelleAlliance} alt="Die Nassauer bei Belle-Alliance am 18. Juni 1815, Gemälde von R. Knötel" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Die Nassauer bei Belle-Alliance am 18. Juni 1815 · Gemälde von R. Knötel, 1899</p>
           </div>
 
           {/* 5 – Unsere Quellen (aus DB) */}
