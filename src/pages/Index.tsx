@@ -41,31 +41,67 @@ const Index = () => {
   return (
     <div>
       {/* Hero */}
-      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+      <section className="relative py-16 md:py-20 flex items-center justify-center overflow-hidden">
         <img
           src={heroImage}
           alt="Living-History-Veranstaltung"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/20" />
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 text-center px-4 max-w-3xl"
-        >
-          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 drop-shadow-lg leading-tight">
-            Nassauische Geschichte.
-            <br />
-            Quellenbasiert. Lebendig.
-          </h1>
-          <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-            Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – vom Spätmittelalter bis zum Ersten Weltkrieg.
-          </p>
-          <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mt-3">
-            In unseren Darstellungen versuchen wir, diese Zeit möglichst authentisch erfahrbar zu machen und den Menschen von damals wieder ein Gesicht zu geben – auf Grundlage historischer Quellen und sorgfältiger Recherche.
-          </p>
-        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
+        <div className="relative z-10 container flex items-center justify-center gap-6 md:gap-12 px-4">
+          {/* Left Wappen */}
+          <motion.img
+            src={wappenLeft}
+            alt="Wappen Grafschaft Nassau"
+            className="hidden md:block w-16 lg:w-20 opacity-60 flex-shrink-0"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 0.6, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center max-w-2xl"
+          >
+            <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 drop-shadow-lg leading-tight">
+              Nassauische Geschichte.
+              <br />
+              Quellenbasiert. Lebendig.
+            </h1>
+            <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
+              Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – vom Spätmittelalter bis zum Ersten Weltkrieg.
+            </p>
+            <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mt-2">
+              In unseren Darstellungen versuchen wir, diese Zeit möglichst authentisch erfahrbar zu machen und den Menschen von damals wieder ein Gesicht zu geben – auf Grundlage historischer Quellen und sorgfältiger Recherche.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
+              <Link
+                to="/fuer-veranstalter"
+                className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+              >
+                Veranstaltungsanfrage stellen
+              </Link>
+              <Link
+                to="/verein"
+                className="inline-flex items-center px-6 py-3 rounded-md border border-foreground/30 text-foreground font-medium hover:bg-foreground/10 transition-colors"
+              >
+                Mehr über uns erfahren
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Right Wappen */}
+          <motion.img
+            src={wappenRight}
+            alt="Wappen Herzogtum Nassau"
+            className="hidden md:block w-16 lg:w-20 opacity-60 flex-shrink-0"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 0.6, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          />
+        </div>
       </section>
 
       {/* Epochen – Timeline + Image */}
