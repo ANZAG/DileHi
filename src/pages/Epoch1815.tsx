@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-1815.jpg";
+import nassauRegiment from "@/assets/nassau-regiment-knotel.jpg";
+import nassauUniformtafel from "@/assets/nassau-uniformtafel.png";
+import nassauerBelleAlliance from "@/assets/nassauer-belle-alliance.jpg";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 
