@@ -119,7 +119,7 @@ const FuerVeranstalter = () => {
             <li>
               <span className="font-semibold text-foreground">Erster Weltkrieg (1916/17)</span>
               <br />
-              Nassauisches Pionier-Bataillon Nr. 21
+              1. Nassauisches Pionier-Bataillon Nr. 21
             </li>
           </ul>
         </motion.section>
