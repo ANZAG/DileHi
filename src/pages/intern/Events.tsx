@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO, differenceInCalendarDays } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft, Pencil, Copy, Link as LinkIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { getHessenHolidays, getHolidayName } from "@/lib/holidays";
 
@@ -54,6 +54,7 @@ const EventsPage = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showCalendarSync, setShowCalendarSync] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -100,6 +101,31 @@ const EventsPage = () => {
       })) as Attendee[];
     },
   });
+
+  const { data: calendarToken } = useQuery({
+    queryKey: ["calendar_token", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("calendar_token")
+        .eq("id", user!.id)
+        .single();
+      if (error) throw error;
+      return data?.calendar_token as string;
+    },
+    enabled: !!user,
+  });
+
+  const personalIcalUrl = calendarToken
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-personal-ical?token=${calendarToken}`
+    : null;
+
+  const copyCalendarUrl = () => {
+    if (personalIcalUrl) {
+      navigator.clipboard.writeText(personalIcalUrl);
+      toast({ title: "Kalender-URL kopiert", description: "Füge diese URL in deinem Kalender-Programm als Abo hinzu." });
+    }
+  };
 
   const createEvent = useMutation({
     mutationFn: async () => {
@@ -351,7 +377,10 @@ const EventsPage = () => {
             </Button>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCalendarSync(true)}>
+              <LinkIcon size={16} className="mr-1" /> <span className="hidden sm:inline">Kalender </span>Abo
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <a href={icalUrl} target="_blank" rel="noopener noreferrer">
                 <Download size={16} className="mr-1" /> iCal
@@ -721,6 +750,66 @@ const EventsPage = () => {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Calendar Sync Dialog */}
+      <Dialog open={showCalendarSync} onOpenChange={setShowCalendarSync}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kalender abonnieren</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Kopiere die URL unten und füge sie als <strong>Kalenderabonnement</strong> in deinem Kalender-Programm hinzu 
+              (Outlook, Apple Kalender, Google Calendar). Dein Kalender synchronisiert dann automatisch alle Events, 
+              denen du zugesagt hast.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Meine zugesagten Termine</label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={personalIcalUrl || "Wird geladen..."}
+                  className="text-xs font-mono"
+                />
+                <Button size="icon" variant="outline" onClick={copyCalendarUrl} disabled={!personalIcalUrl}>
+                  <Copy size={16} />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enthält nur Events, denen du zugesagt hast. Wird automatisch aktualisiert.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Alle Vereinstermine</label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={icalUrl}
+                  className="text-xs font-mono"
+                />
+                <Button size="icon" variant="outline" onClick={() => {
+                  navigator.clipboard.writeText(icalUrl);
+                  toast({ title: "URL kopiert" });
+                }}>
+                  <Copy size={16} />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enthält alle Vereinstermine, unabhängig von deiner Zusage.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">So geht's:</p>
+              <p>• <strong>Outlook:</strong> Datei → Konto hinzufügen → Kalender aus dem Internet abonnieren</p>
+              <p>• <strong>Apple Kalender:</strong> Ablage → Neues Kalenderabonnement</p>
+              <p>• <strong>Google Calendar:</strong> Andere Kalender → Per URL</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

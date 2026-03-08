@@ -2,3 +2,6 @@ project_id = "sstplyhfebexeyqehsvv"
 
 [functions.events-ical]
 verify_jwt = false
+
+[functions.events-personal-ical]
+verify_jwt = false
