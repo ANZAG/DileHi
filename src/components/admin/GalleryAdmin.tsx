@@ -23,11 +23,11 @@ const GalleryAdmin = () => {
     queryKey: ["gallery_images_admin"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("gallery_images" as any)
+        .from("gallery_images")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (data as any[]).map((img: any) => {
+      return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { ...img, publicUrl: urlData.publicUrl };
       });
