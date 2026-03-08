@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import gruppenfoto from "@/assets/gruppenfoto.jpg";
 
 const About = () => (
   <div className="container py-12 md:py-20 max-w-3xl">
