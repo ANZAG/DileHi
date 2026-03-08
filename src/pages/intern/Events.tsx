@@ -70,11 +70,21 @@ const EventsPage = () => {
   const { data: attendees = [] } = useQuery({
     queryKey: ["event_attendees"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: attData, error } = await supabase
         .from("event_attendees")
-        .select("*, profiles(display_name)");
+        .select("*");
       if (error) throw error;
-      return data as Attendee[];
+      if (!attData || attData.length === 0) return [] as Attendee[];
+      const userIds = [...new Set(attData.map(a => a.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
+      return attData.map(a => ({
+        ...a,
+        profiles: { display_name: profileMap.get(a.user_id) || "Mitglied" },
+      })) as Attendee[];
     },
   });
 

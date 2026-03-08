@@ -55,6 +55,7 @@ const App = () => (
               <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/intern/quellen" element={<ProtectedRoute><Sources /></ProtectedRoute>} />
               <Route path="/intern/pinnwand" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+              <Route path="/intern/veranstaltungen" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
