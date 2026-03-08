@@ -70,10 +70,10 @@ const Epoch1815 = () => {
           <h2 className="font-serif text-2xl font-semibold mb-6">Regionsbezug</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
-              Wiesbaden war seit 1806 Residenzstadt des Herzogtums Nassau – eines Staates, der Napoleon seine Existenz verdankte. Von hier aus wurden Truppen ausgehoben, ausgebildet und in den Krieg geschickt. Das 1. Nassauische Linien-Regiment rekrutierte seine Männer aus dem gesamten Herzogtum: aus dem Taunus, dem Lahnthal, dem Westerwald und der Residenzstadt selbst.
+              Wiesbaden, 1815. Die Stadt ist Residenzstadt des Herzogtums Nassau – eines der vielen deutschen Kleinstaaten, die nach dem Ende der napoleonischen Ära neu geordnet werden. Nassau hat die letzten Jahre als Rheinbund-Mitglied überstanden, hat auf der Seite Napoleons gekämpft, und hat im Dezember 1813 im richtigen Moment die Seiten gewechselt. Nun steht sein Regiment auf dem Schlachtfeld von Waterloo – auf der Seite der Sieger.
             </p>
             <p>
-              Die Geschichte dieser Männer ist die Geschichte unserer Region: nassauische Soldaten, die durch die Umwälzungen der napoleonischen Zeit von einem Schlachtfeld zum nächsten geworfen wurden – von Spanien über Russland bis nach Waterloo.
+              Einer der Männer, die dieses Regiment befehligen, ist in Wiesbaden geboren: August von Kruse, Jahrgang 1779, kommandierender Offizier des 1. Nassauischen Linien-Regiments.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
@@ -97,10 +97,10 @@ const Epoch1815 = () => {
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
           <div className="text-muted-foreground leading-relaxed space-y-4 mb-6">
             <p>
-              Unsere Napoleonik-Darstellung widmet sich der 1. Kompanie des 1. Nassauischen Linien-Regiments Grenadiere im Jahr 1815 – mitten in der Zeit der Befreiungskriege und des Wiener Kongresses. Die nassauischen Truppen spielten in den Koalitionskriegen gegen Napoleon eine wichtige, oft unterschätzte Rolle.
+              Wir stellen die 1. Kompanie des 1. Nassauischen Linien-Regiments dar – die Grenadiere, erkennbar an ihrer Uniform in nassauischem Grün mit gelben Trageriemen. Der Zeitraum ist das Jahr 1815, der Fokus liegt auf den Wochen um die Waterloo-Kampagne: Quatre Bras am 16. Juni, Waterloo am 18. Juni.
             </p>
             <p>
-              Unser Ziel ist es, die Lebenswelt eines nassauischen Grenadiers möglichst greifbar nachzubilden: von der Uniformierung und Bewaffnung über den militärischen Alltag bis hin zum politischen Kontext, in dem sich das Herzogtum Nassau zwischen den Großmächten bewegte.
+              Kleidung, Ausrüstung und Bewaffnung folgen dem aktuellen Forschungsstand zur nassauischen Armee der Befreiungskriege. Wir arbeiten quellenbasiert – mit besonderem Blick auf die nassauischen Regimentsgeschichten und die Bestände des Hessischen Hauptstaatsarchivs Wiesbaden.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
@@ -110,25 +110,25 @@ const Epoch1815 = () => {
           {/* 4 – Historischer Kontext */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
-            Unser Blick gilt dem Herzogtum Nassau und seiner Residenzstadt Wiesbaden – einem Territorium, das durch Napoleon grundlegend neu geformt wurde und dessen Männer in einige der folgenreichsten Schlachten der europäischen Geschichte zogen.
+            Nassau 1815 ist kein neutraler Zuschauer der großen europäischen Politik – es ist ein kleiner Staat, der sich durch geschicktes Lavieren auf der richtigen Seite der Geschichte wiederfindet, und dessen Soldaten dafür einen hohen Preis zahlen.
           </p>
           <div className="space-y-8 mb-12">
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Vom Verbündeten zum Gegner</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Der Seitenwechsel – Dezember 1813</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Das Herzogtum Nassau verdankte Napoleon einiges: territoriale Gewinne, den Aufstieg zum Herzogtum und eine grundlegende Modernisierung der Verwaltung. Als Mitglied des Rheinbunds stellte Nassau Truppen für Napoleons Feldzüge – in Spanien, in Russland, an der Westfront. Doch als sich der Krieg gegen Frankreich wendete und die Kampfhandlungen in die Heimat getragen wurden, wechselte Nassau die Seiten.
+                Nassau war Mitglied des Rheinbunds und hatte auf der Seite Napoleons gekämpft. Am 10. Dezember 1813 vollzieht August von Kruse mit seinem Regiment den Seitenwechsel zur britischen Linie – mit geheimen Befehlen aus Wiesbaden, präzise geplant und im richtigen Moment ausgeführt. Wellington soll Kruse danach mit den Worten empfangen haben: „Ich hoffe, General, dass Ihre heutigen Aktionen genauso klug sind wie Ihre gestrigen" – eine Anspielung auf den Frontwechsel, die sowohl Lob als auch Misstrauen enthielt. Nassau steht fortan auf der Seite der Koalition.
               </p>
             </div>
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Der Seitenwechsel und Wellington</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">Quatre Bras und Waterloo – Juni 1815</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Regimentskommandeur August von Kruse – 1779 in Wiesbaden geboren – führte seine Männer durch diese Wendejahre. Am 10. Dezember 1813 erhielt er geheime Befehle, zur britischen Seite überzutreten. Geschickt manövrierte er das Regiment durch die Fronten, sodass der Übertritt gelang, ohne dass ein Schuss fiel. Wellington soll ihm vor der Schlacht bei Waterloo gesagt haben: „Ich hoffe, General, dass Ihre heutigen Aktionen genauso klug sind, wenn Sie für mich kämpfen, wie sie es in Spanien waren, als Sie gegen mich kämpften." Ein Satz, der die politische Komplexität der nassauischen Lage treffend auf den Punkt bringt.
+                Beim Gefecht bei Quatre Bras am 16. Juni 1815 kämpfen nassauische Einheiten in vorderster Linie – und verlieren dabei erhebliche Teile ihrer Mannschaft. Zwei Tage später, bei Waterloo, sind die Nassauer über das gesamte Schlachtfeld verteilt: in der Verteidigung des Gehöfts Hougoumont, im Zentrum der alliierten Linie, und im entscheidenden Moment des Gegenstoßes. Wellington nennt die nassauischen Truppen später unter den verlässlichsten seiner Verbündeten.
               </p>
             </div>
             <div>
-              <h3 className="font-serif text-xl font-semibold mb-3">Quatre Bras und Waterloo</h3>
+              <h3 className="font-serif text-xl font-semibold mb-3">August von Kruse – Wiesbadens Mann bei Waterloo</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Im Juni 1815 kämpften nassauische Einheiten bei Quatre Bras und Waterloo – verteilt über das gesamte Schlachtfeld, von Hougoumont bis Papelotte. Für viele Männer aus Wiesbaden, Dillenburg und dem Nassauer Land waren es die letzten Tage eines langen Krieges, der Europa grundlegend verändert hatte.
+                August von Kruse wird 1779 in Wiesbaden geboren, tritt früh in nassauische Dienste und steigt zum kommandierenden Offizier des 1. Linien-Regiments auf. Er führt das Regiment durch den Seitenwechsel, durch Quatre Bras und durch Waterloo. Seine Biographie ist beispielhaft für die Lage kleiner deutscher Staaten in dieser Epoche: loyale Pflichterfüllung gegenüber wechselnden Herren, navigiert mit militärischem Geschick und politischem Gespür.
               </p>
             </div>
           </div>
@@ -161,11 +161,11 @@ const Epoch1815 = () => {
             <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
           )}
 
-          {/* Hinweis */}
-          <div className="p-6 rounded-lg bg-card border">
-            <h3 className="font-serif text-lg font-semibold mb-2">Hinweis</h3>
-            <p className="text-sm text-muted-foreground">
-              Diese Darstellung befindet sich in aktiver Entwicklung. Für Fragen und Anfragen stehen wir gerne zur Verfügung.
+          {/* Ein Wort zur Vollständigkeit */}
+          <div className="p-8 rounded-xl bg-primary/5 border border-primary/20">
+            <h3 className="font-serif text-lg font-semibold mb-3 text-primary">Ein Wort zur Vollständigkeit</h3>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              Diese Darstellung wächst noch. Die Waterloo-Kampagne ist quellenreich, aber die nassauische Perspektive ist in der deutschsprachigen Forschung lange vernachlässigt worden – wir arbeiten daran, sie sorgfältig aufzuarbeiten. Wer Interesse hat, an dieser Darstellung mitzuwirken oder eigene Recherchen beizusteuern, ist herzlich eingeladen, uns zu kontaktieren.
             </p>
           </div>
 
