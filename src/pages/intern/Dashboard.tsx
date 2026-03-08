@@ -60,7 +60,7 @@ const Dashboard = () => {
             >
               <Link
                 to={card.path}
-                className="flex flex-col p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full"
+                className="flex flex-col p-3 sm:p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full overflow-hidden"
               >
                 <card.icon size={24} className="text-primary mb-2 shrink-0" />
                 <h2 className="font-serif text-sm sm:text-lg font-semibold mb-1 break-words hyphens-auto" lang="de">{card.title}</h2>
