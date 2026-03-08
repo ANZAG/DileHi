@@ -127,6 +127,11 @@ const FuerVeranstalter = () => {
           </ul>
         </motion.section>
 
+        {/* Foto nach Darstellungen */}
+        <div className="rounded-lg bg-muted/50 border p-8 text-center">
+          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Epochen-Übersicht]</p>
+        </div>
+
         {/* Mit wem wir arbeiten */}
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <h2 className="font-serif text-2xl font-semibold mb-4">Mit wem wir arbeiten</h2>

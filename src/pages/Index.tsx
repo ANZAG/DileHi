@@ -170,7 +170,10 @@ const Index = () => {
               Unsere Arbeit zeigen wir vor allem auf Veranstaltungen von Museen und historischen Einrichtungen, wo wir Geschichte durch Gespräche, Vorführungen und Displayarbeit für Besucher greifbar machen.
             </p>
           </div>
-          <Link to="/verein" className="inline-flex items-center mt-6 text-primary hover:underline font-medium">
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6 mb-4">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Gruppenfoto]</p>
+          </div>
+          <Link to="/verein" className="inline-flex items-center mt-2 text-primary hover:underline font-medium">
             Mehr über unseren Verein →
           </Link>
         </motion.div>

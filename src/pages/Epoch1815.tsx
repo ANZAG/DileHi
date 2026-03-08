@@ -118,6 +118,9 @@ const Epoch1815 = () => {
               </p>
             </div>
           </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Uniform / Ausrüstung 1815]</p>
+          </div>
 
           {/* 4 – Unsere Quellen (aus DB) */}
           <EpochSources epoch="1815" />

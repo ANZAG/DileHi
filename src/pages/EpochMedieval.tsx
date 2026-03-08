@@ -118,6 +118,9 @@ const EpochMedieval = () => {
               </p>
             </div>
           </div>
+          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
+            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Burg Sonnenberg / historischer Ort]</p>
+          </div>
 
           {/* 4 – Unsere Quellen (aus DB) */}
           <EpochSources epoch="mittelalter" />
