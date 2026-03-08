@@ -220,15 +220,15 @@ const Announcements = () => {
                     onClick={() => toggleExpanded(a.id)}
                     className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors text-left"
                   >
-                    <div className="flex items-center gap-2">
-                      {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                      <h3 className="font-serif text-lg font-semibold">{a.title}</h3>
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      {expanded ? <ChevronDown size={16} className="shrink-0 inline mr-1" /> : <ChevronRight size={16} className="shrink-0 inline mr-1" />}
+                      <span className="font-serif text-base sm:text-lg font-semibold">{a.title}</span>
+                      <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
                         {new Date(a.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}
                       </span>
                       {announcementReplies.length > 0 && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                          {announcementReplies.length} {announcementReplies.length === 1 ? "Antwort" : "Antworten"}
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground ml-2">
+                          {announcementReplies.length}
                         </span>
                       )}
                     </div>

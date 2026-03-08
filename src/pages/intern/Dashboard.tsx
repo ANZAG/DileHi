@@ -15,18 +15,18 @@ const Dashboard = () => {
   const canAdmin = isVorstand || isHerold;
 
   return (
-    <div className="container py-12 max-w-4xl">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-serif text-3xl font-bold">Mitgliederbereich</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
+            <p className="text-sm text-muted-foreground mt-1 break-all sm:break-normal">
               Angemeldet als {user?.email}
               {isVorstand && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Vorstand</span>}
               {isHerold && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Herold</span>}
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap justify-end">
+          <div className="flex gap-2 flex-wrap">
             <Link
               to="/intern/profil"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
@@ -50,7 +50,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {cards.map((card, i) => (
             <motion.div
               key={card.path}

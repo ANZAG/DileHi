@@ -173,19 +173,19 @@ const Sources = () => {
     : null;
 
   return (
-    <div className="container py-12 max-w-4xl">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <h1 className="font-serif text-2xl font-bold">Quellensammlung</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button onClick={() => setShowFolderForm(!showFolderForm)} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted">
               <FolderPlus size={16} /> Ordner
             </button>
             <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus size={16} /> Neue Quelle
+              <Plus size={16} /> Quelle
             </button>
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
               <Upload size={16} /> Datei
