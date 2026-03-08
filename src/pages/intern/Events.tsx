@@ -805,7 +805,7 @@ const EventsPage = () => {
 
             <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">So geht's:</p>
-              <p>• <strong>Outlook:</strong> Datei → Konto hinzufügen → Kalender aus dem Internet abonnieren</p>
+              <p>• <strong>Outlook:</strong> Start → Kalender hinzufügen → Aus dem Internet …</p>
               <p>• <strong>Apple Kalender:</strong> Ablage → Neues Kalenderabonnement</p>
               <p>• <strong>Google Calendar:</strong> Andere Kalender → Per URL</p>
             </div>
