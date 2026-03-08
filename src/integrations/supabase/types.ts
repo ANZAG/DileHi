@@ -190,6 +190,72 @@ export type Database = {
           },
         ]
       }
+      contributions: {
+        Row: {
+          amount: number | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          year: number
+        }
+        Insert: {
+          amount?: number | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          year: number
+        }
+        Update: {
+          amount?: number | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          category: string
+          created_at: string
+          file_name: string
+          id: string
+          storage_path: string
+          title: string
+          uploaded_by: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          file_name: string
+          id?: string
+          storage_path: string
+          title: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          storage_path?: string
+          title?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       election_audit_log: {
         Row: {
           deleted_at: string
