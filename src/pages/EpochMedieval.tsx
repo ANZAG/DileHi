@@ -1,96 +1,229 @@
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { AnimatePresence, } from "framer-motion";
+import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-medieval.jpg";
 
-const EpochMedieval = () => (
-  <div>
-    {/* Hero */}
-    <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
-      <img src={epochImage} alt="Mittelalterlicher Ritter" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-      <div className="relative z-10 container pb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <h1 className="font-serif text-3xl md:text-5xl font-bold mb-2">1290–1310</h1>
-          <p className="text-lg text-primary font-medium">Nassauer Land · 1290–1310 · Als Nassau den König stellte</p>
+const EpochMedieval = () => {
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
+  const { data: galleryImages = [] } = useQuery({
+    queryKey: ["gallery_images", "mittelalter"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_images" as any)
+        .select("*")
+        .eq("epoch", "mittelalter")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (data as any[]).map((img: any) => {
+        const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
+        return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild" };
+      });
+    },
+  });
+
+  const allImages = [
+    { src: epochImage, alt: "Spätmittelalterliche Darstellung" },
+    ...galleryImages,
+  ];
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
+        <img src={epochImage} alt="Spätmittelalterliche Darstellung" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="relative z-10 container pb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <h1 className="font-serif text-3xl md:text-5xl font-bold mb-2">Spätmittelalter</h1>
+            <p className="text-lg text-primary font-medium">Nassauer Land · 1290–1310 · Als Nassau den König stellte</p>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="container py-12 md:py-20 max-w-3xl">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+
+          {/* Infobox */}
+          <div className="p-6 rounded-lg bg-card border mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="font-semibold text-foreground">Zeit</span>
+                <p className="text-muted-foreground">1290–1310</p>
+              </div>
+              <div>
+                <span className="font-semibold text-foreground">Region</span>
+                <p className="text-muted-foreground">Grafschaft Nassau</p>
+              </div>
+              <div>
+                <span className="font-semibold text-foreground">Themen</span>
+                <p className="text-muted-foreground">Adel, Handwerk, Alltag</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 1 – Unsere Darstellung */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+            <p>
+              Unsere älteste Darstellung widmet sich dem Leben im Nassauer Land um die Wende vom 13. zum 14. Jahrhundert. Es ist eine Zeit, in der die Region von den Grafen von Nassau regiert wurde, Städte aufblühten und der Alltag der Menschen von Landwirtschaft, Handwerk und Glauben geprägt war.
+            </p>
+            <p>
+              Wir zeigen dabei nicht nur den niederen Adel, sondern auch das Leben einfacher Menschen in der Region. Unsere Ausrüstung und Kleidung basieren auf archäologischen Funden und zeitgenössischen Abbildungen aus dem Rhein-Main-Gebiet – mit dem Ziel, ein möglichst quellennahes Bild dieser Epoche zu zeichnen.
+            </p>
+          </div>
+
+          {/* 2 – Historischer Kontext */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext</h2>
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            Als Wiesbadener Verein liegt unser Fokus auf dem Nassauer Land im Raum Wiesbaden – einer Region, die um 1300 im Zentrum des Heiligen Römischen Reiches stand: als Heimat eines Königs, als Ort politischer Umbrüche und als Schauplatz des Auf- und Ausbaus nassauischer Herrschaft.
+          </p>
+
+          <div className="space-y-8 mb-12">
+            <div>
+              <h3 className="font-serif text-xl font-semibold mb-3">Ein Nassauer wird König – und stirbt dafür</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                1292 wählten die Kurfürsten Graf Adolf von Nassau zum König des Heiligen Römischen Reiches. Doch sein Königtum währte nur kurz: Sechs Jahre später setzten ihn dieselben Fürsten wieder ab – zum ersten Mal in der deutschen Geschichte ohne einen Bannspruch des Papstes. Am 2. Juli 1298 fiel Adolf in der Schlacht bei Göllheim im Kampf gegen seinen Nachfolger Albrecht von Österreich. Sein Herrschaftszentrum lag direkt vor den Toren des heutigen Wiesbaden: die Burg Sonnenberg.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-serif text-xl font-semibold mb-3">Burg Sonnenberg und Kloster Klarenthal</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Adolf hatte die Burg Sonnenberg ausgebaut und 1296 das Kloster Klarenthal gegründet – als Hauskloster der nassauischen Familie. Nach seinem Tod übernahm sein Sohn Gerlach I. das Erbe. Er ließ den Leichnam des Vaters 1309 feierlich in den Speyerer Dom überführen und errichtete an der Stelle seines Todes bei Göllheim das älteste Flurkreuz der Pfalz. Die Spuren dieser Geschichte sind in Wiesbaden und Umgebung bis heute sichtbar.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-serif text-xl font-semibold mb-3">Die Grafschaft ordnet sich neu</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                1303 teilte sich die nassauische Grafschaft erneut. Die walramische Linie – unserer Darstellung am nächsten – festigte ihre Herrschaft im Raum Wiesbaden, Idstein und Sonnenberg. Genau in diese Zeit fällt unser Darstellungsfenster: Nassau ist gerade königslos und politisch neu geordnet, baut aber gleichzeitig seinen Herrschaftssitz aktiv aus. Eine Gesellschaft im Wandel, mitten in der Aufbauphase.
+              </p>
+            </div>
+          </div>
+
+          {/* 3 – Was Besucher erleben können */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Was Besucher bei uns erleben können</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+            <p>
+              Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen.
+            </p>
+            <p>Dazu gehören unter anderem:</p>
+            <ul className="space-y-3 ml-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>„Arming a Knight" – das Anlegen einer vollständigen Ritterrüstung</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Einblicke in Kleidung und Mode des späten 13. Jahrhunderts</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Präsentationen von Alltagsgegenständen, Glauben und Ausrüstung</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Displays „Lederarbeiten", „Baustelle im Mittelalter", „Wundärzte im Mittelalter"</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit</span>
+              </li>
+            </ul>
+            <p>
+              Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen.
+            </p>
+          </div>
+
+          {/* 4 – Unsere Quellen */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Quellen</h2>
+          <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
+            <p>
+              Unsere Darstellung stützt sich auf eine Vielzahl von Quellen – archäologische Funde, zeitgenössische Abbildungen und wissenschaftliche Literatur. Im Folgenden eine Auswahl der wichtigsten Grundlagen unserer Arbeit:
+            </p>
+            <ul className="space-y-3 ml-1 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Kühnel, Harry: <em>Alltag im Spätmittelalter</em>, Graz 1984</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Bumke, Joachim: <em>Höfische Kultur</em>, München 1986</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Codex Manesse (Universitätsbibliothek Heidelberg, Cod. Pal. germ. 848)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Maciejowski-Bibel (Morgan Library, MS M.638)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Funde aus dem Rhein-Main-Gebiet (u. a. Landesmuseum Wiesbaden, Museum Wiesbaden)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-1">•</span>
+                <span>Schubert, Ernst: <em>Alltag im Mittelalter</em>, Darmstadt 2002</span>
+              </li>
+            </ul>
+            <p className="text-sm italic">
+              Diese Liste wird laufend ergänzt. Bei Fragen zu einzelnen Quellen stehen wir gerne zur Verfügung.
+            </p>
+          </div>
+
+          {/* 5 – Galerie */}
+          <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
+          {allImages.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              {allImages.map((img, i) => (
+                <motion.button
+                  key={img.src}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => setLightbox(i)}
+                  className="aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer"
+                >
+                  <img src={img.src} alt={img.alt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </motion.button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
+          )}
+
         </motion.div>
-      </div>
-    </section>
+      </section>
 
-    <section className="container py-12 md:py-20 max-w-3xl">
-      <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-        
-        {/* Regionsbezug */}
-        <p className="text-muted-foreground leading-relaxed mb-8 text-lg">
-          Als Wiesbadener Verein liegt unser Fokus auf dem Nassauer Land im Raum Wiesbaden – einer Region, die um 1300 im Zentrum des Heiligen Römischen Reiches stand: als Heimat eines Königs, als Ort politischer Umbrüche und als Schauplatz des Auf- und Ausbaus nassauischer Herrschaft.
-        </p>
-
-        <h2 className="font-serif text-2xl font-semibold mb-6">Die Darstellung</h2>
-        <div className="text-muted-foreground leading-relaxed space-y-4 mb-12">
-          <p>
-            Unsere älteste Darstellung widmet sich dem Leben im Nassauer Land um die Wende vom 13. zum 14. Jahrhundert. In dieser Zeit war die Region geprägt von der Herrschaft der Grafen von Nassau, dem Aufblühen der Städte und dem Alltag einer ländlichen Bevölkerung zwischen Landwirtschaft, Handwerk und Glauben.
-          </p>
-          <p>
-            Wir stellen sowohl den niederen Adel als auch einfache Bewohner der Region dar und legen besonderen Wert auf quellengestützte Ausstattung und Lebensweise. Unsere Ausrüstung basiert auf archäologischen Funden und zeitgenössischen Abbildungen aus dem Rhein-Main-Gebiet.
-          </p>
-        </div>
-
-        <h2 className="font-serif text-2xl font-semibold mb-6">Historischer Kontext – Was Nassau um 1300 bewegt</h2>
-        
-        <div className="space-y-8 mb-12">
-          <div>
-            <h3 className="font-serif text-xl font-semibold mb-3">Ein Nassauer wird König – und stirbt dafür</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              1292 wurde Graf Adolf von Nassau zum König des Heiligen Römischen Reiches gewählt. Es war ein kurzes Königtum: Sechs Jahre später wurde er durch die Kurfürsten abgesetzt – als erster deutscher König ohne Bannspruch des Papstes, allein durch Fürstenwillen. Am 2. Juli 1298 fiel er in der Schlacht bei Göllheim im Kampf gegen Herzog Albrecht von Österreich. Sein Herrschaftszentrum: Wiesbaden und die Burg Sonnenberg direkt vor den Toren der heutigen Landeshauptstadt.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-serif text-xl font-semibold mb-3">Burg Sonnenberg und Kloster Klarenthal</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              Adolf hatte die Burg Sonnenberg ausgebaut und 1296 den Grundstein des Klosters Klarenthal gelegt – als Hauskloster der Nassauer gedacht. Nach seinem Tod übernahm sein Sohn Gerlach I. das Erbe, ließ den Leichnam des Vaters 1309 würdevoll in den Speyerer Dom überführen und errichtete an der Stelle bei Göllheim das älteste Flurkreuz der Pfalz. Wiesbaden und Umgebung sind bis heute von dieser Geschichte geprägt.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-serif text-xl font-semibold mb-3">Die Grafschaft ordnet sich neu (1303)</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              1303 teilte sich die nassauische Grafschaft erneut. Die walramische Linie, unserer Darstellung am nächsten, festigte ihre Herrschaft im Raum Wiesbaden-Idstein-Sonnenberg. Genau in diese Zeit fällt unser Darstellungsfenster: Nassau ist gerade königslos, politisch neu geordnet, baut aber seinen Herrschaftssitz aktiv aus – eine Gesellschaft im Wandel, mitten in der Aufbauphase.
-            </p>
-          </div>
-        </div>
-
-        <h2 className="font-serif text-2xl font-semibold mb-6">Themen & Schwerpunkte</h2>
-        <ul className="space-y-3 text-muted-foreground mb-12">
-          <li className="flex items-start gap-2">
-            <span className="text-primary mt-1">•</span>
-            <span>Alltagsleben im spätmittelalterlichen Nassau</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary mt-1">•</span>
-            <span>Bewaffnung und Rüstung des niederen Adels</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary mt-1">•</span>
-            <span>Handwerk und Textilherstellung (u.a. Lederhandwerk)</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary mt-1">•</span>
-            <span>Die mittelalterliche Baustelle mit Gewerken wie Baumeister und Zimmermann</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary mt-1">•</span>
-            <span>Ernährung und Kochkultur um 1300</span>
-          </li>
-        </ul>
-
-        <div className="p-6 rounded-lg bg-card border">
-          <h3 className="font-serif text-lg font-semibold mb-2">Quellenhinweis</h3>
-          <p className="text-sm text-muted-foreground">
-            Dieser Bereich wird laufend mit neuen Informationen, Bildern und Quellenangaben ergänzt. Bei Fragen zu unseren Quellen und Methoden stehen wir euch gerne zur Verfügung.
-          </p>
-        </div>
-      </motion.div>
-    </section>
-  </div>
-);
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightbox !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
+            onClick={() => setLightbox(null)}
+          >
+            <button className="absolute top-4 right-4 text-foreground p-2" aria-label="Schließen">
+              <X size={28} />
+            </button>
+            <img
+              src={allImages[lightbox]?.src}
+              alt={allImages[lightbox]?.alt}
+              className="max-h-[85vh] max-w-full rounded-lg object-contain"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default EpochMedieval;
