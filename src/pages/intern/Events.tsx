@@ -94,14 +94,19 @@ const EventsPage = () => {
 
   const createEvent = useMutation({
     mutationFn: async () => {
-      const start = new Date(`${startDate}T${startTime}`).toISOString();
-      const end = endDate ? new Date(`${endDate}T${endTime}`).toISOString() : null;
+      const start = allDay
+        ? new Date(`${startDate}T00:00:00`).toISOString()
+        : new Date(`${startDate}T${startTime}`).toISOString();
+      const end = endDate
+        ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
+        : null;
       const { error } = await supabase.from("events").insert({
         title,
         description: description || null,
         location: location || null,
         start_date: start,
         end_date: end,
+        all_day: allDay,
         created_by: user!.id,
       });
       if (error) throw error;
