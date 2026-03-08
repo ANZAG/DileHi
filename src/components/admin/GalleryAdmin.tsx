@@ -62,7 +62,7 @@ const GalleryAdmin = () => {
 
   const updateEpoch = useMutation({
     mutationFn: async ({ id, epoch }: { id: string; epoch: string }) => {
-      const { error } = await (supabase.from("gallery_images" as any) as any).update({ epoch }).eq("id", id);
+      const { error } = await supabase.from("gallery_images").update({ epoch }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
