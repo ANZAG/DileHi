@@ -154,11 +154,11 @@ const Admin = () => {
           {isVorstand && (
             <>
               <div className="p-5 rounded-lg border bg-card">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                   <h2 className="font-serif text-lg font-semibold">Mitgliederverwaltung</h2>
                   <Link
                     to="/intern/verwaltung/protokoll"
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors w-fit"
                   >
                     <FileText size={16} /> Abstimmungsaudit
                   </Link>
