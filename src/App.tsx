@@ -64,6 +64,9 @@ const App = () => (
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/intern/mitglieder" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+              <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
