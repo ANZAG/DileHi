@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Trash2, ChevronDown, ChevronUp, Reply } from "lucide-react";
+import { Trash2, ChevronDown, Reply, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,6 +26,29 @@ const ContactMessages = () => {
     },
   });
 
+  const { data: allReplies = [] } = useQuery({
+    queryKey: ["contact_replies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_replies" as any)
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) return [];
+      return data as any[];
+    },
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles_for_replies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+      if (error) return [];
+      return data;
+    },
+  });
+
   const deleteContactMessage = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("contact_messages").delete().eq("id", id);
@@ -33,14 +56,15 @@ const ContactMessages = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact_messages"] });
+      queryClient.invalidateQueries({ queryKey: ["contact_replies"] });
     },
   });
 
-  const handleReply = async (email: string, name: string) => {
+  const handleReply = async (email: string, name: string, contactMessageId: string) => {
     if (!replyText.trim()) return;
     setSending(true);
     const { data, error } = await supabase.functions.invoke("reply-contact", {
-      body: { to: email, name, message: replyText.trim() },
+      body: { to: email, name, message: replyText.trim(), contact_message_id: contactMessageId },
     });
     setSending(false);
     if (error || !data?.success) {
@@ -49,15 +73,14 @@ const ContactMessages = () => {
       toast({ title: "Antwort gesendet" });
       setReplyTo(null);
       setReplyText("");
+      queryClient.invalidateQueries({ queryKey: ["contact_replies"] });
     }
   };
 
-  // Parse structured event inquiry fields from message
   const parseMessage = (message: string) => {
     const lines = message.split("\n");
     const fields: { label: string; value: string }[] = [];
     let freeText = "";
-
     for (const line of lines) {
       const match = line.match(/^(Name|Organisation|Art|Datum|Ort|Besucherzahl|Epoche|Nachricht):\s*(.+)/);
       if (match) {
@@ -66,8 +89,12 @@ const ContactMessages = () => {
         freeText += (freeText ? "\n" : "") + line;
       }
     }
-
     return { fields, freeText, isStructured: fields.length >= 2 };
+  };
+
+  const getProfileName = (userId: string) => {
+    const p = profiles.find((pr) => pr.id === userId);
+    return p?.display_name || "Unbekannt";
   };
 
   if (contactMessages.length === 0) {
@@ -79,13 +106,13 @@ const ContactMessages = () => {
       {contactMessages.map((msg) => {
         const parsed = parseMessage(msg.message);
         const isStructured = parsed.isStructured;
-        // For structured messages: show Name & Organisation as summary
         const summaryFields = isStructured
           ? parsed.fields.filter((f) => f.label === "Name" || f.label === "Organisation")
           : [];
         const detailFields = isStructured
           ? parsed.fields.filter((f) => f.label !== "Name" && f.label !== "Organisation")
           : [];
+        const replies = allReplies.filter((r: any) => r.contact_message_id === msg.id);
 
         return (
           <div key={msg.id} className="p-3 rounded-lg border bg-background">
@@ -107,7 +134,7 @@ const ContactMessages = () => {
                     {detailFields.length > 0 && (
                       <Collapsible>
                         <CollapsibleTrigger className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">
-                          Details anzeigen <ChevronDown size={12} className="collapsible-chevron" />
+                          Details anzeigen <ChevronDown size={12} />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-1">
                           {detailFields.map((f, i) => (
@@ -121,6 +148,28 @@ const ContactMessages = () => {
                   </div>
                 ) : (
                   <p className="text-sm mt-2">{msg.message}</p>
+                )}
+
+                {/* Reply history */}
+                {replies.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center gap-1 text-xs text-primary hover:underline mt-2">
+                      <MessageSquare size={12} />
+                      {replies.length} {replies.length === 1 ? "Antwort" : "Antworten"} anzeigen
+                      <ChevronDown size={12} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2">
+                      {replies.map((reply: any) => (
+                        <div key={reply.id} className="pl-3 border-l-2 border-primary/30">
+                          <p className="text-xs text-muted-foreground">
+                            {getProfileName(reply.replied_by)} · {new Date(reply.created_at).toLocaleDateString("de-DE")}{" "}
+                            {new Date(reply.created_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -155,7 +204,7 @@ const ContactMessages = () => {
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleReply(msg.email, msg.name)}
+                    onClick={() => handleReply(msg.email, msg.name, msg.id)}
                     disabled={sending || !replyText.trim()}
                     className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50"
                   >
