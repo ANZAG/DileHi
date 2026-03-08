@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import epochImage from "@/assets/epoch-ww1.jpg";
+import kaserneImage from "@/assets/kaserne-mainz-kastel.jpg";
+import uniformImage from "@/assets/pibat21-uniform.png";
+import karteImage from "@/assets/karte-hessen-nassau.jpg";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 
@@ -76,8 +79,9 @@ const EpochWW1 = () => {
               Wir stellen zwei von ihnen dar: Johann Treisbach aus Massenheim und Karl Henneke aus Hofheim – stellvertretend für die Tausenden einfacher Pioniere aus dieser Region, deren Namen auf Erkennungsmarken und in Kriegsstammrollen stehen, aber in keinem Geschichtsbuch auftauchen.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Region / Garnisonsstadt Wiesbaden]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Kaserne Erzherzog Wilhelm des I. Nassauischen Pionier-Bat. No. 21, Mainz-Kastel</p>
           </div>
 
           {/* 2 – Was Besucher erleben können */}
@@ -106,8 +110,9 @@ const EpochWW1 = () => {
               Unsere Darstellung zeigt den Alltag dieser Männer: die Ausrüstung, die Uniform, das Werkzeug des Feldpioniers. Den Feldrock M13 mit schwarzem Kragen und ponceauroten Schulterklappen. Die Beilpicke M1909 am Koppel. Die Gasmaske M16 in ihrer feldgrauen Bereitschaftsbüchse, die seit Juni 1916 zum Standard gehörte. Den Tornister, dessen Inhalt nach Vorschrift gepackt war – und dessen Zeltbahn die Soldaten zynisch Heldensarg nannten.
             </p>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Ausrüstung / Uniform WK1]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Pioniere des 1. Nassauischen Pionier-Bataillons Nr. 21 in Felduniform</p>
           </div>
 
           {/* 4 – Historischer Kontext */}
@@ -135,8 +140,9 @@ const EpochWW1 = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-lg bg-muted/50 border p-8 text-center mb-12">
-            <p className="text-sm text-muted-foreground italic">[Platzhalter Foto Stellungsbau / Westfront]</p>
+          <div className="rounded-lg overflow-hidden mb-12">
+            <img src={karteImage} alt="Historische Karte der Provinz Hessen-Nassau" className="w-full h-auto object-cover" />
+            <p className="text-xs text-muted-foreground mt-2 italic">Karte der Provinz Hessen-Nassau – Heimatregion des XVIII. Armeekorps</p>
           </div>
 
           {/* 5 – Unsere Quellen (aus DB) */}
