@@ -38,16 +38,17 @@ const Login = () => {
     e.preventDefault();
     if (!forgotEmail) return;
     setForgotLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/passwort-zuruecksetzen`,
-    });
-    setForgotLoading(false);
-    if (error) {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const { error } = await supabase.functions.invoke("send-reset-email", {
+        body: { email: forgotEmail },
+      });
+      if (error) throw error;
       toast({ title: "E-Mail gesendet", description: "Falls die Adresse existiert, erhältst du einen Link zum Zurücksetzen." });
       setForgotMode(false);
+    } catch {
+      toast({ title: "Fehler", description: "Bitte versuche es später erneut.", variant: "destructive" });
     }
+    setForgotLoading(false);
   };
 
   if (forgotMode) {
