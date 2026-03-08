@@ -7,6 +7,7 @@ import { ArrowLeft, UserPlus, Trash2, Shield, User, FileText, Pencil, KeyRound, 
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
+import SourcesAdmin from "@/components/admin/SourcesAdmin";
 
 const ROLES = [
   { value: "mitglied", label: "Mitglied", icon: User },
@@ -151,6 +152,9 @@ const Admin = () => {
         <div className="space-y-8">
           {/* Gallery - visible to Vorstand + Herold */}
           <GalleryAdmin />
+
+          {/* Sources - visible to Vorstand + Herold */}
+          <SourcesAdmin />
 
           {/* Member management - Vorstand only */}
           {isVorstand && (

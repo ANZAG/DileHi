@@ -265,6 +265,33 @@ export type Database = {
           },
         ]
       }
+      epoch_sources: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          epoch: string
+          id: string
+          sort_order: number
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          epoch?: string
+          id?: string
+          sort_order?: number
+          text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          epoch?: string
+          id?: string
+          sort_order?: number
+          text?: string
+        }
+        Relationships: []
+      }
       gallery_images: {
         Row: {
           alt_text: string
