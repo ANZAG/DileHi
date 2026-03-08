@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import gruppenfoto from "@/assets/gruppenfoto.jpg";
+import detailHandwerk from "@/assets/detail-handwerk.jpg";
+import vorfuehrung from "@/assets/vorfuehrung.jpg";
 
 const About = () => (
   <div className="container py-12 md:py-20 max-w-3xl">
@@ -65,8 +67,8 @@ const About = () => (
             Ein großer Teil der Kleidung und Ausrüstung, die wir in unseren Darstellungen verwenden, entsteht so Schritt für Schritt innerhalb der Gruppe.
           </p>
         </div>
-        <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Detailfoto Handwerk / Kleidung]</p>
+        <div className="rounded-lg overflow-hidden mt-6">
+          <img src={detailHandwerk} alt="Detailfoto Handwerk – Zirkelarbeit am Tisch" className="w-full h-auto object-cover" />
         </div>
       </section>
 
@@ -90,8 +92,8 @@ const About = () => (
             Dabei verstehen wir uns als Vermittler zwischen historischer Forschung und Öffentlichkeit.
           </p>
         </div>
-        <div className="rounded-lg bg-muted/50 border p-8 text-center mt-6">
-          <p className="text-sm text-muted-foreground italic">[Platzhalter Foto einer Vorführung]</p>
+        <div className="rounded-lg overflow-hidden mt-6">
+          <img src={vorfuehrung} alt="Vorführung bei einer Veranstaltung" className="w-full h-auto object-cover" />
         </div>
       </section>
 
