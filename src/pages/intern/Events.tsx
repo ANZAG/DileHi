@@ -312,7 +312,7 @@ const EventsPage = () => {
       rows.push(segments);
     }
     return rows;
-  }, [calendarDays, events]);
+  }, [calendarDays, filteredEvents]);
 
   const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
   const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
