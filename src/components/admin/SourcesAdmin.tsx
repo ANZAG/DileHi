@@ -120,12 +120,12 @@ const SourcesAdmin = () => {
   return (
     <div className="space-y-4">
       {/* Epoch selector */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
         {EPOCH_OPTIONS.map((ep) => (
           <button
             key={ep.value}
             onClick={() => setSelectedEpoch(ep.value)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors text-center ${
               selectedEpoch === ep.value
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
