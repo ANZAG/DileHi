@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import SEO from "@/components/SEO";
 import epochImage from "@/assets/epoch-1815.jpg";
 import nassauRegiment from "@/assets/nassau-regiment-knotel.jpg";
 import nassauUniformtafel from "@/assets/nassau-uniformtafel.png";
