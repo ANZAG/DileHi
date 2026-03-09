@@ -357,6 +357,9 @@ const MemberRegistry = () => {
                       <div className="min-w-0">
                         <span className="text-sm font-medium">{m.display_name}</span>
                         <span className="ml-2 text-xs text-muted-foreground">{roleInfo.label}</span>
+                        {m.email && (
+                          <span className="ml-2 text-xs text-muted-foreground">{m.email}</span>
+                        )}
                         {m.entry_date && (
                           <span className="ml-2 text-xs text-muted-foreground">
                             seit {new Date(m.entry_date).toLocaleDateString("de-DE")}
