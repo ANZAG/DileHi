@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Loader2, FileText, Trash2, Download } from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +30,7 @@ const Profile = () => {
   const [entryDate, setEntryDate] = useState("");
   const [exitDate, setExitDate] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [showOnMap, setShowOnMap] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -55,6 +56,7 @@ const Profile = () => {
             setEntryDate(data.entry_date || "");
             setExitDate(data.exit_date || "");
             setIsActive(data.is_active ?? true);
+            setShowOnMap(data.show_on_map ?? false);
           }
         });
     }
@@ -75,10 +77,34 @@ const Profile = () => {
     },
   });
 
+  const geocodeCity = async (plz: string, ort: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!plz && !ort) return null;
+    try {
+      const query = `${plz} ${ort}, Germany`;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch {}
+    return null;
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
+      let mapLat: number | null = null;
+      let mapLng: number | null = null;
+
+      if (showOnMap && (zip || city)) {
+        const coords = await geocodeCity(zip, city);
+        if (coords) {
+          mapLat = coords.lat;
+          mapLng = coords.lng;
+        }
+      }
+
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -93,6 +119,9 @@ const Profile = () => {
           phone,
           membership_type: membershipType,
           contribution_interval: contributionInterval,
+          show_on_map: showOnMap,
+          map_lat: showOnMap ? mapLat : null,
+          map_lng: showOnMap ? mapLng : null,
         })
         .eq("id", user.id);
       if (profileError) throw profileError;
@@ -286,7 +315,31 @@ const Profile = () => {
             )}
           </div>
 
-          {/* E-Mail & Passwort */}
+          {/* Map opt-in */}
+          <div className="p-6 rounded-lg border bg-card space-y-3">
+            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <MapPin size={18} /> Mitgliederkarte
+            </h2>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnMap}
+                onChange={(e) => setShowOnMap(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input"
+              />
+              <div>
+                <span className="text-sm font-medium">Meinen Wohnort auf der Mitgliederkarte anzeigen</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Dein Ort (nicht die genaue Adresse) wird für andere Mitglieder auf einer Karte sichtbar.
+                  Kontaktdaten (Name, E-Mail, Telefon) werden beim Klick auf den Marker angezeigt.
+                </p>
+              </div>
+            </label>
+            {showOnMap && (!zip && !city) && (
+              <p className="text-xs text-destructive">Bitte trage oben PLZ und Wohnort ein, damit dein Standort angezeigt werden kann.</p>
+            )}
+          </div>
+
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Konto</h2>
             <div>

@@ -29,6 +29,7 @@ import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
+import MemberMap from "./pages/intern/MemberMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
+              <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
