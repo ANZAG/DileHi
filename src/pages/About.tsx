@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { BookOpen } from "lucide-react";
 import gruppenfoto from "@/assets/gruppenfoto.jpg";
 import detailHandwerk from "@/assets/detail-handwerk.jpg";
 import vorfuehrung from "@/assets/vorfuehrung.jpg";
@@ -50,6 +51,31 @@ const About = () => (
           <p>
             Waffen, Rüstungen und Uniformen können faszinierend sein – doch wir zeigen sie immer im Bewusstsein, welchem Zweck sie dienten.
           </p>
+        </div>
+      </section>
+
+      {/* Was ist Living History? */}
+      <section className="mb-12">
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 md:p-8">
+          <div className="flex items-start gap-4">
+            <div className="bg-primary/10 p-3 rounded-full hidden sm:block mt-1">
+              <BookOpen className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-serif text-xl font-semibold mb-3 text-foreground">Was ist eigentlich „Living History"?</h3>
+              <div className="space-y-3 text-muted-foreground leading-relaxed">
+                <p>
+                  <strong>Living History (gelebte Geschichte)</strong> ist der Versuch, historische Lebenswelten so authentisch wie möglich zu rekonstruieren und darzustellen. Wir verstehen uns als Brücke zwischen theoretischer Forschung und der öffentlichen Wahrnehmung.
+                </p>
+                <p>
+                  Dabei grenzen wir uns klar von Fantasy, LARP (Live Action Role Playing) oder reiner Unterhaltung auf klassischen Mittelaltermärkten ab. Ebenso lehnen wir jede Form von politisch motivierter Militärverherrlichung ab. Es gibt bei uns keine Magie, keine fiktiven Charaktere und keine glorifizierenden Schlachtennachstellungen.
+                </p>
+                <p>
+                  Unser Ziel ist die fundierte, objektive und respektvolle Auseinandersetzung mit der Realität vergangener Epochen – mit all ihren Facetten, Handwerken und Alltagsbeschwernissen.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
