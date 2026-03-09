@@ -249,7 +249,7 @@ const Announcements = () => {
                           {a.announcement_files.map((f: { id: string; name: string; storage_path: string }) => (
                             <button
                               key={f.id}
-                              onClick={() => downloadFile(f.storage_path, f.name)}
+                              onClick={() => openFile(f.storage_path, f.name)}
                               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             >
                               <Paperclip size={12} /> {f.name}

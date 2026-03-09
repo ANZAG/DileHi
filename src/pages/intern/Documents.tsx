@@ -212,7 +212,7 @@ const Documents = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" onClick={() => handleDownload(doc.storage_path, doc.file_name)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpen(doc.storage_path, doc.file_name)}>
                             <Download size={16} />
                           </Button>
                           {isVorstand && (
