@@ -217,7 +217,7 @@ const Profile = () => {
                   type="date"
                   value={birthdate}
                   onChange={(e) => setBirthdate(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-date-and-time-value]:text-left"
+                  className="flex h-10 max-h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm appearance-none [&::-webkit-date-and-time-value]:text-left"
                 />
               </div>
               <div>
