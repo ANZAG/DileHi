@@ -251,7 +251,7 @@ const Sources = () => {
               <div className="text-center text-muted-foreground py-12">Laden...</div>
             ) : (
               <div className="space-y-2">
-                {currentFolders.map((f: any) => (
+                {currentFolders.map((f) => (
                   <div key={f.id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                     {folderDeleteConfirm === f.id ? (
                       <div className="space-y-2">

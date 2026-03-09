@@ -328,7 +328,7 @@ const Profile = () => {
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
                 <FileText size={18} /> Mitgliedsantrag
               </h2>
-              {membershipFiles.map((file: any) => (
+              {membershipFiles.map((file) => (
                 <div key={file.id} className="flex items-center justify-between p-2 rounded border bg-background">
                   <span className="text-sm truncate">{file.name}</span>
                   <button

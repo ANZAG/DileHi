@@ -215,7 +215,7 @@ const Elections = () => {
         await supabase.from("candidates").delete().eq("election_id", e.id);
         await supabase.from("elections").delete().eq("id", e.id);
       }
-      const { error } = await supabase.from("election_groups" as any).delete().eq("id", groupId);
+      const { error } = await supabase.from("election_groups").delete().eq("id", groupId);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -281,7 +281,7 @@ const Announcements = () => {
                       {/* Replies */}
                       {announcementReplies.length > 0 && (
                         <div className="space-y-2 border-t pt-3">
-                          {announcementReplies.map((reply: any) => (
+                          {announcementReplies.map((reply) => (
                             <div key={reply.id} className="pl-3 border-l-2 border-primary/20">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium">{getName(reply.created_by)}</span>

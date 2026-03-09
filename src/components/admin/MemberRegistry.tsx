@@ -163,7 +163,7 @@ const MemberRegistry = () => {
       toast({ title: "Upload-Fehler", description: uploadErr.message, variant: "destructive" });
       return;
     }
-    const { error: insertErr } = await (supabase.from("membership_files" as any) as any).insert({
+    const { error: insertErr } = await supabase.from("membership_files").insert({
       user_id: userId,
       name: file.name,
       storage_path: path,

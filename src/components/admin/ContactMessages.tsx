@@ -159,7 +159,7 @@ const ContactMessages = () => {
                       <ChevronDown size={12} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-2 space-y-2">
-                      {replies.map((reply: any) => (
+                      {replies.map((reply) => (
                         <div key={reply.id} className="pl-3 border-l-2 border-primary/30">
                           <p className="text-xs text-muted-foreground">
                             {getProfileName(reply.replied_by)} · {new Date(reply.created_at).toLocaleDateString("de-DE")}{" "}
