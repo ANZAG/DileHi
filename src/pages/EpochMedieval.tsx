@@ -84,7 +84,7 @@ const EpochMedieval = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={gruppenfotoSpaemi} alt="Vereinsmitglieder in spätmittelalterlicher Kleidung" className="w-full h-auto object-cover" />
+            <img src={gruppenfotoSpaemi} alt="Vereinsmitglieder in spätmittelalterlicher Kleidung" loading="lazy" className="w-full h-auto object-cover" />
           </div>
 
           {/* 2 – Was Besucher erleben können */}
