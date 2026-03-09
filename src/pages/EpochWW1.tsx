@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import SEO from "@/components/SEO";
 import epochImage from "@/assets/epoch-ww1.jpg";
 import kaserneImage from "@/assets/kaserne-mainz-kastel.jpg";
 import uniformImage from "@/assets/pibat21-uniform.png";
