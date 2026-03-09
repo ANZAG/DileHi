@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -171,6 +171,18 @@ const Sources = () => {
       toast({ title: "Titel aktualisiert" });
     },
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
+  });
+
+  const moveSource = useMutation({
+    mutationFn: async ({ id, folder_id }: { id: string; folder_id: string | null }) => {
+      const { error } = await supabase.from("sources").update({ folder_id }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      toast({ title: "Quelle verschoben" });
+    },
+    onError: () => toast({ title: "Fehler beim Verschieben", variant: "destructive" }),
   });
 
   const handleFilesSelected = (files: FileList | File[]) => {
@@ -372,7 +384,7 @@ const Sources = () => {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
             {searchResults.map((s) => (
-              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} />
+              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
             ))}
           </div>
         ) : (
@@ -426,7 +438,7 @@ const Sources = () => {
                   <div className="text-center text-muted-foreground py-8">Keine Quellen in diesem Ordner.</div>
                 ) : (
                   currentSources.map((s) => (
-                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} />
+                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
                   ))
                 )}
               </div>
@@ -494,59 +506,90 @@ interface SourceItemProps {
   onEditTitleChange: (val: string) => void;
   onEditSave: (id: string) => void;
   onEditCancel: () => void;
+  folders: any[];
+  onMove: (id: string, folderId: string | null) => void;
 }
 
-const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, editingId, editTitle, onEditTitleChange, onEditSave, onEditCancel }: SourceItemProps) => (
-  <div className="p-4 rounded-lg border bg-card flex items-start justify-between gap-3 overflow-hidden">
-    <div className="min-w-0 flex-1">
-      {editingId === s.id ? (
-        <div className="flex items-center gap-2">
-          <input
-            value={editTitle}
-            onChange={(e) => onEditTitleChange(e.target.value)}
-            className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-sm min-w-0"
-            onKeyDown={(e) => { if (e.key === "Enter") onEditSave(s.id); if (e.key === "Escape") onEditCancel(); }}
-            autoFocus
-          />
-          <button onClick={() => onEditSave(s.id)} className="text-xs text-primary hover:underline shrink-0">Speichern</button>
-          <button onClick={onEditCancel} className="text-xs text-muted-foreground hover:underline shrink-0">Abbrechen</button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 min-w-0">
-          {s.file_path && <FileText size={14} className="text-primary shrink-0" />}
-          <h3 className="font-semibold truncate">{s.title}</h3>
-          {s.created_by === user?.id && (
-            <button onClick={() => onEdit(s.id, s.title)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0">
-              <Pencil size={12} />
+const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, editingId, editTitle, onEditTitleChange, onEditSave, onEditCancel, folders, onMove }: SourceItemProps) => {
+  const [showMove, setShowMove] = useState(false);
+
+  return (
+    <div className="p-4 rounded-lg border bg-card flex items-start justify-between gap-3 overflow-hidden">
+      <div className="min-w-0 flex-1">
+        {editingId === s.id ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={editTitle}
+              onChange={(e) => onEditTitleChange(e.target.value)}
+              className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-sm min-w-0"
+              onKeyDown={(e) => { if (e.key === "Enter") onEditSave(s.id); if (e.key === "Escape") onEditCancel(); }}
+              autoFocus
+            />
+            <button onClick={() => onEditSave(s.id)} className="text-xs text-primary hover:underline shrink-0">Speichern</button>
+            <button onClick={onEditCancel} className="text-xs text-muted-foreground hover:underline shrink-0">Abbrechen</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 min-w-0">
+            {s.file_path && <FileText size={14} className="text-primary shrink-0" />}
+            <h3 className="font-semibold truncate">{s.title}</h3>
+            {s.created_by === user?.id && (
+              <>
+                <button onClick={() => onEdit(s.id, s.title)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0">
+                  <Pencil size={12} />
+                </button>
+                <button onClick={() => setShowMove(!showMove)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0" title="Verschieben">
+                  <FolderInput size={12} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {showMove && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Verschieben nach:</span>
+            <button
+              onClick={() => { onMove(s.id, null); setShowMove(false); }}
+              className={`text-xs px-2 py-1 rounded border ${!s.folder_id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            >
+              Hauptordner
+            </button>
+            {folders.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => { onMove(s.id, f.id); setShowMove(false); }}
+                className={`text-xs px-2 py-1 rounded border ${s.folder_id === f.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {s.content && <p className="text-sm text-muted-foreground mt-1 truncate">{s.content}</p>}
+        <div className="flex flex-wrap gap-3 mt-2">
+          {s.url && (
+            <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              <ExternalLink size={12} /> Link öffnen
+            </a>
+          )}
+          {s.file_path && isPreviewable(s.file_path) && (
+            <button onClick={() => onPreview(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              <Eye size={12} /> Vorschau
+            </button>
+          )}
+          {s.file_path && (
+            <button onClick={() => onDownload(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              <FileText size={12} /> Herunterladen
             </button>
           )}
         </div>
-      )}
-      {s.content && <p className="text-sm text-muted-foreground mt-1 truncate">{s.content}</p>}
-      <div className="flex flex-wrap gap-3 mt-2">
-        {s.url && (
-          <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-            <ExternalLink size={12} /> Link öffnen
-          </a>
-        )}
-        {s.file_path && isPreviewable(s.file_path) && (
-          <button onClick={() => onPreview(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-            <Eye size={12} /> Vorschau
-          </button>
-        )}
-        {s.file_path && (
-          <button onClick={() => onDownload(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-            <FileText size={12} /> Herunterladen
-          </button>
-        )}
       </div>
+      {s.created_by === user?.id && (
+        <button onClick={() => onDelete(s.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0">
+          <Trash2 size={16} />
+        </button>
+      )}
     </div>
-    {s.created_by === user?.id && (
-      <button onClick={() => onDelete(s.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0">
-        <Trash2 size={16} />
-      </button>
-    )}
-  </div>
-);
+  );
+};
 
 export default Sources;
