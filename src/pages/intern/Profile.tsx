@@ -56,6 +56,7 @@ const Profile = () => {
             setEntryDate(data.entry_date || "");
             setExitDate(data.exit_date || "");
             setIsActive(data.is_active ?? true);
+            setShowOnMap(data.show_on_map ?? false);
           }
         });
     }
