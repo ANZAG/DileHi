@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, MapPin, Users } from "lucide-react";
 import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
 import gruppenfoto from "@/assets/gruppenfoto.jpg";
+
 const epochs = [
   {
     id: "mittelalter",
@@ -79,6 +81,26 @@ const Index = () => {
               </Link>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Social Proof */}
+      <section className="border-b bg-muted/30">
+        <div className="container py-6">
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span>Seit <strong className="text-foreground">2011</strong> aktiv</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <span><strong className="text-foreground">3 Epochen</strong> dargestellt</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span>Fokus <strong className="text-foreground">Region Wiesbaden</strong></span>
+            </div>
+          </div>
         </div>
       </section>
 
