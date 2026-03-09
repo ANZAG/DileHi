@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   UserPlus, Shield, User, KeyRound, Crown, Coins, Search,
-  Upload, FileText, Eye, Trash2, RotateCcw, UserX, ChevronDown,
+  Upload, FileText, Trash2, RotateCcw, UserX, ChevronDown,
+  ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
