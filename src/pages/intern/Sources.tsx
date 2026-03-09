@@ -335,12 +335,12 @@ const Sources = () => {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm" />
           </div>
-          <div className="flex gap-1">
+          <div className="grid grid-cols-3 sm:flex gap-1">
             {EPOCHS.map((e) => (
               <button
                 key={e.value}
                 onClick={() => { setEpochFilter(e.value); setCurrentFolderId(null); }}
-                className={`flex-1 sm:flex-none px-3 py-2 text-xs rounded-md border ${(epochFilter || "mittelalter") === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                className={`px-3 py-2 text-xs rounded-md border text-center ${(epochFilter || "mittelalter") === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {e.label}
               </button>

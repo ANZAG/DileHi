@@ -193,7 +193,7 @@ const Profile = () => {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
+              <div className="sm:col-span-1">
                 <label className="text-sm font-medium mb-1.5 block">PLZ</label>
                 <input
                   value={zip}
