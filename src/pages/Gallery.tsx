@@ -32,6 +32,7 @@ const Gallery = () => {
           src: urlData.publicUrl,
           alt: img.alt_text || "Galeriebild",
           epoch: img.epoch as string,
+          showSubtitle: img.show_subtitle ?? false,
         };
       });
     },
