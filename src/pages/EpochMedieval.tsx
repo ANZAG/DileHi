@@ -111,7 +111,7 @@ const EpochMedieval = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={burgFrauenstein} alt="Mittelalterliche Darstellung auf Burg Frauenstein" className="w-full h-auto object-cover" />
+            <img src={burgFrauenstein} alt="Mittelalterliche Darstellung auf Burg Frauenstein" loading="lazy" className="w-full h-auto object-cover" />
           </div>
 
           {/* 4 – Historischer Kontext */}
