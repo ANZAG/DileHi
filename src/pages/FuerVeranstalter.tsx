@@ -115,7 +115,7 @@ const FuerVeranstalter = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mt-6 max-w-md mx-auto">
-            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover rounded-lg" />
+            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" loading="lazy" className="w-full h-auto object-cover rounded-lg" />
           </div>
         </motion.section>
 
