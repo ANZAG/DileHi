@@ -276,7 +276,7 @@ const Profile = () => {
                     type="date"
                     value={exitDate}
                     disabled
-                    className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed [&::-webkit-date-and-time-value]:text-left"
+                    className="flex h-10 max-h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed appearance-none [&::-webkit-date-and-time-value]:text-left"
                   />
                 </div>
               )}
