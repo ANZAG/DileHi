@@ -84,7 +84,7 @@ const Epoch1815 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" className="w-full h-auto object-cover" />
+            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel</p>
           </div>
 
