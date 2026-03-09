@@ -58,9 +58,11 @@ const MemberRegistry = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("mitglied");
 
-  // Filter/search
+  // Filter/search/sort
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
+  const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
