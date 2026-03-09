@@ -214,8 +214,8 @@ const Sources = () => {
           </div>
         )}
 
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row gap-2 mb-6">
+          <div className="relative flex-1 min-w-0">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm" />
           </div>
@@ -224,7 +224,7 @@ const Sources = () => {
               <button
                 key={e.value}
                 onClick={() => { setEpochFilter(e.value); setCurrentFolderId(null); }}
-                className={`px-3 py-2 text-xs rounded-md border ${(epochFilter || "mittelalter") === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                className={`flex-1 sm:flex-none px-3 py-2 text-xs rounded-md border ${(epochFilter || "mittelalter") === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {e.label}
               </button>

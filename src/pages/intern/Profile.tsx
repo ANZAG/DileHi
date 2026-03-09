@@ -144,7 +144,7 @@ const Profile = () => {
           {/* Personal info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Persönliche Daten</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Anrede</label>
                 <select
@@ -166,7 +166,7 @@ const Profile = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Vorname</label>
                 <input
@@ -192,7 +192,7 @@ const Profile = () => {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">PLZ</label>
                 <input
@@ -210,7 +210,7 @@ const Profile = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Geburtsdatum</label>
                 <input
@@ -234,7 +234,7 @@ const Profile = () => {
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
                 <select
@@ -258,7 +258,7 @@ const Profile = () => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Eintrittsdatum</label>
                 <input
