@@ -619,12 +619,13 @@ const MemberRegistry = () => {
               </div>
 
               {/* Actions */}
-              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
-                <div className="flex flex-wrap gap-2 flex-1">
-                  <Button size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex gap-2">
+                  <Button className="flex-1" size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
                     Speichern
                   </Button>
                   <Button
+                    className="flex-1"
                     size="sm"
                     variant="outline"
                     onClick={() => resetPassword.mutate(selectedMember.user_id)}
@@ -632,11 +633,14 @@ const MemberRegistry = () => {
                   >
                     <KeyRound size={14} /> Passwort-Reset
                   </Button>
+                </div>
+                <div className="flex gap-2">
                   {selectedMember.is_active ? (
                     <Button
+                      className="flex-1"
                       size="sm"
                       variant="outline"
-                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => {
                         if (confirm("Mitglied deaktivieren? Es verliert sofort alle Zugänge.")) {
                           deactivateMember.mutate(selectedMember);
@@ -648,6 +652,7 @@ const MemberRegistry = () => {
                     </Button>
                   ) : (
                     <Button
+                      className="flex-1"
                       size="sm"
                       variant="outline"
                       onClick={() => {
@@ -660,19 +665,18 @@ const MemberRegistry = () => {
                       <RotateCcw size={14} /> Reaktivieren
                     </Button>
                   )}
+                  {selectedMember.user_id !== user?.id && (
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeletingMember(selectedMember)}
+                    >
+                      <Trash2 size={14} /> Löschen
+                    </Button>
+                  )}
                 </div>
-                {selectedMember.user_id !== user?.id && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      setDeletingMember(selectedMember);
-                    }}
-                  >
-                    <Trash2 size={14} /> Löschen
-                  </Button>
-                )}
-              </DialogFooter>
+              </div>
             </div>
           )}
         </DialogContent>
