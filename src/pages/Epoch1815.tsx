@@ -112,7 +112,7 @@ const Epoch1815 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12 max-w-lg mx-auto">
-            <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" className="w-full h-auto object-cover" />
+            <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Uniformtafel nassauischer Grenadiere 1815 · Illustration: Alexis Cabaret / mont-saint-jean.com</p>
           </div>
 
