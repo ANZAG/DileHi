@@ -142,7 +142,7 @@ const Epoch1815 = () => {
             </div>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={nassauerBelleAlliance} alt="Die Nassauer bei Belle-Alliance am 18. Juni 1815, Gemälde von R. Knötel" className="w-full h-auto object-cover" />
+            <img src={nassauerBelleAlliance} alt="Die Nassauer bei Belle-Alliance am 18. Juni 1815, Gemälde von R. Knötel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Die Nassauer bei Belle-Alliance am 18. Juni 1815 · Gemälde von R. Knötel, 1899</p>
           </div>
 

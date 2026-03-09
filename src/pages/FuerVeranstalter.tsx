@@ -146,7 +146,7 @@ const FuerVeranstalter = () => {
 
         {/* Foto nach Darstellungen */}
         <div className="rounded-lg overflow-hidden">
-          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" className="w-full h-auto object-cover" />
+          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" loading="lazy" className="w-full h-auto object-cover" />
         </div>
 
         {/* Mit wem wir arbeiten */}

@@ -140,7 +140,7 @@ const EpochMedieval = () => {
             </div>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={mittelalterTafel} alt="Mittelalterliche Tafelszene im Lagerleben" className="w-full h-auto object-cover" />
+            <img src={mittelalterTafel} alt="Mittelalterliche Tafelszene im Lagerleben" loading="lazy" className="w-full h-auto object-cover" />
           </div>
 
           {/* 5 – Unsere Quellen (aus DB) */}
