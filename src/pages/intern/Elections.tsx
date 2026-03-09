@@ -186,7 +186,7 @@ const Elections = () => {
     mutationFn: async (groupId: string) => {
       // Close the group
       await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .update({ status: "closed", closed_at: new Date().toISOString() })
         .eq("id", groupId);
       // Close all active elections in this group
