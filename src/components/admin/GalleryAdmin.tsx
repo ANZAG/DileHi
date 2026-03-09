@@ -74,7 +74,7 @@ const GalleryAdmin = () => {
     },
   });
 
-  const filtered = filterEpoch === "alle" ? images : images.filter((img: any) => img.epoch === filterEpoch);
+  const filtered = filterEpoch === "alle" ? images : images.filter((img: GalleryImage) => img.epoch === filterEpoch);
   const totalPages = Math.max(1, Math.ceil(filtered.length / IMAGES_PER_PAGE));
   const currentPage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(currentPage * IMAGES_PER_PAGE, (currentPage + 1) * IMAGES_PER_PAGE);
@@ -83,8 +83,12 @@ const GalleryAdmin = () => {
     if (!user) return;
     setUploading(true);
     try {
-      const path = `${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("gallery").upload(path, file);
+      // Convert to WebP for better performance
+      const webpFile = await convertToWebP(file);
+      const path = `${Date.now()}_${webpFile.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("gallery")
+        .upload(path, webpFile, { contentType: "image/webp" });
       if (uploadErr) throw uploadErr;
 
       const { error: dbErr } = await supabase.from("gallery_images").insert({
@@ -98,7 +102,7 @@ const GalleryAdmin = () => {
       queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
       queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
       setAltText("");
-      toast({ title: "Bild hochgeladen" });
+      toast({ title: "Bild hochgeladen", description: "Automatisch zu WebP konvertiert" });
     } catch (err: any) {
       toast({ title: "Fehler", description: err.message, variant: "destructive" });
     }
