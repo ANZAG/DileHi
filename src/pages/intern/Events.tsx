@@ -411,8 +411,8 @@ const EventsPage = () => {
           </div>
         </div>
 
-        {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Filter + Month Navigation */}
+        <div className="flex items-center justify-between mb-4 gap-2">
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
             <ChevronLeft size={20} />
           </Button>
@@ -422,6 +422,24 @@ const EventsPage = () => {
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
             <ChevronRight size={20} />
           </Button>
+        </div>
+
+        {/* Visibility Filter */}
+        <div className="flex items-center gap-1.5 mb-4 p-1 bg-muted rounded-lg w-fit">
+          {(["all", "public", "internal"] as VisibilityFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setVisibilityFilter(f)}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                visibilityFilter === f
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f === "public" && <Globe size={12} />}
+              {f === "all" ? "Alle" : f === "public" ? "Öffentlich" : "Intern"}
+            </button>
+          ))}
         </div>
 
         {/* Calendar Grid */}
