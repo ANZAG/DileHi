@@ -187,14 +187,39 @@ const EpochWW1 = () => {
             className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
             onClick={() => setLightbox(null)}
           >
-            <button className="absolute top-4 right-4 text-foreground p-2" aria-label="Schließen">
+            <button className="absolute top-4 right-4 text-foreground p-2 z-10" aria-label="Schließen">
               <X size={28} />
             </button>
-            <img
-              src={allImages[lightbox]?.src}
-              alt={allImages[lightbox]?.alt}
-              className="max-h-[85vh] max-w-full rounded-lg object-contain"
-            />
+            {lightbox > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox - 1); }}
+                className="absolute left-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+                aria-label="Vorheriges Bild"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+            {lightbox < allImages.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox + 1); }}
+                className="absolute right-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+                aria-label="Nächstes Bild"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+            <div className="flex flex-col items-center max-w-full">
+              <img
+                src={allImages[lightbox]?.src}
+                alt={allImages[lightbox]?.alt}
+                className="max-h-[80vh] max-w-full rounded-lg object-contain"
+              />
+              {allImages[lightbox]?.showSubtitle && allImages[lightbox]?.alt && (
+                <p className="mt-3 text-sm text-muted-foreground text-center max-w-xl">
+                  {allImages[lightbox].alt}
+                </p>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
