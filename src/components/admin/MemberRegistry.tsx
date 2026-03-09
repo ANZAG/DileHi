@@ -3,7 +3,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, User, Pencil, KeyRound, X, Crown, Coins, Search, UserX, Upload, Download, FileText } from "lucide-react";
+import {
+  UserPlus, Shield, User, KeyRound, Crown, Coins, Search,
+  Upload, FileText, Eye, Trash2, RotateCcw, UserX, ChevronDown,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ROLES = [
   { value: "mitglied", label: "Mitglied", icon: User },
@@ -12,21 +28,52 @@ const ROLES = [
   { value: "schatzmeister", label: "Schatzmeister", icon: Coins },
 ];
 
+type MemberData = {
+  id: string;
+  user_id: string;
+  role: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  salutation: string;
+  street: string;
+  zip: string;
+  city: string;
+  entry_date: string;
+  exit_date: string;
+  is_active: boolean;
+  contribution_interval: string;
+  membership_type: string;
+  birthdate: string;
+};
+
 const MemberRegistry = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<string>("mitglied");
-  const [editingMember, setEditingMember] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
+
+  // Invite state
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("mitglied");
+
+  // Filter/search
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
+
+  // Detail dialog
+  const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [editRole, setEditRole] = useState("");
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editExitDate, setEditExitDate] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
 
+  // Delete dialog
+  const [deletingMember, setDeletingMember] = useState<MemberData | null>(null);
+  const [reassignTo, setReassignTo] = useState("");
+
+  // Fetch members
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["members"],
     queryFn: async () => {
@@ -41,7 +88,6 @@ const MemberRegistry = () => {
         .select("*")
         .in("id", userIds);
 
-      // Fetch emails via edge function
       let emailMap: Record<string, string> = {};
       try {
         const { data: emails } = await supabase.functions.invoke("manage-member", {
@@ -51,105 +97,145 @@ const MemberRegistry = () => {
       } catch {}
 
       return roles.map((r) => {
-        const profile = profiles?.find((p) => p.id === r.user_id);
+        const p = profiles?.find((pr) => pr.id === r.user_id);
         return {
-          ...r,
-          display_name: profile?.display_name ?? "–",
-          first_name: profile?.first_name ?? "",
-          last_name: profile?.last_name ?? "",
-          entry_date: profile?.entry_date ?? "",
-          exit_date: profile?.exit_date ?? "",
-          is_active: profile?.is_active ?? true,
+          id: r.id,
+          user_id: r.user_id,
+          role: r.role,
+          display_name: p?.display_name ?? "–",
+          first_name: p?.first_name ?? "",
+          last_name: p?.last_name ?? "",
           email: emailMap[r.user_id] ?? "",
-        };
+          phone: p?.phone ?? "",
+          salutation: p?.salutation ?? "",
+          street: p?.street ?? "",
+          zip: p?.zip ?? "",
+          city: p?.city ?? "",
+          entry_date: p?.entry_date ?? "",
+          exit_date: p?.exit_date ?? "",
+          is_active: p?.is_active ?? true,
+          contribution_interval: p?.contribution_interval ?? "",
+          membership_type: p?.membership_type ?? "",
+          birthdate: p?.birthdate ?? "",
+        } as MemberData;
       });
+    },
+  });
+
+  // Membership files
+  const { data: membershipFiles = [] } = useQuery({
+    queryKey: ["membership-files", selectedMember?.user_id],
+    enabled: !!selectedMember,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("membership_files")
+        .select("*")
+        .eq("user_id", selectedMember!.user_id)
+        .order("created_at", { ascending: false });
+      return data ?? [];
     },
   });
 
   const filteredMembers = members
     .filter((m) => {
-      const matchesSearch = !search || 
-        m.display_name.toLowerCase().includes(search.toLowerCase()) ||
-        `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase());
-      const matchesFilter = filter === "all" || 
-        (filter === "active" && m.is_active) || 
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        m.display_name.toLowerCase().includes(q) ||
+        `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q);
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "active" && m.is_active) ||
         (filter === "inactive" && !m.is_active);
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
 
+  // --- Mutations ---
+
   const inviteMember = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("invite-member", {
-        body: { email, role },
+        body: { email: inviteEmail, role: inviteRole },
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
-      setEmail("");
+      setInviteEmail("");
       toast({ title: "Einladung versendet" });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
-  const removeMember = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("user_roles").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-      toast({ title: "Rolle entfernt" });
-    },
-  });
-
   const updateMember = useMutation({
-    mutationFn: async ({ userId, displayName, newRole, entryDate, exitDate, isActive }: {
-      userId: string; displayName: string; newRole: string;
-      entryDate: string; exitDate: string; isActive: boolean;
-    }) => {
-      // Update profile name
-      const { error } = await supabase.functions.invoke("manage-member", {
-        body: { action: "update_profile", userId, displayName },
-      });
-      if (error) throw error;
-
-      // Update entry/exit dates and active status via edge function
-      const { error: dateErr } = await supabase.functions.invoke("manage-member", {
-        body: { action: "update_membership", userId, entryDate: entryDate || null, exitDate: exitDate || null, isActive },
-      });
-      if (dateErr) throw dateErr;
+    mutationFn: async () => {
+      if (!selectedMember) return;
+      const userId = selectedMember.user_id;
 
       // Update role if changed
-      const currentMember = members.find((m) => m.user_id === userId);
-      if (currentMember && currentMember.role !== newRole) {
-        const { error: roleErr } = await supabase.functions.invoke("manage-member", {
-          body: { action: "update_role", userId, role: newRole },
+      if (selectedMember.role !== editRole) {
+        const { error } = await supabase.functions.invoke("manage-member", {
+          body: { action: "update_role", userId, role: editRole },
         });
-        if (roleErr) throw roleErr;
+        if (error) throw error;
       }
+
+      // Update membership data
+      const { error } = await supabase.functions.invoke("manage-member", {
+        body: {
+          action: "update_membership",
+          userId,
+          entryDate: editEntryDate || null,
+          exitDate: editExitDate || null,
+          isActive: editIsActive,
+        },
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
-      setEditingMember(null);
+      setSelectedMember(null);
       toast({ title: "Mitglied aktualisiert" });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
-  const markAsExited = useMutation({
-    mutationFn: async (userId: string) => {
+  const deactivateMember = useMutation({
+    mutationFn: async (m: MemberData) => {
       const today = new Date().toISOString().slice(0, 10);
-      const { error } = await supabase.functions.invoke("manage-member", {
-        body: { action: "update_membership", userId, exitDate: today, isActive: false },
+      // Set inactive + exit date
+      await supabase.functions.invoke("manage-member", {
+        body: { action: "update_membership", userId: m.user_id, exitDate: today, isActive: false },
       });
-      if (error) throw error;
+      // Remove role -> loses access
+      await supabase.from("user_roles").delete().eq("user_id", m.user_id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
-      toast({ title: "Mitglied als ausgetreten markiert" });
+      setSelectedMember(null);
+      toast({ title: "Mitglied deaktiviert – Zugang entzogen" });
+    },
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+  });
+
+  const reactivateMember = useMutation({
+    mutationFn: async (m: MemberData) => {
+      // Re-add role
+      await supabase.functions.invoke("manage-member", {
+        body: { action: "update_role", userId: m.user_id, role: "mitglied" },
+      });
+      // Clear exit date, set active
+      await supabase.functions.invoke("manage-member", {
+        body: { action: "update_membership", userId: m.user_id, exitDate: null, isActive: true },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      setSelectedMember(null);
+      toast({ title: "Mitglied reaktiviert – Zugang wiederhergestellt" });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
@@ -163,14 +249,36 @@ const MemberRegistry = () => {
       return data;
     },
     onSuccess: (data: any) => {
-      toast({ title: "Passwort-Reset", description: `Reset-Link wurde für ${data?.email || "den Benutzer"} generiert.` });
+      toast({ title: "Passwort-Reset", description: `Reset-Link wurde an ${data?.email || "den Benutzer"} gesendet.` });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
-  // Upload membership application file
+  const deleteUser = useMutation({
+    mutationFn: async () => {
+      if (!deletingMember || !reassignTo) return;
+      const { error } = await supabase.functions.invoke("manage-member", {
+        body: {
+          action: "delete_user",
+          userId: deletingMember.user_id,
+          reassignToUserId: reassignTo,
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      setDeletingMember(null);
+      setReassignTo("");
+      setSelectedMember(null);
+      toast({ title: "Benutzer gelöscht und Vorgänge übertragen" });
+    },
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+  });
+
   const uploadMembershipFile = async (userId: string, file: File) => {
-    const path = `membership/${userId}/${Date.now()}_${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `membership/${userId}/${Date.now()}_${safeName}`;
     const { error: uploadErr } = await supabase.storage.from("internal-files").upload(path, file);
     if (uploadErr) {
       toast({ title: "Upload-Fehler", description: uploadErr.message, variant: "destructive" });
@@ -186,17 +294,35 @@ const MemberRegistry = () => {
       toast({ title: "Fehler", description: insertErr.message, variant: "destructive" });
       return;
     }
+    queryClient.invalidateQueries({ queryKey: ["membership-files", userId] });
     toast({ title: "Mitgliedsantrag hochgeladen" });
   };
 
-  const startEdit = (member: any) => {
-    setEditingMember(member.user_id);
-    setEditName(member.display_name);
-    setEditRole(member.role);
-    setEditEntryDate(member.entry_date || "");
-    setEditExitDate(member.exit_date || "");
-    setEditIsActive(member.is_active);
+  const downloadFile = async (storagePath: string, fileName: string) => {
+    const { data } = await supabase.storage.from("internal-files").createSignedUrl(storagePath, 300);
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, "_blank");
+    }
   };
+
+  const openMemberDetail = (m: MemberData) => {
+    setSelectedMember(m);
+    setEditRole(m.role);
+    setEditEntryDate(m.entry_date || "");
+    setEditExitDate(m.exit_date || "");
+    setEditIsActive(m.is_active);
+  };
+
+  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
+  const contributionLabel = (val: string) => {
+    const map: Record<string, string> = {
+      jaehrlich: "Jährlich", halbjaehrlich: "Halbjährlich",
+      vierteljaehrlich: "Vierteljährlich", monatlich: "Monatlich",
+    };
+    return map[val] || val || "–";
+  };
+
+  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString("de-DE") : "–";
 
   return (
     <div className="space-y-4">
@@ -204,30 +330,30 @@ const MemberRegistry = () => {
       <div className="space-y-3">
         <h3 className="font-semibold text-sm">Neues Mitglied einladen</h3>
         <div className="flex flex-col sm:flex-row gap-2">
-          <input
+          <Input
             type="email"
             placeholder="E-Mail-Adresse"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            className="flex-1"
           />
           <div className="flex gap-2">
             <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm flex-1 sm:flex-none"
             >
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
-            <button
-              onClick={() => email && inviteMember.mutate()}
-              disabled={!email || inviteMember.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+            <Button
+              onClick={() => inviteEmail && inviteMember.mutate()}
+              disabled={!inviteEmail || inviteMember.isPending}
+              size="default"
             >
               <UserPlus size={16} /> Einladen
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -236,172 +362,324 @@ const MemberRegistry = () => {
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            placeholder="Mitglied suchen..."
+          <Input
+            placeholder="Name oder E-Mail suchen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-background text-sm"
+            className="pl-9"
           />
         </div>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as any)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="all">Alle</option>
           <option value="active">Aktive</option>
+          <option value="all">Alle</option>
           <option value="inactive">Ausgetreten</option>
         </select>
       </div>
 
-      {/* Members list */}
+      {/* Members table */}
       {isLoading ? (
-        <div className="text-center text-muted-foreground py-4">Laden...</div>
+        <div className="text-center text-muted-foreground py-8">Laden...</div>
+      ) : filteredMembers.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">Keine Mitglieder gefunden</div>
       ) : (
-        <div className="space-y-2">
-          {filteredMembers.map((m) => {
-            const roleInfo = ROLES.find((r) => r.value === m.role) || ROLES[0];
-            const RoleIcon = roleInfo.icon;
-            const isEditing = editingMember === m.user_id;
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Rolle</TableHead>
+                  <TableHead>E-Mail</TableHead>
+                  <TableHead>Ort</TableHead>
+                  <TableHead>Eintritt</TableHead>
+                  <TableHead className="w-[80px]">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((m) => (
+                  <TableRow
+                    key={m.id}
+                    onClick={() => openMemberDetail(m)}
+                    className={`cursor-pointer ${!m.is_active ? "opacity-60" : ""}`}
+                  >
+                    <TableCell className="font-medium">{m.display_name}</TableCell>
+                    <TableCell>
+                      <Badge variant={m.role === "vorstand" ? "default" : "secondary"} className="text-xs">
+                        {roleLabel(m.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{m.email || "–"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{m.city || "–"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{formatDate(m.entry_date)}</TableCell>
+                    <TableCell>
+                      {m.is_active ? (
+                        <span className="inline-block w-2 h-2 rounded-full bg-green-500" title="Aktiv" />
+                      ) : (
+                        <span className="inline-block w-2 h-2 rounded-full bg-destructive" title="Ausgetreten" />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-            return (
-              <div key={m.id} className={`p-3 rounded-lg border bg-background ${!m.is_active ? "opacity-60" : ""}`}>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        placeholder="Anzeigename"
-                        className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {filteredMembers.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => openMemberDetail(m)}
+                className={`w-full text-left p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow ${!m.is_active ? "opacity-60" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{m.display_name}</span>
+                      <Badge variant={m.role === "vorstand" ? "default" : "secondary"} className="text-xs shrink-0">
+                        {roleLabel(m.role)}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {m.email || "Keine E-Mail"} {m.city ? `· ${m.city}` : ""}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {m.is_active ? (
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-destructive" />
+                    )}
+                    <ChevronDown size={16} className="text-muted-foreground" />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground text-right">
+            {filteredMembers.length} von {members.length} Mitgliedern
+          </p>
+        </>
+      )}
+
+      {/* ---- Detail Dialog ---- */}
+      <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedMember?.display_name}
+              {selectedMember && !selectedMember.is_active && (
+                <Badge variant="destructive" className="text-xs">Ausgetreten</Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>Mitgliedsdetails und Verwaltung</DialogDescription>
+          </DialogHeader>
+
+          {selectedMember && (
+            <div className="space-y-5">
+              {/* Personal data (read-only) */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Persönliche Daten</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                  <span className="text-muted-foreground">Name</span>
+                  <span>{selectedMember.first_name || selectedMember.last_name ? `${selectedMember.first_name} ${selectedMember.last_name}`.trim() : selectedMember.display_name}</span>
+                  <span className="text-muted-foreground">E-Mail</span>
+                  <span className="break-all">{selectedMember.email || "–"}</span>
+                  <span className="text-muted-foreground">Telefon</span>
+                  <span>{selectedMember.phone || "–"}</span>
+                  <span className="text-muted-foreground">Adresse</span>
+                  <span>{selectedMember.street ? `${selectedMember.street}, ${selectedMember.zip} ${selectedMember.city}` : "–"}</span>
+                  <span className="text-muted-foreground">Geburtsdatum</span>
+                  <span>{formatDate(selectedMember.birthdate)}</span>
+                  <span className="text-muted-foreground">Beitragszyklus</span>
+                  <span>{contributionLabel(selectedMember.contribution_interval)}</span>
+                </div>
+              </div>
+
+              {/* Editable fields */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mitgliedschaft verwalten</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Rolle</label>
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Eintrittsdatum</label>
+                      <Input
+                        type="date"
+                        value={editEntryDate}
+                        onChange={(e) => setEditEntryDate(e.target.value)}
+                        className="mt-1"
                       />
-                      <select
-                        value={editRole}
-                        onChange={(e) => setEditRole(e.target.value)}
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        {ROLES.map((r) => (
-                          <option key={r.value} value={r.value}>{r.label}</option>
-                        ))}
-                      </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-muted-foreground">Eintrittsdatum</label>
-                        <input
-                          type="date"
-                          value={editEntryDate}
-                          onChange={(e) => setEditEntryDate(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground">Austrittsdatum</label>
-                        <input
-                          type="date"
-                          value={editExitDate}
-                          onChange={(e) => setEditExitDate(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={editIsActive}
-                        onChange={(e) => setEditIsActive(e.target.checked)}
-                        className="rounded"
+                    <div>
+                      <label className="text-xs text-muted-foreground">Austrittsdatum</label>
+                      <Input
+                        type="date"
+                        value={editExitDate}
+                        onChange={(e) => setEditExitDate(e.target.value)}
+                        className="mt-1"
                       />
-                      Aktives Mitglied
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => updateMember.mutate({
-                          userId: m.user_id, displayName: editName, newRole: editRole,
-                          entryDate: editEntryDate, exitDate: editExitDate, isActive: editIsActive,
-                        })}
-                        disabled={updateMember.isPending}
-                        className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                      >
-                        Speichern
-                      </button>
-                      <button
-                        onClick={() => resetPassword.mutate(m.user_id)}
-                        disabled={resetPassword.isPending}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted"
-                      >
-                        <KeyRound size={14} /> Passwort
-                      </button>
-                      <label className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md border hover:bg-muted cursor-pointer">
-                        <Upload size={14} /> Antrag
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadMembershipFile(m.user_id, file);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                      <button onClick={() => setEditingMember(null)} className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted">
-                        <X size={14} />
-                      </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Membership files */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mitgliedsantrag</h4>
+                {membershipFiles.length > 0 ? (
+                  <div className="space-y-1">
+                    {membershipFiles.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => downloadFile(f.storage_path, f.name)}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <FileText size={14} /> {f.name}
+                      </button>
+                    ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <RoleIcon size={16} className={`shrink-0 ${m.role === "vorstand" ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{m.display_name}</span>
-                          <span className="text-xs text-muted-foreground">{roleInfo.label}</span>
-                          {!m.is_active && (
-                            <span className="text-xs text-destructive">ausgetreten</span>
-                          )}
-                        </div>
-                        {(m.email || m.entry_date) && (
-                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                            {m.email && (
-                              <span className="text-xs text-muted-foreground break-all">{m.email}</span>
-                            )}
-                            {m.entry_date && (
-                              <span className="text-xs text-muted-foreground">
-                                seit {new Date(m.entry_date).toLocaleDateString("de-DE")}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={() => startEdit(m)} className="text-muted-foreground hover:text-foreground p-1" title="Bearbeiten">
-                        <Pencil size={16} />
-                      </button>
-                      {m.is_active && (
-                        <button
-                          onClick={() => {
-                            if (confirm("Mitglied als ausgetreten markieren?")) markAsExited.mutate(m.user_id);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-1"
-                          title="Als ausgetreten markieren"
-                        >
-                          <UserX size={16} />
-                        </button>
-                      )}
-                      <button onClick={() => removeMember.mutate(m.id)} className="text-muted-foreground hover:text-destructive p-1" title="Rolle entfernen">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground">Noch kein Antrag hochgeladen</p>
                 )}
+                <label className="inline-flex items-center gap-1 px-3 py-1.5 mt-2 text-xs rounded-md border hover:bg-muted cursor-pointer">
+                  <Upload size={14} /> Antrag hochladen
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadMembershipFile(selectedMember.user_id, file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              {/* Actions */}
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
+                <div className="flex flex-wrap gap-2 flex-1">
+                  <Button size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
+                    Speichern
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => resetPassword.mutate(selectedMember.user_id)}
+                    disabled={resetPassword.isPending}
+                  >
+                    <KeyRound size={14} /> Passwort-Reset
+                  </Button>
+                  {selectedMember.is_active ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm("Mitglied deaktivieren? Es verliert sofort alle Zugänge.")) {
+                          deactivateMember.mutate(selectedMember);
+                        }
+                      }}
+                      disabled={deactivateMember.isPending}
+                    >
+                      <UserX size={14} /> Deaktivieren
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm("Mitglied reaktivieren? Es erhält wieder Zugang als Mitglied.")) {
+                          reactivateMember.mutate(selectedMember);
+                        }
+                      }}
+                      disabled={reactivateMember.isPending}
+                    >
+                      <RotateCcw size={14} /> Reaktivieren
+                    </Button>
+                  )}
+                </div>
+                {selectedMember.user_id !== user?.id && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      setDeletingMember(selectedMember);
+                    }}
+                  >
+                    <Trash2 size={14} /> Löschen
+                  </Button>
+                )}
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Delete/Reassign Dialog ---- */}
+      <Dialog open={!!deletingMember} onOpenChange={(open) => { if (!open) { setDeletingMember(null); setReassignTo(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Benutzer endgültig löschen</DialogTitle>
+            <DialogDescription>
+              <strong>{deletingMember?.display_name}</strong> wird unwiderruflich gelöscht.
+              Alle verknüpften Vorgänge (Ankündigungen, Quellen, Events etc.) werden auf ein anderes Mitglied übertragen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">Vorgänge übertragen auf:</label>
+              <select
+                value={reassignTo}
+                onChange={(e) => setReassignTo(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm mt-1"
+              >
+                <option value="">– Mitglied wählen –</option>
+                {members
+                  .filter((m) => m.user_id !== deletingMember?.user_id && m.is_active)
+                  .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"))
+                  .map((m) => (
+                    <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeletingMember(null); setReassignTo(""); }}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!reassignTo || deleteUser.isPending}
+              onClick={() => {
+                if (confirm(`${deletingMember?.display_name} ENDGÜLTIG löschen? Dies kann nicht rückgängig gemacht werden!`)) {
+                  deleteUser.mutate();
+                }
+              }}
+            >
+              Endgültig löschen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -138,6 +138,53 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "delete_user") {
+      const reassignToUserId = body.reassignToUserId;
+      if (!userId || !reassignToUserId) throw new Error("userId und reassignToUserId erforderlich");
+
+      // Reassign all linked records to the target user
+      const tablesToReassign = [
+        { table: "announcements", column: "created_by" },
+        { table: "announcement_replies", column: "created_by" },
+        { table: "sources", column: "created_by" },
+        { table: "source_folders", column: "created_by" },
+        { table: "events", column: "created_by" },
+        { table: "documents", column: "uploaded_by" },
+        { table: "gallery_images", column: "created_by" },
+        { table: "epoch_sources", column: "created_by" },
+        { table: "election_groups", column: "created_by" },
+        { table: "elections", column: "created_by" },
+      ];
+
+      for (const { table, column } of tablesToReassign) {
+        await adminClient
+          .from(table)
+          .update({ [column]: reassignToUserId })
+          .eq(column, userId);
+      }
+
+      // Delete user's own data that shouldn't be transferred
+      await adminClient.from("event_attendees").delete().eq("user_id", userId);
+      await adminClient.from("votes").delete().eq("voter_id", userId);
+      await adminClient.from("group_members").delete().eq("user_id", userId);
+      await adminClient.from("membership_files").delete().eq("user_id", userId);
+      await adminClient.from("contributions").delete().eq("user_id", userId);
+
+      // Remove roles
+      await adminClient.from("user_roles").delete().eq("user_id", userId);
+
+      // Delete profile
+      await adminClient.from("profiles").delete().eq("id", userId);
+
+      // Delete auth user
+      const { error: deleteErr } = await adminClient.auth.admin.deleteUser(userId);
+      if (deleteErr) throw deleteErr;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error("Unbekannte Aktion");
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unbekannter Fehler";
