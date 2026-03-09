@@ -535,16 +535,17 @@ const EventsPage = () => {
                             style={{ gridColumn: `${colStart + 1} / span ${seg.spanCols}` }}
                             className="pointer-events-auto"
                           >
-                            <div
+                             <div
                               onClick={() => setSelectedEvent(seg.event)}
-                              className={`text-[10px] md:text-xs truncate px-1.5 py-0.5 bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 font-medium
+                              className={`text-[10px] md:text-xs truncate px-1.5 py-0.5 bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 font-medium flex items-center gap-0.5
                                 ${seg.isStart && seg.isEnd ? "rounded" : ""}
                                 ${seg.isStart && !seg.isEnd ? "rounded-l" : ""}
                                 ${!seg.isStart && seg.isEnd ? "rounded-r" : ""}
                                 ${!seg.isStart && !seg.isEnd ? "" : ""}
                               `}
                             >
-                              {seg.isStart ? seg.event.title : `↳ ${seg.event.title}`}
+                              {seg.event.is_public && <Globe size={8} className="shrink-0 opacity-70" />}
+                              <span className="truncate">{seg.isStart ? seg.event.title : `↳ ${seg.event.title}`}</span>
                             </div>
                           </div>
                         );
