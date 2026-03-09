@@ -248,8 +248,8 @@ const Sources = () => {
               <Plus size={16} /> Quelle
             </button>
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
-              <Upload size={16} /> Datei
-              <input type="file" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadSourceFile(file); e.target.value = ""; }} />
+              <Upload size={16} /> Dateien
+              <input type="file" className="hidden" multiple onChange={(e) => { if (e.target.files?.length) uploadSourceFiles(e.target.files); e.target.value = ""; }} />
             </label>
           </div>
         </div>
