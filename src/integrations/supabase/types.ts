@@ -567,9 +567,12 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_name: string | null
+          map_lat: number | null
+          map_lng: number | null
           membership_type: string | null
           phone: string | null
           salutation: string | null
+          show_on_map: boolean
           street: string | null
           updated_at: string
           zip: string | null
@@ -587,9 +590,12 @@ export type Database = {
           id: string
           is_active?: boolean | null
           last_name?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
           membership_type?: string | null
           phone?: string | null
           salutation?: string | null
+          show_on_map?: boolean
           street?: string | null
           updated_at?: string
           zip?: string | null
@@ -607,9 +613,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_name?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
           membership_type?: string | null
           phone?: string | null
           salutation?: string | null
+          show_on_map?: boolean
           street?: string | null
           updated_at?: string
           zip?: string | null
