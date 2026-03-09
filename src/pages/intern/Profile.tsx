@@ -42,19 +42,19 @@ const Profile = () => {
         .then(({ data }) => {
           if (data) {
             setDisplayName(data.display_name || "");
-            setSalutation((data as any).salutation || "");
-            setFirstName((data as any).first_name || "");
-            setLastName((data as any).last_name || "");
-            setStreet((data as any).street || "");
-            setZip((data as any).zip || "");
-            setCity((data as any).city || "");
-            setBirthdate((data as any).birthdate || "");
-            setPhone((data as any).phone || "");
-            setMembershipType((data as any).membership_type || "aktiv");
-            setContributionInterval((data as any).contribution_interval || "jaehrlich");
-            setEntryDate((data as any).entry_date || "");
-            setExitDate((data as any).exit_date || "");
-            setIsActive((data as any).is_active ?? true);
+            setSalutation(data.salutation || "");
+            setFirstName(data.first_name || "");
+            setLastName(data.last_name || "");
+            setStreet(data.street || "");
+            setZip(data.zip || "");
+            setCity(data.city || "");
+            setBirthdate(data.birthdate || "");
+            setPhone(data.phone || "");
+            setMembershipType(data.membership_type || "aktiv");
+            setContributionInterval(data.contribution_interval || "jaehrlich");
+            setEntryDate(data.entry_date || "");
+            setExitDate(data.exit_date || "");
+            setIsActive(data.is_active ?? true);
           }
         });
     }
