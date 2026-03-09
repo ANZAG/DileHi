@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,24 +9,52 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
   const [success, setSuccess] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for recovery type in URL hash
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
-      setIsRecovery(true);
-    }
+    const verifyToken = async () => {
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type");
 
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+      if (tokenHash && (type === "recovery" || type === "invite")) {
+        // Verify the OTP token from the email link
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type === "invite" ? "invite" : "recovery",
+        });
+        if (!error) {
+          setIsRecovery(true);
+        } else {
+          console.error("Token verification failed:", error.message);
+        }
+        setVerifying(false);
+        return;
+      }
+
+      // Legacy: check for recovery type in URL hash
+      const hash = window.location.hash;
+      if (hash.includes("type=recovery")) {
         setIsRecovery(true);
       }
-    });
-  }, []);
+
+      // Listen for PASSWORD_RECOVERY event
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setIsRecovery(true);
+        }
+      });
+
+      setVerifying(false);
+      return () => subscription.unsubscribe();
+    };
+
+    verifyToken();
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +76,17 @@ const ResetPassword = () => {
       setTimeout(() => navigate("/intern"), 2000);
     }
   };
+
+  if (verifying) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="text-center space-y-3">
+          <Loader2 size={32} className="mx-auto animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Link wird überprüft...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isRecovery) {
     return (

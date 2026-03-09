@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     // Build confirmation URL from the generated link properties
     const tokenHash = linkData.properties?.hashed_token;
-    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=invite&redirect_to=${encodeURIComponent(`${origin}/passwort-zuruecksetzen`)}`;
+    const confirmUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=invite`;
 
     // Send invite email via Microsoft 365
     const roleLabel: Record<string, string> = {

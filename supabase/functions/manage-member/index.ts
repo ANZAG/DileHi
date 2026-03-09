@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       if (linkError) throw linkError;
 
       const tokenHash = linkData.properties?.hashed_token;
-      const resetUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=recovery&redirect_to=${encodeURIComponent(`${origin}/passwort-zuruecksetzen`)}`;
+      const resetUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=recovery`;
 
       const htmlBody = buildEmailWrapper(`
         <h2 style="color: #1a1a1a; margin: 0 0 16px;">Passwort zurücksetzen</h2>
