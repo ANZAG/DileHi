@@ -103,6 +103,9 @@ const FuerVeranstalter = () => {
             <p>
               Viele unserer Ausrüstungsgegenstände und Kleidungsstücke entstehen in eigener Arbeit innerhalb der Gruppe – orientiert an Museumsfunden, zeitgenössischen Abbildungen und aktuellem Forschungsstand.
             </p>
+            <p>
+              Wir treten gegen eine Aufwandsentschädigung auf, über deren Höhe wir uns gerne im Rahmen der Anfrage abstimmen.
+            </p>
           </div>
           <div className="rounded-lg overflow-hidden mt-6 max-w-md mx-auto">
             <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover rounded-lg" />
