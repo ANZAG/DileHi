@@ -108,7 +108,7 @@ const Announcements = () => {
     mutationFn: async (announcementId: string) => {
       const text = replyTexts[announcementId]?.trim();
       if (!text) return;
-      const { error } = await (supabase.from("announcement_replies" as any) as any).insert({
+      const { error } = await supabase.from("announcement_replies").insert({
         announcement_id: announcementId,
         content: text,
         created_by: user!.id,
