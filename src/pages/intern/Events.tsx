@@ -162,7 +162,7 @@ const EventsPage = () => {
         : null;
       const { error } = await supabase.from("events").update({
         title, description: description || null, location: location || null,
-        start_date: start, end_date: end, all_day: allDay,
+        start_date: start, end_date: end, all_day: allDay, is_public: isPublic,
       }).eq("id", editingEvent.id);
       if (error) throw error;
     },
