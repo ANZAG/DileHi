@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
       if (userError || !userData?.user?.email) throw new Error("Benutzer nicht gefunden");
 
-      const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || supabaseUrl;
+      const origin = Deno.env.get("SITE_URL") || "https://test.dilehi.de";
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email: userData.user.email,
