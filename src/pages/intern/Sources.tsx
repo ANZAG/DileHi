@@ -173,6 +173,18 @@ const Sources = () => {
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
   });
 
+  const moveSource = useMutation({
+    mutationFn: async ({ id, folder_id }: { id: string; folder_id: string | null }) => {
+      const { error } = await supabase.from("sources").update({ folder_id }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      toast({ title: "Quelle verschoben" });
+    },
+    onError: () => toast({ title: "Fehler beim Verschieben", variant: "destructive" }),
+  });
+
   const handleFilesSelected = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
