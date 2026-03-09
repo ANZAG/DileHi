@@ -234,7 +234,7 @@ const Profile = () => {
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
                 <select
