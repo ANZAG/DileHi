@@ -120,7 +120,7 @@ const Sources = () => {
   const deleteFolder = useMutation({
     mutationFn: async (id: string) => {
       // Cascade delete is handled by DB constraint
-      const { error } = await (supabase.from("source_folders" as any) as any).delete().eq("id", id);
+      const { error } = await supabase.from("source_folders").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
