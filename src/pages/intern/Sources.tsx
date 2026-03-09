@@ -3,15 +3,26 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp } from "lucide-react";
+import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 const EPOCHS = [
   { value: "mittelalter", label: "Spätmittelalter" },
   { value: "1815", label: "Napoleonik" },
   { value: "wk1", label: "Erster Weltkrieg" },
 ];
+
+const sanitizeFileName = (name: string) =>
+  name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+interface UploadProgress {
+  fileName: string;
+  progress: number; // 0-100
+  status: "uploading" | "done" | "error";
+  error?: string;
+}
 
 const Sources = () => {
   const { user, isVorstand } = useAuth();
@@ -25,6 +36,7 @@ const Sources = () => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [form, setForm] = useState({ epoch: "mittelalter", title: "", content: "", url: "" });
   const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<UploadProgress[]>([]);
 
   const activeEpoch = epochFilter || "mittelalter";
 
@@ -131,25 +143,73 @@ const Sources = () => {
     },
   });
 
-  const uploadSourceFile = async (file: File) => {
-    try {
-      const path = `sources/${activeEpoch}/${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("internal-files").upload(path, file);
-      if (uploadErr) throw uploadErr;
-      const { error: dbErr } = await supabase.from("sources").insert({
-        epoch: activeEpoch,
-        title: file.name,
-        content: `Datei: ${file.name}`,
-        file_path: path,
-        folder_id: currentFolderId,
-        created_by: user!.id,
-      });
-      if (dbErr) throw dbErr;
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
-      toast({ title: "Datei hochgeladen" });
-    } catch (err: any) {
-      toast({ title: "Fehler", description: err.message, variant: "destructive" });
+  const uploadSourceFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    const newUploads: UploadProgress[] = fileArray.map((f) => ({
+      fileName: f.name,
+      progress: 0,
+      status: "uploading" as const,
+    }));
+    setUploads((prev) => [...prev, ...newUploads]);
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const safeName = sanitizeFileName(file.name);
+      const path = `sources/${activeEpoch}/${Date.now()}_${safeName}`;
+
+      try {
+        // Update progress to 50% (uploading)
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, progress: 50 }
+              : u
+          )
+        );
+
+        const { error: uploadErr } = await supabase.storage
+          .from("internal-files")
+          .upload(path, file);
+        if (uploadErr) throw uploadErr;
+
+        const { error: dbErr } = await supabase.from("sources").insert({
+          epoch: activeEpoch,
+          title: file.name,
+          content: `Datei: ${file.name}`,
+          file_path: path,
+          folder_id: currentFolderId,
+          created_by: user!.id,
+        });
+        if (dbErr) throw dbErr;
+
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, progress: 100, status: "done" }
+              : u
+          )
+        );
+      } catch (err: any) {
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, status: "error", error: err.message }
+              : u
+          )
+        );
+      }
     }
+
+    queryClient.invalidateQueries({ queryKey: ["sources"] });
+    const successCount = fileArray.length;
+    toast({ title: `${successCount} Datei${successCount !== 1 ? "en" : ""} hochgeladen` });
+
+    // Clear completed uploads after 3 seconds
+    setTimeout(() => {
+      setUploads((prev) => prev.filter((u) => u.status === "uploading"));
+    }, 3000);
   };
 
   const downloadSourceFile = async (filePath: string, title: string) => {
@@ -188,8 +248,8 @@ const Sources = () => {
               <Plus size={16} /> Quelle
             </button>
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
-              <Upload size={16} /> Datei
-              <input type="file" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadSourceFile(file); e.target.value = ""; }} />
+              <Upload size={16} /> Dateien
+              <input type="file" className="hidden" multiple onChange={(e) => { if (e.target.files?.length) uploadSourceFiles(e.target.files); e.target.value = ""; }} />
             </label>
           </div>
         </div>
@@ -231,6 +291,26 @@ const Sources = () => {
             ))}
           </div>
         </div>
+
+        {/* Upload progress */}
+        {uploads.length > 0 && (
+          <div className="mb-4 space-y-2 p-3 rounded-lg border bg-card">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Upload-Fortschritt</p>
+            {uploads.map((u, i) => (
+              <div key={`${u.fileName}-${i}`} className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  {u.status === "uploading" && <Loader2 size={12} className="animate-spin text-primary" />}
+                  {u.status === "done" && <CheckCircle2 size={12} className="text-green-600" />}
+                  {u.status === "error" && <span className="text-destructive">✕</span>}
+                  <span className="truncate flex-1">{u.fileName}</span>
+                  <span className="text-muted-foreground">{u.progress}%</span>
+                </div>
+                <Progress value={u.progress} className="h-1" />
+                {u.error && <p className="text-xs text-destructive">{u.error}</p>}
+              </div>
+            ))}
+          </div>
+        )}
 
         {searchResults ? (
           <div className="space-y-3">
