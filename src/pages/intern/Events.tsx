@@ -582,7 +582,14 @@ const EventsPage = () => {
                     <div key={ev.id} className="p-4 border rounded-lg bg-card">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <h4 className="font-semibold">{ev.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{ev.title}</h4>
+                            {ev.is_public && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                <Globe size={10} /> Öffentlich
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <CalIcon size={14} /> {formatTimeDisplay(ev)}
