@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   UserPlus, Shield, User, KeyRound, Crown, Coins, Search,
-  Upload, FileText, Eye, Trash2, RotateCcw, UserX, ChevronDown,
+  Upload, FileText, Trash2, RotateCcw, UserX, ChevronDown,
+  ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -58,9 +59,11 @@ const MemberRegistry = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("mitglied");
 
-  // Filter/search
+  // Filter/search/sort
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
+  const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
@@ -136,6 +139,29 @@ const MemberRegistry = () => {
     },
   });
 
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortHeader = ({ column, label }: { column: typeof sortKey; label: string }) => (
+    <button
+      onClick={() => toggleSort(column)}
+      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+    >
+      {label}
+      {sortKey === column ? (
+        sortDir === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+      ) : (
+        <ArrowUpDown size={14} className="opacity-40" />
+      )}
+    </button>
+  );
+
   const filteredMembers = members
     .filter((m) => {
       const q = search.toLowerCase();
@@ -150,7 +176,25 @@ const MemberRegistry = () => {
         (filter === "inactive" && !m.is_active);
       return matchesSearch && matchesFilter;
     })
-    .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      switch (sortKey) {
+        case "display_name":
+          return dir * a.display_name.localeCompare(b.display_name, "de");
+        case "role":
+          return dir * roleLabel(a.role).localeCompare(roleLabel(b.role), "de");
+        case "email":
+          return dir * (a.email || "").localeCompare(b.email || "", "de");
+        case "city":
+          return dir * (a.city || "").localeCompare(b.city || "", "de");
+        case "entry_date":
+          return dir * (a.entry_date || "").localeCompare(b.entry_date || "");
+        case "is_active":
+          return dir * (Number(b.is_active) - Number(a.is_active));
+        default:
+          return 0;
+      }
+    });
 
   // --- Mutations ---
 
@@ -392,12 +436,12 @@ const MemberRegistry = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Rolle</TableHead>
-                  <TableHead>E-Mail</TableHead>
-                  <TableHead>Ort</TableHead>
-                  <TableHead>Eintritt</TableHead>
-                  <TableHead className="w-[80px]">Status</TableHead>
+                  <TableHead><SortHeader column="display_name" label="Name" /></TableHead>
+                  <TableHead><SortHeader column="role" label="Rolle" /></TableHead>
+                  <TableHead><SortHeader column="email" label="E-Mail" /></TableHead>
+                  <TableHead><SortHeader column="city" label="Ort" /></TableHead>
+                  <TableHead><SortHeader column="entry_date" label="Eintritt" /></TableHead>
+                  <TableHead className="w-[80px]"><SortHeader column="is_active" label="Status" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -575,12 +619,13 @@ const MemberRegistry = () => {
               </div>
 
               {/* Actions */}
-              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2 border-t">
-                <div className="flex flex-wrap gap-2 flex-1">
-                  <Button size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex gap-2">
+                  <Button className="flex-1" size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
                     Speichern
                   </Button>
                   <Button
+                    className="flex-1"
                     size="sm"
                     variant="outline"
                     onClick={() => resetPassword.mutate(selectedMember.user_id)}
@@ -588,11 +633,13 @@ const MemberRegistry = () => {
                   >
                     <KeyRound size={14} /> Passwort-Reset
                   </Button>
+                </div>
+                <div className="flex gap-2">
                   {selectedMember.is_active ? (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => {
                         if (confirm("Mitglied deaktivieren? Es verliert sofort alle Zugänge.")) {
                           deactivateMember.mutate(selectedMember);
@@ -604,6 +651,7 @@ const MemberRegistry = () => {
                     </Button>
                   ) : (
                     <Button
+                      className="flex-1"
                       size="sm"
                       variant="outline"
                       onClick={() => {
@@ -616,19 +664,18 @@ const MemberRegistry = () => {
                       <RotateCcw size={14} /> Reaktivieren
                     </Button>
                   )}
+                  {selectedMember.user_id !== user?.id && (
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeletingMember(selectedMember)}
+                    >
+                      <Trash2 size={14} /> Löschen
+                    </Button>
+                  )}
                 </div>
-                {selectedMember.user_id !== user?.id && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      setDeletingMember(selectedMember);
-                    }}
-                  >
-                    <Trash2 size={14} /> Löschen
-                  </Button>
-                )}
-              </DialogFooter>
+              </div>
             </div>
           )}
         </DialogContent>
