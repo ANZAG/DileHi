@@ -40,6 +40,16 @@ const MemberRegistry = () => {
         .from("profiles")
         .select("*")
         .in("id", userIds);
+
+      // Fetch emails via edge function
+      let emailMap: Record<string, string> = {};
+      try {
+        const { data: emails } = await supabase.functions.invoke("manage-member", {
+          body: { action: "get_emails", userIds },
+        });
+        if (emails) emailMap = emails;
+      } catch {}
+
       return roles.map((r) => {
         const profile = profiles?.find((p) => p.id === r.user_id);
         return {
@@ -50,6 +60,7 @@ const MemberRegistry = () => {
           entry_date: profile?.entry_date ?? "",
           exit_date: profile?.exit_date ?? "",
           is_active: profile?.is_active ?? true,
+          email: emailMap[r.user_id] ?? "",
         };
       });
     },
@@ -346,6 +357,9 @@ const MemberRegistry = () => {
                       <div className="min-w-0">
                         <span className="text-sm font-medium">{m.display_name}</span>
                         <span className="ml-2 text-xs text-muted-foreground">{roleInfo.label}</span>
+                        {m.email && (
+                          <span className="ml-2 text-xs text-muted-foreground">{m.email}</span>
+                        )}
                         {m.entry_date && (
                           <span className="ml-2 text-xs text-muted-foreground">
                             seit {new Date(m.entry_date).toLocaleDateString("de-DE")}

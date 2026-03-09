@@ -35,7 +35,20 @@ Deno.serve(async (req) => {
       .single();
     if (!callerRole) throw new Error("Nur der Vorstand kann Mitglieder verwalten");
 
-    const { action, userId, displayName, role, email, entryDate, exitDate, isActive } = await req.json();
+    const body = await req.json();
+    const { action, userId, displayName, role, email, entryDate, exitDate, isActive } = body;
+
+    if (action === "get_emails") {
+      const userIds: string[] = body.userIds || [];
+      const result: Record<string, string> = {};
+      for (const uid of userIds) {
+        const { data: u } = await adminClient.auth.admin.getUserById(uid);
+        if (u?.user?.email) result[uid] = u.user.email;
+      }
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (action === "update_profile") {
       if (!userId) throw new Error("userId erforderlich");
