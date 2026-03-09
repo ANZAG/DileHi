@@ -210,7 +210,7 @@ const Profile = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Geburtsdatum</label>
                 <input
