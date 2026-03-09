@@ -396,7 +396,7 @@ const EventsPage = () => {
             </Button>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowCalendarSync(true)}>
               <LinkIcon size={16} className="mr-1" /> <span className="hidden sm:inline">Kalender </span>Abo
             </Button>
@@ -406,7 +406,7 @@ const EventsPage = () => {
               </a>
             </Button>
             <Button size="sm" onClick={() => openCreate()}>
-              <Plus size={16} className="mr-1" /> <span className="hidden sm:inline">Neue </span>Veranstaltung
+              <Plus size={16} className="mr-1" /> <span className="hidden sm:inline">Hinzufügen</span>
             </Button>
           </div>
         </div>
