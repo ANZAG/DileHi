@@ -8,7 +8,7 @@ const cards = [
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
   { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
-  { title: "Dokumente", desc: "Satzung, Ordnungen und Protokolle.", icon: FileText, path: "/intern/dokumente" },
+  { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente" },
 ];
 
 const Dashboard = () => {
