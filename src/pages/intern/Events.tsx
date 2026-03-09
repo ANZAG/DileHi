@@ -23,6 +23,7 @@ interface Event {
   start_date: string;
   end_date: string | null;
   all_day: boolean;
+  is_public: boolean;
   created_by: string;
   created_at: string;
 }
