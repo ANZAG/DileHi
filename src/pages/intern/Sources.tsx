@@ -14,6 +14,16 @@ const EPOCHS = [
   { value: "wk1", label: "Erster Weltkrieg" },
 ];
 
+const sanitizeFileName = (name: string) =>
+  name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+interface UploadProgress {
+  fileName: string;
+  progress: number; // 0-100
+  status: "uploading" | "done" | "error";
+  error?: string;
+}
+
 const Sources = () => {
   const { user, isVorstand } = useAuth();
   const { toast } = useToast();
@@ -26,6 +36,7 @@ const Sources = () => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [form, setForm] = useState({ epoch: "mittelalter", title: "", content: "", url: "" });
   const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<UploadProgress[]>([]);
 
   const activeEpoch = epochFilter || "mittelalter";
 
