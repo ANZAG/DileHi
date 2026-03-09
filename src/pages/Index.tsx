@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SEO from "@/components/SEO";
+import PublicEventsSection from "@/components/PublicEventsSection";
 import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
