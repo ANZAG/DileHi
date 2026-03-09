@@ -679,7 +679,10 @@ const EventsPage = () => {
                           <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
                         </div>
                         <div>
-                          <div className="font-medium text-sm">{ev.title}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm">{ev.title}</span>
+                            {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
+                          </div>
                           {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
                         </div>
                       </div>
