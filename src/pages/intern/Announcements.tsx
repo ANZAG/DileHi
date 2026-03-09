@@ -33,11 +33,11 @@ const Announcements = () => {
     queryKey: ["announcement_replies"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("announcement_replies" as any)
+        .from("announcement_replies")
         .select("*")
         .order("created_at", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
