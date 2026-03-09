@@ -139,6 +139,29 @@ const MemberRegistry = () => {
     },
   });
 
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortHeader = ({ column, label }: { column: typeof sortKey; label: string }) => (
+    <button
+      onClick={() => toggleSort(column)}
+      className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+    >
+      {label}
+      {sortKey === column ? (
+        sortDir === "asc" ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+      ) : (
+        <ArrowUpDown size={14} className="opacity-40" />
+      )}
+    </button>
+  );
+
   const filteredMembers = members
     .filter((m) => {
       const q = search.toLowerCase();
@@ -153,7 +176,25 @@ const MemberRegistry = () => {
         (filter === "inactive" && !m.is_active);
       return matchesSearch && matchesFilter;
     })
-    .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      switch (sortKey) {
+        case "display_name":
+          return dir * a.display_name.localeCompare(b.display_name, "de");
+        case "role":
+          return dir * roleLabel(a.role).localeCompare(roleLabel(b.role), "de");
+        case "email":
+          return dir * (a.email || "").localeCompare(b.email || "", "de");
+        case "city":
+          return dir * (a.city || "").localeCompare(b.city || "", "de");
+        case "entry_date":
+          return dir * (a.entry_date || "").localeCompare(b.entry_date || "");
+        case "is_active":
+          return dir * (Number(b.is_active) - Number(a.is_active));
+        default:
+          return 0;
+      }
+    });
 
   // --- Mutations ---
 
