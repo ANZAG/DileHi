@@ -471,17 +471,18 @@ const EventsPage = () => {
                             )}
                             {/* Single-day events */}
                             <div className="mt-0.5 space-y-0.5">
-                              {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
+              {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
                                 <div
                                   key={ev.id}
                                   onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                                  className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors ${
+                                  className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors flex items-center gap-0.5 ${
                                     isSelected
                                       ? "bg-background/90 text-foreground border-border hover:bg-background"
                                       : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
                                   }`}
                                 >
-                                  {ev.title}
+                                  {ev.is_public && <Globe size={8} className="shrink-0 opacity-70" />}
+                                  <span className="truncate">{ev.title}</span>
                                 </div>
                               ))}
                               {singleDayEvents.length > (holiday ? 1 : 2) && (
