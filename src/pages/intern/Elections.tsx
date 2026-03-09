@@ -83,10 +83,10 @@ const Elections = () => {
     queryKey: ["group_members"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("group_members" as any)
+        .from("group_members")
         .select("*");
       if (error) return [];
-      return data as unknown as GroupMember[];
+      return data as GroupMember[];
     },
   });
 
