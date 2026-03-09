@@ -67,6 +67,7 @@ const App = () => (
               <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
+              <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

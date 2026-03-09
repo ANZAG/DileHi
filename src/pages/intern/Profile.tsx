@@ -315,7 +315,31 @@ const Profile = () => {
             )}
           </div>
 
-          {/* E-Mail & Passwort */}
+          {/* Map opt-in */}
+          <div className="p-6 rounded-lg border bg-card space-y-3">
+            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <MapPin size={18} /> Mitgliederkarte
+            </h2>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnMap}
+                onChange={(e) => setShowOnMap(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input"
+              />
+              <div>
+                <span className="text-sm font-medium">Meinen Wohnort auf der Mitgliederkarte anzeigen</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Dein Ort (nicht die genaue Adresse) wird für andere Mitglieder auf einer Karte sichtbar.
+                  Kontaktdaten (Name, E-Mail, Telefon) werden beim Klick auf den Marker angezeigt.
+                </p>
+              </div>
+            </label>
+            {showOnMap && (!zip && !city) && (
+              <p className="text-xs text-destructive">Bitte trage oben PLZ und Wohnort ein, damit dein Standort angezeigt werden kann.</p>
+            )}
+          </div>
+
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Konto</h2>
             <div>
