@@ -97,13 +97,13 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
         let groupTitle = null;
         if (election.group_id) {
           const { data } = await supabase
-            .from("election_groups" as any)
+            .from("election_groups")
             .select("title")
             .eq("id", election.group_id)
             .single();
-          groupTitle = (data as any)?.title || null;
+          groupTitle = data?.title || null;
         }
-        await supabase.from("election_audit_log" as any).insert({
+        await supabase.from("election_audit_log").insert({
           election_title: election.title,
           election_description: election.description,
           group_title: groupTitle,

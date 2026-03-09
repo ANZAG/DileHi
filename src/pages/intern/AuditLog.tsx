@@ -21,11 +21,11 @@ const AuditLog = () => {
     queryKey: ["audit_log"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("election_audit_log" as any)
+        .from("election_audit_log")
         .select("*")
         .order("deleted_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as AuditLogEntry[];
+      return data as AuditLogEntry[];
     },
   });
 

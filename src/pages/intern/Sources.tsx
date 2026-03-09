@@ -32,12 +32,12 @@ const Sources = () => {
     queryKey: ["source_folders", activeEpoch],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("source_folders" as any)
+        .from("source_folders")
         .select("*")
         .eq("epoch", activeEpoch)
         .order("name", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
@@ -54,7 +54,7 @@ const Sources = () => {
     },
   });
 
-  const currentFolders = folders.filter((f: any) =>
+  const currentFolders = folders.filter((f) =>
     currentFolderId ? f.parent_id === currentFolderId : !f.parent_id
   );
 
@@ -63,7 +63,7 @@ const Sources = () => {
   );
 
   const parentFolder = currentFolderId
-    ? folders.find((f: any) => f.id === currentFolderId)
+    ? folders.find((f) => f.id === currentFolderId)
     : null;
 
   const addSource = useMutation({
@@ -75,7 +75,7 @@ const Sources = () => {
         url: form.url || null,
         folder_id: currentFolderId,
         created_by: user!.id,
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -89,7 +89,7 @@ const Sources = () => {
 
   const createFolder = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.from("source_folders" as any) as any).insert({
+      const { error } = await supabase.from("source_folders").insert({
         epoch: activeEpoch,
         name: folderName,
         parent_id: currentFolderId,
@@ -120,7 +120,7 @@ const Sources = () => {
   const deleteFolder = useMutation({
     mutationFn: async (id: string) => {
       // Cascade delete is handled by DB constraint
-      const { error } = await (supabase.from("source_folders" as any) as any).delete().eq("id", id);
+      const { error } = await supabase.from("source_folders").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -143,7 +143,7 @@ const Sources = () => {
         file_path: path,
         folder_id: currentFolderId,
         created_by: user!.id,
-      } as any);
+      });
       if (dbErr) throw dbErr;
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       toast({ title: "Datei hochgeladen" });
@@ -251,7 +251,7 @@ const Sources = () => {
               <div className="text-center text-muted-foreground py-12">Laden...</div>
             ) : (
               <div className="space-y-2">
-                {currentFolders.map((f: any) => (
+                {currentFolders.map((f) => (
                   <div key={f.id} className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                     {folderDeleteConfirm === f.id ? (
                       <div className="space-y-2">

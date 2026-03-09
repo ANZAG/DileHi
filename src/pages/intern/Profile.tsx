@@ -42,36 +42,36 @@ const Profile = () => {
         .then(({ data }) => {
           if (data) {
             setDisplayName(data.display_name || "");
-            setSalutation((data as any).salutation || "");
-            setFirstName((data as any).first_name || "");
-            setLastName((data as any).last_name || "");
-            setStreet((data as any).street || "");
-            setZip((data as any).zip || "");
-            setCity((data as any).city || "");
-            setBirthdate((data as any).birthdate || "");
-            setPhone((data as any).phone || "");
-            setMembershipType((data as any).membership_type || "aktiv");
-            setContributionInterval((data as any).contribution_interval || "jaehrlich");
-            setEntryDate((data as any).entry_date || "");
-            setExitDate((data as any).exit_date || "");
-            setIsActive((data as any).is_active ?? true);
+            setSalutation(data.salutation || "");
+            setFirstName(data.first_name || "");
+            setLastName(data.last_name || "");
+            setStreet(data.street || "");
+            setZip(data.zip || "");
+            setCity(data.city || "");
+            setBirthdate(data.birthdate || "");
+            setPhone(data.phone || "");
+            setMembershipType(data.membership_type || "aktiv");
+            setContributionInterval(data.contribution_interval || "jaehrlich");
+            setEntryDate(data.entry_date || "");
+            setExitDate(data.exit_date || "");
+            setIsActive(data.is_active ?? true);
           }
         });
     }
   }, [user]);
 
   // Membership files for the current user
-  const { data: membershipFiles = [], refetch: refetchFiles } = useQuery({
+  const { data: membershipFiles = [] } = useQuery({
     queryKey: ["membership_files", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("membership_files" as any)
+        .from("membership_files")
         .select("*")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
@@ -93,7 +93,7 @@ const Profile = () => {
           phone,
           membership_type: membershipType,
           contribution_interval: contributionInterval,
-        } as any)
+        })
         .eq("id", user.id);
       if (profileError) throw profileError;
 
@@ -127,7 +127,7 @@ const Profile = () => {
     setSaving(false);
   };
 
-  const downloadFile = async (file: any) => {
+  const downloadFile = async (file: { storage_path: string }) => {
     const { data } = await supabase.storage.from("internal-files").createSignedUrl(file.storage_path, 300);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
   };
@@ -328,7 +328,7 @@ const Profile = () => {
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
                 <FileText size={18} /> Mitgliedsantrag
               </h2>
-              {membershipFiles.map((file: any) => (
+              {membershipFiles.map((file) => (
                 <div key={file.id} className="flex items-center justify-between p-2 rounded border bg-background">
                   <span className="text-sm truncate">{file.name}</span>
                   <button

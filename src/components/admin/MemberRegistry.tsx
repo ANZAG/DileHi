@@ -45,11 +45,11 @@ const MemberRegistry = () => {
         return {
           ...r,
           display_name: profile?.display_name ?? "–",
-          first_name: (profile as any)?.first_name ?? "",
-          last_name: (profile as any)?.last_name ?? "",
-          entry_date: (profile as any)?.entry_date ?? "",
-          exit_date: (profile as any)?.exit_date ?? "",
-          is_active: (profile as any)?.is_active ?? true,
+          first_name: profile?.first_name ?? "",
+          last_name: profile?.last_name ?? "",
+          entry_date: profile?.entry_date ?? "",
+          exit_date: profile?.exit_date ?? "",
+          is_active: profile?.is_active ?? true,
         };
       });
     },
@@ -163,7 +163,7 @@ const MemberRegistry = () => {
       toast({ title: "Upload-Fehler", description: uploadErr.message, variant: "destructive" });
       return;
     }
-    const { error: insertErr } = await (supabase.from("membership_files" as any) as any).insert({
+    const { error: insertErr } = await supabase.from("membership_files").insert({
       user_id: userId,
       name: file.name,
       storage_path: path,

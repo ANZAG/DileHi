@@ -40,11 +40,11 @@ const Elections = () => {
     queryKey: ["election_groups"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .select("*")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as unknown as ElectionGroup[];
+      return data as ElectionGroup[];
     },
   });
 
@@ -83,10 +83,10 @@ const Elections = () => {
     queryKey: ["group_members"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("group_members" as any)
+        .from("group_members")
         .select("*");
       if (error) return [];
-      return data as unknown as GroupMember[];
+      return data as GroupMember[];
     },
   });
 
@@ -116,7 +116,7 @@ const Elections = () => {
     mutationFn: async () => {
       // Create the group
       const { data: group, error } = await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .insert({
           title: groupForm.title,
           votes_per_member: 1,
@@ -133,9 +133,9 @@ const Elections = () => {
         .in("role", ["vorstand", "mitglied"]);
       if (roles && roles.length > 0) {
         const uniqueUserIds = [...new Set(roles.map((r) => r.user_id))];
-        await supabase.from("group_members" as any).insert(
+        await supabase.from("group_members").insert(
           uniqueUserIds.map((uid) => ({
-            group_id: (group as any).id,
+            group_id: group.id,
             user_id: uid,
             vote_count: 1,
           }))
@@ -186,7 +186,7 @@ const Elections = () => {
     mutationFn: async (groupId: string) => {
       // Close the group
       await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .update({ status: "closed", closed_at: new Date().toISOString() })
         .eq("id", groupId);
       // Close all active elections in this group
@@ -215,7 +215,7 @@ const Elections = () => {
         await supabase.from("candidates").delete().eq("election_id", e.id);
         await supabase.from("elections").delete().eq("id", e.id);
       }
-      const { error } = await supabase.from("election_groups" as any).delete().eq("id", groupId);
+      const { error } = await supabase.from("election_groups").delete().eq("id", groupId);
       if (error) throw error;
     },
     onSuccess: () => {
