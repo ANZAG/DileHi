@@ -266,7 +266,7 @@ const EventsPage = () => {
   const toDateOnly = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   const eventsForDay = (day: Date) =>
-    events.filter(e => {
+    filteredEvents.filter(e => {
       const start = parseISO(e.start_date);
       const end = e.end_date ? parseISO(e.end_date) : start;
       const dayStart = toDateOnly(day);
