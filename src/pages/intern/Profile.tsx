@@ -91,9 +91,9 @@ const Profile = () => {
           city,
           birthdate: birthdate || null,
           phone,
-          membership_type: membershipType,
+        membership_type: membershipType,
           contribution_interval: contributionInterval,
-        } as any)
+        })
         .eq("id", user.id);
       if (profileError) throw profileError;
 
