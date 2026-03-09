@@ -104,14 +104,44 @@ const Gallery = () => {
             className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
             onClick={() => setLightbox(null)}
           >
-            <button className="absolute top-4 right-4 text-foreground p-2" aria-label="Schließen">
+            <button className="absolute top-4 right-4 text-foreground p-2 z-10" aria-label="Schließen">
               <X size={28} />
             </button>
-            <img
-              src={filtered[lightbox]?.src}
-              alt={filtered[lightbox]?.alt}
-              className="max-h-[85vh] max-w-full rounded-lg object-contain"
-            />
+            
+            {/* Left arrow */}
+            {lightbox > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox - 1); }}
+                className="absolute left-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+                aria-label="Vorheriges Bild"
+              >
+                <ChevronLeft size={32} />
+              </button>
+            )}
+            
+            {/* Right arrow */}
+            {lightbox < filtered.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox + 1); }}
+                className="absolute right-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+                aria-label="Nächstes Bild"
+              >
+                <ChevronRight size={32} />
+              </button>
+            )}
+            
+            <div className="flex flex-col items-center max-w-full">
+              <img
+                src={filtered[lightbox]?.src}
+                alt={filtered[lightbox]?.alt}
+                className="max-h-[80vh] max-w-full rounded-lg object-contain"
+              />
+              {filtered[lightbox]?.showSubtitle && filtered[lightbox]?.alt && (
+                <p className="mt-3 text-sm text-muted-foreground text-center max-w-xl">
+                  {filtered[lightbox].alt}
+                </p>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
