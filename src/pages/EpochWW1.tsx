@@ -25,7 +25,7 @@ const EpochWW1 = () => {
       if (error) return [];
       return (data as any[]).map((img: any) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
-        return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild" };
+        return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild", showSubtitle: img.show_subtitle ?? false };
       });
     },
   });
