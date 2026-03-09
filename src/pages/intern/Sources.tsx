@@ -32,12 +32,12 @@ const Sources = () => {
     queryKey: ["source_folders", activeEpoch],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("source_folders" as any)
+        .from("source_folders")
         .select("*")
         .eq("epoch", activeEpoch)
         .order("name", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
