@@ -84,7 +84,7 @@ const EpochWW1 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" className="w-full h-auto object-cover" />
+            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Kaserne Erzherzog Wilhelm des I. Nassauischen Pionier-Bat. No. 21, Mainz-Kastel</p>
           </div>
 
