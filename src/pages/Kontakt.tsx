@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import SEO from "@/components/SEO";
 
 const generateCaptcha = () => {
   const a = Math.floor(Math.random() * 10) + 1;
@@ -72,6 +73,11 @@ const Kontakt = () => {
 
   return (
     <div className="container py-12 md:py-20 max-w-xl">
+      <SEO 
+        title="Kontakt - Diu lebendec Histôrje"
+        description="Haben Sie Fragen zu unserem Verein oder Interesse an einer Mitgliedschaft? Schreiben Sie uns eine Nachricht oder kontaktieren Sie uns direkt per E-Mail."
+        url="/kontakt"
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">Kontakt</h1>
         <p className="text-muted-foreground mb-8">

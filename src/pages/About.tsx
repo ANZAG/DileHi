@@ -1,12 +1,19 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
+import SEO from "@/components/SEO";
 import gruppenfoto from "@/assets/gruppenfoto.jpg";
 import detailHandwerk from "@/assets/detail-handwerk.jpg";
 import vorfuehrung from "@/assets/vorfuehrung.jpg";
 
 const About = () => (
   <div className="container py-12 md:py-20 max-w-3xl">
+    <SEO 
+      title="Über uns - Diu lebendec Histôrje"
+      description="Erfahren Sie mehr über unseren Wiesbadener Verein für Living History. Seit 2011 erforschen und vermitteln wir die Geschichte des Nassauer Landes authentisch und quellenbasiert."
+      url="/verein"
+      image="/gruppenfoto.jpg"
+    />
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
       <h1 className="font-serif text-3xl md:text-4xl font-bold mb-10">Über uns</h1>
 

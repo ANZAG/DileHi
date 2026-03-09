@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import SEO from "@/components/SEO";
 import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
@@ -42,6 +43,12 @@ const Index = () => {
 
   return (
     <div>
+      <SEO 
+        title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
+        description="Seit 2011 machen wir als Wiesbadener Verein die Geschichte des Nassauer Landes vom Spätmittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erfahrbar."
+        url="/"
+        image="/hero-medieval.jpg"
+      />
       {/* Hero */}
       <section className="relative py-16 md:py-20 flex items-center justify-center overflow-hidden">
         <img

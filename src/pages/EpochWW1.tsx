@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import SEO from "@/components/SEO";
 import epochImage from "@/assets/epoch-ww1.jpg";
 import kaserneImage from "@/assets/kaserne-mainz-kastel.jpg";
 import uniformImage from "@/assets/pibat21-uniform.png";
@@ -33,6 +34,12 @@ const EpochWW1 = () => {
 
   return (
     <div>
+      <SEO 
+        title="Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21"
+        description="Pioniere aus Hessen-Nassau 1916/17: Unsere Darstellung des 1. Nassauischen Pionier-Bataillons Nr. 21 zeigt den Alltag der Soldaten im Stellungskrieg an der Westfront."
+        url="/epochen/wk1"
+        image="/epoch-ww1.jpg"
+      />
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={epochImage} alt="Pioniere im Ersten Weltkrieg" className="absolute inset-0 w-full h-full object-cover" />

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import SEO from "@/components/SEO";
 import epochImage from "@/assets/epoch-1815.jpg";
 import nassauRegiment from "@/assets/nassau-regiment-knotel.jpg";
 import nassauUniformtafel from "@/assets/nassau-uniformtafel.png";
@@ -33,6 +34,12 @@ const Epoch1815 = () => {
 
   return (
     <div>
+      <SEO 
+        title="Napoleonik - Grenadiere des 1. Nassauischen Linien-Regiments 1815"
+        description="Nassauer bei Waterloo: Unsere Darstellung der Grenadiere des 1. Nassauischen Linien-Regiments zeigt die nassauischen Soldaten in den Befreiungskriegen 1815."
+        url="/epochen/1815"
+        image="/epoch-1815.jpg"
+      />
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={epochImage} alt="Nassauische Grenadiere 1815" className="absolute inset-0 w-full h-full object-cover" />

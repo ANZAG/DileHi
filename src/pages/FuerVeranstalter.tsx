@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import SEO from "@/components/SEO";
 import lederworkshop from "@/assets/lederworkshop.jpg";
 import epochenUebersicht from "@/assets/transition-gruppenfoto.jpg";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,12 @@ const FuerVeranstalter = () => {
 
   return (
     <div>
+      <SEO 
+        title="Für Veranstalter - Diu lebendec Histôrje"
+        description="Wir arbeiten mit Partnern zusammen, die historische Bildung in den Mittelpunkt stellen. Erfahren Sie mehr über unsere Angebote für Museen, historische Orte und Veranstaltungen."
+        url="/fuer-veranstalter"
+        image="/lederworkshop.jpg"
+      />
       {/* Hero */}
       <section className="bg-card py-16 md:py-20">
         <div className="container max-w-3xl mx-auto text-center">

@@ -1,5 +1,13 @@
+import SEO from "@/components/SEO";
+
 const Impressum = () => (
   <div className="container py-12 md:py-20 max-w-3xl">
+    <SEO 
+      title="Impressum - Diu lebendec Histôrje"
+      description="Impressum und Kontaktdaten von Diu lebendec Histôrje e.V., dem Wiesbadener Verein für Living History."
+      url="/impressum"
+      noindex={true}
+    />
     <h1 className="font-serif text-3xl md:text-4xl font-bold mb-8">Impressum</h1>
     <div className="prose prose-neutral max-w-none text-muted-foreground space-y-6">
       <section>

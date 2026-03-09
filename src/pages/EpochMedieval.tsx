@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
+import SEO from "@/components/SEO";
 import epochImage from "@/assets/epoch-medieval.jpg";
 import gruppenfotoSpaemi from "@/assets/gruppenfoto-spaemi.jpg";
 import burgFrauenstein from "@/assets/burg-frauenstein-darstellung.jpg";
@@ -33,6 +34,12 @@ const EpochMedieval = () => {
 
   return (
     <div>
+      <SEO 
+        title="Spätmittelalter - Grafschaft Nassau (1290-1310)"
+        description="Als Nassau den König stellte: Unsere Darstellung des Spätmittelalters in der Grafschaft Nassau. Vom Niederadel bis zum Handwerk - Leben um 1300 authentisch erfahrbar."
+        url="/epochen/mittelalter"
+        image="/epoch-medieval.jpg"
+      />
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={epochImage} alt="Spätmittelalterliche Darstellung" className="absolute inset-0 w-full h-full object-cover" />
