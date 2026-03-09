@@ -312,6 +312,7 @@ const Sources = () => {
           </div>
         )}
 
+        {searchResults ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
             {searchResults.map((s) => (
