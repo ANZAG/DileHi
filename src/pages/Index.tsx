@@ -240,6 +240,8 @@ const Index = () => {
         </motion.div>
       </section>
 
+      <PublicEventsSection />
+
       {/* CTA */}
       <section className="bg-card py-16 md:py-24">
         <div className="container max-w-4xl mx-auto">
