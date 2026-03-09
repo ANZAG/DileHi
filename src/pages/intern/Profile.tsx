@@ -30,6 +30,7 @@ const Profile = () => {
   const [entryDate, setEntryDate] = useState("");
   const [exitDate, setExitDate] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [showOnMap, setShowOnMap] = useState(false);
 
   useEffect(() => {
     if (user) {
