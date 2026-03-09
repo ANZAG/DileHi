@@ -147,8 +147,49 @@ const About = () => (
           <Link to="/kontakt" className="text-primary hover:underline font-medium">Zur Kontaktseite →</Link>
         </p>
       </section>
+      {/* Interesse, mitzumachen? */}
+      <section className="mb-12">
+        <div className="bg-primary/8 border border-primary/25 rounded-xl p-6 md:p-8">
+          <h2 className="font-serif text-2xl font-semibold mb-6 text-foreground">Interesse, mitzumachen?</h2>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Was Mitgliedschaft bedeutet</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Wer bei uns Mitglied wird, wird Teil einer kleinen, engagierten Gruppe, die gemeinsam forscht, bastelt und Geschichte lebendig macht. Mitgliedschaft heißt nicht nur, bei Veranstaltungen dabei zu sein – sie bedeutet vor allem, aktiv an der Gruppe mitzuwirken: beim Recherchieren, beim Herstellen von Ausrüstung, beim Vorbereiten und Durchführen von Präsentationen.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Was du mitbringen solltest</h3>
+              <ul className="text-muted-foreground leading-relaxed space-y-1 list-disc list-inside pl-2">
+                <li>Echtes Interesse an Geschichte – besonders an regionaler und Alltagsgeschichte</li>
+                <li>Bereitschaft, sich aktiv einzubringen und eigene Projekte zu übernehmen</li>
+                <li>Handwerkliches Geschick oder die Motivation, es zu entwickeln</li>
+                <li>Teamgeist und Zuverlässigkeit – bei Treffen wie bei Veranstaltungen</li>
+              </ul>
+              <p className="text-muted-foreground mt-3 leading-relaxed">
+                Vorkenntnisse in einem bestimmten Handwerk oder einer Epoche sind keine Voraussetzung – wichtiger ist die Neugier und der Wille, Dinge ernsthaft zu erarbeiten.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Wie es weitergeht</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Der einfachste erste Schritt ist ein unverbindliches Gespräch. Schreib uns einfach über das Kontaktformular – wir melden uns, laden dich zu einem unserer Treffen ein und du kannst dir selbst ein Bild machen, bevor du eine Entscheidung triffst.
+              </p>
+              <p className="mt-4">
+                <Link to="/kontakt" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm">
+                  Kontakt aufnehmen →
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </motion.div>
   </div>
 );
+
 
 export default About;
