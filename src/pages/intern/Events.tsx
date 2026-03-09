@@ -65,6 +65,7 @@ const EventsPage = () => {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("16:00");
   const [allDay, setAllDay] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
