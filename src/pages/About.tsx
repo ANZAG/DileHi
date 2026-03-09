@@ -32,7 +32,7 @@ const About = () => (
           </p>
         </div>
         <div className="rounded-lg overflow-hidden mt-6">
-          <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" className="w-full h-auto object-cover" />
+          <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" loading="lazy" className="w-full h-auto object-cover" />
         </div>
       </section>
 
@@ -101,7 +101,7 @@ const About = () => (
           </p>
         </div>
         <div className="rounded-lg overflow-hidden mt-6">
-          <img src={detailHandwerk} alt="Detailfoto Handwerk – Zirkelarbeit am Tisch" className="w-full h-auto object-cover rounded-lg" />
+          <img src={detailHandwerk} alt="Detailfoto Handwerk – Zirkelarbeit am Tisch" loading="lazy" className="w-full h-auto object-cover rounded-lg" />
         </div>
       </section>
 
@@ -126,7 +126,7 @@ const About = () => (
           </p>
         </div>
         <div className="rounded-lg overflow-hidden mt-6">
-          <img src={vorfuehrung} alt="Vorführung bei einer Veranstaltung" className="w-full h-auto object-cover" />
+          <img src={vorfuehrung} alt="Vorführung bei einer Veranstaltung" loading="lazy" className="w-full h-auto object-cover" />
         </div>
       </section>
 

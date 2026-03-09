@@ -84,7 +84,7 @@ const Epoch1815 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" className="w-full h-auto object-cover" />
+            <img src={nassauRegiment} alt="Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Nassauisches 2. Infanterie-Regiment 1810, Uniformtafel von R. Knötel</p>
           </div>
 
@@ -112,7 +112,7 @@ const Epoch1815 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12 max-w-lg mx-auto">
-            <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" className="w-full h-auto object-cover" />
+            <img src={nassauUniformtafel} alt="Uniformtafel nassauischer Grenadiere 1815, Illustration von Alexis Cabaret" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Uniformtafel nassauischer Grenadiere 1815 · Illustration: Alexis Cabaret / mont-saint-jean.com</p>
           </div>
 
@@ -142,7 +142,7 @@ const Epoch1815 = () => {
             </div>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={nassauerBelleAlliance} alt="Die Nassauer bei Belle-Alliance am 18. Juni 1815, Gemälde von R. Knötel" className="w-full h-auto object-cover" />
+            <img src={nassauerBelleAlliance} alt="Die Nassauer bei Belle-Alliance am 18. Juni 1815, Gemälde von R. Knötel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Die Nassauer bei Belle-Alliance am 18. Juni 1815 · Gemälde von R. Knötel, 1899</p>
           </div>
 

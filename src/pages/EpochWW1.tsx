@@ -84,7 +84,7 @@ const EpochWW1 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" className="w-full h-auto object-cover" />
+            <img src={kaserneImage} alt="Kaserne Erzherzog Wilhelm des 1. Nassauischen Pionier-Bat. Nr. 21 in Mainz-Kastel" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Kaserne Erzherzog Wilhelm des I. Nassauischen Pionier-Bat. No. 21, Mainz-Kastel</p>
           </div>
 
@@ -115,7 +115,7 @@ const EpochWW1 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12 max-w-lg mx-auto">
-            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" className="w-full h-auto object-cover" />
+            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Pioniere des 1. Nassauischen Pionier-Bataillons Nr. 21 in Felduniform</p>
           </div>
 
@@ -145,7 +145,7 @@ const EpochWW1 = () => {
             </div>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
-            <img src={karteImage} alt="Historische Karte der Provinz Hessen-Nassau" className="w-full h-auto object-cover" />
+            <img src={karteImage} alt="Historische Karte der Provinz Hessen-Nassau" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Karte der Provinz Hessen-Nassau – Heimatregion des XVIII. Armeekorps</p>
           </div>
 

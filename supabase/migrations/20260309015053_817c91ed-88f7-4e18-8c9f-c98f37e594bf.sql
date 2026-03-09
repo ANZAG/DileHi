@@ -1,0 +1,1 @@
+ALTER TABLE public.gallery_images ADD COLUMN show_subtitle boolean NOT NULL DEFAULT false;

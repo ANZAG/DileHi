@@ -135,6 +135,7 @@ const Index = () => {
                     <img
                       src={epoch.image}
                       alt={epoch.title}
+                      loading="lazy"
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -232,7 +233,7 @@ const Index = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mt-6 mb-4">
-            <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" className="w-full h-auto object-cover" />
+            <img src={gruppenfoto} alt="Vereinsmitglieder beim gemeinsamen Aufbau" loading="lazy" className="w-full h-auto object-cover" />
           </div>
           <Link to="/verein" className="inline-flex items-center mt-2 text-primary hover:underline font-medium">
             Mehr über unseren Verein →

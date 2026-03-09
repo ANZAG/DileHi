@@ -115,7 +115,7 @@ const FuerVeranstalter = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mt-6 max-w-md mx-auto">
-            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" className="w-full h-auto object-cover rounded-lg" />
+            <img src={lederworkshop} alt="Lederworkshop bei einer Veranstaltung" loading="lazy" className="w-full h-auto object-cover rounded-lg" />
           </div>
         </motion.section>
 
@@ -146,7 +146,7 @@ const FuerVeranstalter = () => {
 
         {/* Foto nach Darstellungen */}
         <div className="rounded-lg overflow-hidden">
-          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" className="w-full h-auto object-cover" />
+          <img src={epochenUebersicht} alt="Unsere Darstellungen – Spätmittelalter und Erster Weltkrieg" loading="lazy" className="w-full h-auto object-cover" />
         </div>
 
         {/* Mit wem wir arbeiten */}

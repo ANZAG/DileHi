@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const EPOCH_OPTIONS = [
   { value: "mittelalter", label: "Spätmittelalter" },
@@ -18,6 +19,7 @@ interface GalleryImage {
   storage_path: string;
   alt_text: string;
   epoch: string;
+  show_subtitle: boolean;
   publicUrl: string;
 }
 
@@ -58,6 +60,9 @@ const GalleryAdmin = () => {
   const [altText, setAltText] = useState("");
   const [filterEpoch, setFilterEpoch] = useState("alle");
   const [page, setPage] = useState(0);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAltText, setEditAltText] = useState("");
 
   const { data: images = [], isLoading } = useQuery({
     queryKey: ["gallery_images_admin"],
@@ -117,6 +122,30 @@ const GalleryAdmin = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
       queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+    },
+  });
+
+  const updateShowSubtitle = useMutation({
+    mutationFn: async ({ id, show_subtitle }: { id: string; show_subtitle: boolean }) => {
+      const { error } = await supabase.from("gallery_images").update({ show_subtitle }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+    },
+  });
+
+  const updateAltText = useMutation({
+    mutationFn: async ({ id, alt_text }: { id: string; alt_text: string }) => {
+      const { error } = await supabase.from("gallery_images").update({ alt_text }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      setEditingId(null);
+      toast({ title: "Beschreibung aktualisiert" });
     },
   });
 
@@ -205,8 +234,58 @@ const GalleryAdmin = () => {
             {paged.map((img: GalleryImage) => (
               <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
                 <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
-                <div className="p-2 space-y-1">
-                  <p className="text-xs truncate">{img.alt_text || "–"}</p>
+                <div className="p-2 space-y-2">
+                  {/* Alt text - editable */}
+                  {editingId === img.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={editAltText}
+                        onChange={(e) => setEditAltText(e.target.value)}
+                        className="flex-1 h-7 rounded border border-input bg-background px-2 text-xs"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => updateAltText.mutate({ id: img.id, alt_text: editAltText })}
+                        className="p-1 text-primary hover:text-primary/80"
+                        title="Speichern"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="p-1 text-muted-foreground hover:text-foreground"
+                        title="Abbrechen"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs truncate flex-1">{img.alt_text || "–"}</p>
+                      <button
+                        onClick={() => { setEditingId(img.id); setEditAltText(img.alt_text || ""); }}
+                        className="p-1 text-muted-foreground hover:text-foreground"
+                        title="Beschreibung bearbeiten"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Show subtitle checkbox */}
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`subtitle-${img.id}`}
+                      checked={img.show_subtitle}
+                      onCheckedChange={(checked) => updateShowSubtitle.mutate({ id: img.id, show_subtitle: !!checked })}
+                    />
+                    <label htmlFor={`subtitle-${img.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                      Untertitel anzeigen
+                    </label>
+                  </div>
+                  
+                  {/* Epoch + delete */}
                   <div className="flex items-center gap-1">
                     <select
                       value={img.epoch}
