@@ -206,7 +206,7 @@ const EventsPage = () => {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
-    setAllDay(false);
+    setAllDay(false); setIsPublic(false);
   };
 
   const openCreate = (date?: Date) => {
@@ -226,6 +226,7 @@ const EventsPage = () => {
     setEndDate(end ? format(end, "yyyy-MM-dd") : "");
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
+    setIsPublic((ev as any).is_public ?? false);
     setEditingEvent(ev);
     setShowEdit(true);
   };
