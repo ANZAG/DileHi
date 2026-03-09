@@ -637,7 +637,6 @@ const MemberRegistry = () => {
                 <div className="flex gap-2">
                   {selectedMember.is_active ? (
                     <Button
-                      className="flex-1"
                       size="sm"
                       variant="outline"
                       className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
