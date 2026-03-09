@@ -234,8 +234,58 @@ const GalleryAdmin = () => {
             {paged.map((img: GalleryImage) => (
               <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
                 <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
-                <div className="p-2 space-y-1">
-                  <p className="text-xs truncate">{img.alt_text || "–"}</p>
+                <div className="p-2 space-y-2">
+                  {/* Alt text - editable */}
+                  {editingId === img.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={editAltText}
+                        onChange={(e) => setEditAltText(e.target.value)}
+                        className="flex-1 h-7 rounded border border-input bg-background px-2 text-xs"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => updateAltText.mutate({ id: img.id, alt_text: editAltText })}
+                        className="p-1 text-primary hover:text-primary/80"
+                        title="Speichern"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="p-1 text-muted-foreground hover:text-foreground"
+                        title="Abbrechen"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs truncate flex-1">{img.alt_text || "–"}</p>
+                      <button
+                        onClick={() => { setEditingId(img.id); setEditAltText(img.alt_text || ""); }}
+                        className="p-1 text-muted-foreground hover:text-foreground"
+                        title="Beschreibung bearbeiten"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Show subtitle checkbox */}
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`subtitle-${img.id}`}
+                      checked={img.show_subtitle}
+                      onCheckedChange={(checked) => updateShowSubtitle.mutate({ id: img.id, show_subtitle: !!checked })}
+                    />
+                    <label htmlFor={`subtitle-${img.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                      Untertitel anzeigen
+                    </label>
+                  </div>
+                  
+                  {/* Epoch + delete */}
                   <div className="flex items-center gap-1">
                     <select
                       value={img.epoch}
