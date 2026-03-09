@@ -75,7 +75,7 @@ const Sources = () => {
         url: form.url || null,
         folder_id: currentFolderId,
         created_by: user!.id,
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
