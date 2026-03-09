@@ -234,6 +234,12 @@ const EventsPage = () => {
     setShowEdit(true);
   };
 
+  const filteredEvents = useMemo(() => {
+    if (visibilityFilter === "public") return events.filter(e => e.is_public);
+    if (visibilityFilter === "internal") return events.filter(e => !e.is_public);
+    return events;
+  }, [events, visibilityFilter]);
+
   const holidays = useMemo(() => {
     const y = currentMonth.getFullYear();
     return [...getHessenHolidays(y), ...getHessenHolidays(y - 1), ...getHessenHolidays(y + 1)];
