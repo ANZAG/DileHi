@@ -115,7 +115,7 @@ const EpochWW1 = () => {
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12 max-w-lg mx-auto">
-            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" className="w-full h-auto object-cover" />
+            <img src={uniformImage} alt="Pioniere des PiBat 21 in Felduniform mit Ausrüstung" loading="lazy" className="w-full h-auto object-cover" />
             <p className="text-xs text-muted-foreground mt-2 italic">Pioniere des 1. Nassauischen Pionier-Bataillons Nr. 21 in Felduniform</p>
           </div>
 
