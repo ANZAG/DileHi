@@ -202,7 +202,7 @@ const GalleryAdmin = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {paged.map((img: any) => (
+            {paged.map((img: GalleryImage) => (
               <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
                 <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
                 <div className="p-2 space-y-1">
