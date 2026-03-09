@@ -151,28 +151,29 @@ const Contributions = () => {
 
         <div className="space-y-2">
           {memberRows.map((m) => (
-            <div key={m.userId} className="flex items-center justify-between p-3 rounded-lg border bg-card gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{m.name}</p>
-                {m.amount && (
-                  <p className="text-xs text-muted-foreground">{Number(m.amount).toFixed(2)} €{m.notes ? ` · ${m.notes}` : ""}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
+            <div key={m.userId} className="p-3 rounded-lg border bg-card space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{m.name}</p>
+                  {m.amount && (
+                    <p className="text-xs text-muted-foreground">{Number(m.amount).toFixed(2)} €{m.notes ? ` · ${m.notes}` : ""}</p>
+                  )}
+                </div>
                 <StatusBadge status={m.status} />
+              </div>
+              <div className="flex gap-2 flex-wrap">
                 {editingId === m.userId ? (
-                  <div className="flex items-center gap-1">
+                  <>
                     <Input
                       type="number"
                       placeholder="Betrag"
                       value={editAmount}
                       onChange={(e) => setEditAmount(e.target.value)}
-                      className="w-20 h-8 text-xs"
+                      className="w-24 h-8 text-xs"
                     />
                     <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
+                      size="sm"
+                      className="h-8 text-xs"
                       onClick={() => upsertMutation.mutate({
                         userId: m.userId,
                         status: "bezahlt",
@@ -180,14 +181,14 @@ const Contributions = () => {
                         notes: editNotes,
                       })}
                     >
-                      <Check size={14} />
+                      <Check size={14} className="mr-1" /> OK
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
                       <X size={14} />
                     </Button>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex gap-1">
+                  <>
                     {m.status !== "bezahlt" && (
                       <Button
                         size="sm"
@@ -212,7 +213,7 @@ const Contributions = () => {
                         Zurücksetzen
                       </Button>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
