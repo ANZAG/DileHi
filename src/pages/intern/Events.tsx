@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, parseISO, differenceInCalendarDays } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft, Pencil, Copy, Link as LinkIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MapPin, Calendar as CalIcon, Users, Trash2, Download, Check, X, ArrowLeft, Pencil, Copy, Link as LinkIcon, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { getHessenHolidays, getHolidayName } from "@/lib/holidays";
 
@@ -23,6 +23,7 @@ interface Event {
   start_date: string;
   end_date: string | null;
   all_day: boolean;
+  is_public: boolean;
   created_by: string;
   created_at: string;
 }
@@ -226,7 +227,7 @@ const EventsPage = () => {
     setEndDate(end ? format(end, "yyyy-MM-dd") : "");
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
-    setIsPublic((ev as any).is_public ?? false);
+    setIsPublic(ev.is_public ?? false);
     setEditingEvent(ev);
     setShowEdit(true);
   };
@@ -470,17 +471,18 @@ const EventsPage = () => {
                             )}
                             {/* Single-day events */}
                             <div className="mt-0.5 space-y-0.5">
-                              {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
+              {singleDayEvents.slice(0, holiday ? 1 : 2).map(ev => (
                                 <div
                                   key={ev.id}
                                   onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                                  className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors ${
+                                  className={`text-[10px] md:text-xs truncate px-1 py-0.5 rounded cursor-pointer border transition-colors flex items-center gap-0.5 ${
                                     isSelected
                                       ? "bg-background/90 text-foreground border-border hover:bg-background"
                                       : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
                                   }`}
                                 >
-                                  {ev.title}
+                                  {ev.is_public && <Globe size={8} className="shrink-0 opacity-70" />}
+                                  <span className="truncate">{ev.title}</span>
                                 </div>
                               ))}
                               {singleDayEvents.length > (holiday ? 1 : 2) && (
@@ -533,16 +535,17 @@ const EventsPage = () => {
                             style={{ gridColumn: `${colStart + 1} / span ${seg.spanCols}` }}
                             className="pointer-events-auto"
                           >
-                            <div
+                             <div
                               onClick={() => setSelectedEvent(seg.event)}
-                              className={`text-[10px] md:text-xs truncate px-1.5 py-0.5 bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 font-medium
+                              className={`text-[10px] md:text-xs truncate px-1.5 py-0.5 bg-primary/20 text-primary cursor-pointer hover:bg-primary/30 font-medium flex items-center gap-0.5
                                 ${seg.isStart && seg.isEnd ? "rounded" : ""}
                                 ${seg.isStart && !seg.isEnd ? "rounded-l" : ""}
                                 ${!seg.isStart && seg.isEnd ? "rounded-r" : ""}
                                 ${!seg.isStart && !seg.isEnd ? "" : ""}
                               `}
                             >
-                              {seg.isStart ? seg.event.title : `↳ ${seg.event.title}`}
+                              {seg.event.is_public && <Globe size={8} className="shrink-0 opacity-70" />}
+                              <span className="truncate">{seg.isStart ? seg.event.title : `↳ ${seg.event.title}`}</span>
                             </div>
                           </div>
                         );
@@ -579,7 +582,14 @@ const EventsPage = () => {
                     <div key={ev.id} className="p-4 border rounded-lg bg-card">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <h4 className="font-semibold">{ev.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{ev.title}</h4>
+                            {ev.is_public && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                <Globe size={10} /> Öffentlich
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <CalIcon size={14} /> {formatTimeDisplay(ev)}
@@ -669,7 +679,10 @@ const EventsPage = () => {
                           <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
                         </div>
                         <div>
-                          <div className="font-medium text-sm">{ev.title}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm">{ev.title}</span>
+                            {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
+                          </div>
                           {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
                         </div>
                       </div>
