@@ -427,6 +427,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_public: boolean
           location: string | null
           start_date: string
           title: string
@@ -439,6 +440,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_public?: boolean
           location?: string | null
           start_date: string
           title: string
@@ -451,6 +453,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_public?: boolean
           location?: string | null
           start_date?: string
           title?: string
