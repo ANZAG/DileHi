@@ -227,7 +227,7 @@ const EventsPage = () => {
     setEndDate(end ? format(end, "yyyy-MM-dd") : "");
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
-    setIsPublic((ev as any).is_public ?? false);
+    setIsPublic(ev.is_public ?? false);
     setEditingEvent(ev);
     setShowEdit(true);
   };
