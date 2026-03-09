@@ -81,7 +81,7 @@ const SourcesAdmin = () => {
       </div>
 
       {/* Add form */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row gap-2 mb-6">
         <input
           type="text"
           value={newText}
@@ -92,7 +92,7 @@ const SourcesAdmin = () => {
         <button
           onClick={() => addMutation.mutate()}
           disabled={!newText.trim() || addMutation.isPending}
-          className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+          className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1 shrink-0 self-start sm:self-auto"
         >
           <Plus size={16} /> Hinzufügen
         </button>
