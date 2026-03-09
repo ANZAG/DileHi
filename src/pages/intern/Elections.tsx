@@ -116,7 +116,7 @@ const Elections = () => {
     mutationFn: async () => {
       // Create the group
       const { data: group, error } = await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .insert({
           title: groupForm.title,
           votes_per_member: 1,
@@ -133,9 +133,9 @@ const Elections = () => {
         .in("role", ["vorstand", "mitglied"]);
       if (roles && roles.length > 0) {
         const uniqueUserIds = [...new Set(roles.map((r) => r.user_id))];
-        await supabase.from("group_members" as any).insert(
+        await supabase.from("group_members").insert(
           uniqueUserIds.map((uid) => ({
-            group_id: (group as any).id,
+            group_id: group.id,
             user_id: uid,
             vote_count: 1,
           }))
