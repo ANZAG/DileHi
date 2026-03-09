@@ -292,7 +292,26 @@ const Sources = () => {
           </div>
         </div>
 
-        {searchResults ? (
+        {/* Upload progress */}
+        {uploads.length > 0 && (
+          <div className="mb-4 space-y-2 p-3 rounded-lg border bg-card">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Upload-Fortschritt</p>
+            {uploads.map((u, i) => (
+              <div key={`${u.fileName}-${i}`} className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  {u.status === "uploading" && <Loader2 size={12} className="animate-spin text-primary" />}
+                  {u.status === "done" && <CheckCircle2 size={12} className="text-green-600" />}
+                  {u.status === "error" && <span className="text-destructive">✕</span>}
+                  <span className="truncate flex-1">{u.fileName}</span>
+                  <span className="text-muted-foreground">{u.progress}%</span>
+                </div>
+                <Progress value={u.progress} className="h-1" />
+                {u.error && <p className="text-xs text-destructive">{u.error}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
             {searchResults.map((s) => (
