@@ -827,6 +827,14 @@ export type Database = {
         Returns: undefined
       }
       count_members: { Args: never; Returns: number }
+      get_member_directory: {
+        Args: never
+        Returns: {
+          display_name: string
+          id: string
+          is_active: boolean
+        }[]
+      }
       get_user_vote_count: {
         Args: { _election_id: string; _user_id: string }
         Returns: number
