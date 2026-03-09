@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import SEO from "@/components/SEO";
-import gruppenfoto from "@/assets/gruppenfoto.jpg";
-import detailHandwerk from "@/assets/detail-handwerk.jpg";
-import vorfuehrung from "@/assets/vorfuehrung.jpg";
+import gruppenfoto from "@/assets/gruppenfoto.webp";
+import detailHandwerk from "@/assets/detail-handwerk.webp";
+import vorfuehrung from "@/assets/vorfuehrung.webp";
 
 const About = () => (
   <div className="container py-12 md:py-20 max-w-3xl">

@@ -5,11 +5,11 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import SEO from "@/components/SEO";
 import PublicEventsSection from "@/components/PublicEventsSection";
-import heroImage from "@/assets/hero-medieval.jpg";
-import epochMedieval from "@/assets/epoch-medieval.jpg";
-import epochWW1 from "@/assets/epoch-ww1.jpg";
-import epoch1815 from "@/assets/epoch-1815.jpg";
-import gruppenfoto from "@/assets/gruppenfoto.jpg";
+import heroImage from "@/assets/hero-medieval.webp";
+import epochMedieval from "@/assets/epoch-medieval.webp";
+import epochWW1 from "@/assets/epoch-ww1.webp";
+import epoch1815 from "@/assets/epoch-1815.webp";
+import gruppenfoto from "@/assets/gruppenfoto.webp";
 
 const epochs = [
   {

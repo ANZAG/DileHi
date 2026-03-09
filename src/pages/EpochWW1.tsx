@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import SEO from "@/components/SEO";
-import epochImage from "@/assets/epoch-ww1.jpg";
-import kaserneImage from "@/assets/kaserne-mainz-kastel.jpg";
-import uniformImage from "@/assets/pibat21-uniform.png";
-import karteImage from "@/assets/karte-hessen-nassau.jpg";
+import epochImage from "@/assets/epoch-ww1.webp";
+import kaserneImage from "@/assets/kaserne-mainz-kastel.webp";
+import uniformImage from "@/assets/pibat21-uniform.webp";
+import karteImage from "@/assets/karte-hessen-nassau.webp";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 
