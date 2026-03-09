@@ -30,11 +30,11 @@ const ContactMessages = () => {
     queryKey: ["contact_replies"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("contact_replies" as any)
+        .from("contact_replies")
         .select("*")
         .order("created_at", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
