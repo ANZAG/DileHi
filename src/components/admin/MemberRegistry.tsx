@@ -55,15 +55,17 @@ const MemberRegistry = () => {
     },
   });
 
-  const filteredMembers = members.filter((m) => {
-    const matchesSearch = !search || 
-      m.display_name.toLowerCase().includes(search.toLowerCase()) ||
-      `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "all" || 
-      (filter === "active" && m.is_active) || 
-      (filter === "inactive" && !m.is_active);
-    return matchesSearch && matchesFilter;
-  });
+  const filteredMembers = members
+    .filter((m) => {
+      const matchesSearch = !search || 
+        m.display_name.toLowerCase().includes(search.toLowerCase()) ||
+        `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase());
+      const matchesFilter = filter === "all" || 
+        (filter === "active" && m.is_active) || 
+        (filter === "inactive" && !m.is_active);
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
 
   const inviteMember = useMutation({
     mutationFn: async () => {
