@@ -89,7 +89,7 @@ const Sources = () => {
 
   const createFolder = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase.from("source_folders" as any) as any).insert({
+      const { error } = await supabase.from("source_folders").insert({
         epoch: activeEpoch,
         name: folderName,
         parent_id: currentFolderId,
