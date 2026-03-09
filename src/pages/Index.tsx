@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import heroImage from "@/assets/hero-medieval.jpg";
 import epochMedieval from "@/assets/epoch-medieval.jpg";
 import epochWW1 from "@/assets/epoch-ww1.jpg";
 import epoch1815 from "@/assets/epoch-1815.jpg";
