@@ -287,7 +287,7 @@ const EventsPage = () => {
       const rowEnd = calendarDays[r * 7 + 6];
       const segments: SpanSegment[] = [];
 
-      for (const ev of events) {
+      for (const ev of filteredEvents) {
         if (!isMultiDay(ev)) continue;
         const evStart = toDateOnly(parseISO(ev.start_date));
         const evEnd = toDateOnly(parseISO(ev.end_date!));
