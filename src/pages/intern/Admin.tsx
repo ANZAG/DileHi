@@ -27,7 +27,7 @@ const Admin = () => {
   ];
 
   return (
-    <div className="container py-12 max-w-4xl">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">

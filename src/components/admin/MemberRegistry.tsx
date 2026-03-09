@@ -351,22 +351,28 @@ const MemberRegistry = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <RoleIcon size={16} className={m.role === "vorstand" ? "text-primary" : "text-muted-foreground"} />
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium">{m.display_name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{roleInfo.label}</span>
-                        {m.email && (
-                          <span className="ml-2 text-xs text-muted-foreground">{m.email}</span>
-                        )}
-                        {m.entry_date && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            seit {new Date(m.entry_date).toLocaleDateString("de-DE")}
-                          </span>
-                        )}
-                        {!m.is_active && (
-                          <span className="ml-2 text-xs text-destructive">ausgetreten</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <RoleIcon size={16} className={`shrink-0 ${m.role === "vorstand" ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{m.display_name}</span>
+                          <span className="text-xs text-muted-foreground">{roleInfo.label}</span>
+                          {!m.is_active && (
+                            <span className="text-xs text-destructive">ausgetreten</span>
+                          )}
+                        </div>
+                        {(m.email || m.entry_date) && (
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {m.email && (
+                              <span className="text-xs text-muted-foreground break-all">{m.email}</span>
+                            )}
+                            {m.entry_date && (
+                              <span className="text-xs text-muted-foreground">
+                                seit {new Date(m.entry_date).toLocaleDateString("de-DE")}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
