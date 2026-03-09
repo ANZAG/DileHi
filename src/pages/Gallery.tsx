@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import SEO from "@/components/SEO";
 
 type Epoch = "alle" | "mittelalter" | "wk1" | "1815";
 
