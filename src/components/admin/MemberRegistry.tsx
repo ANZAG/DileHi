@@ -436,12 +436,12 @@ const MemberRegistry = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Rolle</TableHead>
-                  <TableHead>E-Mail</TableHead>
-                  <TableHead>Ort</TableHead>
-                  <TableHead>Eintritt</TableHead>
-                  <TableHead className="w-[80px]">Status</TableHead>
+                  <TableHead><SortHeader column="display_name" label="Name" /></TableHead>
+                  <TableHead><SortHeader column="role" label="Rolle" /></TableHead>
+                  <TableHead><SortHeader column="email" label="E-Mail" /></TableHead>
+                  <TableHead><SortHeader column="city" label="Ort" /></TableHead>
+                  <TableHead><SortHeader column="entry_date" label="Eintritt" /></TableHead>
+                  <TableHead className="w-[80px]"><SortHeader column="is_active" label="Status" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
