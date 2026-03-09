@@ -143,25 +143,73 @@ const Sources = () => {
     },
   });
 
-  const uploadSourceFile = async (file: File) => {
-    try {
-      const path = `sources/${activeEpoch}/${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("internal-files").upload(path, file);
-      if (uploadErr) throw uploadErr;
-      const { error: dbErr } = await supabase.from("sources").insert({
-        epoch: activeEpoch,
-        title: file.name,
-        content: `Datei: ${file.name}`,
-        file_path: path,
-        folder_id: currentFolderId,
-        created_by: user!.id,
-      });
-      if (dbErr) throw dbErr;
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
-      toast({ title: "Datei hochgeladen" });
-    } catch (err: any) {
-      toast({ title: "Fehler", description: err.message, variant: "destructive" });
+  const uploadSourceFiles = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    const newUploads: UploadProgress[] = fileArray.map((f) => ({
+      fileName: f.name,
+      progress: 0,
+      status: "uploading" as const,
+    }));
+    setUploads((prev) => [...prev, ...newUploads]);
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const safeName = sanitizeFileName(file.name);
+      const path = `sources/${activeEpoch}/${Date.now()}_${safeName}`;
+
+      try {
+        // Update progress to 50% (uploading)
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, progress: 50 }
+              : u
+          )
+        );
+
+        const { error: uploadErr } = await supabase.storage
+          .from("internal-files")
+          .upload(path, file);
+        if (uploadErr) throw uploadErr;
+
+        const { error: dbErr } = await supabase.from("sources").insert({
+          epoch: activeEpoch,
+          title: file.name,
+          content: `Datei: ${file.name}`,
+          file_path: path,
+          folder_id: currentFolderId,
+          created_by: user!.id,
+        });
+        if (dbErr) throw dbErr;
+
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, progress: 100, status: "done" }
+              : u
+          )
+        );
+      } catch (err: any) {
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.fileName === file.name && u.status === "uploading"
+              ? { ...u, status: "error", error: err.message }
+              : u
+          )
+        );
+      }
     }
+
+    queryClient.invalidateQueries({ queryKey: ["sources"] });
+    const successCount = fileArray.length;
+    toast({ title: `${successCount} Datei${successCount !== 1 ? "en" : ""} hochgeladen` });
+
+    // Clear completed uploads after 3 seconds
+    setTimeout(() => {
+      setUploads((prev) => prev.filter((u) => u.status === "uploading"));
+    }, 3000);
   };
 
   const downloadSourceFile = async (filePath: string, title: string) => {
