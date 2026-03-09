@@ -38,6 +38,7 @@ const epochs = [
 
 const Index = () => {
   const [activeEpoch, setActiveEpoch] = useState(0);
+  const isMobile = useIsMobile();
 
   return (
     <div>
