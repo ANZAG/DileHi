@@ -40,11 +40,11 @@ const Elections = () => {
     queryKey: ["election_groups"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("election_groups" as any)
+        .from("election_groups")
         .select("*")
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as unknown as ElectionGroup[];
+      return data as ElectionGroup[];
     },
   });
 
