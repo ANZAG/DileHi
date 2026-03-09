@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const EPOCHS = [
   { value: "mittelalter", label: "Spätmittelalter" },
@@ -17,9 +18,19 @@ const EPOCHS = [
 const sanitizeFileName = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
+const getFileExtension = (path: string) => {
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  return ext;
+};
+
+const isPreviewable = (path: string) => {
+  const ext = getFileExtension(path);
+  return ["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"].includes(ext);
+};
+
 interface UploadProgress {
   fileName: string;
-  progress: number; // 0-100
+  progress: number;
   status: "uploading" | "done" | "error";
   error?: string;
 }
@@ -37,6 +48,13 @@ const Sources = () => {
   const [form, setForm] = useState({ epoch: "mittelalter", title: "", content: "", url: "" });
   const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<string | null>(null);
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
+  const [uploadTitles, setUploadTitles] = useState<Record<string, string>>({});
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [editingSource, setEditingSource] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
 
   const activeEpoch = epochFilter || "mittelalter";
 
@@ -131,7 +149,6 @@ const Sources = () => {
 
   const deleteFolder = useMutation({
     mutationFn: async (id: string) => {
-      // Cascade delete is handled by DB constraint
       const { error } = await supabase.from("source_folders").delete().eq("id", id);
       if (error) throw error;
     },
@@ -143,8 +160,36 @@ const Sources = () => {
     },
   });
 
-  const uploadSourceFiles = async (files: FileList | File[]) => {
+  const updateSourceTitle = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const { error } = await supabase.from("sources").update({ title }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      setEditingSource(null);
+      toast({ title: "Titel aktualisiert" });
+    },
+    onError: () => toast({ title: "Fehler", variant: "destructive" }),
+  });
+
+  const handleFilesSelected = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    const titles: Record<string, string> = {};
+    fileArray.forEach((f) => {
+      // Use filename without extension as default title
+      const nameWithoutExt = f.name.replace(/\.[^/.]+$/, "");
+      titles[f.name] = nameWithoutExt;
+    });
+    setUploadTitles(titles);
+    setPendingFiles(fileArray);
+    setShowUploadDialog(true);
+  };
+
+  const uploadSourceFiles = async () => {
+    setShowUploadDialog(false);
+    const fileArray = pendingFiles;
     if (fileArray.length === 0) return;
 
     const newUploads: UploadProgress[] = fileArray.map((f) => ({
@@ -160,7 +205,6 @@ const Sources = () => {
       const path = `sources/${activeEpoch}/${Date.now()}_${safeName}`;
 
       try {
-        // Update progress to 50% (uploading)
         setUploads((prev) =>
           prev.map((u) =>
             u.fileName === file.name && u.status === "uploading"
@@ -174,9 +218,10 @@ const Sources = () => {
           .upload(path, file);
         if (uploadErr) throw uploadErr;
 
+        const customTitle = uploadTitles[file.name] || file.name;
         const { error: dbErr } = await supabase.from("sources").insert({
           epoch: activeEpoch,
-          title: file.name,
+          title: customTitle,
           content: `Datei: ${file.name}`,
           file_path: path,
           folder_id: currentFolderId,
@@ -203,13 +248,24 @@ const Sources = () => {
     }
 
     queryClient.invalidateQueries({ queryKey: ["sources"] });
+    setPendingFiles([]);
+    setUploadTitles({});
     const successCount = fileArray.length;
     toast({ title: `${successCount} Datei${successCount !== 1 ? "en" : ""} hochgeladen` });
 
-    // Clear completed uploads after 3 seconds
     setTimeout(() => {
       setUploads((prev) => prev.filter((u) => u.status === "uploading"));
     }, 3000);
+  };
+
+  const previewSourceFile = async (filePath: string, title: string) => {
+    const { data, error } = await supabase.storage.from("internal-files").createSignedUrl(filePath, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Vorschau-Fehler", variant: "destructive" });
+      return;
+    }
+    setPreviewTitle(title);
+    setPreviewUrl(data.signedUrl);
   };
 
   const downloadSourceFile = async (filePath: string, title: string) => {
@@ -249,7 +305,7 @@ const Sources = () => {
             </button>
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
               <Upload size={16} /> Dateien
-              <input type="file" className="hidden" multiple onChange={(e) => { if (e.target.files?.length) uploadSourceFiles(e.target.files); e.target.value = ""; }} />
+              <input type="file" className="hidden" multiple onChange={(e) => { if (e.target.files?.length) handleFilesSelected(e.target.files); e.target.value = ""; }} />
             </label>
           </div>
         </div>
@@ -299,11 +355,11 @@ const Sources = () => {
             {uploads.map((u, i) => (
               <div key={`${u.fileName}-${i}`} className="space-y-1">
                 <div className="flex items-center gap-2 text-xs">
-                  {u.status === "uploading" && <Loader2 size={12} className="animate-spin text-primary" />}
-                  {u.status === "done" && <CheckCircle2 size={12} className="text-green-600" />}
-                  {u.status === "error" && <span className="text-destructive">✕</span>}
-                  <span className="truncate flex-1">{u.fileName}</span>
-                  <span className="text-muted-foreground">{u.progress}%</span>
+                  {u.status === "uploading" && <Loader2 size={12} className="animate-spin text-primary shrink-0" />}
+                  {u.status === "done" && <CheckCircle2 size={12} className="text-green-600 shrink-0" />}
+                  {u.status === "error" && <span className="text-destructive shrink-0">✕</span>}
+                  <span className="truncate flex-1 min-w-0">{u.fileName}</span>
+                  <span className="text-muted-foreground shrink-0">{u.progress}%</span>
                 </div>
                 <Progress value={u.progress} className="h-1" />
                 {u.error && <p className="text-xs text-destructive">{u.error}</p>}
@@ -316,7 +372,7 @@ const Sources = () => {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
             {searchResults.map((s) => (
-              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} />
+              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} />
             ))}
           </div>
         ) : (
@@ -353,11 +409,11 @@ const Sources = () => {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <button onClick={() => setCurrentFolderId(f.id)} className="flex items-center gap-2 text-sm font-medium">
-                          <Folder size={18} className="text-primary" /> {f.name}
+                        <button onClick={() => setCurrentFolderId(f.id)} className="flex items-center gap-2 text-sm font-medium min-w-0">
+                          <Folder size={18} className="text-primary shrink-0" /> <span className="truncate">{f.name}</span>
                         </button>
                         {(f.created_by === user?.id || isVorstand) && (
-                          <button onClick={() => setFolderDeleteConfirm(f.id)} className="text-muted-foreground hover:text-destructive p-1">
+                          <button onClick={() => setFolderDeleteConfirm(f.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -370,39 +426,123 @@ const Sources = () => {
                   <div className="text-center text-muted-foreground py-8">Keine Quellen in diesem Ordner.</div>
                 ) : (
                   currentSources.map((s) => (
-                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} />
+                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} />
                   ))
                 )}
               </div>
             )}
           </>
         )}
+
+        {/* Upload title dialog */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Dateien hochladen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {pendingFiles.map((f) => (
+                <div key={f.name} className="space-y-1">
+                  <label className="text-xs text-muted-foreground truncate block">{f.name}</label>
+                  <input
+                    value={uploadTitles[f.name] || ""}
+                    onChange={(e) => setUploadTitles((prev) => ({ ...prev, [f.name]: e.target.value }))}
+                    placeholder="Titel eingeben"
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={uploadSourceFiles}
+              className="w-full mt-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {pendingFiles.length} Datei{pendingFiles.length !== 1 ? "en" : ""} hochladen
+            </button>
+          </DialogContent>
+        </Dialog>
+
+        {/* File preview dialog */}
+        <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="truncate">{previewTitle}</DialogTitle>
+            </DialogHeader>
+            {previewUrl && (
+              previewUrl.match(/\.(png|jpg|jpeg|gif|webp|svg|bmp)/i) ? (
+                <img src={previewUrl} alt={previewTitle} className="max-w-full max-h-[70vh] object-contain mx-auto" />
+              ) : (
+                <iframe src={previewUrl} className="w-full h-[70vh] border rounded" title={previewTitle} />
+              )
+            )}
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </div>
   );
 };
 
-const SourceItem = ({ source: s, user, onDelete, onDownload }: { source: any; user: any; onDelete: (id: string) => void; onDownload: (path: string, name: string) => void }) => (
-  <div className="p-4 rounded-lg border bg-card flex items-start justify-between gap-4">
-    <div>
-      <div className="flex items-center gap-2">
-        {s.file_path ? <FileText size={14} className="text-primary" /> : null}
-        <h3 className="font-semibold">{s.title}</h3>
+interface SourceItemProps {
+  source: any;
+  user: any;
+  onDelete: (id: string) => void;
+  onDownload: (path: string, name: string) => void;
+  onPreview: (path: string, name: string) => void;
+  onEdit: (id: string, title: string) => void;
+  editingId: string | null;
+  editTitle: string;
+  onEditTitleChange: (val: string) => void;
+  onEditSave: (id: string) => void;
+  onEditCancel: () => void;
+}
+
+const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, editingId, editTitle, onEditTitleChange, onEditSave, onEditCancel }: SourceItemProps) => (
+  <div className="p-4 rounded-lg border bg-card flex items-start justify-between gap-3 overflow-hidden">
+    <div className="min-w-0 flex-1">
+      {editingId === s.id ? (
+        <div className="flex items-center gap-2">
+          <input
+            value={editTitle}
+            onChange={(e) => onEditTitleChange(e.target.value)}
+            className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-sm min-w-0"
+            onKeyDown={(e) => { if (e.key === "Enter") onEditSave(s.id); if (e.key === "Escape") onEditCancel(); }}
+            autoFocus
+          />
+          <button onClick={() => onEditSave(s.id)} className="text-xs text-primary hover:underline shrink-0">Speichern</button>
+          <button onClick={onEditCancel} className="text-xs text-muted-foreground hover:underline shrink-0">Abbrechen</button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 min-w-0">
+          {s.file_path && <FileText size={14} className="text-primary shrink-0" />}
+          <h3 className="font-semibold truncate">{s.title}</h3>
+          {s.created_by === user?.id && (
+            <button onClick={() => onEdit(s.id, s.title)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0">
+              <Pencil size={12} />
+            </button>
+          )}
+        </div>
+      )}
+      {s.content && <p className="text-sm text-muted-foreground mt-1 truncate">{s.content}</p>}
+      <div className="flex flex-wrap gap-3 mt-2">
+        {s.url && (
+          <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+            <ExternalLink size={12} /> Link öffnen
+          </a>
+        )}
+        {s.file_path && isPreviewable(s.file_path) && (
+          <button onClick={() => onPreview(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+            <Eye size={12} /> Vorschau
+          </button>
+        )}
+        {s.file_path && (
+          <button onClick={() => onDownload(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+            <FileText size={12} /> Herunterladen
+          </button>
+        )}
       </div>
-      {s.content && <p className="text-sm text-muted-foreground mt-1">{s.content}</p>}
-      {s.url && (
-        <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary mt-2 hover:underline">
-          <ExternalLink size={12} /> Link öffnen
-        </a>
-      )}
-      {s.file_path && (
-        <button onClick={() => onDownload(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary mt-2 hover:underline">
-          <FileText size={12} /> Herunterladen
-        </button>
-      )}
     </div>
     {s.created_by === user?.id && (
-      <button onClick={() => onDelete(s.id)} className="text-muted-foreground hover:text-destructive p-1">
+      <button onClick={() => onDelete(s.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0">
         <Trash2 size={16} />
       </button>
     )}
