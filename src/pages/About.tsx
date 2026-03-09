@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { BookOpen } from "lucide-react";
 import gruppenfoto from "@/assets/gruppenfoto.jpg";
 import detailHandwerk from "@/assets/detail-handwerk.jpg";
 import vorfuehrung from "@/assets/vorfuehrung.jpg";
