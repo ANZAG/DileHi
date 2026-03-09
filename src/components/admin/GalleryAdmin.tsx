@@ -61,6 +61,9 @@ const GalleryAdmin = () => {
   const [filterEpoch, setFilterEpoch] = useState("alle");
   const [page, setPage] = useState(0);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAltText, setEditAltText] = useState("");
+
   const { data: images = [], isLoading } = useQuery({
     queryKey: ["gallery_images_admin"],
     queryFn: async () => {
