@@ -91,7 +91,7 @@ const Profile = () => {
           city,
           birthdate: birthdate || null,
           phone,
-        membership_type: membershipType,
+          membership_type: membershipType,
           contribution_interval: contributionInterval,
         })
         .eq("id", user.id);
