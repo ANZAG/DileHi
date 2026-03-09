@@ -54,7 +54,7 @@ const Sources = () => {
     },
   });
 
-  const currentFolders = folders.filter((f: any) =>
+  const currentFolders = folders.filter((f) =>
     currentFolderId ? f.parent_id === currentFolderId : !f.parent_id
   );
 
@@ -63,7 +63,7 @@ const Sources = () => {
   );
 
   const parentFolder = currentFolderId
-    ? folders.find((f: any) => f.id === currentFolderId)
+    ? folders.find((f) => f.id === currentFolderId)
     : null;
 
   const addSource = useMutation({
