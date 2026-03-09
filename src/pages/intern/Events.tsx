@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+type VisibilityFilter = "all" | "public" | "internal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +57,7 @@ const EventsPage = () => {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCalendarSync, setShowCalendarSync] = useState(false);
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
 
   // Form state
   const [title, setTitle] = useState("");
@@ -232,6 +234,12 @@ const EventsPage = () => {
     setShowEdit(true);
   };
 
+  const filteredEvents = useMemo(() => {
+    if (visibilityFilter === "public") return events.filter(e => e.is_public);
+    if (visibilityFilter === "internal") return events.filter(e => !e.is_public);
+    return events;
+  }, [events, visibilityFilter]);
+
   const holidays = useMemo(() => {
     const y = currentMonth.getFullYear();
     return [...getHessenHolidays(y), ...getHessenHolidays(y - 1), ...getHessenHolidays(y + 1)];
@@ -258,7 +266,7 @@ const EventsPage = () => {
   const toDateOnly = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   const eventsForDay = (day: Date) =>
-    events.filter(e => {
+    filteredEvents.filter(e => {
       const start = parseISO(e.start_date);
       const end = e.end_date ? parseISO(e.end_date) : start;
       const dayStart = toDateOnly(day);
@@ -279,7 +287,7 @@ const EventsPage = () => {
       const rowEnd = calendarDays[r * 7 + 6];
       const segments: SpanSegment[] = [];
 
-      for (const ev of events) {
+      for (const ev of filteredEvents) {
         if (!isMultiDay(ev)) continue;
         const evStart = toDateOnly(parseISO(ev.start_date));
         const evEnd = toDateOnly(parseISO(ev.end_date!));
@@ -304,7 +312,7 @@ const EventsPage = () => {
       rows.push(segments);
     }
     return rows;
-  }, [calendarDays, events]);
+  }, [calendarDays, filteredEvents]);
 
   const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
   const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
@@ -403,8 +411,8 @@ const EventsPage = () => {
           </div>
         </div>
 
-        {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Filter + Month Navigation */}
+        <div className="flex items-center justify-between mb-4 gap-2">
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
             <ChevronLeft size={20} />
           </Button>
@@ -414,6 +422,24 @@ const EventsPage = () => {
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
             <ChevronRight size={20} />
           </Button>
+        </div>
+
+        {/* Visibility Filter */}
+        <div className="flex items-center gap-1.5 mb-4 p-1 bg-muted rounded-lg w-fit">
+          {(["all", "public", "internal"] as VisibilityFilter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setVisibilityFilter(f)}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                visibilityFilter === f
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f === "public" && <Globe size={12} />}
+              {f === "all" ? "Alle" : f === "public" ? "Öffentlich" : "Intern"}
+            </button>
+          ))}
         </div>
 
         {/* Calendar Grid */}
@@ -654,11 +680,11 @@ const EventsPage = () => {
         {/* Upcoming Events List */}
         <div className="mt-8">
           <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
-          {events.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
+          {filteredEvents.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
             <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
           ) : (
             <div className="space-y-2">
-              {events
+              {filteredEvents
                 .filter(e => new Date(e.start_date) >= new Date())
                 .slice(0, 5)
                 .map(ev => {
