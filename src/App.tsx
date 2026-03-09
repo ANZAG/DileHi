@@ -29,6 +29,7 @@ import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
+import MemberMap from "./pages/intern/MemberMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
