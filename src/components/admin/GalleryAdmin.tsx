@@ -13,6 +13,42 @@ const EPOCH_OPTIONS = [
 
 const IMAGES_PER_PAGE = 6;
 
+interface GalleryImage {
+  id: string;
+  storage_path: string;
+  alt_text: string;
+  epoch: string;
+  publicUrl: string;
+}
+
+/** Converts any image File to WebP using the Canvas API */
+const convertToWebP = (file: File): Promise<File> =>
+  new Promise((resolve, reject) => {
+    const img = document.createElement("img");
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d")?.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Konvertierung fehlgeschlagen"));
+            return;
+          }
+          const baseName = file.name.replace(/\.[^/.]+$/, "");
+          resolve(new File([blob], `${baseName}.webp`, { type: "image/webp" }));
+        },
+        "image/webp",
+        0.85
+      );
+    };
+    img.onerror = () => reject(new Error("Bild konnte nicht geladen werden"));
+    img.src = objectUrl;
+  });
+
 const GalleryAdmin = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,7 +74,7 @@ const GalleryAdmin = () => {
     },
   });
 
-  const filtered = filterEpoch === "alle" ? images : images.filter((img: any) => img.epoch === filterEpoch);
+  const filtered = filterEpoch === "alle" ? images : images.filter((img: GalleryImage) => img.epoch === filterEpoch);
   const totalPages = Math.max(1, Math.ceil(filtered.length / IMAGES_PER_PAGE));
   const currentPage = Math.min(page, totalPages - 1);
   const paged = filtered.slice(currentPage * IMAGES_PER_PAGE, (currentPage + 1) * IMAGES_PER_PAGE);
@@ -47,8 +83,12 @@ const GalleryAdmin = () => {
     if (!user) return;
     setUploading(true);
     try {
-      const path = `${Date.now()}_${file.name}`;
-      const { error: uploadErr } = await supabase.storage.from("gallery").upload(path, file);
+      // Convert to WebP for better performance
+      const webpFile = await convertToWebP(file);
+      const path = `${Date.now()}_${webpFile.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("gallery")
+        .upload(path, webpFile, { contentType: "image/webp" });
       if (uploadErr) throw uploadErr;
 
       const { error: dbErr } = await supabase.from("gallery_images").insert({
@@ -62,7 +102,7 @@ const GalleryAdmin = () => {
       queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
       queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
       setAltText("");
-      toast({ title: "Bild hochgeladen" });
+      toast({ title: "Bild hochgeladen", description: "Automatisch zu WebP konvertiert" });
     } catch (err: any) {
       toast({ title: "Fehler", description: err.message, variant: "destructive" });
     }
@@ -162,7 +202,7 @@ const GalleryAdmin = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {paged.map((img: any) => (
+            {paged.map((img: GalleryImage) => (
               <div key={img.id} className="rounded-lg border overflow-hidden bg-background">
                 <img src={img.publicUrl} alt={img.alt_text} className="w-full aspect-[4/3] object-cover" />
                 <div className="p-2 space-y-1">
