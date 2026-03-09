@@ -98,4 +98,15 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'DM Serif Display', serif;
   }
+
+  /* Force consistent date input height on iOS/mobile */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    min-height: 2.5rem;
+    max-height: 2.5rem;
+  }
 }
