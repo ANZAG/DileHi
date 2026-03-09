@@ -65,6 +65,7 @@ const EventsPage = () => {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("16:00");
   const [allDay, setAllDay] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -137,7 +138,7 @@ const EventsPage = () => {
         : null;
       const { error } = await supabase.from("events").insert({
         title, description: description || null, location: location || null,
-        start_date: start, end_date: end, all_day: allDay, created_by: user!.id,
+        start_date: start, end_date: end, all_day: allDay, is_public: isPublic, created_by: user!.id,
       });
       if (error) throw error;
     },
@@ -161,7 +162,7 @@ const EventsPage = () => {
         : null;
       const { error } = await supabase.from("events").update({
         title, description: description || null, location: location || null,
-        start_date: start, end_date: end, all_day: allDay,
+        start_date: start, end_date: end, all_day: allDay, is_public: isPublic,
       }).eq("id", editingEvent.id);
       if (error) throw error;
     },
@@ -205,7 +206,7 @@ const EventsPage = () => {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
-    setAllDay(false);
+    setAllDay(false); setIsPublic(false);
   };
 
   const openCreate = (date?: Date) => {
@@ -225,6 +226,7 @@ const EventsPage = () => {
     setEndDate(end ? format(end, "yyyy-MM-dd") : "");
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
+    setIsPublic((ev as any).is_public ?? false);
     setEditingEvent(ev);
     setShowEdit(true);
   };
@@ -335,9 +337,17 @@ const EventsPage = () => {
         <label className="text-sm font-medium">Beschreibung</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
       </div>
-      <div className="flex items-center gap-2">
-        <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
-        <label htmlFor={`allDay-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">Ganztägig</label>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
+          <label htmlFor={`allDay-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">Ganztägig</label>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id={`isPublic-${isEdit ? 'edit' : 'create'}`} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="rounded border-input" />
+          <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
+            Öffentlich sichtbar
+          </label>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
