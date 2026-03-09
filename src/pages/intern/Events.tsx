@@ -680,11 +680,11 @@ const EventsPage = () => {
         {/* Upcoming Events List */}
         <div className="mt-8">
           <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
-          {events.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
+          {filteredEvents.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
             <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
           ) : (
             <div className="space-y-2">
-              {events
+              {filteredEvents
                 .filter(e => new Date(e.start_date) >= new Date())
                 .slice(0, 5)
                 .map(ev => {
