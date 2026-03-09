@@ -125,6 +125,30 @@ const GalleryAdmin = () => {
     },
   });
 
+  const updateShowSubtitle = useMutation({
+    mutationFn: async ({ id, show_subtitle }: { id: string; show_subtitle: boolean }) => {
+      const { error } = await supabase.from("gallery_images").update({ show_subtitle }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+    },
+  });
+
+  const updateAltText = useMutation({
+    mutationFn: async ({ id, alt_text }: { id: string; alt_text: string }) => {
+      const { error } = await supabase.from("gallery_images").update({ alt_text }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      setEditingId(null);
+      toast({ title: "Beschreibung aktualisiert" });
+    },
+  });
+
   const deleteImage = useMutation({
     mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
       await supabase.storage.from("gallery").remove([storagePath]);
