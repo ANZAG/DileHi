@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Trash2, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const EPOCH_OPTIONS = [
   { value: "mittelalter", label: "Spätmittelalter" },
@@ -18,6 +19,7 @@ interface GalleryImage {
   storage_path: string;
   alt_text: string;
   epoch: string;
+  show_subtitle: boolean;
   publicUrl: string;
 }
 
