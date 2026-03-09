@@ -77,10 +77,34 @@ const Profile = () => {
     },
   });
 
+  const geocodeCity = async (plz: string, ort: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!plz && !ort) return null;
+    try {
+      const query = `${plz} ${ort}, Germany`;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch {}
+    return null;
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
+      let mapLat: number | null = null;
+      let mapLng: number | null = null;
+
+      if (showOnMap && (zip || city)) {
+        const coords = await geocodeCity(zip, city);
+        if (coords) {
+          mapLat = coords.lat;
+          mapLng = coords.lng;
+        }
+      }
+
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -95,6 +119,9 @@ const Profile = () => {
           phone,
           membership_type: membershipType,
           contribution_interval: contributionInterval,
+          show_on_map: showOnMap,
+          map_lat: showOnMap ? mapLat : null,
+          map_lng: showOnMap ? mapLng : null,
         })
         .eq("id", user.id);
       if (profileError) throw profileError;
