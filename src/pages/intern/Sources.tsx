@@ -143,7 +143,7 @@ const Sources = () => {
         file_path: path,
         folder_id: currentFolderId,
         created_by: user!.id,
-      } as any);
+      });
       if (dbErr) throw dbErr;
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       toast({ title: "Datei hochgeladen" });
