@@ -147,18 +147,13 @@ const Announcements = () => {
     setUploadingFile(null);
   };
 
-  const downloadFile = async (storagePath: string, fileName: string) => {
-    const { data, error } = await supabase.storage.from("internal-files").download(storagePath);
-    if (error || !data) {
-      toast({ title: "Download-Fehler", variant: "destructive" });
+  const openFile = async (storagePath: string, fileName: string) => {
+    const { data, error } = await supabase.storage.from("internal-files").createSignedUrl(storagePath, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Fehler beim Öffnen", variant: "destructive" });
       return;
     }
-    const url = URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.open(data.signedUrl, "_blank");
   };
 
   const getReplies = (announcementId: string) =>
@@ -254,7 +249,7 @@ const Announcements = () => {
                           {a.announcement_files.map((f: { id: string; name: string; storage_path: string }) => (
                             <button
                               key={f.id}
-                              onClick={() => downloadFile(f.storage_path, f.name)}
+                              onClick={() => openFile(f.storage_path, f.name)}
                               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             >
                               <Paperclip size={12} /> {f.name}

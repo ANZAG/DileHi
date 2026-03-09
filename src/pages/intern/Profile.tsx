@@ -217,7 +217,7 @@ const Profile = () => {
                   type="date"
                   value={birthdate}
                   onChange={(e) => setBirthdate(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm [&::-webkit-date-and-time-value]:text-left"
                 />
               </div>
               <div>
@@ -265,7 +265,7 @@ const Profile = () => {
                   type="date"
                   value={entryDate}
                   disabled
-                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed"
+                  className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed [&::-webkit-date-and-time-value]:text-left"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Wird vom Vorstand eingetragen</p>
               </div>
@@ -276,7 +276,7 @@ const Profile = () => {
                     type="date"
                     value={exitDate}
                     disabled
-                    className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed"
+                    className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed [&::-webkit-date-and-time-value]:text-left"
                   />
                 </div>
               )}

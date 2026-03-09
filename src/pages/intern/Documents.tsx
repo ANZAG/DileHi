@@ -124,17 +124,15 @@ const Documents = () => {
     },
   });
 
-  const handleDownload = async (storagePath: string, fileName: string) => {
+  const handleOpen = async (storagePath: string, fileName: string) => {
     const { data, error } = await supabase.storage
       .from("documents")
-      .download(storagePath);
-    if (error || !data) return;
-    const url = URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
+      .createSignedUrl(storagePath, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Fehler beim Öffnen", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   };
 
   const grouped = CATEGORIES.map((cat) => ({
@@ -214,7 +212,7 @@ const Documents = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" onClick={() => handleDownload(doc.storage_path, doc.file_name)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpen(doc.storage_path, doc.file_name)}>
                             <Download size={16} />
                           </Button>
                           {isVorstand && (

@@ -589,11 +589,12 @@ const EventsPage = () => {
         {/* Selected Day Events */}
         {selectedDate && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <h3 className="font-serif text-lg font-semibold">
-                {format(selectedDate, "EEEE, d. MMMM yyyy", { locale: de })}
+                <span className="block sm:inline">{format(selectedDate, "EEEE,", { locale: de })}</span>{" "}
+                <span className="block sm:inline">{format(selectedDate, "d. MMMM yyyy", { locale: de })}</span>
               </h3>
-              <Button variant="outline" size="sm" onClick={() => openCreate(selectedDate)}>
+              <Button variant="outline" size="sm" className="self-start sm:self-auto shrink-0" onClick={() => openCreate(selectedDate)}>
                 <Plus size={14} className="mr-1" /> Veranstaltung hinzufügen
               </Button>
             </div>
