@@ -61,17 +61,17 @@ const Profile = () => {
   }, [user]);
 
   // Membership files for the current user
-  const { data: membershipFiles = [], refetch: refetchFiles } = useQuery({
+  const { data: membershipFiles = [] } = useQuery({
     queryKey: ["membership_files", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("membership_files" as any)
+        .from("membership_files")
         .select("*")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
