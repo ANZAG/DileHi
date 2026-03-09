@@ -1,5 +1,13 @@
+import SEO from "@/components/SEO";
+
 const Datenschutz = () => (
   <div className="container py-12 md:py-20 max-w-3xl">
+    <SEO 
+      title="Datenschutzerklärung - Diu lebendec Histôrje"
+      description="Datenschutzerklärung von Diu lebendec Histôrje e.V. Informationen zum Umgang mit personenbezogenen Daten auf unserer Website."
+      url="/datenschutz"
+      noindex={true}
+    />
     <h1 className="font-serif text-3xl md:text-4xl font-bold mb-8">Datenschutzerklärung</h1>
     <div className="prose prose-neutral max-w-none text-muted-foreground space-y-8">
 

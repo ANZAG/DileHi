@@ -41,6 +41,12 @@ const Gallery = () => {
 
   return (
     <div className="container py-12 md:py-20">
+      <SEO 
+        title="Galerie - Diu lebendec Histôrje"
+        description="Eindrücke aus unseren Living History Darstellungen und Veranstaltungen. Bilder vom Spätmittelalter, der Napoleonik und dem Ersten Weltkrieg."
+        url="/galerie"
+        image="/gruppenfoto.jpg"
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">Galerie</h1>
         <p className="text-muted-foreground mb-8">Eindrücke aus unseren Darstellungen und Veranstaltungen.</p>

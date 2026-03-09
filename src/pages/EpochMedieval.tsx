@@ -34,6 +34,12 @@ const EpochMedieval = () => {
 
   return (
     <div>
+      <SEO 
+        title="Spätmittelalter - Grafschaft Nassau (1290-1310)"
+        description="Als Nassau den König stellte: Unsere Darstellung des Spätmittelalters in der Grafschaft Nassau. Vom Niederadel bis zum Handwerk - Leben um 1300 authentisch erfahrbar."
+        url="/epochen/mittelalter"
+        image="/epoch-medieval.jpg"
+      />
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={epochImage} alt="Spätmittelalterliche Darstellung" className="absolute inset-0 w-full h-full object-cover" />

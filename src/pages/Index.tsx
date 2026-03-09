@@ -43,6 +43,12 @@ const Index = () => {
 
   return (
     <div>
+      <SEO 
+        title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
+        description="Seit 2011 machen wir als Wiesbadener Verein die Geschichte des Nassauer Landes vom Spätmittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erfahrbar."
+        url="/"
+        image="/hero-medieval.jpg"
+      />
       {/* Hero */}
       <section className="relative py-16 md:py-20 flex items-center justify-center overflow-hidden">
         <img
