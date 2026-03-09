@@ -138,7 +138,7 @@ const EventsPage = () => {
         : null;
       const { error } = await supabase.from("events").insert({
         title, description: description || null, location: location || null,
-        start_date: start, end_date: end, all_day: allDay, created_by: user!.id,
+        start_date: start, end_date: end, all_day: allDay, is_public: isPublic, created_by: user!.id,
       });
       if (error) throw error;
     },
