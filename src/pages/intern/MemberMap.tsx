@@ -1,9 +1,10 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -15,16 +16,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-type MapMember = {
-  display_name: string;
-  city: string;
-  phone: string;
-  email: string;
-  map_lat: number;
-  map_lng: number;
-};
-
 const MemberMap = () => {
+  const { user } = useAuth();
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +26,7 @@ const MemberMap = () => {
     queryFn: async () => {
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, display_name, city, phone, map_lat, map_lng, show_on_map, is_active")
+        .select("id, display_name, city, map_lat, map_lng, show_on_map, is_active")
         .eq("show_on_map", true)
         .eq("is_active", true)
         .not("map_lat", "is", null)
@@ -41,32 +34,34 @@ const MemberMap = () => {
 
       if (!profiles || profiles.length === 0) return [];
 
-      let emailMap: Record<string, string> = {};
-      try {
-        const userIds = profiles.map((p) => p.id);
-        const { data: emails } = await supabase.functions.invoke("manage-member", {
-          body: { action: "get_emails", userIds },
-        });
-        if (emails) emailMap = emails;
-      } catch {}
-
       return profiles
         .filter((p) => p.map_lat != null && p.map_lng != null)
         .map((p) => ({
           display_name: p.display_name,
           city: p.city || "–",
-          phone: p.phone || "",
-          email: emailMap[p.id] || "",
           map_lat: p.map_lat as number,
           map_lng: p.map_lng as number,
         }));
     },
   });
 
+  // Check if the current user has opted in
+  const { data: userOptedIn } = useQuery({
+    queryKey: ["member-map-optin", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("show_on_map")
+        .eq("id", user!.id)
+        .single();
+      return data?.show_on_map ?? false;
+    },
+  });
+
   useEffect(() => {
     if (!containerRef.current || members.length === 0 || isLoading) return;
 
-    // Destroy previous map
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -87,14 +82,11 @@ const MemberMap = () => {
         <div style="font-size:13px;">
           <strong>${m.display_name}</strong><br/>
           <span style="color:#666;">${m.city}</span>
-          ${m.email ? `<br/><span style="font-size:11px;">${m.email}</span>` : ""}
-          ${m.phone ? `<br/><span style="font-size:11px;">${m.phone}</span>` : ""}
         </div>
       `;
       L.marker([m.map_lat, m.map_lng]).addTo(map).bindPopup(popupContent);
     });
 
-    // Fit bounds if multiple members
     if (members.length > 1) {
       const bounds = L.latLngBounds(members.map((m) => [m.map_lat, m.map_lng] as [number, number]));
       map.fitBounds(bounds, { padding: [40, 40] });
@@ -116,10 +108,23 @@ const MemberMap = () => {
           <ArrowLeft size={16} /> Zurück
         </Link>
         <h1 className="font-serif text-2xl font-bold mb-2">Mitgliederkarte</h1>
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className="text-sm text-muted-foreground mb-4">
           Zeigt die Wohnorte aller Mitglieder, die ihre Anzeige freigegeben haben.
           {members.length > 0 && ` (${members.length} Mitglieder sichtbar)`}
         </p>
+
+        {!isLoading && userOptedIn === false && (
+          <div className="flex items-start gap-2 p-3 mb-4 rounded-lg border bg-muted/50 text-sm">
+            <Info size={16} className="text-primary mt-0.5 shrink-0" />
+            <p>
+              Du bist noch nicht auf der Karte sichtbar. Aktiviere die Option in deinem{" "}
+              <Link to="/intern/profil" className="text-primary underline font-medium">
+                Profil
+              </Link>
+              , um deinen Wohnort für andere Mitglieder anzuzeigen.
+            </p>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="text-center text-muted-foreground py-16">Karte wird geladen…</div>
