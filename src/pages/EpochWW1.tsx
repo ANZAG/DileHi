@@ -80,7 +80,7 @@ const EpochWW1 = () => {
               Wiesbaden, Herbst 1914. Die Kurstadt am Rhein ist Garnisonsstadt und Heimat des XVIII. Armeekorps. Aus den Dörfern und Städten der Provinz Hessen-Nassau – aus Hofheim am Taunus, aus Massenheim, aus dem Rheingau – werden Männer einberufen, gemustert, eingekleidet. Viele von ihnen landen beim 1. Nassauischen Pionier-Bataillon Nr. 21, dessen Ersatzbataillon im nahen Mainz stationiert ist.
             </p>
             <p>
-
+              Um den Alltag eines Pioniers greifbarer zu machen, erzählen wir unsere Darstellung anhand zweier beispielhafter Figuren: Johann Treisbach aus Massenheim und Carl Henneke aus Hofheim. Beide sind fiktiv, stehen jedoch stellvertretend für die Tausenden einfachen Pioniere aus dieser Region.
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
