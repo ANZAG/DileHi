@@ -88,18 +88,17 @@ const MemberRegistry = () => {
         .order("created_at", { ascending: true });
       if (error) throw error;
       const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", userIds);
 
-      let emailMap: Record<string, string> = {};
-      try {
-        const { data: emails } = await supabase.functions.invoke("manage-member", {
+      // Fetch profiles and emails in parallel to reduce latency
+      const [profilesResult, emailsResult] = await Promise.all([
+        supabase.from("profiles").select("*").in("id", userIds),
+        supabase.functions.invoke("manage-member", {
           body: { action: "get_emails", userIds },
-        });
-        if (emails) emailMap = emails;
-      } catch {}
+        }).catch(() => ({ data: null })),
+      ]);
+
+      const profiles = profilesResult.data;
+      const emailMap: Record<string, string> = emailsResult.data ?? {};
 
       return roles.map((r) => {
         const p = profiles?.find((pr) => pr.id === r.user_id);
