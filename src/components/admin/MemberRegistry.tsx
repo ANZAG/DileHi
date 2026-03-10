@@ -359,7 +359,7 @@ const MemberRegistry = () => {
     setEditIsActive(m.is_active);
   };
 
-  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
+  // roleLabel moved above sort logic
   const contributionLabel = (val: string) => {
     const map: Record<string, string> = {
       jaehrlich: "Jährlich", halbjaehrlich: "Halbjährlich",
