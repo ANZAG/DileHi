@@ -330,8 +330,7 @@ const Profile = () => {
               <div>
                 <span className="text-sm font-medium">Meinen Wohnort auf der Mitgliederkarte anzeigen</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Dein Ort (nicht die genaue Adresse) wird für andere Mitglieder auf einer Karte sichtbar.
-                  Kontaktdaten (Name, E-Mail, Telefon) werden beim Klick auf den Marker angezeigt.
+                  Dein Anzeigename und Wohnort (nicht die genaue Adresse) werden für andere Mitglieder auf einer Karte sichtbar.
                 </p>
               </div>
             </label>
