@@ -1,11 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -27,7 +25,8 @@ type MapMember = {
 };
 
 const MemberMap = () => {
-  const { isVorstand } = useAuth();
+  const mapRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["member-map"],
@@ -42,7 +41,6 @@ const MemberMap = () => {
 
       if (!profiles || profiles.length === 0) return [];
 
-      // Fetch emails via edge function for contact info
       let emailMap: Record<string, string> = {};
       try {
         const userIds = profiles.map((p) => p.id);
@@ -65,13 +63,48 @@ const MemberMap = () => {
     },
   });
 
-  // Center on Germany
-  const center = useMemo<[number, number]>(() => {
-    if (members.length === 0) return [50.5, 10.0];
+  useEffect(() => {
+    if (!containerRef.current || members.length === 0 || isLoading) return;
+
+    // Destroy previous map
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
     const avgLat = members.reduce((s, m) => s + m.map_lat, 0) / members.length;
     const avgLng = members.reduce((s, m) => s + m.map_lng, 0) / members.length;
-    return [avgLat, avgLng];
-  }, [members]);
+
+    const map = L.map(containerRef.current).setView([avgLat, avgLng], 6);
+    mapRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    members.forEach((m) => {
+      const popupContent = `
+        <div style="font-size:13px;">
+          <strong>${m.display_name}</strong><br/>
+          <span style="color:#666;">${m.city}</span>
+          ${m.email ? `<br/><span style="font-size:11px;">${m.email}</span>` : ""}
+          ${m.phone ? `<br/><span style="font-size:11px;">${m.phone}</span>` : ""}
+        </div>
+      `;
+      L.marker([m.map_lat, m.map_lng]).addTo(map).bindPopup(popupContent);
+    });
+
+    // Fit bounds if multiple members
+    if (members.length > 1) {
+      const bounds = L.latLngBounds(members.map((m) => [m.map_lat, m.map_lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [members, isLoading]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
@@ -103,29 +136,7 @@ const MemberMap = () => {
           </div>
         ) : (
           <div className="rounded-lg border overflow-hidden" style={{ height: "500px" }}>
-            <MapContainer
-              center={center}
-              zoom={6}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={true}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {members.map((m, i) => (
-                <Marker key={i} position={[m.map_lat, m.map_lng]}>
-                  <Popup>
-                    <div className="text-sm space-y-0.5">
-                      <p className="font-semibold">{m.display_name}</p>
-                      <p className="text-muted-foreground">{m.city}</p>
-                      {m.email && <p className="text-xs">{m.email}</p>}
-                      {m.phone && <p className="text-xs">{m.phone}</p>}
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+            <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
           </div>
         )}
       </motion.div>
