@@ -65,6 +65,8 @@ const MemberRegistry = () => {
   const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
+
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [editRole, setEditRole] = useState("");
@@ -357,7 +359,7 @@ const MemberRegistry = () => {
     setEditIsActive(m.is_active);
   };
 
-  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
+  // roleLabel moved above sort logic
   const contributionLabel = (val: string) => {
     const map: Record<string, string> = {
       jaehrlich: "Jährlich", halbjaehrlich: "Halbjährlich",
