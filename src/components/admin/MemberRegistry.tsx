@@ -65,6 +65,8 @@ const MemberRegistry = () => {
   const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
+
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [editRole, setEditRole] = useState("");
