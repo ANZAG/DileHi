@@ -190,6 +190,30 @@ export type Database = {
           },
         ]
       }
+      contribution_rates: {
+        Row: {
+          amount: number
+          id: string
+          updated_at: string
+          updated_by: string | null
+          year: number
+        }
+        Insert: {
+          amount: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          year: number
+        }
+        Update: {
+          amount?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       contributions: {
         Row: {
           amount: number | null
