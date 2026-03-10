@@ -17,29 +17,29 @@ const EpochWW1 = () => {
   const { data: galleryImages = [] } = useQuery({
     queryKey: ["gallery_images", "wk1"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_images" as any)
-        .select("*")
-        .eq("epoch", "wk1")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.
+      from("gallery_images" as any).
+      select("*").
+      eq("epoch", "wk1").
+      order("created_at", { ascending: false });
       if (error) return [];
       return (data as any[]).map((img: any) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild", showSubtitle: img.show_subtitle ?? false };
       });
-    },
+    }
   });
 
   const allImages = galleryImages;
 
   return (
     <div>
-      <SEO 
+      <SEO
         title="Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21"
         description="Pioniere aus Hessen-Nassau 1916/17: Unsere Darstellung des 1. Nassauischen Pionier-Bataillons Nr. 21 zeigt den Alltag der Soldaten im Stellungskrieg an der Westfront."
         url="/epochen/wk1"
-        image="/epoch-ww1.jpg"
-      />
+        image="/epoch-ww1.jpg" />
+      
       {/* Hero */}
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={epochImage} alt="Pioniere im Ersten Weltkrieg" className="absolute inset-0 w-full h-full object-cover" />
@@ -80,7 +80,7 @@ const EpochWW1 = () => {
               Wiesbaden, Herbst 1914. Die Kurstadt am Rhein ist Garnisonsstadt und Heimat des XVIII. Armeekorps. Aus den Dörfern und Städten der Provinz Hessen-Nassau – aus Hofheim am Taunus, aus Massenheim, aus dem Rheingau – werden Männer einberufen, gemustert, eingekleidet. Viele von ihnen landen beim 1. Nassauischen Pionier-Bataillon Nr. 21, dessen Ersatzbataillon im nahen Mainz stationiert ist.
             </p>
             <p>
-              Wir stellen zwei von ihnen dar: Johann Treisbach aus Massenheim und Karl Henneke aus Hofheim – stellvertretend für die Tausenden einfacher Pioniere aus dieser Region, deren Namen auf Erkennungsmarken und in Kriegsstammrollen stehen, aber in keinem Geschichtsbuch auftauchen.
+
             </p>
           </div>
           <div className="rounded-lg overflow-hidden mb-12">
@@ -92,14 +92,14 @@ const EpochWW1 = () => {
           <VisitorHighlight
             intro="Auf Veranstaltungen machen wir den Alltag der Soldaten im Ersten Weltkrieg anschaulich und greifbar – mit dem Ziel, Geschichte verständlich und verantwortungsvoll zu vermitteln."
             items={[
-              "Einblicke in Kleidung, Uniformierung und persönliche Ausrüstung eines Pioniers",
-              "Präsentationen von Alltagsgegenständen und Ausrüstung der Westfront",
-              "Pioniertechnik und Stellungsbau – wie eine Front funktionierte",
-              "Regionale Bezüge: nassauische Einheiten im Weltkrieg",
-              "Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit",
-            ]}
-            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
-          />
+            "Einblicke in Kleidung, Uniformierung und persönliche Ausrüstung eines Pioniers",
+            "Präsentationen von Alltagsgegenständen und Ausrüstung der Westfront",
+            "Pioniertechnik und Stellungsbau – wie eine Front funktionierte",
+            "Regionale Bezüge: nassauische Einheiten im Weltkrieg",
+            "Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit"]
+            }
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen." />
+          
 
           {/* 3 – Unsere Darstellung */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Darstellung</h2>
@@ -154,77 +154,77 @@ const EpochWW1 = () => {
 
           {/* 6 – Galerie */}
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
-          {allImages.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {allImages.map((img, i) => (
-                <motion.button
-                  key={img.src}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => setLightbox(i)}
-                  className="aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer"
-                >
+          {allImages.length > 0 ?
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              {allImages.map((img, i) =>
+            <motion.button
+              key={img.src}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => setLightbox(i)}
+              className="aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer">
+              
                   <img src={img.src} alt={img.alt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </motion.button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
-          )}
+            )}
+            </div> :
+
+          <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
+          }
 
         </motion.div>
       </section>
 
       {/* Lightbox */}
       <AnimatePresence>
-        {lightbox !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
-            onClick={() => setLightbox(null)}
-          >
+        {lightbox !== null &&
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}>
+          
             <button className="absolute top-4 right-4 text-foreground p-2 z-10" aria-label="Schließen">
               <X size={28} />
             </button>
-            {lightbox > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox - 1); }}
-                className="absolute left-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
-                aria-label="Vorheriges Bild"
-              >
+            {lightbox > 0 &&
+          <button
+            onClick={(e) => {e.stopPropagation();setLightbox(lightbox - 1);}}
+            className="absolute left-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+            aria-label="Vorheriges Bild">
+            
                 <ChevronLeft size={32} />
               </button>
-            )}
-            {lightbox < allImages.length - 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setLightbox(lightbox + 1); }}
-                className="absolute right-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
-                aria-label="Nächstes Bild"
-              >
+          }
+            {lightbox < allImages.length - 1 &&
+          <button
+            onClick={(e) => {e.stopPropagation();setLightbox(lightbox + 1);}}
+            className="absolute right-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+            aria-label="Nächstes Bild">
+            
                 <ChevronRight size={32} />
               </button>
-            )}
+          }
             <div className="flex flex-col items-center max-w-full">
               <img
-                src={allImages[lightbox]?.src}
-                alt={allImages[lightbox]?.alt}
-                className="max-h-[80vh] max-w-full rounded-lg object-contain"
-              />
-              {allImages[lightbox]?.showSubtitle && allImages[lightbox]?.alt && (
-                <p className="mt-3 text-sm text-muted-foreground text-center max-w-xl">
+              src={allImages[lightbox]?.src}
+              alt={allImages[lightbox]?.alt}
+              className="max-h-[80vh] max-w-full rounded-lg object-contain" />
+            
+              {allImages[lightbox]?.showSubtitle && allImages[lightbox]?.alt &&
+            <p className="mt-3 text-sm text-muted-foreground text-center max-w-xl">
                   {allImages[lightbox].alt}
                 </p>
-              )}
+            }
             </div>
           </motion.div>
-        )}
+        }
       </AnimatePresence>
-    </div>
-  );
+    </div>);
+
 };
 
 export default EpochWW1;
