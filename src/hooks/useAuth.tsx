@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -10,6 +10,8 @@ interface AuthContextType {
   isMember: boolean;
   isHerold: boolean;
   isSchatzmeister: boolean;
+  permissions: string[];
+  hasPermission: (permission: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -24,20 +26,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isMember, setIsMember] = useState(false);
   const [isHerold, setIsHerold] = useState(false);
   const [isSchatzmeister, setIsSchatzmeister] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
-  const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
+  const fetchRolesAndPermissions = async (userId: string) => {
+    // Fetch roles
+    const { data: rolesData } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    if (data) {
-      const roles = data.map((r) => r.role);
+    if (rolesData) {
+      const roles = rolesData.map((r) => r.role);
       setIsVorstand(roles.includes("vorstand"));
       setIsHerold(roles.includes("herold"));
       setIsSchatzmeister(roles.includes("schatzmeister"));
       setIsMember(roles.length > 0);
     }
+
+    // Fetch permissions
+    const { data: permsData } = await supabase.rpc("get_user_permissions", {
+      _user_id: userId,
+    });
+    if (permsData) {
+      setPermissions(permsData as unknown as string[]);
+    }
   };
+
+  const hasPermission = useCallback(
+    (permission: string) => permissions.includes(permission),
+    [permissions]
+  );
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -45,12 +62,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRoles(session.user.id), 0);
+          setTimeout(() => fetchRolesAndPermissions(session.user.id), 0);
         } else {
           setIsVorstand(false);
           setIsHerold(false);
           setIsSchatzmeister(false);
           setIsMember(false);
+          setPermissions([]);
         }
         setLoading(false);
       }
@@ -60,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoles(session.user.id);
+        fetchRolesAndPermissions(session.user.id);
       }
       setLoading(false);
     });
@@ -78,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, permissions, hasPermission, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

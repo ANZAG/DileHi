@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, FileText, Eye } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, FileText, Eye, Shield } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -13,14 +13,17 @@ import ContactMessages from "@/components/admin/ContactMessages";
 type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages";
 
 const Admin = () => {
-  const { isVorstand, isHerold, isSchatzmeister } = useAuth();
-  const canAdmin = isVorstand || isHerold || isSchatzmeister;
-  const [activeTab, setActiveTab] = useState<AdminTab>(isVorstand ? "members" : "gallery");
+  const { hasPermission } = useAuth();
+  const canAdmin = hasPermission("admin.access");
+  const canMembers = hasPermission("members.manage");
+  const canRoles = hasPermission("roles.manage");
+  const canAudit = hasPermission("audit.view");
+  const [activeTab, setActiveTab] = useState<AdminTab>(canMembers ? "members" : "gallery");
 
   if (!canAdmin) return <Navigate to="/intern" replace />;
 
   const tabs = [
-    ...(isVorstand ? [
+    ...(canMembers ? [
       { id: "members" as const, label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
     ] : []),
     { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
@@ -40,14 +43,24 @@ const Admin = () => {
             </Link>
             <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
           </div>
-          {isVorstand && (
-            <Link
-              to="/intern/verwaltung/protokoll"
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-            >
-              <FileText size={16} /> Audit
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {canRoles && (
+              <Link
+                to="/intern/verwaltung/berechtigungen"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              >
+                <Shield size={16} /> Berechtigungen
+              </Link>
+            )}
+            {canAudit && (
+              <Link
+                to="/intern/verwaltung/protokoll"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              >
+                <FileText size={16} /> Audit
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Tab cards */}
@@ -73,7 +86,7 @@ const Admin = () => {
 
         {/* Tab content */}
         <div className="p-5 rounded-lg border bg-card">
-          {activeTab === "members" && isVorstand && <MemberRegistry />}
+          {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
           {activeTab === "siteimages" && <SiteImagesAdmin />}

@@ -711,6 +711,30 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          granted: boolean
+          id: string
+          permission: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          permission: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          permission?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       site_images: {
         Row: {
           alt_text: string
@@ -931,9 +955,14 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
       get_user_vote_count: {
         Args: { _election_id: string; _user_id: string }
         Returns: number
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
       }
       has_voted: {
         Args: { _election_id: string; _user_id: string }

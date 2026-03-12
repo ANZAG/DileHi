@@ -27,6 +27,7 @@ import Elections from "./pages/intern/Elections";
 import EventsPage from "./pages/intern/Events";
 import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
+import RolesPermissions from "./pages/intern/RolesPermissions";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
 import MemberMap from "./pages/intern/MemberMap";
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/intern/verwaltung/berechtigungen" element={<ProtectedRoute><RolesPermissions /></ProtectedRoute>} />
               <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
