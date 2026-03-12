@@ -24,8 +24,12 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error("Nicht authentifiziert");
 
-    const { data: isVorstand } = await supabase.rpc("is_vorstand", { _user_id: user.id });
-    if (!isVorstand) throw new Error("Keine Berechtigung");
+    // Use dynamic permission check instead of hardcoded role check
+    const { data: hasReplyPerm } = await supabase.rpc("has_permission", {
+      _user_id: user.id,
+      _permission: "contacts.reply",
+    });
+    if (!hasReplyPerm) throw new Error("Keine Berechtigung");
 
     const { to, name, message, contact_message_id } = await req.json();
     if (!to || !message) throw new Error("Empfänger und Nachricht erforderlich");
