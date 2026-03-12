@@ -426,8 +426,22 @@ const Sources = () => {
                           <Folder size={18} className="text-primary shrink-0" /> <span className="truncate">{f.name}</span>
                         </button>
                         {(f.created_by === user?.id || isVorstand) && (
-                          <button onClick={() => setFolderDeleteConfirm(f.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0">
-                            <Trash2 size={14} />
+                          <button
+                            onClick={() => {
+                              // Members can only delete own folders if no foreign files inside
+                              if (!isVorstand && f.created_by === user?.id) {
+                                const folderSources = sources.filter(s => s.folder_id === f.id);
+                                const hasForeignFiles = folderSources.some(s => s.created_by !== user?.id);
+                                if (hasForeignFiles) {
+                                  toast({ title: "Ordner enthält Dateien anderer Mitglieder", description: "Du kannst nur leere oder eigene Ordner löschen.", variant: "destructive" });
+                                  return;
+                                }
+                              }
+                              setFolderDeleteConfirm(f.id);
+                            }}
+                            className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+                          >
+                             <Trash2 size={14} />
                           </button>
                         )}
                       </div>
