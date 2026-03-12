@@ -27,6 +27,7 @@ import Elections from "./pages/intern/Elections";
 import EventsPage from "./pages/intern/Events";
 import Admin from "./pages/intern/Admin";
 import AuditLog from "./pages/intern/AuditLog";
+import RolesPermissions from "./pages/intern/RolesPermissions";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
 import MemberMap from "./pages/intern/MemberMap";

@@ -55,31 +55,34 @@ const Datenschutz = () => (
       <section className="space-y-4">
         <h2 className="font-serif text-xl font-semibold text-foreground">2. Hosting</h2>
 
-        <p>Wir hosten die Inhalte unserer Website bei folgendem Anbieter:</p>
+        <p>Wir hosten die Inhalte unserer Website bei folgenden Anbietern:</p>
 
         <div>
           <h3 className="font-serif text-lg font-semibold text-foreground">Externes Hosting</h3>
           <p>
-            Diese Website wird extern gehostet. Die personenbezogenen Daten, die auf dieser Website erfasst werden, werden auf den Servern des Hosters / der Hoster gespeichert. Hierbei kann es sich v.&nbsp;a. um IP-Adressen, Kontaktanfragen, Meta- und Kommunikationsdaten, Vertragsdaten, Kontaktdaten, Namen, Websitezugriffe und sonstige Daten, die über eine Website generiert werden, handeln.
+            Diese Website wird extern gehostet. Die personenbezogenen Daten, die auf dieser Website erfasst werden, werden auf den Servern des Hosters gespeichert. Hierbei kann es sich v.&nbsp;a. um IP-Adressen, Kontaktanfragen, Meta- und Kommunikationsdaten, Kontaktdaten, Namen, Websitezugriffe und sonstige Daten, die über eine Website generiert werden, handeln.
           </p>
           <p>
-            Das externe Hosting erfolgt zum Zwecke der Vertragserfüllung gegenüber unseren potenziellen und bestehenden Kunden (Art. 6 Abs. 1 lit. b DSGVO) und im Interesse einer sicheren, schnellen und effizienten Bereitstellung unseres Online-Angebots durch einen professionellen Anbieter (Art. 6 Abs. 1 lit. f DSGVO). Sofern eine entsprechende Einwilligung abgefragt wurde, erfolgt die Verarbeitung ausschließlich auf Grundlage von Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG, soweit die Einwilligung die Speicherung von Cookies oder den Zugriff auf Informationen im Endgerät des Nutzers (z.&nbsp;B. Device-Fingerprinting) im Sinne des TDDDG umfasst. Die Einwilligung ist jederzeit widerrufbar.
+            Das externe Hosting erfolgt zum Zwecke der Vertragserfüllung gegenüber unseren potenziellen und bestehenden Kunden (Art. 6 Abs. 1 lit. b DSGVO) und im Interesse einer sicheren, schnellen und effizienten Bereitstellung unseres Online-Angebots durch einen professionellen Anbieter (Art. 6 Abs. 1 lit. f DSGVO).
           </p>
           <p>
             Unser(e) Hoster wird bzw. werden Ihre Daten nur insoweit verarbeiten, wie dies zur Erfüllung seiner Leistungspflichten erforderlich ist und unsere Weisungen in Bezug auf diese Daten befolgen.
           </p>
-          <p>Wir setzen folgende(n) Hoster ein:</p>
+          <p>Wir setzen folgende Hoster bzw. Dienstleister ein:</p>
           <p>
-            gn2 GmbH<br />
-            Hahnweg 61a<br />
-            96450 Coburg
+            <strong>Webseite und Anwendung:</strong><br />
+            Lovable (GPT Engineer, Inc.)<br />
+            Die Webseite wird über die Plattform Lovable bereitgestellt. Die Server befinden sich in der EU (AWS-Rechenzentren).
           </p>
-        </div>
-
-        <div>
-          <h3 className="font-serif text-lg font-semibold text-foreground">Auftragsverarbeitung</h3>
           <p>
-            Wir haben einen Vertrag über Auftragsverarbeitung (AVV) zur Nutzung des oben genannten Dienstes geschlossen. Hierbei handelt es sich um einen datenschutzrechtlich vorgeschriebenen Vertrag, der gewährleistet, dass dieser die personenbezogenen Daten unserer Websitebesucher nur nach unseren Weisungen und unter Einhaltung der DSGVO verarbeitet.
+            <strong>Datenbank und Authentifizierung:</strong><br />
+            Supabase, Inc.<br />
+            Für die Speicherung von Daten (z.&nbsp;B. Kontaktanfragen, Mitgliederdaten) und die Benutzeranmeldung setzen wir Supabase ein. Die Daten werden auf Servern in der EU (AWS Frankfurt) gespeichert.
+          </p>
+          <p>
+            <strong>E-Mail-Versand:</strong><br />
+            Microsoft Corporation (Microsoft 365 / Microsoft Graph API)<br />
+            Für den Versand von E-Mails (z.&nbsp;B. Benachrichtigungen, Passwort-Zurücksetzungen) nutzen wir Microsoft 365. Die Verarbeitung erfolgt gemäß den Microsoft-Datenschutzbestimmungen.
           </p>
         </div>
       </section>
@@ -125,7 +128,7 @@ const Datenschutz = () => (
         <div>
           <h3 className="font-serif text-lg font-semibold text-foreground">Allgemeine Hinweise zu den Rechtsgrundlagen der Datenverarbeitung auf dieser Website</h3>
           <p>
-            Sofern Sie in die Datenverarbeitung eingewilligt haben, verarbeiten wir Ihre personenbezogenen Daten auf Grundlage von Art. 6 Abs. 1 lit. a DSGVO bzw. Art. 9 Abs. 2 lit. a DSGVO, sofern besondere Datenkategorien nach Art. 9 Abs. 1 DSGVO verarbeitet werden. Im Falle einer ausdrücklichen Einwilligung in die Übertragung personenbezogener Daten in Drittstaaten erfolgt die Datenverarbeitung außerdem auf Grundlage von Art. 49 Abs. 1 lit. a DSGVO. Sofern Sie in die Speicherung von Cookies oder in den Zugriff auf Informationen in Ihr Endgerät (z.&nbsp;B. via Device-Fingerprinting) eingewilligt haben, erfolgt die Datenverarbeitung zusätzlich auf Grundlage von § 25 Abs. 1 TDDDG. Die Einwilligung ist jederzeit widerrufbar. Sind Ihre Daten zur Vertragserfüllung oder zur Durchführung vorvertraglicher Maßnahmen erforderlich, verarbeiten wir Ihre Daten auf Grundlage des Art. 6 Abs. 1 lit. b DSGVO. Des Weiteren verarbeiten wir Ihre Daten, sofern diese zur Erfüllung einer rechtlichen Verpflichtung erforderlich sind auf Grundlage von Art. 6 Abs. 1 lit. c DSGVO. Die Datenverarbeitung kann ferner auf Grundlage unseres berechtigten Interesses nach Art. 6 Abs. 1 lit. f DSGVO erfolgen. Über die jeweils im Einzelfall einschlägigen Rechtsgrundlagen wird in den folgenden Absätzen dieser Datenschutzerklärung informiert.
+            Sofern Sie in die Datenverarbeitung eingewilligt haben, verarbeiten wir Ihre personenbezogenen Daten auf Grundlage von Art. 6 Abs. 1 lit. a DSGVO bzw. Art. 9 Abs. 2 lit. a DSGVO, sofern besondere Datenkategorien nach Art. 9 Abs. 1 DSGVO verarbeitet werden. Sind Ihre Daten zur Vertragserfüllung oder zur Durchführung vorvertraglicher Maßnahmen erforderlich, verarbeiten wir Ihre Daten auf Grundlage des Art. 6 Abs. 1 lit. b DSGVO. Des Weiteren verarbeiten wir Ihre Daten, sofern diese zur Erfüllung einer rechtlichen Verpflichtung erforderlich sind auf Grundlage von Art. 6 Abs. 1 lit. c DSGVO. Die Datenverarbeitung kann ferner auf Grundlage unseres berechtigten Interesses nach Art. 6 Abs. 1 lit. f DSGVO erfolgen. Über die jeweils im Einzelfall einschlägigen Rechtsgrundlagen wird in den folgenden Absätzen dieser Datenschutzerklärung informiert.
           </p>
         </div>
 
@@ -147,9 +150,6 @@ const Datenschutz = () => (
           <h3 className="font-serif text-lg font-semibold text-foreground">Widerspruchsrecht gegen die Datenerhebung in besonderen Fällen sowie gegen Direktwerbung (Art. 21 DSGVO)</h3>
           <p className="font-semibold text-foreground text-sm uppercase leading-relaxed">
             Wenn die Datenverarbeitung auf Grundlage von Art. 6 Abs. 1 lit. e oder f DSGVO erfolgt, haben Sie jederzeit das Recht, aus Gründen, die sich aus Ihrer besonderen Situation ergeben, gegen die Verarbeitung Ihrer personenbezogenen Daten Widerspruch einzulegen; dies gilt auch für ein auf diese Bestimmungen gestütztes Profiling. Die jeweilige Rechtsgrundlage, auf denen eine Verarbeitung beruht, entnehmen Sie dieser Datenschutzerklärung. Wenn Sie Widerspruch einlegen, werden wir Ihre betroffenen personenbezogenen Daten nicht mehr verarbeiten, es sei denn, wir können zwingende schutzwürdige Gründe für die Verarbeitung nachweisen, die Ihre Interessen, Rechte und Freiheiten überwiegen oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen (Widerspruch nach Art. 21 Abs. 1 DSGVO).
-          </p>
-          <p className="font-semibold text-foreground text-sm uppercase leading-relaxed">
-            Werden Ihre personenbezogenen Daten verarbeitet, um Direktwerbung zu betreiben, so haben Sie das Recht, jederzeit Widerspruch gegen die Verarbeitung Sie betreffender personenbezogener Daten zum Zwecke derartiger Werbung einzulegen; dies gilt auch für das Profiling, soweit es mit solcher Direktwerbung in Verbindung steht. Wenn Sie widersprechen, werden Ihre personenbezogenen Daten anschließend nicht mehr zum Zwecke der Direktwerbung verwendet (Widerspruch nach Art. 21 Abs. 2 DSGVO).
           </p>
         </div>
 
@@ -206,6 +206,19 @@ const Datenschutz = () => (
         <h2 className="font-serif text-xl font-semibold text-foreground">4. Datenerfassung auf dieser Website</h2>
 
         <div>
+          <h3 className="font-serif text-lg font-semibold text-foreground">Cookies und lokale Speicherung</h3>
+          <p>
+            Diese Website verwendet <strong>keine Cookies</strong> zu Tracking- oder Analysezwecken. Wir setzen keine Analyse-Tools (wie Google Analytics) oder Werbe-Tracker ein.
+          </p>
+          <p>
+            Für den passwortgeschützten Mitgliederbereich wird ausschließlich der lokale Speicher des Browsers (localStorage) genutzt, um die Anmeldesitzung aufrechtzuerhalten. Dies ist technisch notwendig, um den Login-Status zwischen Seitenaufrufen zu speichern (Art. 6 Abs. 1 lit. f DSGVO). Diese Daten werden automatisch beim Abmelden oder Schließen des Browsers gelöscht und nicht an Dritte weitergegeben.
+          </p>
+          <p>
+            Da keine einwilligungspflichtigen Cookies oder Tracking-Technologien eingesetzt werden, ist kein Cookie-Banner erforderlich.
+          </p>
+        </div>
+
+        <div>
           <h3 className="font-serif text-lg font-semibold text-foreground">Server-Log-Dateien</h3>
           <p>
             Der Provider der Seiten erhebt und speichert automatisch Informationen in so genannten Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt. Dies sind:
@@ -251,8 +264,55 @@ const Datenschutz = () => (
         </div>
       </section>
 
+      {/* 5. Mitgliederbereich */}
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl font-semibold text-foreground">5. Mitgliederbereich</h2>
+
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-foreground">Registrierung und Anmeldung</h3>
+          <p>
+            Für Vereinsmitglieder bieten wir einen passwortgeschützten internen Bereich an. Die Registrierung erfolgt ausschließlich per Einladung durch den Vorstand. Dabei werden folgende Daten erhoben und gespeichert:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>E-Mail-Adresse (zur Anmeldung und Kommunikation)</li>
+            <li>Anzeigename / Vor- und Nachname</li>
+            <li>Anrede</li>
+            <li>Adressdaten (Straße, PLZ, Ort)</li>
+            <li>Telefonnummer</li>
+            <li>Geburtsdatum</li>
+            <li>Vereinseintritts- und ggf. Austrittsdatum</li>
+          </ul>
+          <p>
+            Die Verarbeitung dieser Daten erfolgt auf Grundlage des Vereinsmitgliedschaftsverhältnisses (Art. 6 Abs. 1 lit. b DSGVO) sowie zur Erfüllung vereinsrechtlicher Pflichten (Art. 6 Abs. 1 lit. c DSGVO).
+          </p>
+        </div>
+
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-foreground">Verarbeitete Daten im Mitgliederbereich</h3>
+          <p>Im Mitgliederbereich werden darüber hinaus folgende Daten verarbeitet:</p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Veranstaltungsteilnahmen und Zu-/Absagen</li>
+            <li>Abstimmungsteilnahmen (anonymisiert gespeichert)</li>
+            <li>Beitragszahlungen und -status</li>
+            <li>Hochgeladene Dokumente und Mitgliedsunterlagen</li>
+            <li>Pinnwand-Beiträge und Kommentare</li>
+            <li>Standortdaten für die optionale Mitgliederkarte (nur bei ausdrücklicher Zustimmung)</li>
+          </ul>
+          <p>
+            Alle Daten im Mitgliederbereich sind durch ein rollenbasiertes Berechtigungssystem geschützt. Nur berechtigte Personen (je nach Rolle: Vorstand, Schatzmeister, Herold) haben Zugriff auf die jeweiligen Daten. Die Zugriffsrechte werden über datenbankgestützte Sicherheitsrichtlinien (Row Level Security) technisch durchgesetzt.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-foreground">Löschung von Mitgliederdaten</h3>
+          <p>
+            Bei Austritt aus dem Verein oder auf Wunsch des Mitglieds werden personenbezogene Daten gelöscht, sofern keine gesetzlichen Aufbewahrungsfristen entgegenstehen. Der Account kann durch den Vorstand vollständig gelöscht werden, wobei zugehörige Inhalte (z.&nbsp;B. erstellte Veranstaltungen oder Pinnwand-Beiträge) auf ein anderes Mitglied übertragen werden, um die Integrität der Vereinsdokumentation zu wahren.
+          </p>
+        </div>
+      </section>
+
       <section className="pt-4 border-t text-xs">
-        <p>Quelle: <a href="https://www.e-recht24.de" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">e-recht24.de</a></p>
+        <p>Quelle: <a href="https://www.e-recht24.de" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">e-recht24.de</a> (angepasst)</p>
       </section>
     </div>
   </div>
