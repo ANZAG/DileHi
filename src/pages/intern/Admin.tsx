@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, FileText } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, FileText, Eye } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
+import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 
-type AdminTab = "members" | "gallery" | "sources" | "messages";
+type AdminTab = "members" | "gallery" | "sources" | "visitor" | "messages";
 
 const Admin = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
@@ -24,6 +25,7 @@ const Admin = () => {
     { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     { id: "gallery" as const, label: "Galerie", icon: Image, desc: "Bilder verwalten" },
     { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
+    { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
   ];
 
   return (
@@ -73,6 +75,7 @@ const Admin = () => {
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
+          {activeTab === "visitor" && <VisitorHighlightsAdmin />}
         </div>
       </motion.div>
     </div>

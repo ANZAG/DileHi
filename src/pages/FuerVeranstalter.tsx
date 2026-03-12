@@ -157,7 +157,7 @@ const FuerVeranstalter = () => {
               Unsere Partner sind Städte, Museen, historische Orte wie Burgen und Klöster sowie Veranstaltungen mit dokumentarisch-historischem Anspruch.
             </p>
             <p>
-              Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob den Rheingau-Taunus-Kreis, den Lahn-Dill-Kreis und angrenzende Regionen umfasst.
+              Als Wiesbadener Verein liegt unser geografischer Schwerpunkt auf dem Raum Wiesbaden und dem historischen Nassauer Land – dem Gebiet, das heute grob den Rheingau-Taunus-Kreis, den Lahn-Dill-Kreis und angrenzende Regionen umfasst. Unsere Mitglieder sind jedoch deutschlandweit verteilt, und wir sind grundsätzlich auch überregional für Veranstaltungen verfügbar.
             </p>
             <p>
               Dieser regionale Fokus spiegelt sich auch in unseren Darstellungen wider: Wir beschäftigen uns bewusst mit der Geschichte dieser Region und den Menschen, die hier gelebt haben.

@@ -90,14 +90,8 @@ const Epoch1815 = () => {
 
           {/* 2 – Was Besucher erleben können */}
           <VisitorHighlight
+            epoch="1815"
             intro="Auf Veranstaltungen machen wir die Welt der nassauischen Soldaten um 1815 anschaulich und verständlich."
-            items={[
-              "Einblicke in Kleidung, Uniformierung und Ausrüstung eines nassauischen Grenadiers",
-              "Präsentationen von Alltagsgegenständen und persönlicher Ausrüstung",
-              "Nassaus Weg durch die Napoleonischen Kriege – vom Rheinbund bis Waterloo",
-              "Die Rolle Wiesbadens als Garnisons- und Residenzstadt",
-              "Gespräche über das Leben, Marschieren und Kämpfen in dieser Zeit",
-            ]}
             outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
           />
 

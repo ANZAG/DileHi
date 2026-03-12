@@ -89,14 +89,8 @@ const EpochMedieval = () => {
 
           {/* 2 – Was Besucher erleben können */}
           <VisitorHighlight
+            epoch="mittelalter"
             intro="Auf Veranstaltungen versuchen wir, die Welt des Spätmittelalters verständlich und greifbar zu machen."
-            items={[
-              "\u201EArming a Knight\u201C \u2013 das Anlegen einer vollst\u00E4ndigen Ritterr\u00FCstung",
-              "Einblicke in Kleidung und Mode des sp\u00E4ten 13. Jahrhunderts",
-              "Pr\u00E4sentationen von Alltagsgegenst\u00E4nden, Glauben und Ausr\u00FCstung",
-              "Displays \u201ELederarbeiten\u201C, \u201EBaustelle im Mittelalter\u201C, \u201EWund\u00E4rzte im Mittelalter\u201C",
-              "Gespr\u00E4che \u00FCber das Leben, Arbeiten und K\u00E4mpfen in dieser Zeit",
-            ]}
             outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
           />
 
