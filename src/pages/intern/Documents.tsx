@@ -45,8 +45,9 @@ const ALL_CATEGORIES = [
 const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 
 const Documents = () => {
-  const { isVorstand, isHerold, isSchatzmeister } = useAuth();
-  const canSeeVorstand = isVorstand || isHerold || isSchatzmeister;
+  const { hasPermission } = useAuth();
+  const canManageDocs = hasPermission("documents.manage");
+  const canSeeVorstand = hasPermission("profiles.view_all");
   const CATEGORIES = canSeeVorstand
     ? ALL_CATEGORIES
     : ALL_CATEGORIES.filter((c) => !RESTRICTED_CATEGORIES.includes(c.value));

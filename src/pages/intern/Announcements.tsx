@@ -8,7 +8,8 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Announcements = () => {
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("announcements.moderate");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);

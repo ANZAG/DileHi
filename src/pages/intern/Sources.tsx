@@ -36,7 +36,8 @@ interface UploadProgress {
 }
 
 const Sources = () => {
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("announcements.moderate");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [epochFilter, setEpochFilter] = useState("");
