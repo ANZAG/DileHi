@@ -86,10 +86,10 @@ const Admin = () => {
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "messages" && <ContactMessages />}
-          {activeTab === "gallery" && <GalleryAdmin />}
-          {activeTab === "siteimages" && <SiteImagesAdmin />}
-          {activeTab === "sources" && <SourcesAdmin />}
-          {activeTab === "visitor" && <VisitorHighlightsAdmin />}
+          {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
+          {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
+          {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
+          {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
         </div>
