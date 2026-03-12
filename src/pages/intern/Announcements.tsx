@@ -168,12 +168,14 @@ const Announcements = () => {
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <h1 className="font-serif text-2xl font-bold">Versammlungen</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
-          >
-            <Plus size={16} /> Neue Ankündigung
-          </button>
+          {isVorstand && (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
+            >
+              <Plus size={16} /> Neue Ankündigung
+            </button>
+          )}
         </div>
 
         {showForm && (

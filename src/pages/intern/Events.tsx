@@ -318,6 +318,7 @@ const EventsPage = () => {
   const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
   const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
   const canEdit = (event: Event) => event.created_by === user?.id || isVorstand;
+  const canSetPublic = isVorstand;
 
   const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-ical`;
   const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
@@ -352,12 +353,14 @@ const EventsPage = () => {
           <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
           <label htmlFor={`allDay-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">Ganztägig</label>
         </div>
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id={`isPublic-${isEdit ? 'edit' : 'create'}`} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="rounded border-input" />
-          <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
-            Öffentlich sichtbar
-          </label>
-        </div>
+        {canSetPublic && (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id={`isPublic-${isEdit ? 'edit' : 'create'}`} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="rounded border-input" />
+            <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
+              Öffentlich sichtbar
+            </label>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

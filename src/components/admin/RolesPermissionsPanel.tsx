@@ -110,7 +110,7 @@ const RolesPermissionsPanel = () => {
           <Eye size={16} /> Ansicht testen als:
         </p>
         <div className="flex flex-wrap gap-2">
-          {ROLES.map((role) => (
+          {ROLES.filter((role) => role.key !== "vorstand").map((role) => (
             <Button
               key={role.key}
               variant="outline"
