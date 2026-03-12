@@ -318,8 +318,8 @@ const EventsPage = () => {
 
   const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
   const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
-  const canEdit = (event: Event) => event.created_by === user?.id || isVorstand;
-  const canSetPublic = isVorstand;
+  const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
+  const canSetPublic = canPublish;
 
   const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-ical`;
   const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
