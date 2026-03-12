@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
 const Profile = () => {
-  const { user, isVorstand, isSchatzmeister } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
