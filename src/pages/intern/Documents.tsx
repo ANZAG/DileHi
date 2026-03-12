@@ -45,8 +45,9 @@ const ALL_CATEGORIES = [
 const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 
 const Documents = () => {
-  const { isVorstand, isHerold, isSchatzmeister } = useAuth();
-  const canSeeVorstand = isVorstand || isHerold || isSchatzmeister;
+  const { hasPermission } = useAuth();
+  const canManageDocs = hasPermission("documents.manage");
+  const canSeeVorstand = hasPermission("profiles.view_all");
   const CATEGORIES = canSeeVorstand
     ? ALL_CATEGORIES
     : ALL_CATEGORIES.filter((c) => !RESTRICTED_CATEGORIES.includes(c.value));
@@ -149,7 +150,7 @@ const Documents = () => {
 
         <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6">Vereinsdokumente</h1>
 
-        {isVorstand && (
+        {canManageDocs && (
           <form onSubmit={handleUpload} className="p-4 rounded-lg border bg-card mb-8 space-y-4">
             <h2 className="font-semibold text-sm">Dokument hochladen</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,7 +216,7 @@ const Documents = () => {
                           <Button variant="ghost" size="icon" onClick={() => handleOpen(doc.storage_path, doc.file_name)}>
                             <Download size={16} />
                           </Button>
-                          {isVorstand && (
+                          {canManageDocs && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon"><Trash2 size={16} className="text-destructive" /></Button>

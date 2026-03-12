@@ -46,7 +46,8 @@ interface SpanSegment {
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const EventsPage = () => {
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("events.moderate");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, FileText, Eye, Shield } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -9,8 +9,10 @@ import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
 import SiteImagesAdmin from "@/components/admin/SiteImagesAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
+import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
+import AuditLogPanel from "@/components/admin/AuditLogPanel";
 
-type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages";
+type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
 
 const Admin = () => {
   const { hasPermission } = useAuth();
@@ -18,7 +20,9 @@ const Admin = () => {
   const canMembers = hasPermission("members.manage");
   const canRoles = hasPermission("roles.manage");
   const canAudit = hasPermission("audit.view");
-  const [activeTab, setActiveTab] = useState<AdminTab>(canMembers ? "members" : "gallery");
+
+  const defaultTab: AdminTab = canMembers ? "members" : "gallery";
+  const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
 
   if (!canAdmin) return <Navigate to="/intern" replace />;
 
@@ -31,36 +35,22 @@ const Admin = () => {
     { id: "siteimages" as const, label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
     { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
     { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
+    ...(canRoles ? [
+      { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
+    ] : []),
+    ...(canAudit ? [
+      { id: "audit" as const, label: "Audit-Log", icon: FileText, desc: "Abstimmungsprotokoll einsehen" },
+    ] : []),
   ];
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-              <ArrowLeft size={16} /> Zurück
-            </Link>
-            <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {canRoles && (
-              <Link
-                to="/intern/verwaltung/berechtigungen"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-              >
-                <Shield size={16} /> Berechtigungen
-              </Link>
-            )}
-            {canAudit && (
-              <Link
-                to="/intern/verwaltung/protokoll"
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-              >
-                <FileText size={16} /> Audit
-              </Link>
-            )}
-          </div>
+        <div className="flex items-center gap-4 mb-6">
+          <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} /> Zurück
+          </Link>
+          <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
         </div>
 
         {/* Tab cards */}
@@ -92,6 +82,8 @@ const Admin = () => {
           {activeTab === "siteimages" && <SiteImagesAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
           {activeTab === "visitor" && <VisitorHighlightsAdmin />}
+          {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
+          {activeTab === "audit" && canAudit && <AuditLogPanel />}
         </div>
       </motion.div>
     </div>

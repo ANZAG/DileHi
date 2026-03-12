@@ -13,8 +13,8 @@ const cards = [
 ];
 
 const Dashboard = () => {
-  const { user, signOut, isVorstand, isHerold, isSchatzmeister } = useAuth();
-  const canAdmin = isVorstand || isHerold || isSchatzmeister;
+  const { user, signOut, isVorstand, isHerold, isSchatzmeister, hasPermission } = useAuth();
+  const canAdmin = hasPermission("admin.access");
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">

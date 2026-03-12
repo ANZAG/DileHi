@@ -11,7 +11,8 @@ import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
 
 const Elections = () => {
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("elections.manage");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showGroupForm, setShowGroupForm] = useState(false);

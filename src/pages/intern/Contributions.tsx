@@ -135,8 +135,8 @@ const RateEditor = ({
 };
 
 const Contributions = () => {
-  const { isVorstand, isSchatzmeister, user } = useAuth();
-  const canEdit = isVorstand || isSchatzmeister;
+  const { user, hasPermission } = useAuth();
+  const canEdit = hasPermission("contributions.manage");
   const { toast } = useToast();
   const qc = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
