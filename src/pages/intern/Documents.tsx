@@ -216,7 +216,7 @@ const Documents = () => {
                           <Button variant="ghost" size="icon" onClick={() => handleOpen(doc.storage_path, doc.file_name)}>
                             <Download size={16} />
                           </Button>
-                          {isVorstand && (
+                          {canManageDocs && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon"><Trash2 size={16} className="text-destructive" /></Button>
