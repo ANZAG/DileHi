@@ -414,6 +414,33 @@ export type Database = {
         }
         Relationships: []
       }
+      epoch_visitor_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          epoch: string
+          id: string
+          sort_order: number
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          epoch?: string
+          id?: string
+          sort_order?: number
+          text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          epoch?: string
+          id?: string
+          sort_order?: number
+          text?: string
+        }
+        Relationships: []
+      }
       event_attendees: {
         Row: {
           created_at: string
