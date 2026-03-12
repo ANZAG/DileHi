@@ -49,6 +49,7 @@ const EventsPage = () => {
   const { user, hasPermission } = useAuth();
   const canModerate = hasPermission("events.moderate");
   const canPublish = hasPermission("events.publish") || canModerate;
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
