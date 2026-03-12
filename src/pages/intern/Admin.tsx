@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, FileText } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, FileText, Eye } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
+import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 
-type AdminTab = "members" | "gallery" | "sources" | "messages";
+type AdminTab = "members" | "gallery" | "sources" | "visitor" | "messages";
 
 const Admin = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
