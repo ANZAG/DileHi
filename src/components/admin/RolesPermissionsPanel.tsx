@@ -32,8 +32,8 @@ const ALL_PERMISSIONS = [
   { key: "documents.manage", label: "Dokumente verwalten", category: "Verein" },
   { key: "elections.manage", label: "Abstimmungen verwalten", category: "Verein" },
   { key: "contributions.manage", label: "Beiträge verwalten", category: "Finanzen" },
-  { key: "announcements.moderate", label: "Pinnwand moderieren", category: "Kommunikation" },
-  { key: "events.moderate", label: "Veranstaltungen moderieren", category: "Kommunikation" },
+  { key: "announcements.moderate", label: "Ankündigungen erstellen & moderieren", category: "Kommunikation" },
+  { key: "events.moderate", label: "Alle Veranstaltungen bearbeiten & öffentlich stellen", category: "Kommunikation" },
 ];
 
 type RoleKey = (typeof ROLES)[number]["key"];
