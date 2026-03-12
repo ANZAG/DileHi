@@ -28,7 +28,7 @@ const About = () => (
             Entstanden ist unsere Gruppe aus einem Freundeskreis, der eine gemeinsame Leidenschaft verbindet: Geschichte – und besonders das Mittelalter. 2011 beschlossen wir, diese Begeisterung gemeinsam weiterzuverfolgen und historische Darstellungen zu erarbeiten. Zwei Jahre später wurde der Verein offiziell gegründet und ins Vereinsregister eingetragen.
           </p>
           <p>
-            Heute sind wir eine Gruppe von rund 15 Menschen aus Wiesbaden und Umgebung, die sich intensiv mit verschiedenen Epochen der regionalen Geschichte beschäftigt. Unser Schwerpunkt liegt dabei auf dem historischen Nassauer Land – von der mittelalterlichen Grafschaft über das Herzogtum Nassau bis in die Zeit des Ersten Weltkriegs.
+            Heute sind wir eine Gruppe von rund 15 Menschen, deren Mitglieder deutschlandweit verteilt sind – mit einem Schwerpunkt auf Wiesbaden und Umgebung. Gemeinsam beschäftigen wir uns intensiv mit verschiedenen Epochen der regionalen Geschichte: von der mittelalterlichen Grafschaft über das Herzogtum Nassau bis in die Zeit des Ersten Weltkriegs.
           </p>
         </div>
         <div className="rounded-lg overflow-hidden mt-6">

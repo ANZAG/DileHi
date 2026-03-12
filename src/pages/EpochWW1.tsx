@@ -90,15 +90,10 @@ const EpochWW1 = () => {
 
           {/* 2 – Was Besucher erleben können */}
           <VisitorHighlight
+            epoch="wk1"
             intro="Auf Veranstaltungen machen wir den Alltag der Soldaten im Ersten Weltkrieg anschaulich und greifbar – mit dem Ziel, Geschichte verständlich und verantwortungsvoll zu vermitteln."
-            items={[
-            "Einblicke in Kleidung, Uniformierung und persönliche Ausrüstung eines Pioniers",
-            "Präsentationen von Alltagsgegenständen und Ausrüstung der Westfront",
-            "Pioniertechnik und Stellungsbau – wie eine Front funktionierte",
-            "Regionale Bezüge: nassauische Einheiten im Weltkrieg",
-            "Gespräche über das Leben, Arbeiten und Kämpfen in dieser Zeit"]
-            }
-            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen." />
+            outro="Besucher können dabei Fragen stellen, Objekte aus der Nähe betrachten und mit uns über Geschichte ins Gespräch kommen."
+          />
           
 
           {/* 3 – Unsere Darstellung */}

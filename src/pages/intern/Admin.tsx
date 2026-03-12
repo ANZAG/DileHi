@@ -75,6 +75,7 @@ const Admin = () => {
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
+          {activeTab === "visitor" && <VisitorHighlightsAdmin />}
         </div>
       </motion.div>
     </div>
