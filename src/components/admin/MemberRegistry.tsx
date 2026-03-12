@@ -427,7 +427,41 @@ const MemberRegistry = () => {
 
       {/* Members table */}
       {isLoading ? (
-        <div className="text-center text-muted-foreground py-8">Laden...</div>
+        <div className="space-y-3">
+          {/* Desktop skeleton */}
+          <div className="hidden md:block">
+            <div className="border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-6 gap-4 p-3 border-b bg-muted/30">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-4 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+              {Array.from({ length: 6 }).map((_, row) => (
+                <div key={row} className="grid grid-cols-6 gap-4 p-3 border-b last:border-0">
+                  <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                  <div className="h-5 bg-muted animate-pulse rounded-full w-20" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-5/6" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+                  <div className="h-2 w-2 bg-muted animate-pulse rounded-full mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Mobile skeleton */}
+          <div className="md:hidden space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="border rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <div className="h-4 bg-muted animate-pulse rounded w-1/3" />
+                  <div className="h-5 bg-muted animate-pulse rounded-full w-16" />
+                </div>
+                <div className="h-3 bg-muted animate-pulse rounded w-2/3" />
+                <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : filteredMembers.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">Keine Mitglieder gefunden</div>
       ) : (
