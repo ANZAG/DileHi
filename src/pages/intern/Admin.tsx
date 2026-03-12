@@ -76,6 +76,7 @@ const Admin = () => {
           {activeTab === "members" && isVorstand && <MemberRegistry />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
+          {activeTab === "siteimages" && <SiteImagesAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
           {activeTab === "visitor" && <VisitorHighlightsAdmin />}
         </div>
