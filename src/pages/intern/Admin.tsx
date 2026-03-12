@@ -6,10 +6,11 @@ import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
 import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
+import SiteImagesAdmin from "@/components/admin/SiteImagesAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 
-type AdminTab = "members" | "gallery" | "sources" | "visitor" | "messages";
+type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages";
 
 const Admin = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
@@ -24,6 +25,7 @@ const Admin = () => {
     ] : []),
     { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     { id: "gallery" as const, label: "Galerie", icon: Image, desc: "Bilder verwalten" },
+    { id: "siteimages" as const, label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
     { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
     { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
   ];
@@ -74,6 +76,7 @@ const Admin = () => {
           {activeTab === "members" && isVorstand && <MemberRegistry />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && <GalleryAdmin />}
+          {activeTab === "siteimages" && <SiteImagesAdmin />}
           {activeTab === "sources" && <SourcesAdmin />}
           {activeTab === "visitor" && <VisitorHighlightsAdmin />}
         </div>
