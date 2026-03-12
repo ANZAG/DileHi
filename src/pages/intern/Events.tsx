@@ -47,8 +47,8 @@ const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const EventsPage = () => {
   const { user, hasPermission } = useAuth();
-  const isVorstand = hasPermission("events.moderate");
-  const { toast } = useToast();
+  const canModerate = hasPermission("events.moderate");
+  const canPublish = hasPermission("events.publish") || canModerate;
   const queryClient = useQueryClient();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
