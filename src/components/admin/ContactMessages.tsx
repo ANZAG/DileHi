@@ -175,22 +175,22 @@ const ContactMessages = () => {
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {isVorstand && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setReplyTo(replyTo === msg.id ? null : msg.id);
-                        setReplyText("");
-                      }}
-                      className="text-muted-foreground hover:text-primary p-1"
-                      title="Antworten"
-                    >
-                      <Reply size={14} />
-                    </button>
-                    <button onClick={() => deleteContactMessage.mutate(msg.id)} className="text-muted-foreground hover:text-destructive p-1">
-                      <Trash2 size={14} />
-                    </button>
-                  </>
+                {canReply && (
+                  <button
+                    onClick={() => {
+                      setReplyTo(replyTo === msg.id ? null : msg.id);
+                      setReplyText("");
+                    }}
+                    className="text-muted-foreground hover:text-primary p-1"
+                    title="Antworten"
+                  >
+                    <Reply size={14} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button onClick={() => deleteContactMessage.mutate(msg.id)} className="text-muted-foreground hover:text-destructive p-1">
+                    <Trash2 size={14} />
+                  </button>
                 )}
               </div>
             </div>
