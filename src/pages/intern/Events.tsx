@@ -47,7 +47,8 @@ const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const EventsPage = () => {
   const { user, hasPermission } = useAuth();
-  const isVorstand = hasPermission("events.moderate");
+  const canModerate = hasPermission("events.moderate");
+  const canPublish = hasPermission("events.publish") || canModerate;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -317,8 +318,8 @@ const EventsPage = () => {
 
   const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
   const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
-  const canEdit = (event: Event) => event.created_by === user?.id || isVorstand;
-  const canSetPublic = isVorstand;
+  const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
+  const canSetPublic = canPublish;
 
   const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-ical`;
   const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
