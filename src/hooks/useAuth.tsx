@@ -14,6 +14,9 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  impersonatingRole: string | null;
+  startImpersonation: (role: string) => void;
+  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +30,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHerold, setIsHerold] = useState(false);
   const [isSchatzmeister, setIsSchatzmeister] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [realPermissions, setRealPermissions] = useState<string[]>([]);
+  const [impersonatingRole, setImpersonatingRole] = useState<string | null>(null);
 
   const fetchRolesAndPermissions = async (userId: string) => {
     // Fetch roles
@@ -47,9 +52,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       _user_id: userId,
     });
     if (permsData) {
-      setPermissions(permsData as unknown as string[]);
+      const perms = permsData as unknown as string[];
+      setPermissions(perms);
+      setRealPermissions(perms);
     }
   };
+
+  const startImpersonation = useCallback(async (role: string) => {
+    // Fetch permissions for the target role from role_permissions table
+    const { data } = await supabase
+      .from("role_permissions")
+      .select("permission")
+      .eq("role", role as any)
+      .eq("granted", true);
+    if (data) {
+      setPermissions(data.map((r) => r.permission));
+      setImpersonatingRole(role);
+    }
+  }, []);
+
+  const stopImpersonation = useCallback(() => {
+    setPermissions(realPermissions);
+    setImpersonatingRole(null);
+  }, [realPermissions]);
 
   const hasPermission = useCallback(
     (permission: string) => permissions.includes(permission),
@@ -96,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, permissions, hasPermission, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, permissions, hasPermission, signIn, signOut, impersonatingRole, startImpersonation, stopImpersonation }}>
       {children}
     </AuthContext.Provider>
   );
