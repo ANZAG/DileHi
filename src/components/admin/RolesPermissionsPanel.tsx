@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const ROLES = [
   { key: "vorstand" as const, label: "Vorstand" },
@@ -38,6 +40,7 @@ type RoleKey = (typeof ROLES)[number]["key"];
 
 const RolesPermissionsPanel = () => {
   const queryClient = useQueryClient();
+  const { startImpersonation } = useAuth();
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
 
   const { data: rolePermissions = [], isLoading } = useQuery({
@@ -101,6 +104,28 @@ const RolesPermissionsPanel = () => {
 
   return (
     <div>
+      {/* Impersonation buttons */}
+      <div className="mb-6 p-4 rounded-lg border bg-muted/30">
+        <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+          <Eye size={16} /> Ansicht testen als:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {ROLES.map((role) => (
+            <Button
+              key={role.key}
+              variant="outline"
+              size="sm"
+              onClick={() => startImpersonation(role.key)}
+            >
+              {role.label}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Du siehst dann die App aus Sicht dieser Rolle. Oben erscheint ein Banner zum Zurückwechseln.
+        </p>
+      </div>
+
       <div className="border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
