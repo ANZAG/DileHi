@@ -6,10 +6,11 @@ import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
 import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
+import SiteImagesAdmin from "@/components/admin/SiteImagesAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 
-type AdminTab = "members" | "gallery" | "sources" | "visitor" | "messages";
+type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages";
 
 const Admin = () => {
   const { isVorstand, isHerold, isSchatzmeister } = useAuth();
