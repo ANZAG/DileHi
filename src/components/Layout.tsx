@@ -16,10 +16,28 @@ const navItems = [
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, impersonatingRole, stopImpersonation } = useAuth();
+
+  const roleLabels: Record<string, string> = {
+    vorstand: "Vorstand",
+    herold: "Herold",
+    schatzmeister: "Schatzmeister",
+    mitglied: "Mitglied",
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {impersonatingRole && (
+        <div className="bg-amber-500 text-amber-950 text-center py-2 px-4 text-sm font-semibold flex items-center justify-center gap-3 z-[60]">
+          <span>🔍 Testansicht: Rolle „{roleLabels[impersonatingRole] ?? impersonatingRole}"</span>
+          <button
+            onClick={stopImpersonation}
+            className="underline hover:no-underline font-bold"
+          >
+            Zurück zur eigenen Ansicht
+          </button>
+        </div>
+      )}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide">
