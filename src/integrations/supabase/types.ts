@@ -711,6 +711,39 @@ export type Database = {
           },
         ]
       }
+      site_images: {
+        Row: {
+          alt_text: string
+          id: string
+          label: string
+          page: string
+          slot: string
+          storage_path: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alt_text?: string
+          id?: string
+          label: string
+          page: string
+          slot: string
+          storage_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alt_text?: string
+          id?: string
+          label?: string
+          page?: string
+          slot?: string
+          storage_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       source_folders: {
         Row: {
           created_at: string
