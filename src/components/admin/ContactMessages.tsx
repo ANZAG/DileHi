@@ -7,7 +7,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 
 const ContactMessages = () => {
-  const { isVorstand } = useAuth();
+  const { hasPermission } = useAuth();
+  const canReply = hasPermission("contacts.reply");
+  const canDelete = hasPermission("contacts.delete");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [replyTo, setReplyTo] = useState<string | null>(null);
