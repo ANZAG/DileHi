@@ -65,6 +65,7 @@ const App = () => (
               <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
               <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/intern/verwaltung/berechtigungen" element={<ProtectedRoute><RolesPermissions /></ProtectedRoute>} />
               <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
