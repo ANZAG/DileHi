@@ -353,12 +353,14 @@ const EventsPage = () => {
           <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
           <label htmlFor={`allDay-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">Ganztägig</label>
         </div>
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id={`isPublic-${isEdit ? 'edit' : 'create'}`} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="rounded border-input" />
-          <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
-            Öffentlich sichtbar
-          </label>
-        </div>
+        {canSetPublic && (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id={`isPublic-${isEdit ? 'edit' : 'create'}`} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="rounded border-input" />
+            <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
+              Öffentlich sichtbar
+            </label>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

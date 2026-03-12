@@ -31,10 +31,18 @@ const Admin = () => {
       { id: "members" as const, label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
     ] : []),
     { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
-    { id: "gallery" as const, label: "Galerie", icon: Image, desc: "Bilder verwalten" },
-    { id: "siteimages" as const, label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
-    { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
-    { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
+    ...(hasPermission("gallery.manage") ? [
+      { id: "gallery" as const, label: "Galerie", icon: Image, desc: "Bilder verwalten" },
+    ] : []),
+    ...(hasPermission("site_images.manage") ? [
+      { id: "siteimages" as const, label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
+    ] : []),
+    ...(hasPermission("epoch_sources.manage") ? [
+      { id: "sources" as const, label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
+    ] : []),
+    ...(hasPermission("visitor_highlights.manage") ? [
+      { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
+    ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
     ] : []),

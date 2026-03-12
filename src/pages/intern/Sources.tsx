@@ -37,7 +37,7 @@ interface UploadProgress {
 
 const Sources = () => {
   const { user, hasPermission } = useAuth();
-  const isVorstand = hasPermission("events.moderate"); // used for folder deletion by non-owners
+  const isVorstand = hasPermission("admin.access"); // used for folder deletion by non-owners
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [epochFilter, setEpochFilter] = useState("");
