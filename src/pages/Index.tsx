@@ -38,9 +38,7 @@ const Index = () => {
         <div className="relative z-10 container flex items-center justify-center px-4">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center max-w-2xl">
             <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 drop-shadow-lg leading-tight">
-              Nassauische Geschichte.
-              <br />
-              Quellenbasiert. Lebendig.
+              Nassauische Geschichte lebendig erleben
             </h1>
             <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
               Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – vom Spätmittelalter bis zum Ersten Weltkrieg.
