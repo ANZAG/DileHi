@@ -51,7 +51,7 @@ const Index = () => {
                 Veranstaltungsanfrage stellen
               </Link>
               <Link to="/verein" className="inline-flex items-center px-6 py-3 rounded-md border border-foreground/30 text-foreground font-medium hover:bg-foreground/10 transition-colors">
-                Mehr über uns erfahren
+                Unser Verein
               </Link>
             </div>
           </motion.div>
