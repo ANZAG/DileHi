@@ -48,7 +48,7 @@ const FuerVeranstalter = () => {
       <section className="bg-card py-16 md:py-20">
         <div className="container max-w-3xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">Für Veranstalter</h1>
+            <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">Living History für Ihre Veranstaltung</h1>
             <p className="text-muted-foreground leading-relaxed">Wir arbeiten mit Partnern zusammen, die historische Bildung und Authentizität in den Mittelpunkt stellen – nicht als Dekoration, sondern als Inhalt.</p>
           </motion.div>
         </div>

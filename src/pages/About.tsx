@@ -18,7 +18,7 @@ const About = () => {
         image="/gruppenfoto.jpg"
       />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-        <h1 className="font-serif text-3xl md:text-4xl font-bold mb-10">Über uns</h1>
+        <h1 className="font-serif text-3xl md:text-4xl font-bold mb-10">Über unseren Verein</h1>
 
         {/* Unsere Geschichte */}
         <section className="mb-12">
