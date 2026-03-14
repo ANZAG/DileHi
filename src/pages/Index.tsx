@@ -150,7 +150,7 @@ const Index = () => {
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Veranstalter</h3>
               <p className="text-sm text-muted-foreground mb-6">Sie planen eine Veranstaltung mit historischem Bildungsanspruch? Wir freuen uns über Ihre Anfrage.</p>
-              <Link to="/fuer-veranstalter" className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">Veranstaltungsanfrage stellen</Link>
+              <Link to="/fuer-veranstalter" className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">Anfrage stellen</Link>
             </div>
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Interessierte</h3>
