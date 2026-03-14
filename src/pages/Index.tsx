@@ -27,7 +27,7 @@ const Index = () => {
     <div>
       <SEO 
         title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
-        description="Seit 2011 machen wir als Wiesbadener Verein die Geschichte des Nassauer Landes vom Spätmittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erfahrbar."
+        description="Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
         url="/"
         image="/hero-medieval.jpg"
       />
@@ -38,9 +38,7 @@ const Index = () => {
         <div className="relative z-10 container flex items-center justify-center px-4">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center max-w-2xl">
             <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 drop-shadow-lg leading-tight">
-              Nassauische Geschichte.
-              <br />
-              Quellenbasiert. Lebendig.
+              Nassauische Geschichte lebendig erleben
             </h1>
             <p className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto">
               Seit 2011 beschäftigen wir uns als Wiesbadener Verein mit der Geschichte des Nassauer Landes – vom Spätmittelalter bis zum Ersten Weltkrieg.
@@ -53,7 +51,7 @@ const Index = () => {
                 Veranstaltungsanfrage stellen
               </Link>
               <Link to="/verein" className="inline-flex items-center px-6 py-3 rounded-md border border-foreground/30 text-foreground font-medium hover:bg-foreground/10 transition-colors">
-                Mehr über uns erfahren
+                Unser Verein
               </Link>
             </div>
           </motion.div>
@@ -152,7 +150,7 @@ const Index = () => {
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Veranstalter</h3>
               <p className="text-sm text-muted-foreground mb-6">Sie planen eine Veranstaltung mit historischem Bildungsanspruch? Wir freuen uns über Ihre Anfrage.</p>
-              <Link to="/fuer-veranstalter" className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">Veranstaltungsanfrage stellen</Link>
+              <Link to="/fuer-veranstalter" className="inline-flex items-center px-6 py-3 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">Anfrage stellen</Link>
             </div>
             <div className="text-center p-8 rounded-lg border bg-background">
               <h3 className="font-serif text-xl font-semibold mb-3">Für Interessierte</h3>
