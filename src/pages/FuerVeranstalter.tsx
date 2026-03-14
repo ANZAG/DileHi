@@ -44,7 +44,7 @@ const FuerVeranstalter = () => {
 
   return (
     <div>
-      <SEO title="Für Veranstalter - Diu lebendec Histôrje" description="Wir arbeiten mit Partnern zusammen, die historische Bildung in den Mittelpunkt stellen. Erfahren Sie mehr über unsere Angebote für Museen, historische Orte und Veranstaltungen." url="/fuer-veranstalter" image="/lederworkshop.jpg" />
+      <SEO title="Für Veranstalter - Diu lebendec Histôrje" description="Living History für Museen und historische Veranstaltungen. Wir bieten quellenbasierte Darstellungen vom Mittelalter bis zum Ersten Weltkrieg." url="/fuer-veranstalter" image="/lederworkshop.jpg" />
       <section className="bg-card py-16 md:py-20">
         <div className="container max-w-3xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
