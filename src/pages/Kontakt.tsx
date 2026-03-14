@@ -79,7 +79,7 @@ const Kontakt = () => {
         url="/kontakt"
       />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-        <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">Kontakt</h1>
+        <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">Kontakt aufnehmen</h1>
         <p className="text-muted-foreground mb-8">
           Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns eine Nachricht!
         </p>
