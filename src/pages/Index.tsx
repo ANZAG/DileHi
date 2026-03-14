@@ -27,7 +27,7 @@ const Index = () => {
     <div>
       <SEO 
         title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
-        description="Seit 2011 machen wir als Wiesbadener Verein die Geschichte des Nassauer Landes vom Spätmittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erfahrbar."
+        description="Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
         url="/"
         image="/hero-medieval.jpg"
       />
