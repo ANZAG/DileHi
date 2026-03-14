@@ -13,7 +13,7 @@ const About = () => {
     <div className="container py-12 md:py-20 max-w-3xl">
       <SEO 
         title="Über uns - Diu lebendec Histôrje"
-        description="Erfahren Sie mehr über unseren Wiesbadener Verein für Living History. Seit 2011 erforschen und vermitteln wir die Geschichte des Nassauer Landes authentisch und quellenbasiert."
+        description="Seit 2011 erforschen und vermitteln wir als Wiesbadener Verein die Geschichte des Nassauer Landes authentisch und quellenbasiert."
         url="/verein"
         image="/gruppenfoto.jpg"
       />
