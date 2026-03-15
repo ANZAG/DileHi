@@ -1,4 +1,3 @@
-
 # Website für Diu lebendec Histôrje e.V.
 
 ## Überblick
@@ -58,6 +57,71 @@ Jede Seite enthält Platzhalter für Texte, Bilder und Quellenangaben – so kö
 - Abstimmungen können vom Vorstand gestartet und beendet werden
 - Ergebnisprotokoll zum Exportieren/Archivieren
 - Nur eingeloggte Mitglieder können abstimmen, jedes Mitglied nur einmal pro Abstimmung
+
+---
+
+## Internes Forum – Konzept
+
+### Übersicht
+Ein internes Echtzeit-Forum für Vereinsmitglieder, das sich auf dem Handy wie eine native App anfühlt. Benachrichtigungen über drei Kanäle: In-App (Glocke), E-Mail und Web Push (PWA).
+
+### Datenbankstruktur
+
+**Neue Tabellen:**
+
+- `forum_categories` – Kategorien (Allgemein, Mittelalter, 1815, Orga etc.) mit Name, Beschreibung, Slug, Icon, Sortierung
+- `forum_threads` – Threads mit Kategorie-Zuordnung, Pinning, Locking, Post-Count, last_post_at
+- `forum_posts` – Beiträge mit Markdown-Content, Zitat-Referenz (reply_to_id), Bearbeitet-Flag
+- `forum_reactions` – Emoji-Reaktionen auf Posts (unique pro User+Post+Emoji)
+- `forum_read_status` – Lese-Status pro User+Thread für Ungelesen-Tracking
+- `forum_attachments` – Datei-Anhänge an Posts (Storage-Bucket)
+- `notifications` – In-App-Benachrichtigungen (Typ: mention, reply, new_thread)
+- `notification_preferences` – Pro-User Einstellungen für E-Mail/Push
+- `push_subscriptions` – Web Push Subscription-Objekte
+
+**RLS:** Alle Tabellen `is_member()` für SELECT. Posts bearbeiten/löschen: eigene oder `forum.moderate`. Notifications: nur eigene.
+
+**Realtime:** Aktiviert für `forum_posts`, `forum_threads`, `notifications`.
+
+### Routing
+
+```
+/intern/forum                    → Kategorien-Übersicht
+/intern/forum/:categorySlug      → Thread-Liste
+/intern/forum/thread/:threadId   → Thread mit Posts
+/intern/forum/neu/:categorySlug  → Neuer Thread
+```
+
+### UI-Konzept
+
+- **Kategorien:** Karten-Grid mit Icon, Name, Beschreibung, Ungelesen-Badge
+- **Thread-Liste:** Gepinnte oben, Sortierung nach letztem Post, FAB für neuen Thread (Mobile)
+- **Thread-Ansicht:** Eröffnungsbeitrag hervorgehoben, Antworten chronologisch, fixierter Antwort-Editor unten (Messenger-Feeling), Echtzeit-Updates
+- **Benachrichtigungsglocke:** Im Header, Badge mit Ungelesen-Zahl, Dropdown-Liste
+- **Mobile:** Pull-to-Refresh, Bottom-Nav, PWA-installierbar
+
+### Benachrichtigungen
+
+1. **In-App (Glocke):** Realtime auf `notifications`-Tabelle, sofort sichtbar
+2. **E-Mail:** Edge Function bei @-Erwähnung/Antwort, Corporate-Design-Template
+3. **Web Push:** VAPID-Keys, Service Worker, funktioniert auf Android + iOS (PWA)
+4. **Einstellungen:** User können pro Kanal aktivieren/deaktivieren
+
+### Umsetzungsphasen
+
+| Phase | Features |
+|-------|----------|
+| 1 | DB-Schema, Kategorien, Threads, Posts, Markdown, Echtzeit |
+| 2 | Reaktionen, Zitate, Ungelesen-Tracking, Suche |
+| 3 | In-App-Benachrichtigungen, @-Erwähnungen |
+| 4 | E-Mail-Benachrichtigungen, Einstellungen |
+| 5 | Web Push, PWA-Optimierung, Mobile-Feinschliff |
+| 6 | Moderation, Datei-Anhänge |
+
+### DSGVO
+- Datenschutzerklärung um Forum erweitern
+- Push-Subscriptions bei Account-Deaktivierung löschen
+- E-Mail-Benachrichtigungen: Opt-in mit Abmeldemöglichkeit
 
 ---
 
