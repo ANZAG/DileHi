@@ -177,6 +177,21 @@ const Contributions = () => {
     },
   });
 
+  // Member's own contributions across all years (for member view)
+  const { data: myAllContribs = [] } = useQuery({
+    queryKey: ["my-contributions", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("contributions")
+        .select("*")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !canEdit && !!user?.id,
+  });
+
   const { data: rates = [] } = useQuery({
     queryKey: ["contribution-rates"],
     queryFn: async () => {
