@@ -247,7 +247,7 @@ const Contributions = () => {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [profiles, contributions]);
 
-  const paidCount = memberRows.filter((m) => m.status === "bezahlt").length;
+  const paidCount = memberRows.filter((m) => m.status === "bezahlt" || m.status === "teilzahlung").length;
 
   // Non-admin members only see their own status
   if (!canEdit) {
