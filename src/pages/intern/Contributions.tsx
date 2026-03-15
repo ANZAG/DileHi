@@ -398,7 +398,7 @@ const Contributions = () => {
                           status: "bezahlt",
                           amount: editAmount,
                           notes: editNotes,
-                          paidAt: editPaidAt ? editPaidAt.toISOString().split("T")[0] : undefined,
+                          paidAt: editPaidAt ? `${editPaidAt.getFullYear()}-${String(editPaidAt.getMonth() + 1).padStart(2, '0')}-${String(editPaidAt.getDate()).padStart(2, '0')}` : undefined,
                         })}
                       >
                         <Check size={14} className="mr-1" /> OK
