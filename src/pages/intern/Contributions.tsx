@@ -192,14 +192,24 @@ const Contributions = () => {
   const currentRate = rates.find((r: any) => r.year === parseInt(selectedYear));
 
   const upsertMutation = useMutation({
-    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string }) => {
+    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string; paidAt?: string | null }) => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      // Determine status: if amount provided and less than rate → teilzahlung
+      let resolvedStatus = params.status;
+      if (params.status === "bezahlt" && params.amount && currentRate) {
+        const amt = parseFloat(params.amount);
+        if (amt > 0 && amt < Number(currentRate.amount)) {
+          resolvedStatus = "teilzahlung";
+        }
+      }
+
       const row = {
         user_id: params.userId,
         year: parseInt(selectedYear),
-        status: params.status,
+        status: resolvedStatus,
         amount: params.amount ? parseFloat(params.amount) : null,
-        paid_at: params.status === "bezahlt" ? new Date().toISOString().split("T")[0] : null,
+        paid_at: params.paidAt !== undefined ? params.paidAt : (resolvedStatus === "bezahlt" || resolvedStatus === "teilzahlung" ? new Date().toISOString().split("T")[0] : null),
         notes: params.notes || null,
         updated_by: authUser!.id,
         updated_at: new Date().toISOString(),
