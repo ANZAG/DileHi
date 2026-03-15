@@ -39,6 +39,7 @@ const INTERVAL_LABELS: Record<string, string> = {
 
 const StatusBadge = ({ status }: { status: string }) => {
   if (status === "bezahlt") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs">Bezahlt</Badge>;
+  if (status === "teilzahlung") return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs">Teilzahlung</Badge>;
   if (status === "offen") return <Badge variant="outline" className="text-xs">Offen</Badge>;
   return <Badge variant="secondary" className="text-xs">{status}</Badge>;
 };
