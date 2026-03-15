@@ -149,6 +149,7 @@ const Contributions = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editPaidAt, setEditPaidAt] = useState<Date | undefined>(undefined);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["contribution-profiles"],
