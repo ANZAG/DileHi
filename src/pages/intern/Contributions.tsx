@@ -323,8 +323,12 @@ const Contributions = () => {
                     <p className="text-sm font-medium truncate">{m.name}</p>
                     <IntervalBadge interval={m.interval} />
                   </div>
-                  {m.amount && (
-                    <p className="text-xs text-muted-foreground">{Number(m.amount).toFixed(2)} €{m.notes ? ` · ${m.notes}` : ""}</p>
+              {(m.amount || m.paidAt) && (
+                    <p className="text-xs text-muted-foreground">
+                      {m.amount ? `${Number(m.amount).toFixed(2)} €` : ""}
+                      {m.paidAt ? ` · ${format(new Date(m.paidAt + "T00:00:00"), "dd.MM.yyyy")}` : ""}
+                      {m.notes ? ` · ${m.notes}` : ""}
+                    </p>
                   )}
                 </div>
                 <StatusBadge status={m.status} />
