@@ -5,10 +5,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, X, Pencil, Banknote } from "lucide-react";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
+import { ArrowLeft, Check, X, Pencil, Banknote, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -34,6 +39,7 @@ const INTERVAL_LABELS: Record<string, string> = {
 
 const StatusBadge = ({ status }: { status: string }) => {
   if (status === "bezahlt") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs">Bezahlt</Badge>;
+  if (status === "teilzahlung") return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs">Teilzahlung</Badge>;
   if (status === "offen") return <Badge variant="outline" className="text-xs">Offen</Badge>;
   return <Badge variant="secondary" className="text-xs">{status}</Badge>;
 };
@@ -143,6 +149,7 @@ const Contributions = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editPaidAt, setEditPaidAt] = useState<Date | undefined>(undefined);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["contribution-profiles"],
@@ -170,6 +177,21 @@ const Contributions = () => {
     },
   });
 
+  // Member's own contributions across all years (for member view)
+  const { data: myAllContribs = [] } = useQuery({
+    queryKey: ["my-contributions", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("contributions")
+        .select("*")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !canEdit && !!user?.id,
+  });
+
   const { data: rates = [] } = useQuery({
     queryKey: ["contribution-rates"],
     queryFn: async () => {
@@ -185,14 +207,24 @@ const Contributions = () => {
   const currentRate = rates.find((r: any) => r.year === parseInt(selectedYear));
 
   const upsertMutation = useMutation({
-    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string }) => {
+    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string; paidAt?: string | null }) => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      // Determine status: if amount provided and less than rate → teilzahlung
+      let resolvedStatus = params.status;
+      if (params.status === "bezahlt" && params.amount && currentRate) {
+        const amt = parseFloat(params.amount);
+        if (amt > 0 && amt < Number(currentRate.amount)) {
+          resolvedStatus = "teilzahlung";
+        }
+      }
+
       const row = {
         user_id: params.userId,
         year: parseInt(selectedYear),
-        status: params.status,
+        status: resolvedStatus,
         amount: params.amount ? parseFloat(params.amount) : null,
-        paid_at: params.status === "bezahlt" ? new Date().toISOString().split("T")[0] : null,
+        paid_at: params.paidAt !== undefined ? params.paidAt : (resolvedStatus === "bezahlt" || resolvedStatus === "teilzahlung" ? new Date().toISOString().split("T")[0] : null),
         notes: params.notes || null,
         updated_by: authUser!.id,
         updated_at: new Date().toISOString(),
@@ -230,11 +262,11 @@ const Contributions = () => {
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [profiles, contributions]);
 
-  const paidCount = memberRows.filter((m) => m.status === "bezahlt").length;
+  const paidCount = memberRows.filter((m) => m.status === "bezahlt" || m.status === "teilzahlung").length;
 
   // Non-admin members only see their own status
   if (!canEdit) {
-    const myRow = memberRows.find((m) => m.userId === user?.id);
+    const myContribs = myAllContribs;
     return (
       <div className="container py-8 sm:py-12 max-w-3xl px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -248,15 +280,25 @@ const Contributions = () => {
           <div className="space-y-3">
             {YEARS.map((y) => {
               const yearRate = rates.find((r: any) => r.year === y);
+              const myContrib = myContribs.find((c: any) => c.year === y);
+              const status = myContrib?.status || "offen";
               return (
                 <div key={y} className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-sm">{y}</span>
-                    {yearRate && (
-                      <span className="text-xs text-muted-foreground">{Number(yearRate.amount).toFixed(2)} €</span>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-sm">{y}</span>
+                      {yearRate && (
+                        <span className="text-xs text-muted-foreground">{Number(yearRate.amount).toFixed(2)} €</span>
+                      )}
+                    </div>
+                    {myContrib?.paid_at && (
+                      <span className="text-xs text-muted-foreground">
+                        Bezahlt am {format(new Date(myContrib.paid_at + "T00:00:00"), "dd.MM.yyyy")}
+                        {myContrib.amount ? ` · ${Number(myContrib.amount).toFixed(2)} €` : ""}
+                      </span>
                     )}
                   </div>
-                  <StatusBadge status={y === parseInt(selectedYear) ? (myRow?.status || "offen") : "—"} />
+                  <StatusBadge status={status} />
                 </div>
               );
             })}
@@ -306,38 +348,66 @@ const Contributions = () => {
                     <p className="text-sm font-medium truncate">{m.name}</p>
                     <IntervalBadge interval={m.interval} />
                   </div>
-                  {m.amount && (
-                    <p className="text-xs text-muted-foreground">{Number(m.amount).toFixed(2)} €{m.notes ? ` · ${m.notes}` : ""}</p>
+              {(m.amount || m.paidAt) && (
+                    <p className="text-xs text-muted-foreground">
+                      {m.amount ? `${Number(m.amount).toFixed(2)} €` : ""}
+                      {m.paidAt ? ` · ${format(new Date(m.paidAt + "T00:00:00"), "dd.MM.yyyy")}` : ""}
+                      {m.notes ? ` · ${m.notes}` : ""}
+                    </p>
                   )}
                 </div>
                 <StatusBadge status={m.status} />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {editingId === m.userId ? (
-                  <>
-                    <Input
-                      type="number"
-                      placeholder="Betrag"
-                      value={editAmount}
-                      onChange={(e) => setEditAmount(e.target.value)}
-                      className="w-24 h-8 text-xs"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => upsertMutation.mutate({
-                        userId: m.userId,
-                        status: "bezahlt",
-                        amount: editAmount,
-                        notes: editNotes,
-                      })}
-                    >
-                      <Check size={14} className="mr-1" /> OK
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
-                      <X size={14} />
-                    </Button>
-                  </>
+              {editingId === m.userId ? (
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <Input
+                        type="number"
+                        placeholder="Betrag"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-24 h-8 text-xs"
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("h-8 text-xs w-36 justify-start", !editPaidAt && "text-muted-foreground")}>
+                            <CalendarIcon size={12} className="mr-1" />
+                            {editPaidAt ? format(editPaidAt, "dd.MM.yyyy") : "Zahldatum"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={editPaidAt}
+                            onSelect={setEditPaidAt}
+                            locale={de}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => upsertMutation.mutate({
+                          userId: m.userId,
+                          status: "bezahlt",
+                          amount: editAmount,
+                          notes: editNotes,
+                          paidAt: editPaidAt ? editPaidAt.toISOString().split("T")[0] : undefined,
+                        })}
+                      >
+                        <Check size={14} className="mr-1" /> OK
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     {m.status !== "bezahlt" && (
@@ -349,17 +419,18 @@ const Contributions = () => {
                           setEditingId(m.userId);
                           setEditAmount(m.amount ? String(m.amount) : "");
                           setEditNotes(m.notes || "");
+                          setEditPaidAt(m.paidAt ? new Date(m.paidAt + "T00:00:00") : undefined);
                         }}
                       >
                         <Pencil size={12} className="mr-1" /> Bezahlt
                       </Button>
                     )}
-                    {m.status === "bezahlt" && (
+                    {(m.status === "bezahlt" || m.status === "teilzahlung") && (
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs"
-                        onClick={() => upsertMutation.mutate({ userId: m.userId, status: "offen" })}
+                        onClick={() => upsertMutation.mutate({ userId: m.userId, status: "offen", paidAt: null })}
                       >
                         Zurücksetzen
                       </Button>
