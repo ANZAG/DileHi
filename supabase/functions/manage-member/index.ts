@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
       `);
 
       try {
-        await sendEmailViaMsGraph(userData.user.email, "Passwort zurücksetzen – Die Lebendige Historie e.V.", htmlBody);
+        await sendEmailViaMsGraph(userData.user.email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
       }
