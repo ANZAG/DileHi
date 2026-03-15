@@ -109,21 +109,18 @@ Deno.serve(async (req) => {
       const resetUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=recovery`;
 
       const htmlBody = buildEmailWrapper(`
-        <h2 style="color: #1a1a1a; margin: 0 0 16px;">Passwort zurücksetzen</h2>
-        <p style="color: #555; line-height: 1.6;">
-          Dein Passwort für den Mitgliederbereich von <strong>Die Lebendige Historie e.V.</strong> wurde zurückgesetzt.
+        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Sicherheit</p>
+        <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Passwort zurücksetzen</p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          Dein Passwort für den Mitgliederbereich von Diu lebendec Histôrje e.V. wurde zurückgesetzt.
         </p>
-        <p style="color: #555; line-height: 1.6;">
+        <p style="margin: 0 0 8px; line-height: 1.7;">
           Klicke auf den folgenden Button, um ein neues Passwort zu setzen:
         </p>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background: #1a1a1a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Neues Passwort setzen
-          </a>
-        </div>
-        <p style="font-size: 13px; color: #999;">
+        ${buildButton(resetUrl, "Neues Passwort setzen")}
+        <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
           Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-          <a href="${resetUrl}" style="color: #666; word-break: break-all;">${resetUrl}</a>
+          <a href="${resetUrl}" style="color: #dd9933; word-break: break-all;">${resetUrl}</a>
         </p>
       `);
 
