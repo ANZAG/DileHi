@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, buildEmailWrapper } from "../_shared/ms-email.ts";
+import { sendEmailViaMsGraph, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,12 +19,10 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if user exists (don't reveal if they don't)
     const { data: users } = await adminClient.auth.admin.listUsers();
     const targetUser = users?.users?.find((u) => u.email === email);
 
     if (!targetUser) {
-      // Don't reveal that user doesn't exist – return success silently
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -44,29 +42,26 @@ Deno.serve(async (req) => {
     const resetUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=recovery`;
 
     const htmlBody = buildEmailWrapper(`
-      <h2 style="color: #1a1a1a; margin: 0 0 16px;">Passwort zurücksetzen</h2>
-      <p style="color: #555; line-height: 1.6;">
+      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Sicherheit</p>
+      <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Passwort zurücksetzen</p>
+      <p style="margin: 0 0 16px; line-height: 1.7;">
         Du hast angefordert, dein Passwort für den Mitgliederbereich von
-        <strong>Die Lebendige Historie e.V.</strong> zurückzusetzen.
+        Diu lebendec Histôrje e.V. zurückzusetzen.
       </p>
-      <p style="color: #555; line-height: 1.6;">
+      <p style="margin: 0 0 8px; line-height: 1.7;">
         Klicke auf den folgenden Button, um ein neues Passwort zu setzen:
       </p>
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background: #1a1a1a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-          Neues Passwort setzen
-        </a>
-      </div>
-      <p style="font-size: 13px; color: #999;">
+      ${buildButton(resetUrl, "Neues Passwort setzen")}
+      <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
         Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.
       </p>
-      <p style="font-size: 13px; color: #999;">
+      <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
         Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-        <a href="${resetUrl}" style="color: #666; word-break: break-all;">${resetUrl}</a>
+        <a href="${resetUrl}" style="color: #dd9933; word-break: break-all;">${resetUrl}</a>
       </p>
     `);
 
-    await sendEmailViaMsGraph(email, "Passwort zurücksetzen – Die Lebendige Historie e.V.", htmlBody);
+    await sendEmailViaMsGraph(email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -74,7 +69,6 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unbekannter Fehler";
     console.error("send-reset-email error:", msg);
-    // Always return success to not reveal user existence
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
