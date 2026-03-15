@@ -334,31 +334,55 @@ const Contributions = () => {
                 <StatusBadge status={m.status} />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {editingId === m.userId ? (
-                  <>
-                    <Input
-                      type="number"
-                      placeholder="Betrag"
-                      value={editAmount}
-                      onChange={(e) => setEditAmount(e.target.value)}
-                      className="w-24 h-8 text-xs"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => upsertMutation.mutate({
-                        userId: m.userId,
-                        status: "bezahlt",
-                        amount: editAmount,
-                        notes: editNotes,
-                      })}
-                    >
-                      <Check size={14} className="mr-1" /> OK
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
-                      <X size={14} />
-                    </Button>
-                  </>
+              {editingId === m.userId ? (
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <Input
+                        type="number"
+                        placeholder="Betrag"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-24 h-8 text-xs"
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("h-8 text-xs w-36 justify-start", !editPaidAt && "text-muted-foreground")}>
+                            <CalendarIcon size={12} className="mr-1" />
+                            {editPaidAt ? format(editPaidAt, "dd.MM.yyyy") : "Zahldatum"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={editPaidAt}
+                            onSelect={setEditPaidAt}
+                            locale={de}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => upsertMutation.mutate({
+                          userId: m.userId,
+                          status: "bezahlt",
+                          amount: editAmount,
+                          notes: editNotes,
+                          paidAt: editPaidAt ? editPaidAt.toISOString().split("T")[0] : undefined,
+                        })}
+                      >
+                        <Check size={14} className="mr-1" /> OK
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     {m.status !== "bezahlt" && (
@@ -370,17 +394,18 @@ const Contributions = () => {
                           setEditingId(m.userId);
                           setEditAmount(m.amount ? String(m.amount) : "");
                           setEditNotes(m.notes || "");
+                          setEditPaidAt(m.paidAt ? new Date(m.paidAt + "T00:00:00") : undefined);
                         }}
                       >
                         <Pencil size={12} className="mr-1" /> Bezahlt
                       </Button>
                     )}
-                    {m.status === "bezahlt" && (
+                    {(m.status === "bezahlt" || m.status === "teilzahlung") && (
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs"
-                        onClick={() => upsertMutation.mutate({ userId: m.userId, status: "offen" })}
+                        onClick={() => upsertMutation.mutate({ userId: m.userId, status: "offen", paidAt: null })}
                       >
                         Zurücksetzen
                       </Button>
