@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper } from "../_shared/ms-email.ts";
+import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,7 +44,6 @@ Deno.serve(async (req) => {
     const existingUser = existingUsers?.users?.find((u) => u.email === email);
 
     if (existingUser) {
-      // User exists – reassign role
       await adminClient.from("user_roles").delete().eq("user_id", existingUser.id);
       const { error: roleError } = await adminClient.from("user_roles").insert({
         user_id: existingUser.id,
@@ -57,7 +56,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate invite link without sending email
     const origin = Deno.env.get("SITE_URL") || "https://test.dilehi.de";
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "invite",
@@ -69,18 +67,15 @@ Deno.serve(async (req) => {
     });
     if (linkError) throw linkError;
 
-    // Assign role
     const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: linkData.user.id,
       role,
     });
     if (roleError) throw roleError;
 
-    // Build confirmation URL from the generated link properties
     const tokenHash = linkData.properties?.hashed_token;
     const confirmUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=invite`;
 
-    // Send invite email via Microsoft 365
     const roleLabel: Record<string, string> = {
       mitglied: "Mitglied",
       vorstand: "Vorstand",
@@ -89,30 +84,26 @@ Deno.serve(async (req) => {
     };
 
     const htmlBody = buildEmailWrapper(`
-      <h2 style="color: #1a1a1a; margin: 0 0 16px;">Einladung zum Mitgliederbereich</h2>
-      <p style="color: #555; line-height: 1.6;">
+      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Einladung</p>
+      <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Willkommen im Mitgliederbereich</p>
+      <p style="margin: 0 0 16px; line-height: 1.7;">
         Du wurdest als <strong>${escapeHtml(roleLabel[role] || role)}</strong> zum internen Bereich von
-        <strong>Die Lebendige Historie e.V.</strong> eingeladen.
+        Diu lebendec Histôrje e.V. eingeladen.
       </p>
-      <p style="color: #555; line-height: 1.6;">
+      <p style="margin: 0 0 8px; line-height: 1.7;">
         Klicke auf den folgenden Button, um dein Konto zu aktivieren und ein Passwort zu setzen:
       </p>
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${confirmUrl}" style="display: inline-block; padding: 12px 32px; background: #1a1a1a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-          Konto aktivieren
-        </a>
-      </div>
-      <p style="font-size: 13px; color: #999;">
+      ${buildButton(confirmUrl, "Konto aktivieren")}
+      <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
         Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-        <a href="${confirmUrl}" style="color: #666; word-break: break-all;">${escapeHtml(confirmUrl)}</a>
+        <a href="${confirmUrl}" style="color: #dd9933; word-break: break-all;">${escapeHtml(confirmUrl)}</a>
       </p>
     `);
 
     try {
-      await sendEmailViaMsGraph(email, "Einladung – Die Lebendige Historie e.V.", htmlBody);
+      await sendEmailViaMsGraph(email, "Einladung – Diu lebendec Histôrje e.V.", htmlBody);
     } catch (emailError) {
       console.error("Email sending failed:", emailError);
-      // Don't fail the invite if email fails – user was already created
     }
 
     return new Response(JSON.stringify({ success: true }), {

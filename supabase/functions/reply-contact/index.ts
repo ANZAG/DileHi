@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error("Nicht authentifiziert");
 
-    // Use dynamic permission check instead of hardcoded role check
+    // Permission check
     const { data: hasReplyPerm } = await supabase.rpc("has_permission", {
       _user_id: user.id,
       _permission: "contacts.reply",
@@ -34,18 +34,32 @@ Deno.serve(async (req) => {
     const { to, name, message, contact_message_id } = await req.json();
     if (!to || !message) throw new Error("Empfänger und Nachricht erforderlich");
 
-    const subject = `Antwort von Die Lebendige Historie e.V.`;
+    // Fetch sender profile and role for signature
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
+
+    const senderName = profile?.display_name || user.email?.split("@")[0] || "Vorstand";
+    const senderRole = roleData?.role || undefined;
+
+    const subject = `Ihre Anfrage – Diu lebendec Histôrje e.V.`;
     const htmlBody = buildEmailWrapper(`
-      <h2 style="color: #1a1a1a; margin: 0 0 16px;">Hallo ${escapeHtml(name || "")},</h2>
-      <div style="padding: 16px; background: #f9f9f9; border-radius: 8px;">
-        <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(message)}</p>
-      </div>
-      <p style="margin-top: 16px; font-size: 14px; color: #666;">
-        Mit freundlichen Grüßen<br/>
-        Die Lebendige Historie e.V.<br/>
-        <a href="https://dilehi.de" style="color: #8B7355;">dilehi.de</a>
+      <p style="margin: 0 0 20px; font-size: 16px; color: #292524;">
+        Guten Tag${name ? ` ${escapeHtml(name)}` : ""},
       </p>
-    `);
+      <p style="margin: 0 0 20px; white-space: pre-wrap; line-height: 1.7;">${escapeHtml(message)}</p>
+    `, {
+      signature: { senderName, senderRole },
+    });
 
     await sendEmailViaMsGraph(to, subject, htmlBody);
 
