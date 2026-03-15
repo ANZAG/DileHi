@@ -266,7 +266,7 @@ const Contributions = () => {
 
   // Non-admin members only see their own status
   if (!canEdit) {
-    const myContribs = contributions.filter((c: any) => c.user_id === user?.id);
+    const myContribs = myAllContribs;
     return (
       <div className="container py-8 sm:py-12 max-w-3xl px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
