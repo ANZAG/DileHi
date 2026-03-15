@@ -251,7 +251,7 @@ const Contributions = () => {
 
   // Non-admin members only see their own status
   if (!canEdit) {
-    const myRow = memberRows.find((m) => m.userId === user?.id);
+    const myContribs = contributions.filter((c: any) => c.user_id === user?.id);
     return (
       <div className="container py-8 sm:py-12 max-w-3xl px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -265,15 +265,25 @@ const Contributions = () => {
           <div className="space-y-3">
             {YEARS.map((y) => {
               const yearRate = rates.find((r: any) => r.year === y);
+              const myContrib = myContribs.find((c: any) => c.year === y);
+              const status = myContrib?.status || "offen";
               return (
                 <div key={y} className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-sm">{y}</span>
-                    {yearRate && (
-                      <span className="text-xs text-muted-foreground">{Number(yearRate.amount).toFixed(2)} €</span>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-sm">{y}</span>
+                      {yearRate && (
+                        <span className="text-xs text-muted-foreground">{Number(yearRate.amount).toFixed(2)} €</span>
+                      )}
+                    </div>
+                    {myContrib?.paid_at && (
+                      <span className="text-xs text-muted-foreground">
+                        Bezahlt am {format(new Date(myContrib.paid_at + "T00:00:00"), "dd.MM.yyyy")}
+                        {myContrib.amount ? ` · ${Number(myContrib.amount).toFixed(2)} €` : ""}
+                      </span>
                     )}
                   </div>
-                  <StatusBadge status={y === parseInt(selectedYear) ? (myRow?.status || "offen") : "—"} />
+                  <StatusBadge status={status} />
                 </div>
               );
             })}
