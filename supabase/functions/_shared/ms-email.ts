@@ -125,7 +125,7 @@ function buildSignature(sig?: SignatureInfo): string {
           <p style="margin: 2px 0 0; font-size: 12px;">
             <a href="mailto:vorstand@dilehi.de" style="color: ${GOLD}; text-decoration: none;">vorstand@dilehi.de</a>
             &nbsp;·&nbsp;
-            <a href="https://dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
+            <a href="https://www.dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
           </p>
         </td>
       </tr>
@@ -203,8 +203,8 @@ export function buildEmailWrapper(
                   <td style="text-align: center; font-family: ${FONT_SANS}; font-size: 12px; color: ${TEXT_MUTED}; line-height: 1.6;">
                     <p style="margin: 0;">Diu lebendec Histôrje e.V. · Am Schloßpark 17 · 65203 Wiesbaden</p>
                     <p style="margin: 4px 0 0;">
-                      <a href="https://dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
-                      ${showImpressum ? `&nbsp;·&nbsp;<a href="https://dilehi.de/impressum" style="color: ${TEXT_MUTED}; text-decoration: none;">Impressum</a>` : ""}
+                      <a href="https://www.dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
+                      ${showImpressum ? `&nbsp;·&nbsp;<a href="https://www.dilehi.de/impressum" style="color: ${TEXT_MUTED}; text-decoration: none;">Impressum</a>` : ""}
                     </p>
                     <p style="margin: 8px 0 0; font-size: 11px; color: #c4c0bb;">
                       Diese E-Mail wurde automatisch von dilehi.de gesendet.
