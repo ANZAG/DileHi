@@ -98,6 +98,8 @@ const EpochWW1 = () => {
 
           <EpochSources epoch="wk1" />
 
+          <ImageCredits credits={imageCredits} />
+
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
           {allImages.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
