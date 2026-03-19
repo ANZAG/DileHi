@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
@@ -24,6 +24,11 @@ import {
   type FormAnswer,
 } from "@/components/event-forms/types";
 
+interface ProgramItem {
+  point: string;
+  person: string;
+}
+
 export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
   const { isVorstand } = useAuth();
@@ -32,7 +37,15 @@ export default function EventFormEvaluation() {
   const [selectedClubTents, setSelectedClubTents] = useState<string[]>([]);
   const [spacing, setSpacing] = useState(0);
 
-  // Fetch event
+  // Organizer fields
+  const [kitchenLead, setKitchenLead] = useState("");
+  const [programItems, setProgramItems] = useState<ProgramItem[]>([]);
+  const [newProgPoint, setNewProgPoint] = useState("");
+  const [newProgPerson, setNewProgPerson] = useState("");
+
+  // Pool tents from members
+  const [poolTentIds, setPoolTentIds] = useState<string[]>([]);
+
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
@@ -43,7 +56,6 @@ export default function EventFormEvaluation() {
     enabled: !!eventId,
   });
 
-  // Fetch form
   const { data: form } = useQuery({
     queryKey: ["event_form", eventId],
     queryFn: async () => {
@@ -54,15 +66,18 @@ export default function EventFormEvaluation() {
         .maybeSingle();
       if (error) throw error;
       if (data?.settings) {
-        setSpacing((data.settings as any)?.spacing_m ?? 0);
-        setSelectedClubTents((data.settings as any)?.club_tents ?? []);
+        const s = data.settings as any;
+        setSpacing(s.spacing_m ?? 0);
+        setSelectedClubTents(s.club_tents ?? []);
+        setKitchenLead(s.kitchen_lead ?? "");
+        setProgramItems(s.program_items ?? []);
+        setPoolTentIds(s.pool_tent_ids ?? []);
       }
       return data as any;
     },
     enabled: !!eventId,
   });
 
-  // Fetch fields
   const { data: fields = [] } = useQuery({
     queryKey: ["event_form_fields", form?.id],
     queryFn: async () => {
@@ -77,7 +92,6 @@ export default function EventFormEvaluation() {
     enabled: !!form?.id,
   });
 
-  // Fetch responses with answers
   const { data: responses = [] } = useQuery({
     queryKey: ["event_form_responses", form?.id],
     queryFn: async () => {
@@ -104,18 +118,29 @@ export default function EventFormEvaluation() {
     enabled: !!form?.id,
   });
 
-  // Save club tents selection
-  const saveClubTents = useMutation({
-    mutationFn: async (tents: string[]) => {
+  // Fetch all member tents for pool
+  const { data: allMemberTents = [] } = useQuery({
+    queryKey: ["all_member_tents"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("member_tents")
+        .select("*, profiles:user_id(display_name)")
+        .order("created_at");
+      if (error) return [];
+      return data;
+    },
+  });
+
+  const saveSettings = useMutation({
+    mutationFn: async (patch: Record<string, any>) => {
       if (!form) return;
       await supabase.from("event_forms").update({
-        settings: { ...(form.settings || {}), club_tents: tents },
+        settings: { ...(form.settings || {}), ...patch },
       }).eq("id", form.id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
 
-  // Compute event days
   const eventDays = useMemo(() => {
     if (!event?.start_date) return [];
     const start = parseISO(event.start_date);
@@ -123,13 +148,11 @@ export default function EventFormEvaluation() {
     return eachDayOfInterval({ start, end });
   }, [event]);
 
-  // Get answer value for a response and field
   const getAnswer = (response: FormResponse & { answers: FormAnswer[] }, fieldId: string) => {
     const answer = response.answers?.find((a) => a.field_id === fieldId);
     return answer?.value;
   };
 
-  // Format answer for display
   const formatAnswer = (field: FormField, value: any): string => {
     if (field.type === "section") return "";
     if (value === null || value === undefined) return "–";
@@ -160,12 +183,11 @@ export default function EventFormEvaluation() {
     }
   };
 
-  // Summary statistics
   const summary = useMemo(() => {
     const tentField = fields.find((f) => f.type === "tent");
     const attendanceField = fields.find((f) => f.type === "attendance_days");
 
-    const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string }[] = [];
+    const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string; guyRope?: number }[] = [];
     const dayCount: Record<string, number> = {};
     let totalCapacity = 0;
     let carsCount = 0;
@@ -176,7 +198,6 @@ export default function EventFormEvaluation() {
     let shoppers = 0;
 
     for (const resp of responses) {
-      // Tents
       if (tentField) {
         const tv = getAnswer(resp, tentField.id);
         if (tv?.has_tent && tv.tent_type) {
@@ -192,7 +213,6 @@ export default function EventFormEvaluation() {
         }
       }
 
-      // Attendance
       if (attendanceField) {
         const av = getAnswer(resp, attendanceField.id);
         if (av?.days) {
@@ -202,7 +222,6 @@ export default function EventFormEvaluation() {
         }
       }
 
-      // Count by label matching
       for (const field of fields) {
         const val = getAnswer(resp, field.id);
         const lbl = field.label.toLowerCase();
@@ -215,7 +234,6 @@ export default function EventFormEvaluation() {
           if (lbl.includes("einkauf")) shoppers++;
         }
 
-        // Passenger seats (number field)
         if (field.type === "number" && (lbl.includes("mitnehmen") || lbl.includes("sitzplätze")) && typeof val === "number") {
           totalSeats += val;
         }
@@ -242,15 +260,43 @@ export default function EventFormEvaluation() {
           h = t.length + 2 * typeInfo.guyRope + 2 * spacing;
         }
         tentItems.push({
-          label: `${t.respondent}`,
+          label: t.respondent,
           typeName: typeInfo.label,
-          area,
-          w, h, innerW, innerH,
+          area, w, h, innerW, innerH,
           guyRope: typeInfo.guyRope,
           shape: typeInfo.shape,
           category: "member",
         });
       }
+    }
+
+    // Pool tents from members
+    let poolTentArea = 0;
+    for (const ptId of poolTentIds) {
+      const pt = allMemberTents.find((t: any) => t.id === ptId);
+      if (!pt) continue;
+      const ownerName = (pt as any).profiles?.display_name || "Mitglied";
+      let area = 0, w = 0, h = 0, innerW = 0, innerH = 0;
+      if (pt.shape === "circle" && pt.diameter) {
+        innerW = Number(pt.diameter); innerH = Number(pt.diameter);
+        const d = Number(pt.diameter) + 2 * Number(pt.guy_rope) + 2 * spacing;
+        w = d; h = d;
+        area = Math.PI * (d / 2) ** 2;
+      } else if (pt.length && pt.width) {
+        innerW = Number(pt.width); innerH = Number(pt.length);
+        w = Number(pt.width) + 2 * Number(pt.guy_rope) + 2 * spacing;
+        h = Number(pt.length) + 2 * Number(pt.guy_rope) + 2 * spacing;
+        area = w * h;
+      }
+      poolTentArea += area;
+      tentItems.push({
+        label: `${pt.name} (${ownerName})`,
+        typeName: pt.tent_type,
+        area, w, h, innerW, innerH,
+        guyRope: Number(pt.guy_rope),
+        shape: pt.shape,
+        category: "member",
+      });
     }
 
     let clubTentArea = 0;
@@ -275,8 +321,7 @@ export default function EventFormEvaluation() {
         tentItems.push({
           label: ct.label,
           typeName: "",
-          area,
-          w: dims.w, h: dims.h,
+          area, w: dims.w, h: dims.h,
           innerW, innerH,
           guyRope: ct.guyRope,
           shape: ct.shape,
@@ -285,13 +330,12 @@ export default function EventFormEvaluation() {
       }
     }
 
-    const totalArea = memberTentArea + clubTentArea;
+    const totalArea = memberTentArea + poolTentArea + clubTentArea;
     const side = Math.ceil(Math.sqrt(totalArea * 1.3));
 
-    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea, clubTentArea, totalArea, suggestedSide: side, tentItems };
-  }, [responses, fields, selectedClubTents, spacing]);
+    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, suggestedSide: side, tentItems };
+  }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents]);
 
-  // CSV export
   const exportCSV = () => {
     const dataFields = fields.filter((f) => f.type !== "section");
     const headers = ["Name", "E-Mail", ...dataFields.map((f) => f.label)];
@@ -311,6 +355,21 @@ export default function EventFormEvaluation() {
     a.download = `anmeldungen-${event?.title || "export"}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const addProgramItem = () => {
+    if (!newProgPoint.trim()) return;
+    const updated = [...programItems, { point: newProgPoint.trim(), person: newProgPerson.trim() }];
+    setProgramItems(updated);
+    saveSettings.mutate({ program_items: updated });
+    setNewProgPoint("");
+    setNewProgPerson("");
+  };
+
+  const removeProgramItem = (index: number) => {
+    const updated = programItems.filter((_, i) => i !== index);
+    setProgramItems(updated);
+    saveSettings.mutate({ program_items: updated });
   };
 
   const dataFields = fields.filter((f) => f.type !== "section");
@@ -345,7 +404,6 @@ export default function EventFormEvaluation() {
 
         {/* Quick stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-6">
-          {/* Attendance per day */}
           {eventDays.length > 1 && (
             <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Teilnehmer pro Tag</h3>
@@ -403,6 +461,84 @@ export default function EventFormEvaluation() {
           </div>
         </div>
 
+        {/* Organizer fields */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold">Verantwortliche</h3>
+            <div>
+              <Label className="text-sm">Verantwortlicher Küche</Label>
+              <Input
+                value={kitchenLead}
+                onChange={(e) => setKitchenLead(e.target.value)}
+                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
+                placeholder="Name eingeben..."
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Programme & Verantwortliche</Label>
+              {programItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 mt-1.5">
+                  <span className="text-sm flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeProgramItem(i)}>
+                    <Trash2 size={12} className="text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <Input
+                  value={newProgPoint}
+                  onChange={(e) => setNewProgPoint(e.target.value)}
+                  placeholder="Programmpunkt"
+                  className="flex-1"
+                />
+                <Input
+                  value={newProgPerson}
+                  onChange={(e) => setNewProgPerson(e.target.value)}
+                  placeholder="Person"
+                  className="flex-1"
+                />
+                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()}>
+                  <Plus size={14} />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Member tent pool */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
+            <p className="text-xs text-muted-foreground">Zelte von Mitgliedern, die manuell für diese Veranstaltung hinzugefügt werden.</p>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {allMemberTents.map((mt: any) => {
+                const ownerName = mt.profiles?.display_name || "Mitglied";
+                const dimStr = mt.shape === "circle" && mt.diameter
+                  ? `Ø${mt.diameter}m`
+                  : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+                return (
+                  <div key={mt.id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={poolTentIds.includes(mt.id)}
+                      onCheckedChange={(checked) => {
+                        const next = checked
+                          ? [...poolTentIds, mt.id]
+                          : poolTentIds.filter((id) => id !== mt.id);
+                        setPoolTentIds(next);
+                        saveSettings.mutate({ pool_tent_ids: next });
+                      }}
+                    />
+                    <Label className="font-normal cursor-pointer text-sm">
+                      {mt.name || mt.tent_type} ({ownerName}) {dimStr}
+                    </Label>
+                  </div>
+                );
+              })}
+              {allMemberTents.length === 0 && (
+                <p className="text-xs text-muted-foreground">Keine Mitgliederzelte im Pool vorhanden.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Area calculator */}
         <div className="border rounded-lg p-4 mb-6">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -435,7 +571,7 @@ export default function EventFormEvaluation() {
                             ? [...selectedClubTents, ct.id]
                             : selectedClubTents.filter((id) => id !== ct.id);
                           setSelectedClubTents(next);
-                          saveClubTents.mutate(next);
+                          saveSettings.mutate({ club_tents: next });
                         }}
                       />
                       <Label className="font-normal cursor-pointer text-sm">
@@ -551,13 +687,11 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
   const scale = (svgSize - 20) / Math.max(totalSide, 1);
   const padding = 10;
 
-  // Auto-layout: Scheune center, kitchen top-left, supply near kitchen, members bottom
   const sorted = [...items].sort((a, b) => {
     const order: Record<string, number> = { scheune: 0, kitchen: 1, supply: 2, club: 3, member: 4 };
     return (order[a.category] ?? 4) - (order[b.category] ?? 4);
   });
 
-  // Simple packing with category-aware placement
   let x = padding;
   let y = padding;
   let rowHeight = 0;
@@ -583,7 +717,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
 
   return (
     <svg viewBox={`0 0 ${svgSize} ${svgHeight}`} className="w-full border rounded bg-muted/30" style={{ maxHeight: 450 }}>
-      {/* Grid area */}
       <rect x={0} y={0} width={svgSize} height={svgHeight} fill="none" stroke="hsl(var(--border))" strokeWidth={1} strokeDasharray="4 4" />
 
       {placed.map((p, i) => {
@@ -599,7 +732,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
 
         return (
           <g key={i}>
-            {/* Outer shape (total footprint with spacing) */}
             {p.shape === "circle" ? (
               <>
                 <ellipse
@@ -610,7 +742,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                   strokeWidth={0.5}
                   strokeDasharray="2 2"
                 />
-                {/* Guy-rope area */}
                 {p.guyRope > 0 && (
                   <ellipse
                     cx={p.px + p.pw / 2} cy={p.py + p.ph / 2}
@@ -622,7 +753,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                     opacity={0.5}
                   />
                 )}
-                {/* Inner tent */}
                 <ellipse
                   cx={p.px + p.pw / 2} cy={p.py + p.ph / 2}
                   rx={innerW / 2} ry={innerH / 2}
@@ -633,7 +763,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
               </>
             ) : (
               <>
-                {/* Outer (spacing) boundary */}
                 <rect
                   x={p.px} y={p.py} width={p.pw} height={p.ph}
                   fill="none"
@@ -642,7 +771,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                   strokeDasharray="2 2"
                   rx={1}
                 />
-                {/* Guy-rope area */}
                 {p.guyRope > 0 && (
                   <rect
                     x={p.px + spacingPx} y={p.py + spacingPx}
@@ -655,7 +783,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                     rx={1}
                   />
                 )}
-                {/* Inner tent */}
                 <rect
                   x={p.px + guyRopePx + spacingPx} y={p.py + guyRopePx + spacingPx}
                   width={innerW} height={innerH}
@@ -667,7 +794,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
               </>
             )}
 
-            {/* Label: name + area */}
             <text
               x={p.px + p.pw / 2}
               y={p.py + p.ph / 2 - fontSize * 0.3}
@@ -692,10 +818,8 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
               ({p.area.toFixed(1)} m²)
             </text>
 
-            {/* Dimension labels for rectangles */}
             {p.shape === "rect" && innerW > 20 && (
               <>
-                {/* Width label on top */}
                 <text
                   x={p.px + p.pw / 2}
                   y={p.py + guyRopePx + spacingPx - 2}
@@ -706,7 +830,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                 >
                   {p.innerW}m
                 </text>
-                {/* Length label on right */}
                 <text
                   x={p.px + guyRopePx + spacingPx + innerW + 2}
                   y={p.py + p.ph / 2}
@@ -722,7 +845,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
               </>
             )}
 
-            {/* Diameter label for circles */}
             {p.shape === "circle" && innerW > 20 && (
               <>
                 <line
@@ -732,8 +854,6 @@ function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; tota
                   y2={p.py + p.ph / 2 + innerH / 2 + 3}
                   stroke="hsl(var(--muted-foreground))"
                   strokeWidth={0.5}
-                  markerStart="url(#arrowStart)"
-                  markerEnd="url(#arrowEnd)"
                 />
                 <text
                   x={p.px + p.pw / 2}
