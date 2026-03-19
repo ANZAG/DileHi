@@ -636,6 +636,13 @@ const EventsPage = () => {
                         </div>
                         <div className="flex gap-1">
                           {canEdit(ev) && (
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link to={`/intern/veranstaltungen/${ev.id}/formular`} title="Anmeldeformular">
+                                <FileText size={16} />
+                              </Link>
+                            </Button>
+                          )}
+                          {canEdit(ev) && (
                             <Button variant="ghost" size="icon" onClick={() => openEdit(ev)}>
                               <Pencil size={16} />
                             </Button>
