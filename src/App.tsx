@@ -73,6 +73,9 @@ const App = () => (
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
               <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
+              <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormBuilder /></ProtectedRoute>} />
+              <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormEvaluation /></ProtectedRoute>} />
+              <Route path="/anmeldung/:token" element={<EventRegistration />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
