@@ -1,16 +1,15 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download, Users, Tent, BarChart3 } from "lucide-react";
+import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
@@ -28,6 +27,7 @@ import {
 export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
   const { isVorstand } = useAuth();
+  const queryClient = useQueryClient();
 
   const [selectedClubTents, setSelectedClubTents] = useState<string[]>([]);
   const [spacing, setSpacing] = useState(0);
@@ -88,7 +88,6 @@ export default function EventFormEvaluation() {
         .order("created_at");
       if (error) throw error;
 
-      // Fetch all answers
       const responseIds = respData.map((r) => r.id);
       if (responseIds.length === 0) return [];
 
@@ -103,6 +102,17 @@ export default function EventFormEvaluation() {
       })) as (FormResponse & { answers: FormAnswer[] })[];
     },
     enabled: !!form?.id,
+  });
+
+  // Save club tents selection
+  const saveClubTents = useMutation({
+    mutationFn: async (tents: string[]) => {
+      if (!form) return;
+      await supabase.from("event_forms").update({
+        settings: { ...(form.settings || {}), club_tents: tents },
+      }).eq("id", form.id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
 
   // Compute event days
@@ -121,6 +131,7 @@ export default function EventFormEvaluation() {
 
   // Format answer for display
   const formatAnswer = (field: FormField, value: any): string => {
+    if (field.type === "section") return "";
     if (value === null || value === undefined) return "–";
     switch (field.type) {
       case "checkbox":
@@ -158,6 +169,7 @@ export default function EventFormEvaluation() {
     const dayCount: Record<string, number> = {};
     let totalCapacity = 0;
     let carsCount = 0;
+    let totalSeats = 0;
     let trailerCount = 0;
     let canTowCount = 0;
     let kitchenHelpers = 0;
@@ -190,37 +202,54 @@ export default function EventFormEvaluation() {
         }
       }
 
-      // Count checkboxes by label matching
+      // Count by label matching
       for (const field of fields) {
         const val = getAnswer(resp, field.id);
+        const lbl = field.label.toLowerCase();
+
         if (field.type === "checkbox" && val === true) {
-          if (field.label.toLowerCase().includes("pkw")) carsCount++;
-          if (field.label.toLowerCase().includes("anhänger zur verfügung")) trailerCount++;
-          if (field.label.toLowerCase().includes("anhänger") && field.label.toLowerCase().includes("ziehen")) canTowCount++;
-          if (field.label.toLowerCase().includes("küche")) kitchenHelpers++;
-          if (field.label.toLowerCase().includes("einkauf")) shoppers++;
+          if (lbl.includes("pkw") && !lbl.includes("anhänger")) carsCount++;
+          if (lbl.includes("anhänger zur verfügung")) trailerCount++;
+          if (lbl.includes("anhänger") && lbl.includes("ziehen")) canTowCount++;
+          if (lbl.includes("küche")) kitchenHelpers++;
+          if (lbl.includes("einkauf")) shoppers++;
+        }
+
+        // Passenger seats (number field)
+        if (field.type === "number" && (lbl.includes("mitnehmen") || lbl.includes("sitzplätze")) && typeof val === "number") {
+          totalSeats += val;
         }
       }
     }
 
     // Calculate tent areas
     let memberTentArea = 0;
-    const tentItems: { label: string; area: number; w: number; h: number; shape: string }[] = [];
+    const tentItems: TentItem[] = [];
 
     for (const t of tents) {
       const area = calcTentArea(t.type, t.diameter, t.length, t.width, spacing);
       memberTentArea += area;
       const typeInfo = TENT_TYPES.find((tt) => tt.value === t.type);
       if (typeInfo) {
-        let w = 0, h = 0;
+        let w = 0, h = 0, innerW = 0, innerH = 0;
         if (typeInfo.shape === "circle" && t.diameter) {
+          innerW = t.diameter; innerH = t.diameter;
           const d = t.diameter + 2 * typeInfo.guyRope + 2 * spacing;
           w = d; h = d;
         } else if (t.length && t.width) {
+          innerW = t.width; innerH = t.length;
           w = t.width + 2 * typeInfo.guyRope + 2 * spacing;
           h = t.length + 2 * typeInfo.guyRope + 2 * spacing;
         }
-        tentItems.push({ label: `${t.respondent}: ${typeInfo.label}`, area, w, h, shape: typeInfo.shape });
+        tentItems.push({
+          label: `${t.respondent}`,
+          typeName: typeInfo.label,
+          area,
+          w, h, innerW, innerH,
+          guyRope: typeInfo.guyRope,
+          shape: typeInfo.shape,
+          category: "member",
+        });
       }
     }
 
@@ -231,24 +260,45 @@ export default function EventFormEvaluation() {
       const ct = CLUB_TENTS.find((c) => c.id === ctId);
       if (ct) {
         const dims = getClubTentDimensions(ctId, spacing);
-        tentItems.push({ label: ct.label, area, w: dims.w, h: dims.h, shape: ct.shape });
+        let innerW = 0, innerH = 0;
+        if (ct.shape === "circle" && "diameter" in ct) {
+          innerW = ct.diameter; innerH = ct.diameter;
+        } else if ("width" in ct && "length" in ct) {
+          innerW = ct.width; innerH = ct.length;
+        }
+        const catMap: Record<string, string> = {
+          kuechenzelt: "kitchen",
+          versorgung_klein: "supply",
+          versorgung_gross: "supply",
+          scheune: "scheune",
+        };
+        tentItems.push({
+          label: ct.label,
+          typeName: "",
+          area,
+          w: dims.w, h: dims.h,
+          innerW, innerH,
+          guyRope: ct.guyRope,
+          shape: ct.shape,
+          category: catMap[ct.id] || "club",
+        });
       }
     }
 
     const totalArea = memberTentArea + clubTentArea;
-    // Suggest rectangle
-    const side = Math.ceil(Math.sqrt(totalArea * 1.3)); // 30% extra for layout
+    const side = Math.ceil(Math.sqrt(totalArea * 1.3));
 
-    return { tents, totalCapacity, dayCount, carsCount, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea, clubTentArea, totalArea, suggestedSide: side, tentItems };
+    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea, clubTentArea, totalArea, suggestedSide: side, tentItems };
   }, [responses, fields, selectedClubTents, spacing]);
 
   // CSV export
   const exportCSV = () => {
-    const headers = ["Name", "E-Mail", ...fields.map((f) => f.label)];
+    const dataFields = fields.filter((f) => f.type !== "section");
+    const headers = ["Name", "E-Mail", ...dataFields.map((f) => f.label)];
     const rows = responses.map((r) => [
       r.respondent_name,
       r.respondent_email || "",
-      ...fields.map((f) => {
+      ...dataFields.map((f) => {
         const val = getAnswer(r, f.id);
         return formatAnswer(f, val).replace(/,/g, ";");
       }),
@@ -262,6 +312,8 @@ export default function EventFormEvaluation() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const dataFields = fields.filter((f) => f.type !== "section");
 
   return (
     <div className="container py-8 max-w-6xl px-4">
@@ -287,12 +339,12 @@ export default function EventFormEvaluation() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <SummaryCard icon={<Users size={20} />} label="Anmeldungen" value={responses.length} />
           <SummaryCard icon={<Tent size={20} />} label="Zelte" value={summary.tents.length} />
-          <SummaryCard icon={<BarChart3 size={20} />} label="Schlafplätze" value={summary.totalCapacity} />
-          <SummaryCard icon={<BarChart3 size={20} />} label="PKW" value={summary.carsCount} />
+          <SummaryCard icon={<Bed size={20} />} label="Schlafplätze" value={summary.totalCapacity} />
+          <SummaryCard icon={<Car size={20} />} label={`PKW (${summary.totalSeats} Plätze)`} value={summary.carsCount} />
         </div>
 
         {/* Quick stats */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <div className="grid md:grid-cols-3 gap-6 mb-6">
           {/* Attendance per day */}
           {eventDays.length > 1 && (
             <div className="border rounded-lg p-4">
@@ -314,13 +366,39 @@ export default function EventFormEvaluation() {
 
           {/* Logistics */}
           <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-3">Logistik</h3>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Truck size={16} /> Logistik
+            </h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span>Eigener PKW</span><span className="font-medium">{summary.carsCount}</span></div>
-              <div className="flex justify-between"><span>Anhänger verfügbar</span><span className="font-medium">{summary.trailerCount}</span></div>
-              <div className="flex justify-between"><span>Kann Anhänger ziehen</span><span className="font-medium">{summary.canTowCount}</span></div>
-              <div className="flex justify-between"><span>Bereit einzukaufen</span><span className="font-medium">{summary.shoppers}</span></div>
-              <div className="flex justify-between"><span>Küchenteam</span><span className="font-medium">{summary.kitchenHelpers}</span></div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><Car size={14} className="text-muted-foreground" /> PKW</span>
+                <span className="font-medium">{summary.carsCount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><Car size={14} className="text-muted-foreground" /> PKW mit Anhängerkupplung</span>
+                <span className="font-medium">{summary.canTowCount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><Truck size={14} className="text-muted-foreground" /> Anhänger</span>
+                <span className="font-medium">{summary.trailerCount}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Kitchen */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <UtensilsCrossed size={16} /> Küche
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><ShoppingCart size={14} className="text-muted-foreground" /> Einkäufer</span>
+                <span className="font-medium">{summary.shoppers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5"><UtensilsCrossed size={14} className="text-muted-foreground" /> Küchenteam</span>
+                <span className="font-medium">{summary.kitchenHelpers}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -353,12 +431,16 @@ export default function EventFormEvaluation() {
                       <Checkbox
                         checked={selectedClubTents.includes(ct.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) setSelectedClubTents([...selectedClubTents, ct.id]);
-                          else setSelectedClubTents(selectedClubTents.filter((id) => id !== ct.id));
+                          const next = checked
+                            ? [...selectedClubTents, ct.id]
+                            : selectedClubTents.filter((id) => id !== ct.id);
+                          setSelectedClubTents(next);
+                          saveClubTents.mutate(next);
                         }}
                       />
                       <Label className="font-normal cursor-pointer text-sm">
-                        {ct.label} ({calcClubTentArea(ct.id, spacing).toFixed(1)} m²)
+                        {ct.label}
+                        <span className="text-muted-foreground ml-1">({calcClubTentArea(ct.id, spacing).toFixed(1)} m²)</span>
                       </Label>
                     </div>
                   ))}
@@ -388,7 +470,7 @@ export default function EventFormEvaluation() {
             {/* Visual preview */}
             <div>
               <Label className="text-sm mb-2 block">Vorschau (schematisch)</Label>
-              <TentVisualizer items={summary.tentItems} totalSide={summary.suggestedSide} />
+              <TentVisualizer items={summary.tentItems} totalSide={summary.suggestedSide} spacing={spacing} />
             </div>
           </div>
         </div>
@@ -400,7 +482,7 @@ export default function EventFormEvaluation() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[120px]">Name</TableHead>
-                  {fields.map((f) => (
+                  {dataFields.map((f) => (
                     <TableHead key={f.id} className="min-w-[100px] text-xs">{f.label}</TableHead>
                   ))}
                   <TableHead className="text-xs">Datum</TableHead>
@@ -409,7 +491,7 @@ export default function EventFormEvaluation() {
               <TableBody>
                 {responses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={fields.length + 2} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={dataFields.length + 2} className="text-center text-muted-foreground py-8">
                       Noch keine Anmeldungen.
                     </TableCell>
                   </TableRow>
@@ -417,7 +499,7 @@ export default function EventFormEvaluation() {
                   responses.map((resp) => (
                     <TableRow key={resp.id}>
                       <TableCell className="font-medium">{resp.respondent_name}</TableCell>
-                      {fields.map((f) => (
+                      {dataFields.map((f) => (
                         <TableCell key={f.id} className="text-sm">
                           {formatAnswer(f, getAnswer(resp, f.id))}
                         </TableCell>
@@ -437,7 +519,7 @@ export default function EventFormEvaluation() {
   );
 }
 
-function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
   return (
     <div className="border rounded-lg p-3 text-center">
       <div className="flex justify-center text-muted-foreground mb-1">{icon}</div>
@@ -447,81 +529,227 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
   );
 }
 
-function TentVisualizer({ items, totalSide }: { items: { label: string; area: number; w: number; h: number; shape: string }[]; totalSide: number }) {
+interface TentItem {
+  label: string;
+  typeName: string;
+  area: number;
+  w: number;
+  h: number;
+  innerW: number;
+  innerH: number;
+  guyRope: number;
+  shape: string;
+  category: string;
+}
+
+function TentVisualizer({ items, totalSide, spacing }: { items: TentItem[]; totalSide: number; spacing: number }) {
   if (items.length === 0) {
     return <div className="h-48 border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground">Keine Zelte</div>;
   }
 
-  const svgSize = 300;
-  const scale = svgSize / Math.max(totalSide, 1);
+  const svgSize = 360;
+  const scale = (svgSize - 20) / Math.max(totalSide, 1);
   const padding = 10;
 
-  // Simple grid packing
+  // Auto-layout: Scheune center, kitchen top-left, supply near kitchen, members bottom
+  const sorted = [...items].sort((a, b) => {
+    const order: Record<string, number> = { scheune: 0, kitchen: 1, supply: 2, club: 3, member: 4 };
+    return (order[a.category] ?? 4) - (order[b.category] ?? 4);
+  });
+
+  // Simple packing with category-aware placement
   let x = padding;
   let y = padding;
   let rowHeight = 0;
 
-  const placed: { x: number; y: number; w: number; h: number; label: string; shape: string }[] = [];
+  const placed: (TentItem & { px: number; py: number; pw: number; ph: number })[] = [];
 
-  for (const item of items) {
+  for (const item of sorted) {
     const w = item.w * scale;
     const h = item.h * scale;
 
     if (x + w > svgSize - padding) {
       x = padding;
-      y += rowHeight + 4;
+      y += rowHeight + 6;
       rowHeight = 0;
     }
 
-    placed.push({ x, y, w, h, label: item.label, shape: item.shape });
-    x += w + 4;
+    placed.push({ ...item, px: x, py: y, pw: w, ph: h });
+    x += w + 6;
     rowHeight = Math.max(rowHeight, h);
   }
 
   const svgHeight = Math.max(y + rowHeight + padding, 200);
 
   return (
-    <svg viewBox={`0 0 ${svgSize} ${svgHeight}`} className="w-full border rounded bg-muted/30" style={{ maxHeight: 400 }}>
+    <svg viewBox={`0 0 ${svgSize} ${svgHeight}`} className="w-full border rounded bg-muted/30" style={{ maxHeight: 450 }}>
       {/* Grid area */}
       <rect x={0} y={0} width={svgSize} height={svgHeight} fill="none" stroke="hsl(var(--border))" strokeWidth={1} strokeDasharray="4 4" />
 
-      {placed.map((p, i) => (
-        <g key={i}>
-          {p.shape === "circle" ? (
-            <ellipse
-              cx={p.x + p.w / 2}
-              cy={p.y + p.h / 2}
-              rx={p.w / 2}
-              ry={p.h / 2}
-              fill="hsl(var(--primary) / 0.2)"
-              stroke="hsl(var(--primary))"
-              strokeWidth={1}
-            />
-          ) : (
-            <rect
-              x={p.x}
-              y={p.y}
-              width={p.w}
-              height={p.h}
-              fill="hsl(var(--primary) / 0.2)"
-              stroke="hsl(var(--primary))"
-              strokeWidth={1}
-              rx={2}
-            />
-          )}
-          <text
-            x={p.x + p.w / 2}
-            y={p.y + p.h / 2}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={Math.min(8, p.w / 4)}
-            fill="hsl(var(--foreground))"
-            className="select-none"
-          >
-            {p.label.length > 15 ? p.label.slice(0, 12) + "…" : p.label}
-          </text>
-        </g>
-      ))}
+      {placed.map((p, i) => {
+        const innerScale = scale;
+        const guyRopePx = p.guyRope * innerScale;
+        const spacingPx = spacing * innerScale;
+        const innerW = p.innerW * innerScale;
+        const innerH = p.innerH * innerScale;
+        const fontSize = Math.max(6, Math.min(9, Math.min(p.pw, p.ph) / 5));
+        const isClub = p.category !== "member";
+        const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
+        const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
+
+        return (
+          <g key={i}>
+            {/* Outer shape (total footprint with spacing) */}
+            {p.shape === "circle" ? (
+              <>
+                <ellipse
+                  cx={p.px + p.pw / 2} cy={p.py + p.ph / 2}
+                  rx={p.pw / 2} ry={p.ph / 2}
+                  fill="none"
+                  stroke="hsl(var(--border))"
+                  strokeWidth={0.5}
+                  strokeDasharray="2 2"
+                />
+                {/* Guy-rope area */}
+                {p.guyRope > 0 && (
+                  <ellipse
+                    cx={p.px + p.pw / 2} cy={p.py + p.ph / 2}
+                    rx={(p.pw / 2) - spacingPx} ry={(p.ph / 2) - spacingPx}
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth={0.8}
+                    strokeDasharray="3 2"
+                    opacity={0.5}
+                  />
+                )}
+                {/* Inner tent */}
+                <ellipse
+                  cx={p.px + p.pw / 2} cy={p.py + p.ph / 2}
+                  rx={innerW / 2} ry={innerH / 2}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={1}
+                />
+              </>
+            ) : (
+              <>
+                {/* Outer (spacing) boundary */}
+                <rect
+                  x={p.px} y={p.py} width={p.pw} height={p.ph}
+                  fill="none"
+                  stroke="hsl(var(--border))"
+                  strokeWidth={0.5}
+                  strokeDasharray="2 2"
+                  rx={1}
+                />
+                {/* Guy-rope area */}
+                {p.guyRope > 0 && (
+                  <rect
+                    x={p.px + spacingPx} y={p.py + spacingPx}
+                    width={p.pw - 2 * spacingPx} height={p.ph - 2 * spacingPx}
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth={0.8}
+                    strokeDasharray="3 2"
+                    opacity={0.5}
+                    rx={1}
+                  />
+                )}
+                {/* Inner tent */}
+                <rect
+                  x={p.px + guyRopePx + spacingPx} y={p.py + guyRopePx + spacingPx}
+                  width={innerW} height={innerH}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={1}
+                  rx={2}
+                />
+              </>
+            )}
+
+            {/* Label: name + area */}
+            <text
+              x={p.px + p.pw / 2}
+              y={p.py + p.ph / 2 - fontSize * 0.3}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={fontSize}
+              fill="hsl(var(--foreground))"
+              fontWeight={isClub ? "600" : "400"}
+              className="select-none"
+            >
+              {p.label.length > 16 ? p.label.slice(0, 14) + "…" : p.label}
+            </text>
+            <text
+              x={p.px + p.pw / 2}
+              y={p.py + p.ph / 2 + fontSize * 0.9}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={fontSize * 0.8}
+              fill="hsl(var(--muted-foreground))"
+              className="select-none"
+            >
+              ({p.area.toFixed(1)} m²)
+            </text>
+
+            {/* Dimension labels for rectangles */}
+            {p.shape === "rect" && innerW > 20 && (
+              <>
+                {/* Width label on top */}
+                <text
+                  x={p.px + p.pw / 2}
+                  y={p.py + guyRopePx + spacingPx - 2}
+                  textAnchor="middle"
+                  fontSize={Math.max(5, fontSize * 0.65)}
+                  fill="hsl(var(--muted-foreground))"
+                  className="select-none"
+                >
+                  {p.innerW}m
+                </text>
+                {/* Length label on right */}
+                <text
+                  x={p.px + guyRopePx + spacingPx + innerW + 2}
+                  y={p.py + p.ph / 2}
+                  textAnchor="start"
+                  dominantBaseline="central"
+                  fontSize={Math.max(5, fontSize * 0.65)}
+                  fill="hsl(var(--muted-foreground))"
+                  className="select-none"
+                  transform={`rotate(90, ${p.px + guyRopePx + spacingPx + innerW + 2}, ${p.py + p.ph / 2})`}
+                >
+                  {p.innerH}m
+                </text>
+              </>
+            )}
+
+            {/* Diameter label for circles */}
+            {p.shape === "circle" && innerW > 20 && (
+              <>
+                <line
+                  x1={p.px + p.pw / 2 - innerW / 2}
+                  y1={p.py + p.ph / 2 + innerH / 2 + 3}
+                  x2={p.px + p.pw / 2 + innerW / 2}
+                  y2={p.py + p.ph / 2 + innerH / 2 + 3}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={0.5}
+                  markerStart="url(#arrowStart)"
+                  markerEnd="url(#arrowEnd)"
+                />
+                <text
+                  x={p.px + p.pw / 2}
+                  y={p.py + p.ph / 2 + innerH / 2 + 9}
+                  textAnchor="middle"
+                  fontSize={Math.max(5, fontSize * 0.65)}
+                  fill="hsl(var(--muted-foreground))"
+                  className="select-none"
+                >
+                  Ø{p.innerW}m
+                </text>
+              </>
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
 }
