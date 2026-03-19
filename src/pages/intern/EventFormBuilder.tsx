@@ -283,7 +283,7 @@ export default function EventFormBuilder() {
                 </Link>
               </Button>
               <div className="flex items-center gap-2 ml-auto">
-                <Label className="text-sm">Formular offen</Label>
+                <Label className="text-sm">Anmeldung möglich</Label>
                 <Switch
                   checked={form.is_open}
                   onCheckedChange={(checked) => updateForm.mutate({ is_open: checked })}
