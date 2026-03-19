@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const origin = Deno.env.get("SITE_URL") || "https://test.dilehi.de";
+    const origin = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "invite",
       email,
