@@ -470,6 +470,177 @@ export type Database = {
           },
         ]
       }
+      event_form_answers: {
+        Row: {
+          created_at: string
+          field_id: string
+          id: string
+          response_id: string
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          id?: string
+          response_id: string
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          id?: string
+          response_id?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_form_answers_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "event_form_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_form_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "event_form_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_form_fields: {
+        Row: {
+          created_at: string
+          description: string | null
+          form_id: string
+          id: string
+          label: string
+          options: Json | null
+          required: boolean
+          settings: Json | null
+          sort_order: number
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          form_id: string
+          id?: string
+          label: string
+          options?: Json | null
+          required?: boolean
+          settings?: Json | null
+          sort_order?: number
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          form_id?: string
+          id?: string
+          label?: string
+          options?: Json | null
+          required?: boolean
+          settings?: Json | null
+          sort_order?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "event_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_form_responses: {
+        Row: {
+          created_at: string
+          form_id: string
+          id: string
+          respondent_email: string | null
+          respondent_name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          form_id: string
+          id?: string
+          respondent_email?: string | null
+          respondent_name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          form_id?: string
+          id?: string
+          respondent_email?: string | null
+          respondent_name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_form_responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "event_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_forms: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          event_id: string
+          id: string
+          is_open: boolean
+          public_token: string | null
+          settings: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          event_id: string
+          id?: string
+          is_open?: boolean
+          public_token?: string | null
+          settings?: Json
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          is_open?: boolean
+          public_token?: string | null
+          settings?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_forms_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           all_day: boolean
@@ -947,6 +1118,7 @@ export type Database = {
         Returns: undefined
       }
       count_members: { Args: never; Returns: number }
+      get_form_by_token: { Args: { _token: string }; Returns: Json }
       get_member_directory: {
         Args: never
         Returns: {
@@ -972,6 +1144,10 @@ export type Database = {
       is_member: { Args: { _user_id: string }; Returns: boolean }
       is_schatzmeister: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
+      submit_form_response: {
+        Args: { _answers: Json; _email: string; _name: string; _token: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "vorstand" | "mitglied" | "herold" | "schatzmeister"
