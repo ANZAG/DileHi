@@ -7,16 +7,27 @@ import { FormField, TENT_TYPES } from "./types";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 
+interface MemberTent {
+  id: string;
+  name: string;
+  tent_type: string;
+  shape: string;
+  diameter: number | null;
+  length: number | null;
+  width: number | null;
+  guy_rope: number;
+}
+
 interface Props {
   field: FormField;
   value: any;
   onChange: (value: any) => void;
   eventStartDate?: string;
   eventEndDate?: string | null;
+  memberTents?: MemberTent[];
 }
 
-export default function FormFieldRenderer({ field, value, onChange, eventStartDate, eventEndDate }: Props) {
-  // Section type renders as a heading
+export default function FormFieldRenderer({ field, value, onChange, eventStartDate, eventEndDate, memberTents }: Props) {
   if (field.type === "section") {
     return (
       <div className="pt-6 pb-1 first:pt-0">
@@ -112,7 +123,7 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
         return <AttendanceDaysField value={value} onChange={onChange} startDate={eventStartDate} endDate={eventEndDate} />;
 
       case "tent":
-        return <TentField value={value} onChange={onChange} />;
+        return <TentField value={value} onChange={onChange} memberTents={memberTents} />;
 
       default:
         return <Input value={value || ""} onChange={(e) => onChange(e.target.value)} />;
@@ -144,7 +155,7 @@ export function isFieldVisible(
   if (!field.settings?.conditional_on) return true;
   const condLabel = field.settings.conditional_on as string;
   const condField = allFields.find((f) => f.label === condLabel);
-  if (!condField) return true; // If referenced field not found, show the field
+  if (!condField) return true;
   const condAnswer = allAnswers[condField.id];
   const expectedValue = field.settings.conditional_value !== undefined
     ? field.settings.conditional_value
@@ -236,12 +247,23 @@ function AttendanceDaysField({
   );
 }
 
-function TentField({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function TentField({ value, onChange, memberTents }: { value: any; onChange: (v: any) => void; memberTents?: MemberTent[] }) {
   const current = value || { has_tent: false, tent_type: "", diameter: "", length: "", width: "", capacity: 1 };
 
   const update = (patch: Record<string, any>) => onChange({ ...current, ...patch });
 
   const selectedType = TENT_TYPES.find((t) => t.value === current.tent_type);
+
+  const prefillFromMemberTent = (tent: MemberTent) => {
+    onChange({
+      has_tent: true,
+      tent_type: tent.tent_type,
+      diameter: tent.diameter || "",
+      length: tent.length || "",
+      width: tent.width || "",
+      capacity: current.capacity || 1,
+    });
+  };
 
   return (
     <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
@@ -255,6 +277,31 @@ function TentField({ value, onChange }: { value: any; onChange: (v: any) => void
 
       {current.has_tent && (
         <>
+          {/* Pre-fill from saved tents */}
+          {memberTents && memberTents.length > 0 && (
+            <div>
+              <Label className="text-sm text-muted-foreground">Gespeichertes Zelt laden:</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {memberTents.map((mt) => {
+                  const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
+                  const dimStr = mt.shape === "circle" && mt.diameter
+                    ? `Ø${mt.diameter}m`
+                    : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+                  return (
+                    <button
+                      key={mt.id}
+                      type="button"
+                      onClick={() => prefillFromMemberTent(mt)}
+                      className="text-xs px-2 py-1 rounded border bg-background hover:bg-accent transition-colors"
+                    >
+                      {mt.name || typeLabel} {dimStr}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <Label className="text-sm">Zelttyp</Label>
             <Select value={current.tent_type} onValueChange={(v) => update({ tent_type: v, diameter: "", length: "", width: "" })}>

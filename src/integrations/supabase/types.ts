@@ -748,6 +748,45 @@ export type Database = {
           },
         ]
       }
+      member_tents: {
+        Row: {
+          created_at: string
+          diameter: number | null
+          guy_rope: number
+          id: string
+          length: number | null
+          name: string
+          shape: string
+          tent_type: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          diameter?: number | null
+          guy_rope?: number
+          id?: string
+          length?: number | null
+          name?: string
+          shape?: string
+          tent_type: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          diameter?: number | null
+          guy_rope?: number
+          id?: string
+          length?: number | null
+          name?: string
+          shape?: string
+          tent_type?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       membership_files: {
         Row: {
           created_at: string
