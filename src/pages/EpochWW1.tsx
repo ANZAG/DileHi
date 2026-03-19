@@ -7,6 +7,13 @@ import SEO from "@/components/SEO";
 import { useSiteImage } from "@/hooks/useSiteImage";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
+import ImageCredits from "@/components/epochs/ImageCredits";
+
+const imageCredits = [
+  { description: "Kaserne Mainz-Kastel, historische Postkarte", source: "unbekannter Fotograf, ca. 1910", license: "gemeinfrei (Lichtbildschutz erloschen)" },
+  { description: "Pioniere in Felduniform, historische Fotografie", source: "unbekannter Fotograf, ca. 1916", license: "gemeinfrei (Lichtbildschutz erloschen)" },
+  { description: "Karte der Provinz Hessen-Nassau", source: "historische Karte, 19. Jh.", license: "gemeinfrei" },
+];
 
 const EpochWW1 = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -90,6 +97,8 @@ const EpochWW1 = () => {
           </div>
 
           <EpochSources epoch="wk1" />
+
+          <ImageCredits credits={imageCredits} />
 
           <h2 className="font-serif text-2xl font-semibold mb-6">Galerie</h2>
           {allImages.length > 0 ? (
