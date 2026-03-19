@@ -118,10 +118,6 @@ const Epoch1815 = () => {
             <p className="text-sm text-muted-foreground mb-8">Weitere Bilder folgen in Kürze.</p>
           )}
 
-          <div className="p-8 rounded-xl bg-primary/5 border border-primary/20">
-            <h3 className="font-serif text-lg font-semibold mb-3 text-primary">Ein Wort zur Vollständigkeit</h3>
-            <p className="text-sm text-foreground/80 leading-relaxed">Diese Darstellung wächst noch. Die Waterloo-Kampagne ist quellenreich, aber die nassauische Perspektive ist in der deutschsprachigen Forschung lange vernachlässigt worden – wir arbeiten daran, sie sorgfältig aufzuarbeiten. Wer Interesse hat, an dieser Darstellung mitzuwirken oder eigene Recherchen beizusteuern, ist herzlich eingeladen, uns zu kontaktieren.</p>
-          </div>
         </motion.div>
       </section>
 
