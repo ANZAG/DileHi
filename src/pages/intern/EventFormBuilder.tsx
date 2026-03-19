@@ -283,7 +283,7 @@ export default function EventFormBuilder() {
                 </Link>
               </Button>
               <div className="flex items-center gap-2 ml-auto">
-                <Label className="text-sm">Formular offen</Label>
+                <Label className="text-sm">Anmeldung möglich</Label>
                 <Switch
                   checked={form.is_open}
                   onCheckedChange={(checked) => updateForm.mutate({ is_open: checked })}
@@ -309,15 +309,16 @@ export default function EventFormBuilder() {
                             {...provided.draggableProps}
                             className={`flex items-center gap-2 p-3 border rounded-lg bg-card transition-shadow ${
                               snapshot.isDragging ? "shadow-lg" : ""
-                            }`}
+                            } ${field.type === "section" ? "bg-muted border-primary/20" : ""}`}
                           >
                             <div {...provided.dragHandleProps} className="cursor-grab text-muted-foreground">
                               <GripVertical size={16} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm truncate">{field.label}</span>
-                                {field.required && <Badge variant="destructive" className="text-[10px] px-1 py-0">Pflicht</Badge>}
+                                <span className={`text-sm truncate ${field.type === "section" ? "font-serif font-bold text-base" : "font-medium"}`}>{field.label}</span>
+                                {field.required && field.type !== "section" && <Badge variant="destructive" className="text-[10px] px-1 py-0">Pflicht</Badge>}
+                                {field.settings?.conditional_on && <Badge variant="outline" className="text-[10px] px-1 py-0">Bedingt</Badge>}
                               </div>
                               <span className="text-xs text-muted-foreground">{fieldTypeLabel(field.type)}</span>
                             </div>

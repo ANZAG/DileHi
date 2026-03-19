@@ -52,12 +52,13 @@ export const TENT_TYPES = [
 
 export const CLUB_TENTS = [
   { id: "kuechenzelt", label: "Küchenzelt", width: 3, length: 6, guyRope: 1, shape: "rect" as const },
-  { id: "versorgung_klein", label: "Versorgungszelt klein (Kegelzelt Ø5m)", diameter: 5, guyRope: 0, shape: "circle" as const },
+  { id: "versorgung_klein", label: "Versorgungszelt klein", diameter: 5, guyRope: 0, shape: "circle" as const },
   { id: "versorgung_gross", label: "Versorgungszelt groß", width: 4, length: 6, guyRope: 0, shape: "rect" as const },
-  { id: "scheune", label: "Scheune (8×8m)", width: 8, length: 8, guyRope: 1.5, shape: "rect" as const },
+  { id: "scheune", label: "Scheune", width: 8, length: 8, guyRope: 1.5, shape: "rect" as const },
 ];
 
 export const FIELD_TYPES = [
+  { value: "section", label: "Sektion (Überschrift)", icon: "Heading" },
   { value: "text", label: "Textfeld", icon: "Type" },
   { value: "textarea", label: "Mehrzeiliger Text", icon: "AlignLeft" },
   { value: "number", label: "Zahl", icon: "Hash" },

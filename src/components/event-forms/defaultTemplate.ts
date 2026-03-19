@@ -1,4 +1,13 @@
 export const DEFAULT_TEMPLATE_FIELDS = [
+  // --- Sektion: Teilnahme ---
+  {
+    type: "section",
+    label: "Teilnahme",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
   {
     type: "attendance_days",
     label: "An welchen Tagen bist du dabei?",
@@ -15,9 +24,11 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     settings: {},
     description: null,
   },
+
+  // --- Sektion: Transport ---
   {
-    type: "checkbox",
-    label: "Kann einen Anhänger zur Verfügung stellen",
+    type: "section",
+    label: "Transport",
     required: false,
     options: [] as string[],
     settings: {},
@@ -32,12 +43,38 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     description: null,
   },
   {
+    type: "number",
+    label: "Kann Personen mitnehmen (inkl. sich selbst)",
+    required: false,
+    options: [] as string[],
+    settings: { conditional_on: "Reise mit eigenem PKW an", placeholder: "z.B. 4" },
+    description: "Anzahl freier Sitzplätze im PKW",
+  },
+  {
     type: "checkbox",
     label: "Kann einen Anhänger mit dem PKW ziehen",
     required: false,
     options: [] as string[],
     settings: { conditional_on: "Reise mit eigenem PKW an" },
-    description: "Wird nur angezeigt, wenn PKW-Anreise ausgewählt ist",
+    description: null,
+  },
+  {
+    type: "checkbox",
+    label: "Kann einen Anhänger zur Verfügung stellen",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
+
+  // --- Sektion: Organisation ---
+  {
+    type: "section",
+    label: "Organisation",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
   },
   {
     type: "checkbox",
@@ -50,6 +87,16 @@ export const DEFAULT_TEMPLATE_FIELDS = [
   {
     type: "checkbox",
     label: "Helfe im Orgateam Küche mit",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
+
+  // --- Sektion: Ernährung ---
+  {
+    type: "section",
+    label: "Ernährung",
     required: false,
     options: [] as string[],
     settings: {},
@@ -71,6 +118,16 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     settings: { placeholder: "Bitte angeben, falls vorhanden" },
     description: null,
   },
+
+  // --- Sektion: Zelt-Details ---
+  {
+    type: "section",
+    label: "Zelt-Details",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
   {
     type: "tent",
     label: "Zelt-Details",
@@ -79,6 +136,16 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     settings: {},
     description: "Angaben zu deinem Zelt für die Lagerplanung",
   },
+
+  // --- Sektion: Sonstiges ---
+  {
+    type: "section",
+    label: "Sonstiges",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
   {
     type: "checkbox",
     label: "Ausrüstung vollständig",
@@ -86,6 +153,14 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     options: [] as string[],
     settings: {},
     description: "Hast du alles, was du brauchst?",
+  },
+  {
+    type: "textarea",
+    label: "Was fehlt?",
+    required: false,
+    options: [] as string[],
+    settings: { conditional_on: "Ausrüstung vollständig", conditional_value: false, placeholder: "Was benötigst du noch?" },
+    description: null,
   },
   {
     type: "textarea",
