@@ -17,7 +17,7 @@ import SEO from "@/components/SEO";
 import type { FormField } from "@/components/event-forms/types";
 
 interface FormData {
-  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string };
+  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { whatsapp_link?: string } };
   event: { title: string; start_date: string; end_date: string | null; location: string | null; all_day: boolean };
   fields: FormField[];
 }
