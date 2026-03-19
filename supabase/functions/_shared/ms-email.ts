@@ -125,7 +125,7 @@ function buildSignature(sig?: SignatureInfo): string {
           <p style="margin: 2px 0 0; font-size: 12px;">
             <a href="mailto:vorstand@dilehi.de" style="color: ${GOLD}; text-decoration: none;">vorstand@dilehi.de</a>
             &nbsp;·&nbsp;
-            <a href="https://dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
+            <a href="https://www.dilehi.de" style="color: ${GOLD}; text-decoration: none;">dilehi.de</a>
           </p>
         </td>
       </tr>
