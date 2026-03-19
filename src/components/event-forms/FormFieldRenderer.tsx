@@ -3,9 +3,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { FormField, TENT_TYPES } from "./types";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
+import { Plus, Trash2 } from "lucide-react";
 
 interface MemberTent {
   id: string;
@@ -123,7 +125,7 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
         return <AttendanceDaysField value={value} onChange={onChange} startDate={eventStartDate} endDate={eventEndDate} />;
 
       case "tent":
-        return <TentField value={value} onChange={onChange} memberTents={memberTents} />;
+        return <TentListField value={value} onChange={onChange} memberTents={memberTents} />;
 
       default:
         return <Input value={value || ""} onChange={(e) => onChange(e.target.value)} />;
@@ -247,123 +249,153 @@ function AttendanceDaysField({
   );
 }
 
-function TentField({ value, onChange, memberTents }: { value: any; onChange: (v: any) => void; memberTents?: MemberTent[] }) {
-  const current = value || { has_tent: false, tent_type: "", diameter: "", length: "", width: "", capacity: 1 };
+/** Multi-tent field – allows adding multiple tents per person */
+interface TentEntry {
+  tent_type: string;
+  diameter: number | string;
+  length: number | string;
+  width: number | string;
+  capacity: number;
+}
 
-  const update = (patch: Record<string, any>) => onChange({ ...current, ...patch });
+function TentListField({ value, onChange, memberTents }: { value: any; onChange: (v: any) => void; memberTents?: MemberTent[] }) {
+  // value shape: { tents: TentEntry[] }
+  const current: { tents: TentEntry[] } = value && Array.isArray(value.tents) ? value : { tents: [] };
 
-  const selectedType = TENT_TYPES.find((t) => t.value === current.tent_type);
+  const updateTents = (tents: TentEntry[]) => onChange({ tents });
 
-  const prefillFromMemberTent = (tent: MemberTent) => {
-    onChange({
-      has_tent: true,
-      tent_type: tent.tent_type,
-      diameter: tent.diameter || "",
-      length: tent.length || "",
-      width: tent.width || "",
-      capacity: current.capacity || 1,
-    });
+  const addTent = () => {
+    updateTents([...current.tents, { tent_type: "", diameter: "", length: "", width: "", capacity: 1 }]);
+  };
+
+  const removeTent = (index: number) => {
+    updateTents(current.tents.filter((_, i) => i !== index));
+  };
+
+  const updateTent = (index: number, patch: Partial<TentEntry>) => {
+    const updated = current.tents.map((t, i) => i === index ? { ...t, ...patch } : t);
+    updateTents(updated);
+  };
+
+  const prefillFromMemberTent = (mt: MemberTent) => {
+    updateTents([...current.tents, {
+      tent_type: mt.tent_type,
+      diameter: mt.diameter || "",
+      length: mt.length || "",
+      width: mt.width || "",
+      capacity: 1,
+    }]);
   };
 
   return (
     <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-      <div className="flex items-center gap-2">
-        <Checkbox
-          checked={current.has_tent}
-          onCheckedChange={(checked) => update({ has_tent: checked === true })}
-        />
-        <Label className="font-normal cursor-pointer">Ich bringe ein Zelt mit</Label>
-      </div>
-
-      {current.has_tent && (
-        <>
-          {/* Pre-fill from saved tents */}
-          {memberTents && memberTents.length > 0 && (
-            <div>
-              <Label className="text-sm text-muted-foreground">Gespeichertes Zelt laden:</Label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {memberTents.map((mt) => {
-                  const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
-                  const dimStr = mt.shape === "circle" && mt.diameter
-                    ? `Ø${mt.diameter}m`
-                    : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
-                  return (
-                    <button
-                      key={mt.id}
-                      type="button"
-                      onClick={() => prefillFromMemberTent(mt)}
-                      className="text-xs px-2 py-1 rounded border bg-background hover:bg-accent transition-colors"
-                    >
-                      {mt.name || typeLabel} {dimStr}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <Label className="text-sm">Zelttyp</Label>
-            <Select value={current.tent_type} onValueChange={(v) => update({ tent_type: v, diameter: "", length: "", width: "" })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Zelttyp wählen..." />
-              </SelectTrigger>
-              <SelectContent>
-                {TENT_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Pre-fill from saved tents */}
+      {memberTents && memberTents.length > 0 && (
+        <div>
+          <Label className="text-sm text-muted-foreground">Gespeichertes Zelt hinzufügen:</Label>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {memberTents.map((mt) => {
+              const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
+              const dimStr = mt.shape === "circle" && mt.diameter
+                ? `Ø${mt.diameter}m`
+                : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+              return (
+                <button
+                  key={mt.id}
+                  type="button"
+                  onClick={() => prefillFromMemberTent(mt)}
+                  className="text-xs px-2 py-1 rounded border bg-background hover:bg-accent transition-colors"
+                >
+                  {mt.name || typeLabel} {dimStr}
+                </button>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          {selectedType?.shape === "circle" && (
+      {current.tents.map((tent, index) => {
+        const selectedType = TENT_TYPES.find((t) => t.value === tent.tent_type);
+        return (
+          <div key={index} className="border rounded-md p-3 bg-background space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Zelt {index + 1}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeTent(index)}>
+                <Trash2 size={14} className="text-destructive" />
+              </Button>
+            </div>
+
             <div>
-              <Label className="text-sm">{selectedType.dimLabel}</Label>
+              <Label className="text-sm">Zelttyp</Label>
+              <Select value={tent.tent_type} onValueChange={(v) => updateTent(index, { tent_type: v, diameter: "", length: "", width: "" })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Zelttyp wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TENT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedType?.shape === "circle" && (
+              <div>
+                <Label className="text-sm">{selectedType.dimLabel}</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tent.diameter || ""}
+                  onChange={(e) => updateTent(index, { diameter: e.target.value ? Number(e.target.value) : "" })}
+                  placeholder="z.B. 5"
+                />
+              </div>
+            )}
+
+            {selectedType?.shape === "rect" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-sm">Länge (m)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={tent.length || ""}
+                    onChange={(e) => updateTent(index, { length: e.target.value ? Number(e.target.value) : "" })}
+                    placeholder="z.B. 4"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Breite (m)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={tent.width || ""}
+                    onChange={(e) => updateTent(index, { width: e.target.value ? Number(e.target.value) : "" })}
+                    placeholder="z.B. 3"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-sm">Schlafplätze (inkl. dir selbst)</Label>
               <Input
                 type="number"
-                step="0.1"
-                value={current.diameter || ""}
-                onChange={(e) => update({ diameter: e.target.value ? Number(e.target.value) : "" })}
-                placeholder="z.B. 5"
+                min={1}
+                value={tent.capacity || 1}
+                onChange={(e) => updateTent(index, { capacity: e.target.value ? Number(e.target.value) : 1 })}
               />
             </div>
-          )}
-
-          {selectedType?.shape === "rect" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-sm">Länge (m)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={current.length || ""}
-                  onChange={(e) => update({ length: e.target.value ? Number(e.target.value) : "" })}
-                  placeholder="z.B. 4"
-                />
-              </div>
-              <div>
-                <Label className="text-sm">Breite (m)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={current.width || ""}
-                  onChange={(e) => update({ width: e.target.value ? Number(e.target.value) : "" })}
-                  placeholder="z.B. 3"
-                />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <Label className="text-sm">Schlafplätze (inkl. dir selbst)</Label>
-            <Input
-              type="number"
-              min={1}
-              value={current.capacity || 1}
-              onChange={(e) => update({ capacity: e.target.value ? Number(e.target.value) : 1 })}
-            />
           </div>
-        </>
+        );
+      })}
+
+      <Button variant="outline" size="sm" className="w-full" onClick={addTent} type="button">
+        <Plus size={14} className="mr-1" /> Zelt hinzufügen
+      </Button>
+
+      {current.tents.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center">Kein Zelt hinzugefügt – klicke oben um eines hinzuzufügen.</p>
       )}
     </div>
   );
