@@ -87,6 +87,20 @@ const EventsPage = () => {
     },
   });
 
+  // Fetch event forms to know which events have forms
+  const { data: eventForms = [] } = useQuery({
+    queryKey: ["event_forms_list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_forms")
+        .select("id, event_id, is_open, public_token");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getFormForEvent = (eventId: string) => eventForms.find((f) => f.event_id === eventId);
+
   const { data: attendees = [] } = useQuery({
     queryKey: ["event_attendees"],
     queryFn: async () => {
