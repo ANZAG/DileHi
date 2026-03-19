@@ -31,6 +31,9 @@ import RolesPermissions from "./pages/intern/RolesPermissions";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
 import MemberMap from "./pages/intern/MemberMap";
+import EventFormBuilder from "./pages/intern/EventFormBuilder";
+import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
+import EventRegistration from "./pages/EventRegistration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
