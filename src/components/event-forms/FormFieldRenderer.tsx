@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,24 +13,19 @@ interface Props {
   onChange: (value: any) => void;
   eventStartDate?: string;
   eventEndDate?: string | null;
-  allAnswers?: Record<string, any>;
 }
 
-export default function FormFieldRenderer({ field, value, onChange, eventStartDate, eventEndDate, allAnswers = {} }: Props) {
-  // Handle conditional visibility
-  if (field.settings?.conditional_on) {
-    const condLabel = field.settings.conditional_on;
-    const condValue = Object.values(allAnswers).find((_, i) => {
-      // Find by matching label in parent context - simplified: check if the conditional field's value is truthy
-      return false;
-    });
-    // Check allAnswers by finding the field with matching label
-    const condMet = Object.entries(allAnswers).some(([, v]) => {
-      // This is a simplification - in practice we'd match by field ID
-      return v === true;
-    });
-    // Simple approach: check if any checkbox-type answer with similar label is true
-    // We'll pass a more structured approach from the parent
+export default function FormFieldRenderer({ field, value, onChange, eventStartDate, eventEndDate }: Props) {
+  // Section type renders as a heading
+  if (field.type === "section") {
+    return (
+      <div className="pt-6 pb-1 first:pt-0">
+        <h3 className="font-serif text-lg font-semibold border-b pb-1">{field.label}</h3>
+        {field.description && (
+          <p className="text-sm text-muted-foreground mt-1">{field.description}</p>
+        )}
+      </div>
+    );
   }
 
   const renderField = () => {
@@ -139,6 +133,26 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
       {renderField()}
     </div>
   );
+}
+
+/** Check if a field should be visible based on conditional_on settings */
+export function isFieldVisible(
+  field: FormField,
+  allFields: FormField[],
+  allAnswers: Record<string, any>
+): boolean {
+  if (!field.settings?.conditional_on) return true;
+  const condLabel = field.settings.conditional_on as string;
+  const condField = allFields.find((f) => f.label === condLabel);
+  if (!condField) return true; // If referenced field not found, show the field
+  const condAnswer = allAnswers[condField.id];
+  const expectedValue = field.settings.conditional_value !== undefined
+    ? field.settings.conditional_value
+    : true;
+  if (expectedValue === false) {
+    return condAnswer !== true;
+  }
+  return condAnswer === expectedValue;
 }
 
 function AttendanceDaysField({

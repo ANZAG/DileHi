@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
+import FormFieldRenderer, { isFieldVisible } from "@/components/event-forms/FormFieldRenderer";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { motion } from "framer-motion";
@@ -58,8 +58,11 @@ export default function EventRegistration() {
   const handleSubmit = async () => {
     if (!formData || !name.trim()) return;
 
-    // Validate required fields
-    for (const field of formData.fields) {
+    // Validate required visible fields
+    const visibleFields = formData.fields.filter(
+      (f) => f.type !== "section" && isFieldVisible(f, formData.fields, answers)
+    );
+    for (const field of visibleFields) {
       if (field.required) {
         const val = answers[field.id];
         if (val === undefined || val === null || val === "" || (Array.isArray(val) && val.length === 0)) {
@@ -75,10 +78,13 @@ export default function EventRegistration() {
 
     setSubmitting(true);
     try {
-      const answerArray = Object.entries(answers).map(([field_id, value]) => ({
-        field_id,
-        value,
-      }));
+      // Only submit answers for visible, non-section fields
+      const answerArray = visibleFields
+        .filter((f) => answers[f.id] !== undefined)
+        .map((f) => ({
+          field_id: f.id,
+          value: answers[f.id],
+        }));
 
       const { error } = await supabase.rpc("submit_form_response", {
         _token: token!,
@@ -88,6 +94,15 @@ export default function EventRegistration() {
       });
 
       if (error) throw error;
+
+      // Auto-RSVP for logged-in members
+      if (user && formData.form.event_id) {
+        await supabase.from("event_attendees").upsert(
+          { event_id: formData.form.event_id, user_id: user.id },
+          { onConflict: "event_id,user_id", ignoreDuplicates: true }
+        ).then(() => {}); // ignore errors silently
+      }
+
       setSubmitted(true);
       toast({ title: "Anmeldung erfolgreich!" });
     } catch (err: any) {
@@ -126,6 +141,11 @@ export default function EventRegistration() {
       </div>
     );
   }
+
+  // Filter visible fields (including sections for rendering)
+  const visibleFields = formData.fields.filter(
+    (f) => f.type === "section" || isFieldVisible(f, formData.fields, answers)
+  );
 
   return (
     <div className="container py-8 max-w-2xl px-4">
@@ -170,8 +190,8 @@ export default function EventRegistration() {
             </div>
           </div>
 
-          {/* Dynamic fields */}
-          {formData.fields.map((field) => (
+          {/* Dynamic fields with conditional visibility */}
+          {visibleFields.map((field) => (
             <FormFieldRenderer
               key={field.id}
               field={field}
@@ -179,7 +199,6 @@ export default function EventRegistration() {
               onChange={(v) => setAnswers((prev) => ({ ...prev, [field.id]: v }))}
               eventStartDate={formData.event.start_date}
               eventEndDate={formData.event.end_date}
-              allAnswers={answers}
             />
           ))}
 
