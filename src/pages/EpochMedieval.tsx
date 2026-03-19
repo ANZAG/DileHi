@@ -7,6 +7,11 @@ import SEO from "@/components/SEO";
 import { useSiteImage } from "@/hooks/useSiteImage";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
+import ImageCredits from "@/components/epochs/ImageCredits";
+
+const imageCredits = [
+  { description: "Burg Frauenstein, historische Darstellung", source: "unbekannter Künstler", license: "gemeinfrei" },
+];
 
 const EpochMedieval = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
