@@ -72,22 +72,21 @@ export default function EventRegistration() {
     },
   });
 
-  // Pre-fill tent data from profile if user has exactly one tent
+  // Pre-fill tent data from profile tents
   useEffect(() => {
-    if (memberTents.length === 1 && formData) {
+    if (memberTents.length > 0 && formData) {
       const tentField = formData.fields.find((f) => f.type === "tent");
-      if (tentField && !answers[tentField.id]?.has_tent) {
-        const mt = memberTents[0];
+      if (tentField && !answers[tentField.id]?.tents?.length) {
+        const tents = memberTents.map((mt) => ({
+          tent_type: mt.tent_type,
+          diameter: mt.diameter || "",
+          length: mt.length || "",
+          width: mt.width || "",
+          capacity: 1,
+        }));
         setAnswers((prev) => ({
           ...prev,
-          [tentField.id]: {
-            has_tent: true,
-            tent_type: mt.tent_type,
-            diameter: mt.diameter || "",
-            length: mt.length || "",
-            width: mt.width || "",
-            capacity: 1,
-          },
+          [tentField.id]: { tents },
         }));
       }
     }
