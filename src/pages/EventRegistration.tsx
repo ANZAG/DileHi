@@ -153,7 +153,7 @@ export default function EventRegistration() {
             eventTitle: formData.event.title,
             eventDate: eventDateStr,
             eventLocation: formData.event.location || "",
-            whatsappLink: "", // will be populated from form settings later
+            whatsappLink: formData.form.settings?.whatsapp_link || "",
           },
         }).catch(() => {}); // fire and forget
       }
