@@ -669,7 +669,7 @@ const EventsPage = () => {
                         </div>
                       </div>
 
-                      {/* RSVP */}
+                      {/* RSVP + Form */}
                       <div className="mt-3 pt-3 border-t flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Users size={14} className="text-muted-foreground" />
@@ -683,18 +683,33 @@ const EventsPage = () => {
                             ))
                           )}
                         </div>
-                        <Button
-                          size="sm"
-                          variant={attending ? "secondary" : "default"}
-                          onClick={() => toggleRSVP.mutate(ev.id)}
-                          disabled={toggleRSVP.isPending}
-                        >
-                          {attending ? (
-                            <><X size={14} className="mr-1" /> Absagen</>
-                          ) : (
-                            <><Check size={14} className="mr-1" /> Zusagen</>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          {(() => {
+                            const evForm = getFormForEvent(ev.id);
+                            if (evForm?.is_open && evForm.public_token) {
+                              return (
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link to={`/anmeldung/${evForm.public_token}`}>
+                                    <FileText size={14} className="mr-1" /> Anmelden
+                                  </Link>
+                                </Button>
+                              );
+                            }
+                            return null;
+                          })()}
+                          <Button
+                            size="sm"
+                            variant={attending ? "secondary" : "default"}
+                            onClick={() => toggleRSVP.mutate(ev.id)}
+                            disabled={toggleRSVP.isPending}
+                          >
+                            {attending ? (
+                              <><X size={14} className="mr-1" /> Absagen</>
+                            ) : (
+                              <><Check size={14} className="mr-1" /> Zusagen</>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
