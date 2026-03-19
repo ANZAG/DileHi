@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,19 +47,55 @@ export default function EventRegistration() {
     });
   }, [token]);
 
-  // Pre-fill name for logged-in members
+  // Pre-fill name and email for logged-in members
   useEffect(() => {
     if (user) {
       supabase.from("profiles").select("display_name").eq("id", user.id).single().then(({ data }) => {
         if (data) setName(data.display_name);
       });
+      setEmail(user.email || "");
     }
   }, [user]);
+
+  // Fetch member's saved tents
+  const { data: memberTents = [] } = useQuery({
+    queryKey: ["member_tents", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("member_tents")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at");
+      if (error) return [];
+      return data;
+    },
+  });
+
+  // Pre-fill tent data from profile if user has exactly one tent
+  useEffect(() => {
+    if (memberTents.length === 1 && formData) {
+      const tentField = formData.fields.find((f) => f.type === "tent");
+      if (tentField && !answers[tentField.id]?.has_tent) {
+        const mt = memberTents[0];
+        setAnswers((prev) => ({
+          ...prev,
+          [tentField.id]: {
+            has_tent: true,
+            tent_type: mt.tent_type,
+            diameter: mt.diameter || "",
+            length: mt.length || "",
+            width: mt.width || "",
+            capacity: 1,
+          },
+        }));
+      }
+    }
+  }, [memberTents, formData]);
 
   const handleSubmit = async () => {
     if (!formData || !name.trim()) return;
 
-    // Validate required visible fields
     const visibleFields = formData.fields.filter(
       (f) => f.type !== "section" && isFieldVisible(f, formData.fields, answers)
     );
@@ -78,7 +115,6 @@ export default function EventRegistration() {
 
     setSubmitting(true);
     try {
-      // Only submit answers for visible, non-section fields
       const answerArray = visibleFields
         .filter((f) => answers[f.id] !== undefined)
         .map((f) => ({
@@ -100,7 +136,26 @@ export default function EventRegistration() {
         await supabase.from("event_attendees").upsert(
           { event_id: formData.form.event_id, user_id: user.id },
           { onConflict: "event_id,user_id", ignoreDuplicates: true }
-        ).then(() => {}); // ignore errors silently
+        ).then(() => {});
+      }
+
+      // Send confirmation email
+      if (email.trim()) {
+        const eventDateStr = formData.event.start_date
+          ? format(parseISO(formData.event.start_date), "d. MMMM yyyy", { locale: de }) +
+            (formData.event.end_date ? ` – ${format(parseISO(formData.event.end_date), "d. MMMM yyyy", { locale: de })}` : "")
+          : "";
+
+        supabase.functions.invoke("confirm-registration", {
+          body: {
+            email: email.trim(),
+            name: name.trim(),
+            eventTitle: formData.event.title,
+            eventDate: eventDateStr,
+            eventLocation: formData.event.location || "",
+            whatsappLink: "", // will be populated from form settings later
+          },
+        }).catch(() => {}); // fire and forget
       }
 
       setSubmitted(true);
@@ -137,12 +192,14 @@ export default function EventRegistration() {
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
           <h2 className="text-2xl font-serif font-bold mb-2">Vielen Dank!</h2>
           <p className="text-muted-foreground">Deine Anmeldung für „{formData.event.title}" wurde gespeichert.</p>
+          {email.trim() && (
+            <p className="text-sm text-muted-foreground mt-2">Eine Bestätigung wurde an {email} gesendet.</p>
+          )}
         </motion.div>
       </div>
     );
   }
 
-  // Filter visible fields (including sections for rendering)
   const visibleFields = formData.fields.filter(
     (f) => f.type === "section" || isFieldVisible(f, formData.fields, answers)
   );
@@ -186,11 +243,11 @@ export default function EventRegistration() {
             </div>
             <div>
               <Label>E-Mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Rückfragen (optional)" />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Bestätigungsmail" />
             </div>
           </div>
 
-          {/* Dynamic fields with conditional visibility */}
+          {/* Dynamic fields */}
           {visibleFields.map((field) => (
             <FormFieldRenderer
               key={field.id}
@@ -199,6 +256,7 @@ export default function EventRegistration() {
               onChange={(v) => setAnswers((prev) => ({ ...prev, [field.id]: v }))}
               eventStartDate={formData.event.start_date}
               eventEndDate={formData.event.end_date}
+              memberTents={memberTents}
             />
           ))}
 

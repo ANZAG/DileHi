@@ -34,7 +34,10 @@ export default function EventFormBuilder() {
   const [newFieldOptions, setNewFieldOptions] = useState("");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Fetch event
+  // Conditional logic state for add/edit
+  const [newCondOn, setNewCondOn] = useState("");
+  const [newCondValue, setNewCondValue] = useState("true");
+
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
@@ -45,7 +48,6 @@ export default function EventFormBuilder() {
     enabled: !!eventId,
   });
 
-  // Fetch or create form
   const { data: form, isLoading: formLoading } = useQuery({
     queryKey: ["event_form", eventId],
     queryFn: async () => {
@@ -60,7 +62,6 @@ export default function EventFormBuilder() {
     enabled: !!eventId,
   });
 
-  // Fetch fields
   const { data: fields = [] } = useQuery({
     queryKey: ["event_form_fields", form?.id],
     queryFn: async () => {
@@ -75,7 +76,6 @@ export default function EventFormBuilder() {
     enabled: !!form?.id,
   });
 
-  // Create form if doesn't exist
   const createForm = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -84,7 +84,7 @@ export default function EventFormBuilder() {
           event_id: eventId!,
           title: event?.title || "Anmeldeformular",
           created_by: user!.id,
-          settings: { spacing_m: 0, club_tents: [] },
+          settings: { spacing_m: 0, club_tents: [], whatsapp_link: "" },
         })
         .select()
         .single();
@@ -96,13 +96,10 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Load template
   const loadTemplate = useMutation({
     mutationFn: async () => {
       if (!form) return;
-      // Delete existing fields first
       await supabase.from("event_form_fields").delete().eq("form_id", form.id);
-      // Insert template fields
       const inserts = DEFAULT_TEMPLATE_FIELDS.map((f, i) => ({
         form_id: form.id,
         type: f.type,
@@ -122,13 +119,17 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Add field
   const addField = useMutation({
     mutationFn: async () => {
       if (!form) return;
       const options = ["select", "multi_select"].includes(newFieldType)
         ? newFieldOptions.split("\n").map((s) => s.trim()).filter(Boolean)
         : [];
+      const settings: Record<string, any> = {};
+      if (newCondOn) {
+        settings.conditional_on = newCondOn;
+        if (newCondValue === "false") settings.conditional_value = false;
+      }
       const { error } = await supabase.from("event_form_fields").insert({
         form_id: form.id,
         type: newFieldType,
@@ -137,7 +138,7 @@ export default function EventFormBuilder() {
         required: newFieldRequired,
         sort_order: fields.length,
         options,
-        settings: {},
+        settings,
       });
       if (error) throw error;
     },
@@ -149,7 +150,6 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Update field
   const updateField = useMutation({
     mutationFn: async (field: FormField) => {
       const { error } = await supabase
@@ -171,7 +171,6 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Delete field
   const deleteField = useMutation({
     mutationFn: async (fieldId: string) => {
       const { error } = await supabase.from("event_form_fields").delete().eq("id", fieldId);
@@ -182,7 +181,6 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Reorder fields
   const reorderFields = useMutation({
     mutationFn: async (reordered: FormField[]) => {
       const updates = reordered.map((f, i) =>
@@ -195,7 +193,6 @@ export default function EventFormBuilder() {
     },
   });
 
-  // Update form settings
   const updateForm = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       if (!form) return;
@@ -213,6 +210,8 @@ export default function EventFormBuilder() {
     setNewFieldDescription("");
     setNewFieldRequired(false);
     setNewFieldOptions("");
+    setNewCondOn("");
+    setNewCondValue("true");
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -233,6 +232,9 @@ export default function EventFormBuilder() {
 
   const fieldTypeLabel = (type: string) => FIELD_TYPES.find((f) => f.value === type)?.label || type;
 
+  // Get labels of checkbox/select fields for conditional logic dropdown
+  const conditionalCandidates = fields.filter((f) => f.type === "checkbox" || f.type === "select");
+
   if (!eventId) return null;
 
   return (
@@ -249,7 +251,6 @@ export default function EventFormBuilder() {
           </div>
         </div>
 
-        {/* Create form if not exists */}
         {!formLoading && !form && (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -263,7 +264,6 @@ export default function EventFormBuilder() {
           </div>
         )}
 
-        {/* Form exists - show builder */}
         {form && (
           <div className="space-y-6">
             {/* Actions bar */}
@@ -318,7 +318,11 @@ export default function EventFormBuilder() {
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm truncate ${field.type === "section" ? "font-serif font-bold text-base" : "font-medium"}`}>{field.label}</span>
                                 {field.required && field.type !== "section" && <Badge variant="destructive" className="text-[10px] px-1 py-0">Pflicht</Badge>}
-                                {field.settings?.conditional_on && <Badge variant="outline" className="text-[10px] px-1 py-0">Bedingt</Badge>}
+                                {field.settings?.conditional_on && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0" title={`Sichtbar wenn: ${field.settings.conditional_on} = ${field.settings.conditional_value ?? "Ja"}`}>
+                                    Bedingt
+                                  </Badge>
+                                )}
                               </div>
                               <span className="text-xs text-muted-foreground">{fieldTypeLabel(field.type)}</span>
                             </div>
@@ -329,6 +333,8 @@ export default function EventFormBuilder() {
                               onClick={() => {
                                 setEditingField({ ...field });
                                 setNewFieldOptions((field.options || []).join("\n"));
+                                setNewCondOn(field.settings?.conditional_on || "");
+                                setNewCondValue(field.settings?.conditional_value === false ? "false" : "true");
                               }}
                             >
                               <Pencil size={14} />
@@ -351,7 +357,6 @@ export default function EventFormBuilder() {
               </Droppable>
             </DragDropContext>
 
-            {/* Add field button */}
             <Button variant="outline" className="w-full" onClick={() => { resetFieldForm(); setShowAddField(true); }}>
               <Plus size={16} className="mr-1" /> Feld hinzufügen
             </Button>
@@ -393,6 +398,35 @@ export default function EventFormBuilder() {
               <div className="flex items-center gap-2">
                 <Switch checked={newFieldRequired} onCheckedChange={setNewFieldRequired} />
                 <Label>Pflichtfeld</Label>
+              </div>
+              {/* Conditional logic */}
+              <div className="border-t pt-3 space-y-3">
+                <Label className="text-sm font-semibold">Bedingte Anzeige (optional)</Label>
+                <p className="text-xs text-muted-foreground">Feld nur anzeigen, wenn ein anderes Feld einen bestimmten Wert hat.</p>
+                <div>
+                  <Label className="text-xs">Abhängig von Feld</Label>
+                  <Select value={newCondOn} onValueChange={setNewCondOn}>
+                    <SelectTrigger><SelectValue placeholder="Kein (immer sichtbar)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=" ">Kein (immer sichtbar)</SelectItem>
+                      {conditionalCandidates.map((f) => (
+                        <SelectItem key={f.id} value={f.label}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {newCondOn && newCondOn.trim() && (
+                  <div>
+                    <Label className="text-xs">Erwarteter Wert</Label>
+                    <Select value={newCondValue} onValueChange={setNewCondValue}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Ja / aktiviert</SelectItem>
+                        <SelectItem value="false">Nein / nicht aktiviert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -441,6 +475,43 @@ export default function EventFormBuilder() {
                   />
                   <Label>Pflichtfeld</Label>
                 </div>
+                {/* Conditional logic editing */}
+                <div className="border-t pt-3 space-y-3">
+                  <Label className="text-sm font-semibold">Bedingte Anzeige</Label>
+                  <div>
+                    <Label className="text-xs">Abhängig von Feld</Label>
+                    <Select
+                      value={newCondOn || " "}
+                      onValueChange={(v) => {
+                        setNewCondOn(v.trim());
+                        if (!v.trim()) {
+                          const { conditional_on, conditional_value, ...rest } = editingField.settings || {};
+                          setEditingField({ ...editingField, settings: rest });
+                        }
+                      }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Kein (immer sichtbar)" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=" ">Kein (immer sichtbar)</SelectItem>
+                        {conditionalCandidates.filter((f) => f.id !== editingField.id).map((f) => (
+                          <SelectItem key={f.id} value={f.label}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newCondOn && newCondOn.trim() && (
+                    <div>
+                      <Label className="text-xs">Erwarteter Wert</Label>
+                      <Select value={newCondValue} onValueChange={setNewCondValue}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Ja / aktiviert</SelectItem>
+                          <SelectItem value="false">Nein / nicht aktiviert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <DialogFooter>
@@ -452,6 +523,20 @@ export default function EventFormBuilder() {
                   if (["select", "multi_select"].includes(updated.type)) {
                     updated.options = newFieldOptions.split("\n").map((s) => s.trim()).filter(Boolean);
                   }
+                  // Update conditional logic
+                  const settings = { ...(updated.settings || {}) };
+                  if (newCondOn && newCondOn.trim()) {
+                    settings.conditional_on = newCondOn.trim();
+                    if (newCondValue === "false") {
+                      settings.conditional_value = false;
+                    } else {
+                      delete settings.conditional_value;
+                    }
+                  } else {
+                    delete settings.conditional_on;
+                    delete settings.conditional_value;
+                  }
+                  updated.settings = settings;
                   updateField.mutate(updated);
                 }}
               >
@@ -497,6 +582,17 @@ export default function EventFormBuilder() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">Zusätzlicher Radius/Rand pro Zelt für Laufwege</p>
+                </div>
+                <div>
+                  <Label>WhatsApp-Gruppenlink</Label>
+                  <Input
+                    defaultValue={form.settings?.whatsapp_link || ""}
+                    onBlur={(e) => {
+                      updateForm.mutate({ settings: { ...form.settings, whatsapp_link: e.target.value.trim() } });
+                    }}
+                    placeholder="https://chat.whatsapp.com/..."
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Wird in der Bestätigungsmail mit QR-Code angezeigt</p>
                 </div>
                 <div>
                   <Label className="mb-2 block">Öffentlicher Link</Label>
