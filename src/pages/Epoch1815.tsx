@@ -7,6 +7,13 @@ import SEO from "@/components/SEO";
 import { useSiteImage } from "@/hooks/useSiteImage";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
+import ImageCredits from "@/components/epochs/ImageCredits";
+
+const imageCredits = [
+  { description: "Nassauisches Infanterie-Regiment, Uniformtafel", source: "Richard Knötel (1857–1914)", license: "gemeinfrei" },
+  { description: "Uniformtafel nassauischer Grenadiere 1815", source: "Alexis Cabaret / mont-saint-jean.com", license: "mit freundlicher Genehmigung" },
+  { description: "Die Nassauer bei Belle-Alliance, Gemälde (1899)", source: "Richard Knötel (1857–1914)", license: "gemeinfrei" },
+];
 
 const Epoch1815 = () => {
   const [lightbox, setLightbox] = useState<number | null>(null);
