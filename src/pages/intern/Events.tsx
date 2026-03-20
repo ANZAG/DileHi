@@ -61,6 +61,7 @@ const EventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCalendarSync, setShowCalendarSync] = useState(false);
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
