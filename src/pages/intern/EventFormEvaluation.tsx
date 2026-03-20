@@ -733,15 +733,25 @@ export default function EventFormEvaluation() {
                   >
                     <RefreshCw size={12} className="mr-1" /> Auto-Layout
                   </Button>
-                  <Input
-                    type="number"
-                    value={vizHeight}
-                    onChange={(e) => setVizHeight(Math.max(200, Math.min(600, Number(e.target.value) || 450)))}
-                    className="w-16 h-7 text-xs"
-                    min={200}
-                    max={600}
-                  />
-                  <span className="text-xs text-muted-foreground">px</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setVizHeight((v) => Math.max(200, v - 50))}
+                    disabled={vizHeight <= 200}
+                  >
+                    <span className="text-xs font-bold">−</span>
+                  </Button>
+                  <span className="text-xs text-muted-foreground w-10 text-center">{vizHeight}px</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setVizHeight((v) => Math.min(600, v + 50))}
+                    disabled={vizHeight >= 600}
+                  >
+                    <span className="text-xs font-bold">+</span>
+                  </Button>
                 </div>
               </div>
               <TentVisualizer
