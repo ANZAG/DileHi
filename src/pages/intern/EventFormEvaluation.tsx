@@ -900,19 +900,7 @@ function autoLayout(items: TentItem[]) {
   }
 }
 
-/** Compute tight bounding box from items and their positions */
-function computeBounds(items: TentItem[], positions: Record<string, { x: number; y: number }>) {
-  if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const item of items) {
-    const pos = positions[item.id] || { x: item.x, y: item.y };
-    minX = Math.min(minX, pos.x);
-    minY = Math.min(minY, pos.y);
-    maxX = Math.max(maxX, pos.x + item.w);
-    maxY = Math.max(maxY, pos.y + item.h);
-  }
-  return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
-}
+/** Removed: computeBounds is now inlined in TentVisualizer */
 
 function TentVisualizer({
   items,
