@@ -15,11 +15,9 @@ const cards = [
 const Dashboard = () => {
   const { user, signOut, isVorstand, isHerold, isSchatzmeister, hasPermission } = useAuth();
   const canAdmin = hasPermission("admin.access");
-  const [showTour, setShowTour] = useState(false);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
-      <OnboardingTour forceOpen={showTour} onClose={() => setShowTour(false)} />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex flex-col gap-4 mb-8">
           <div>
@@ -50,14 +48,8 @@ const Dashboard = () => {
               to="/intern/beitraege"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
-              <Coins size={16} /> Beitr\u00e4ge
+              <Coins size={16} /> Beiträge
             </Link>
-            <button
-              onClick={() => { resetOnboardingTour(); setShowTour(true); }}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-            >
-              <HelpCircle size={16} /> Tour
-            </button>
             <button
               onClick={signOut}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"

@@ -83,6 +83,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       <main className="flex-1">{children}</main>
+      <OnboardingTour />
 
       <footer className="border-t bg-card">
         <div className="container py-8 md:py-12">
