@@ -37,7 +37,7 @@ const Kontakt = () => {
     }
 
     setSending(true);
-    const { error } = await supabase.from("contact_messages" as any).insert({
+    const { error } = await supabase.from("contact_messages").insert({
       name: form.name.trim(),
       email: form.email.trim(),
       message: form.message.trim(),
