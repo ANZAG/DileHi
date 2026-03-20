@@ -96,13 +96,14 @@ const MemberMap = () => {
           .map((part) => part.trim())
           .filter(Boolean);
 
+        const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
+        const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
+
         const candidates = [
           normalized,
-          withoutParens,
           countryNormalized,
-          parts.slice(-2).join(", "),
-          parts[parts.length - 1],
-          parts[parts.length - 2],
+          cityOrZipPart,
+          cityWithCountry,
         ].filter(Boolean);
 
         return [...new Set(candidates)];
