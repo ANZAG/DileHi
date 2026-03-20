@@ -716,7 +716,12 @@ const EventsPage = () => {
                         <div className="flex gap-2">
                           {(() => {
                             const evForm = getFormForEvent(ev.id);
-                            if (evForm?.is_open && evForm.public_token && !hasSubmittedForm(evForm.id)) {
+                            const formSettings = evForm?.settings as any;
+                            const fNow = new Date();
+                            const fOpensAt = formSettings?.opens_at ? new Date(formSettings.opens_at) : null;
+                            const fClosesAt = formSettings?.closes_at ? new Date(formSettings.closes_at) : null;
+                            const isInWindow = (!fOpensAt || fNow >= fOpensAt) && (!fClosesAt || fNow <= fClosesAt);
+                            if (evForm?.is_open && isInWindow && evForm.public_token && !hasSubmittedForm(evForm.id)) {
                               return (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/anmeldung/${evForm.public_token}`}>
