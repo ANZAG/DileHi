@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Info } from "lucide-react";
+import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
 
 // Fix default marker icon issue with bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -14,6 +16,16 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+const eventIcon = new L.DivIcon({
+  className: "",
+  html: `<div style="background:#c2410c;border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+  </div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -16],
 });
 
 const MemberMap = () => {
@@ -45,6 +57,59 @@ const MemberMap = () => {
     },
   });
 
+  // Fetch upcoming events with location
+  const { data: events = [] } = useQuery({
+    queryKey: ["member-map-events"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, location, start_date, end_date, all_day")
+        .gte("start_date", now)
+        .not("location", "is", null)
+        .order("start_date", { ascending: true })
+        .limit(20);
+
+      if (!data) return [];
+
+      // Geocode locations via Nominatim (cached per unique location string)
+      const uniqueLocations = [...new Set(data.map((e) => e.location!).filter(Boolean))];
+      const geoCache: Record<string, { lat: number; lng: number } | null> = {};
+
+      await Promise.all(
+        uniqueLocations.map(async (loc) => {
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&limit=1`,
+              { headers: { "User-Agent": "DilehiApp/1.0" } }
+            );
+            const results = await res.json();
+            if (results.length > 0) {
+              geoCache[loc] = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+            } else {
+              geoCache[loc] = null;
+            }
+          } catch {
+            geoCache[loc] = null;
+          }
+        })
+      );
+
+      return data
+        .filter((e) => e.location && geoCache[e.location!])
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          location: e.location!,
+          start_date: e.start_date,
+          end_date: e.end_date,
+          all_day: e.all_day,
+          lat: geoCache[e.location!]!.lat,
+          lng: geoCache[e.location!]!.lng,
+        }));
+    },
+  });
+
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
     queryKey: ["member-map-optin", user?.id],
@@ -59,16 +124,23 @@ const MemberMap = () => {
     },
   });
 
+  const hasData = members.length > 0 || events.length > 0;
+
   useEffect(() => {
-    if (!containerRef.current || members.length === 0 || isLoading) return;
+    if (!containerRef.current || !hasData || isLoading) return;
 
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
     }
 
-    const avgLat = members.reduce((s, m) => s + m.map_lat, 0) / members.length;
-    const avgLng = members.reduce((s, m) => s + m.map_lng, 0) / members.length;
+    const allPoints: [number, number][] = [
+      ...members.map((m) => [m.map_lat, m.map_lng] as [number, number]),
+      ...events.map((e) => [e.lat, e.lng] as [number, number]),
+    ];
+
+    const avgLat = allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length;
+    const avgLng = allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length;
 
     const map = L.map(containerRef.current).setView([avgLat, avgLng], 6);
     mapRef.current = map;
@@ -77,6 +149,7 @@ const MemberMap = () => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
+    // Member markers (default blue)
     members.forEach((m) => {
       const popupContent = `
         <div style="font-size:13px;">
@@ -87,8 +160,23 @@ const MemberMap = () => {
       L.marker([m.map_lat, m.map_lng]).addTo(map).bindPopup(popupContent);
     });
 
-    if (members.length > 1) {
-      const bounds = L.latLngBounds(members.map((m) => [m.map_lat, m.map_lng] as [number, number]));
+    // Event markers (orange calendar icon)
+    events.forEach((ev) => {
+      const dateStr = ev.all_day
+        ? format(parseISO(ev.start_date), "dd.MM.yyyy", { locale: de })
+        : format(parseISO(ev.start_date), "dd.MM.yyyy HH:mm", { locale: de });
+      const popupContent = `
+        <div style="font-size:13px;">
+          <strong>${ev.title}</strong><br/>
+          <span style="color:#666;">${dateStr}</span><br/>
+          <span style="color:#888;font-size:11px;">${ev.location}</span>
+        </div>
+      `;
+      L.marker([ev.lat, ev.lng], { icon: eventIcon }).addTo(map).bindPopup(popupContent);
+    });
+
+    if (allPoints.length > 1) {
+      const bounds = L.latLngBounds(allPoints);
       map.fitBounds(bounds, { padding: [40, 40] });
     }
 
@@ -96,7 +184,7 @@ const MemberMap = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [members, isLoading]);
+  }, [members, events, isLoading, hasData]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
@@ -109,9 +197,21 @@ const MemberMap = () => {
         </Link>
         <h1 className="font-serif text-2xl font-bold mb-2">Mitgliederkarte</h1>
         <p className="text-sm text-muted-foreground mb-4">
-          Zeigt die Wohnorte aller Mitglieder, die ihre Anzeige freigegeben haben.
-          {members.length > 0 && ` (${members.length} Mitglieder sichtbar)`}
+          Zeigt die Wohnorte aller Mitglieder und kommende Veranstaltungen.
+          {members.length > 0 && ` (${members.length} Mitglieder`}
+          {events.length > 0 && `${members.length > 0 ? ", " : " ("}${events.length} Veranstaltung${events.length !== 1 ? "en" : ""}`}
+          {(members.length > 0 || events.length > 0) && ")"}
         </p>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+          <span className="flex items-center gap-1.5">
+            <MapPin size={14} className="text-primary" /> Mitglieder
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CalendarDays size={14} className="text-orange-700" /> Veranstaltungen
+          </span>
+        </div>
 
         {!isLoading && userOptedIn === false && (
           <div className="flex items-start gap-2 p-3 mb-4 rounded-lg border bg-muted/50 text-sm">
@@ -128,7 +228,7 @@ const MemberMap = () => {
 
         {isLoading ? (
           <div className="text-center text-muted-foreground py-16">Karte wird geladen…</div>
-        ) : members.length === 0 ? (
+        ) : !hasData ? (
           <div className="text-center py-16 space-y-2">
             <MapPin size={32} className="mx-auto text-muted-foreground" />
             <p className="text-muted-foreground">
