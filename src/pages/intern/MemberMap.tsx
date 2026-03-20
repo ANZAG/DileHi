@@ -123,7 +123,7 @@ const MemberMap = () => {
         const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
         const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
 
-        return [...new Set([normalized, countryNormalized, cityOrZipPart, cityWithCountry].filter(Boolean))];
+        return [...new Set([countryNormalized, normalized, cityOrZipPart, cityWithCountry].filter(Boolean))];
       };
 
       const geocode = async (query: string): Promise<{ lat: number; lng: number } | null> => {
