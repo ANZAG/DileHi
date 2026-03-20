@@ -17,7 +17,7 @@ const STEPS: TourStep[] = [
   {
     icon: Sparkles,
     title: "Willkommen im Mitgliederbereich!",
-    body: "Schön, dass du dabei bist! Diese kurze Tour zeigt dir die wichtigsten Funktionen und was du als Erstes einrichten solltest.",
+    body: "Sch\u00f6n, dass du dabei bist! Diese kurze Tour zeigt dir die wichtigsten Funktionen und was du als Erstes einrichten solltest.",
   },
   {
     icon: User,
