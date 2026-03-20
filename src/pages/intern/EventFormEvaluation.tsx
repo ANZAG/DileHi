@@ -467,20 +467,24 @@ export default function EventFormEvaluation() {
     <div className="container py-8 max-w-6xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="font-serif text-2xl font-bold">Auswertung</h1>
-            {event && <p className="text-sm text-muted-foreground">{event.title}</p>}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 flex-1">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-serif text-xl sm:text-2xl font-bold">Auswertung</h1>
+              {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
+            </div>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/intern/veranstaltungen/${eventId}/formular`}>Formular bearbeiten</Link>
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download size={14} className="mr-1" /> CSV
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/intern/veranstaltungen/${eventId}/formular`}>Formular</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download size={14} className="mr-1" /> CSV
+            </Button>
+          </div>
         </div>
 
         {/* Summary cards */}
@@ -492,30 +496,61 @@ export default function EventFormEvaluation() {
         </div>
 
         {/* Event info row */}
-        <div className="grid md:grid-cols-3 gap-3 mb-6">
-          {/* Responsible person */}
-          <div className="border rounded-lg p-4 space-y-2">
-            <h3 className="font-semibold text-sm">Verantwortlicher</h3>
-            {isVorstand ? (
-              <Select
-                value={eventLeadId || event?.created_by || ""}
-                onValueChange={(v) => {
-                  setEventLeadId(v);
-                  saveSettings.mutate({ event_lead_id: v });
-                }}
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Ersteller" />
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm">{eventLeadName || creatorName || "–"}</p>
-            )}
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+          {/* All Verantwortliche in one card */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold text-sm">Verantwortliche</h3>
+            <div>
+              <Label className="text-xs text-muted-foreground">Event-Verantwortlicher</Label>
+              {isVorstand ? (
+                <Select
+                  value={eventLeadId || event?.created_by || ""}
+                  onValueChange={(v) => {
+                    setEventLeadId(v);
+                    saveSettings.mutate({ event_lead_id: v });
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Ersteller" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm">{eventLeadName || creatorName || "–"}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Küche</Label>
+              <Input
+                value={kitchenLead}
+                onChange={(e) => setKitchenLead(e.target.value)}
+                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
+                placeholder="Name eingeben..."
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Programme</Label>
+              {programItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 mt-1">
+                  <span className="text-xs flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeProgramItem(i)}>
+                    <Trash2 size={10} className="text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-1 mt-1.5">
+                <Input value={newProgPoint} onChange={(e) => setNewProgPoint(e.target.value)} placeholder="Punkt" className="flex-1 h-7 text-xs" />
+                <Input value={newProgPerson} onChange={(e) => setNewProgPerson(e.target.value)} placeholder="Person" className="flex-1 h-7 text-xs" />
+                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()} className="h-7 px-2">
+                  <Plus size={12} />
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* WhatsApp link */}
@@ -553,7 +588,7 @@ export default function EventFormEvaluation() {
         </div>
 
         {/* Quick stats row */}
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
+        <div className="grid sm:grid-cols-2 gap-6 mb-6">
           {/* Logistics */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -591,45 +626,12 @@ export default function EventFormEvaluation() {
               </div>
             </div>
           </div>
-
-          {/* Organizer fields */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold">Verantwortliche</h3>
-            <div>
-              <Label className="text-sm">Verantwortlicher Küche</Label>
-              <Input
-                value={kitchenLead}
-                onChange={(e) => setKitchenLead(e.target.value)}
-                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
-                placeholder="Name eingeben..."
-                className="h-8 text-sm"
-              />
-            </div>
-            <div>
-              <Label className="text-sm">Programme</Label>
-              {programItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 mt-1">
-                  <span className="text-xs flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeProgramItem(i)}>
-                    <Trash2 size={10} className="text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              <div className="flex gap-1 mt-1.5">
-                <Input value={newProgPoint} onChange={(e) => setNewProgPoint(e.target.value)} placeholder="Punkt" className="flex-1 h-7 text-xs" />
-                <Input value={newProgPerson} onChange={(e) => setNewProgPerson(e.target.value)} placeholder="Person" className="flex-1 h-7 text-xs" />
-                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()} className="h-7 px-2">
-                  <Plus size={12} />
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Member tent pool */}
         <div className="border rounded-lg p-4 mb-6 space-y-3">
           <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
-          <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen.</p>
+          <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen. Bereits über Anmeldung ausgewählte Zelte sind markiert.</p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
             {allMemberTents.map((mt: any) => {
               const ownerName = mt.profiles?.display_name || "Mitglied";
@@ -637,10 +639,19 @@ export default function EventFormEvaluation() {
               const dimStr = mt.shape === "circle" && mt.diameter
                 ? `Ø${mt.diameter}m`
                 : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+              // Check if this tent was already selected by a respondent
+              const selectedByRespondent = responses.some((r: any) => {
+                const tentField = fields.find((f) => f.type === "tent");
+                if (!tentField) return false;
+                const tv = r.answers?.find((a: any) => a.field_id === tentField.id)?.value;
+                if (!tv?.tents) return false;
+                return tv.tents.some((t: any) => t.member_tent_id === mt.id);
+              });
               return (
                 <div key={mt.id} className="flex items-center gap-2">
                   <Checkbox
                     checked={poolTentIds.includes(mt.id)}
+                    disabled={selectedByRespondent}
                     onCheckedChange={(checked) => {
                       const next = checked
                         ? [...poolTentIds, mt.id]
@@ -649,8 +660,9 @@ export default function EventFormEvaluation() {
                       saveSettings.mutate({ pool_tent_ids: next });
                     }}
                   />
-                  <Label className="font-normal cursor-pointer text-sm">
+                  <Label className={`font-normal cursor-pointer text-sm ${selectedByRespondent ? "line-through text-muted-foreground" : ""}`}>
                     {ownerName}: {typeLabel} {dimStr}
+                    {selectedByRespondent && <span className="text-xs ml-1">(angemeldet)</span>}
                   </Label>
                 </div>
               );
@@ -735,15 +747,25 @@ export default function EventFormEvaluation() {
                   >
                     <RefreshCw size={12} className="mr-1" /> Auto-Layout
                   </Button>
-                  <Input
-                    type="number"
-                    value={vizHeight}
-                    onChange={(e) => setVizHeight(Math.max(200, Math.min(600, Number(e.target.value) || 450)))}
-                    className="w-16 h-7 text-xs"
-                    min={200}
-                    max={600}
-                  />
-                  <span className="text-xs text-muted-foreground">px</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setVizHeight((v) => Math.max(200, v - 50))}
+                    disabled={vizHeight <= 200}
+                  >
+                    <span className="text-xs font-bold">−</span>
+                  </Button>
+                  <span className="text-xs text-muted-foreground w-10 text-center">{vizHeight}px</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setVizHeight((v) => Math.min(600, v + 50))}
+                    disabled={vizHeight >= 600}
+                  >
+                    <span className="text-xs font-bold">+</span>
+                  </Button>
                 </div>
               </div>
               <TentVisualizer
@@ -814,7 +836,7 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
   );
 }
 
-/** Auto-layout: place all tents in rows, Scheune center-ish, kitchen separated */
+/** Auto-layout: pack tents into smallest possible rectangle */
 function autoLayout(items: TentItem[]) {
   if (items.length === 0) return;
 
@@ -825,34 +847,47 @@ function autoLayout(items: TentItem[]) {
   const rest = items.filter((i) => !["scheune", "kitchen", "supply", "member"].includes(i.category));
 
   const gap = 1;
+
+  // Strategy: pack into rows with a target width, try to minimize total area
+  // Determine target width based on total area estimate
+  const allItems = [...kitchen, ...supply, ...(scheune ? [scheune] : []), ...members, ...rest];
+  const totalItemArea = allItems.reduce((sum, i) => sum + i.w * i.h, 0);
+  const targetWidth = Math.max(
+    Math.sqrt(totalItemArea) * 1.3,
+    ...allItems.map((i) => i.w + 2 * gap)
+  );
+
+  // Place kitchen + supply in first row
   let curX = gap;
   let curY = gap;
   let rowH = 0;
 
-  // Row 1: Kitchen + Supply
   for (const k of [...kitchen, ...supply]) {
+    if (curX + k.w > targetWidth && curX > gap) {
+      curX = gap;
+      curY += rowH + gap;
+      rowH = 0;
+    }
     k.x = curX;
     k.y = curY;
     curX += k.w + gap;
     rowH = Math.max(rowH, k.h);
   }
 
-  // Row 2: Scheune
+  // Next row: Scheune centered
   if (scheune) {
     curY += rowH + gap;
-    scheune.x = gap;
+    scheune.x = Math.max(gap, (targetWidth - scheune.w) / 2);
     scheune.y = curY;
-    curX = gap + scheune.w + gap;
     rowH = scheune.h;
   }
 
-  // Row 3+: Member tents
+  // Remaining rows: member tents packed tightly
   curY += rowH + gap;
   curX = gap;
   rowH = 0;
-  const maxRowWidth = Math.max(40, ...items.map((i) => i.w)) * 3;
   for (const m of [...members, ...rest]) {
-    if (curX + m.w > maxRowWidth) {
+    if (curX + m.w > targetWidth && curX > gap) {
       curX = gap;
       curY += rowH + gap;
       rowH = 0;

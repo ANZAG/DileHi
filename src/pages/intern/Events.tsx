@@ -101,6 +101,22 @@ const EventsPage = () => {
 
   const getFormForEvent = (eventId: string) => eventForms.find((f) => f.event_id === eventId);
 
+  // Fetch user's own form responses to know which forms they already filled
+  const { data: myFormResponses = [] } = useQuery({
+    queryKey: ["my_form_responses", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_form_responses")
+        .select("id, form_id, user_id")
+        .eq("user_id", user!.id);
+      if (error) return [];
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const hasSubmittedForm = (formId: string) => myFormResponses.some((r) => r.form_id === formId);
+
   const { data: attendees = [] } = useQuery({
     queryKey: ["event_attendees"],
     queryFn: async () => {
@@ -212,6 +228,15 @@ const EventsPage = () => {
     mutationFn: async (eventId: string) => {
       const existing = attendees.find(a => a.event_id === eventId && a.user_id === user!.id);
       if (existing) {
+        // Also delete the user's form response when canceling
+        const evForm = getFormForEvent(eventId);
+        if (evForm) {
+          const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+          if (myResp) {
+            await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+            await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+          }
+        }
         const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
         if (error) throw error;
       } else {
@@ -219,7 +244,10 @@ const EventsPage = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_attendees"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event_attendees"] });
+      queryClient.invalidateQueries({ queryKey: ["my_form_responses"] });
+    },
   });
 
   const resetForm = () => {
@@ -686,7 +714,7 @@ const EventsPage = () => {
                         <div className="flex gap-2">
                           {(() => {
                             const evForm = getFormForEvent(ev.id);
-                            if (evForm?.is_open && evForm.public_token) {
+                            if (evForm?.is_open && evForm.public_token && !hasSubmittedForm(evForm.id)) {
                               return (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/anmeldung/${evForm.public_token}`}>
