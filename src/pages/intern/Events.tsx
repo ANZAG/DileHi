@@ -155,7 +155,7 @@ const EventsPage = () => {
   });
 
   const personalIcalUrl = calendarToken
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-personal-ical?token=${calendarToken}`
+    ? `${import.meta.env.VITE_SUPABASE_URL?.replace(/^https?:\/\//, 'webcal://')}/functions/v1/events-personal-ical?token=${calendarToken}`
     : null;
 
   const copyCalendarUrl = () => {
@@ -365,7 +365,7 @@ const EventsPage = () => {
   const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
   const canSetPublic = canPublish;
 
-  const icalUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-ical`;
+  const icalUrl = `${import.meta.env.VITE_SUPABASE_URL?.replace(/^https?:\/\//, 'webcal://')}/functions/v1/events-ical`;
   const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
 
   const formatTimeDisplay = (ev: Event) => {
