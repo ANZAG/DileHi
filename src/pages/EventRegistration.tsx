@@ -183,6 +183,16 @@ export default function EventRegistration() {
     );
   }
 
+  // Auto-redirect after submission
+  useEffect(() => {
+    if (submitted && user) {
+      const timer = setTimeout(() => {
+        window.location.href = "/intern/veranstaltungen";
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted, user]);
+
   if (submitted) {
     return (
       <div className="container py-20 max-w-lg text-center">
@@ -194,6 +204,12 @@ export default function EventRegistration() {
           {email.trim() && (
             <p className="text-sm text-muted-foreground mt-2">Eine Bestätigung wurde an {email} gesendet.</p>
           )}
+          {user && (
+            <p className="text-sm text-muted-foreground mt-3">Du wirst in 3 Sekunden zurückgeleitet…</p>
+          )}
+          <Button variant="outline" className="mt-4" onClick={() => window.history.back()}>
+            Zurück
+          </Button>
         </motion.div>
       </div>
     );
