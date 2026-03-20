@@ -627,7 +627,7 @@ export default function EventFormEvaluation() {
         {/* Member tent pool */}
         <div className="border rounded-lg p-4 mb-6 space-y-3">
           <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
-          <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen.</p>
+          <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen. Bereits über Anmeldung ausgewählte Zelte sind markiert.</p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
             {allMemberTents.map((mt: any) => {
               const ownerName = mt.profiles?.display_name || "Mitglied";
@@ -635,10 +635,19 @@ export default function EventFormEvaluation() {
               const dimStr = mt.shape === "circle" && mt.diameter
                 ? `Ø${mt.diameter}m`
                 : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+              // Check if this tent was already selected by a respondent
+              const selectedByRespondent = responses.some((r: any) => {
+                const tentField = fields.find((f) => f.type === "tent");
+                if (!tentField) return false;
+                const tv = r.answers?.find((a: any) => a.field_id === tentField.id)?.value;
+                if (!tv?.tents) return false;
+                return tv.tents.some((t: any) => t.member_tent_id === mt.id);
+              });
               return (
                 <div key={mt.id} className="flex items-center gap-2">
                   <Checkbox
                     checked={poolTentIds.includes(mt.id)}
+                    disabled={selectedByRespondent}
                     onCheckedChange={(checked) => {
                       const next = checked
                         ? [...poolTentIds, mt.id]
@@ -647,8 +656,9 @@ export default function EventFormEvaluation() {
                       saveSettings.mutate({ pool_tent_ids: next });
                     }}
                   />
-                  <Label className="font-normal cursor-pointer text-sm">
+                  <Label className={`font-normal cursor-pointer text-sm ${selectedByRespondent ? "line-through text-muted-foreground" : ""}`}>
                     {ownerName}: {typeLabel} {dimStr}
+                    {selectedByRespondent && <span className="text-xs ml-1">(angemeldet)</span>}
                   </Label>
                 </div>
               );
