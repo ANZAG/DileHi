@@ -817,10 +817,10 @@ const EventsPage = () => {
                       variant="ghost"
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => setShowAll(!showAll)}
+                      onClick={() => setShowAllUpcoming(!showAllUpcoming)}
                     >
-                      <ChevronDown size={14} className={`mr-1 transition-transform ${showAll ? "rotate-180" : ""}`} />
-                      {showAll ? "Weniger anzeigen" : `Alle ${upcoming.length} Termine anzeigen`}
+                      <ChevronDown size={14} className={`mr-1 transition-transform ${showAllUpcoming ? "rotate-180" : ""}`} />
+                      {showAllUpcoming ? "Weniger anzeigen" : `Alle ${upcoming.length} Termine anzeigen`}
                     </Button>
                   )}
                 </>
