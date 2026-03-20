@@ -22,52 +22,52 @@ const STEPS: TourStep[] = [
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. So können dich andere Mitglieder besser zuordnen.",
-    hint: "Tipp: Aktiviere „Auf Karte anzeigen", damit dein Wohnort auf der Mitgliederkarte erscheint.",
+    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. So k\u00f6nnen dich andere Mitglieder besser zuordnen.",
+    hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
   {
     icon: CalendarDays,
     title: "Veranstaltungen",
-    body: "Hier findest du alle Vereinstermine. Du kannst zu- oder absagen und deinen Kalender per Abo synchronisieren – auch mit Outlook.",
+    body: "Hier findest du alle Vereinstermine. Du kannst zu- oder absagen und deinen Kalender per Abo synchronisieren \u2013 auch mit Outlook.",
     hint: "Tipp: Nutze das Kalender-Abo, um Termine automatisch in deinem Kalender zu sehen.",
     route: "/intern/veranstaltungen",
   },
   {
     icon: Megaphone,
     title: "Versammlungen & Pinnwand",
-    body: "Ankündigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beiträge antworten.",
+    body: "Ank\u00fcndigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beitr\u00e4ge antworten.",
     route: "/intern/pinnwand",
   },
   {
     icon: Vote,
     title: "Abstimmungen",
-    body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
+    body: "Wahlen und Beschl\u00fcsse der Mitgliederversammlung werden hier digital durchgef\u00fchrt. Du erh\u00e4ltst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
     route: "/intern/abstimmungen",
   },
   {
     icon: FileText,
     title: "Dokumente",
-    body: "Satzung, Ordnungen und Tätigkeitsberichte stehen dir hier zum Download und zur Vorschau bereit.",
+    body: "Satzung, Ordnungen und T\u00e4tigkeitsberichte stehen dir hier zum Download und zur Vorschau bereit.",
     route: "/intern/dokumente",
   },
   {
     icon: BookOpen,
     title: "Quellensammlung",
-    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
+    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzuf\u00fcgen und Ordner anlegen.",
     route: "/intern/quellen",
   },
   {
     icon: MapPin,
     title: "Mitgliederkarte",
-    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden – alles auf einer Karte.",
+    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere n\u00e4chsten Veranstaltungen stattfinden \u2013 alles auf einer Karte.",
     hint: "Tipp: Aktiviere die Karten-Funktion in deinem Profil, um auch sichtbar zu sein.",
     route: "/intern/karte",
   },
   {
     icon: Sparkles,
     title: "Alles bereit!",
-    body: "Du kannst die Tour jederzeit über das Dashboard erneut starten. Viel Spaß im Verein!",
+    body: "Du kannst die Tour jederzeit \u00fcber das Dashboard erneut starten. Viel Spa\u00df im Verein!",
     hint: "Empfohlen: Pflege jetzt als Erstes dein Profil.",
   },
 ];
@@ -102,7 +102,6 @@ export default function OnboardingTour({ forceOpen, onClose }: Props) {
     localStorage.setItem(STORAGE_KEY, "1");
     setOpen(false);
     onClose?.();
-    // Navigate back to dashboard if not there
     if (location.pathname !== "/intern") {
       navigate("/intern");
     }
@@ -158,19 +157,16 @@ export default function OnboardingTour({ forceOpen, onClose }: Props) {
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-md bg-card rounded-xl border shadow-xl overflow-hidden"
         >
-          {/* Progress */}
           <Progress value={progress} className="h-1 rounded-none" />
 
-          {/* Close */}
           <button
             onClick={close}
             className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Tour schließen"
+            aria-label="Tour schliessen"
           >
             <X size={16} />
           </button>
 
-          {/* Content */}
           <div className="p-6 pt-5">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
@@ -195,7 +191,6 @@ export default function OnboardingTour({ forceOpen, onClose }: Props) {
             )}
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-between px-6 pb-5 pt-1">
             <Button
               variant="ghost"
@@ -204,7 +199,7 @@ export default function OnboardingTour({ forceOpen, onClose }: Props) {
               disabled={isFirst}
               className="gap-1"
             >
-              <ChevronLeft size={14} /> Zurück
+              <ChevronLeft size={14} /> Zur\u00fcck
             </Button>
 
             <Button size="sm" onClick={next} className="gap-1">
@@ -217,7 +212,6 @@ export default function OnboardingTour({ forceOpen, onClose }: Props) {
   );
 }
 
-/** Reset the tour so it shows again on next mount */
 export function resetOnboardingTour() {
   localStorage.removeItem(STORAGE_KEY);
 }
