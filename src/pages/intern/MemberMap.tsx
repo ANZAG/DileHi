@@ -311,7 +311,7 @@ const MemberMap = () => {
             </p>
           </div>
         ) : (
-          <div className="rounded-lg border overflow-hidden" style={{ height: "500px" }}>
+          <div className="rounded-lg border overflow-hidden isolate" style={{ height: "500px" }}>
             <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
           </div>
         )}
