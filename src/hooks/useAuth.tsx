@@ -82,6 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   useEffect(() => {
+    let initialized = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
@@ -96,16 +98,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setPermissions([]);
         }
         setLoading(false);
+        initialized = true;
       }
     );
 
+    // Only use getSession as fallback if onAuthStateChange hasn't fired yet
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRolesAndPermissions(session.user.id);
+      if (!initialized) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchRolesAndPermissions(session.user.id);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
