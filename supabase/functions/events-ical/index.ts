@@ -11,10 +11,25 @@ function escapeIcal(text: string): string {
 
 function formatIcalDate(iso: string, allDay: boolean): string {
   if (allDay) {
-    // VALUE=DATE format: YYYYMMDD
     return iso.slice(0, 10).replace(/-/g, "");
   }
-  return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "").replace(/\+00:00$/, "Z");
+  // Parse to Date and format as UTC: YYYYMMDDTHHmmssZ
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+}
+
+function foldLine(line: string): string {
+  // RFC 5545: lines must be <= 75 octets; fold with CRLF + space
+  const maxLen = 75;
+  if (line.length <= maxLen) return line;
+  let result = line.slice(0, maxLen);
+  let pos = maxLen;
+  while (pos < line.length) {
+    result += "\r\n " + line.slice(pos, pos + maxLen - 1);
+    pos += maxLen - 1;
+  }
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -38,48 +53,49 @@ Deno.serve(async (req) => {
     });
   }
 
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Diu lebendec Historje e.V.//Veranstaltungen//DE",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "X-WR-CALNAME:Diu lebendec Historje Veranstaltungen",
-  ];
+  const lines: string[] = [];
+  const push = (line: string) => lines.push(foldLine(line));
+
+  push("BEGIN:VCALENDAR");
+  push("VERSION:2.0");
+  push("PRODID:-//Diu lebendec Historje e.V.//Veranstaltungen//DE");
+  push("CALSCALE:GREGORIAN");
+  push("METHOD:PUBLISH");
+  push("X-WR-CALNAME:Diu lebendec Historje Veranstaltungen");
 
   for (const ev of events || []) {
     const allDay = ev.all_day ?? false;
 
-    lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${ev.id}@dilehi.de`);
+    push("BEGIN:VEVENT");
+    push(`UID:${ev.id}@dilehi.de`);
 
     if (allDay) {
-      lines.push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
+      push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
       if (ev.end_date) {
-        // iCal all-day DTEND is exclusive, so add one day
         const endDate = new Date(ev.end_date);
         endDate.setDate(endDate.getDate() + 1);
-        lines.push(`DTEND;VALUE=DATE:${endDate.toISOString().slice(0, 10).replace(/-/g, "")}`);
+        const pad = (n: number) => n.toString().padStart(2, "0");
+        push(`DTEND;VALUE=DATE:${endDate.getUTCFullYear()}${pad(endDate.getUTCMonth() + 1)}${pad(endDate.getUTCDate())}`);
       }
     } else {
-      lines.push(`DTSTART:${formatIcalDate(ev.start_date, false)}`);
+      push(`DTSTART:${formatIcalDate(ev.start_date, false)}`);
       if (ev.end_date) {
-        lines.push(`DTEND:${formatIcalDate(ev.end_date, false)}`);
+        push(`DTEND:${formatIcalDate(ev.end_date, false)}`);
       }
     }
 
-    lines.push(`SUMMARY:${escapeIcal(ev.title)}`);
+    push(`SUMMARY:${escapeIcal(ev.title)}`);
     if (ev.description) {
-      lines.push(`DESCRIPTION:${escapeIcal(ev.description)}`);
+      push(`DESCRIPTION:${escapeIcal(ev.description)}`);
     }
     if (ev.location) {
-      lines.push(`LOCATION:${escapeIcal(ev.location)}`);
+      push(`LOCATION:${escapeIcal(ev.location)}`);
     }
-    lines.push(`DTSTAMP:${formatIcalDate(ev.created_at, false)}`);
-    lines.push("END:VEVENT");
+    push(`DTSTAMP:${formatIcalDate(ev.created_at, false)}`);
+    push("END:VEVENT");
   }
 
-  lines.push("END:VCALENDAR");
+  push("END:VCALENDAR");
 
   return new Response(lines.join("\r\n"), {
     headers: {
