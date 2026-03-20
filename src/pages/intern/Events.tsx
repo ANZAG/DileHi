@@ -101,6 +101,22 @@ const EventsPage = () => {
 
   const getFormForEvent = (eventId: string) => eventForms.find((f) => f.event_id === eventId);
 
+  // Fetch user's own form responses to know which forms they already filled
+  const { data: myFormResponses = [] } = useQuery({
+    queryKey: ["my_form_responses", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_form_responses")
+        .select("id, form_id, user_id")
+        .eq("user_id", user!.id);
+      if (error) return [];
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const hasSubmittedForm = (formId: string) => myFormResponses.some((r) => r.form_id === formId);
+
   const { data: attendees = [] } = useQuery({
     queryKey: ["event_attendees"],
     queryFn: async () => {
