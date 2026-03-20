@@ -44,6 +44,7 @@ interface TentItem {
   category: string;
   x: number;
   y: number;
+  rotated?: boolean;
 }
 
 export default function EventFormEvaluation() {
