@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins, MapPin, HelpCircle } from "lucide-react";
-import OnboardingTour, { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins, MapPin } from "lucide-react";
 
 const cards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
