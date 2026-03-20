@@ -492,30 +492,61 @@ export default function EventFormEvaluation() {
         </div>
 
         {/* Event info row */}
-        <div className="grid md:grid-cols-3 gap-3 mb-6">
-          {/* Responsible person */}
-          <div className="border rounded-lg p-4 space-y-2">
-            <h3 className="font-semibold text-sm">Verantwortlicher</h3>
-            {isVorstand ? (
-              <Select
-                value={eventLeadId || event?.created_by || ""}
-                onValueChange={(v) => {
-                  setEventLeadId(v);
-                  saveSettings.mutate({ event_lead_id: v });
-                }}
-              >
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Ersteller" />
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm">{eventLeadName || creatorName || "–"}</p>
-            )}
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+          {/* All Verantwortliche in one card */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold text-sm">Verantwortliche</h3>
+            <div>
+              <Label className="text-xs text-muted-foreground">Event-Verantwortlicher</Label>
+              {isVorstand ? (
+                <Select
+                  value={eventLeadId || event?.created_by || ""}
+                  onValueChange={(v) => {
+                    setEventLeadId(v);
+                    saveSettings.mutate({ event_lead_id: v });
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Ersteller" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm">{eventLeadName || creatorName || "–"}</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Küche</Label>
+              <Input
+                value={kitchenLead}
+                onChange={(e) => setKitchenLead(e.target.value)}
+                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
+                placeholder="Name eingeben..."
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Programme</Label>
+              {programItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 mt-1">
+                  <span className="text-xs flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeProgramItem(i)}>
+                    <Trash2 size={10} className="text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-1 mt-1.5">
+                <Input value={newProgPoint} onChange={(e) => setNewProgPoint(e.target.value)} placeholder="Punkt" className="flex-1 h-7 text-xs" />
+                <Input value={newProgPerson} onChange={(e) => setNewProgPerson(e.target.value)} placeholder="Person" className="flex-1 h-7 text-xs" />
+                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()} className="h-7 px-2">
+                  <Plus size={12} />
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* WhatsApp link */}
@@ -553,7 +584,7 @@ export default function EventFormEvaluation() {
         </div>
 
         {/* Quick stats row */}
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
+        <div className="grid sm:grid-cols-2 gap-6 mb-6">
           {/* Logistics */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -588,39 +619,6 @@ export default function EventFormEvaluation() {
               <div className="flex justify-between items-center">
                 <span className="flex items-center gap-1.5"><UtensilsCrossed size={14} className="text-muted-foreground" /> Küchenteam</span>
                 <span className="font-medium">{summary.kitchenHelpers}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Organizer fields */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold">Verantwortliche</h3>
-            <div>
-              <Label className="text-sm">Verantwortlicher Küche</Label>
-              <Input
-                value={kitchenLead}
-                onChange={(e) => setKitchenLead(e.target.value)}
-                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
-                placeholder="Name eingeben..."
-                className="h-8 text-sm"
-              />
-            </div>
-            <div>
-              <Label className="text-sm">Programme</Label>
-              {programItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 mt-1">
-                  <span className="text-xs flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
-                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeProgramItem(i)}>
-                    <Trash2 size={10} className="text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              <div className="flex gap-1 mt-1.5">
-                <Input value={newProgPoint} onChange={(e) => setNewProgPoint(e.target.value)} placeholder="Punkt" className="flex-1 h-7 text-xs" />
-                <Input value={newProgPerson} onChange={(e) => setNewProgPerson(e.target.value)} placeholder="Person" className="flex-1 h-7 text-xs" />
-                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()} className="h-7 px-2">
-                  <Plus size={12} />
-                </Button>
               </div>
             </div>
           </div>
