@@ -850,6 +850,96 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
  * Scheune centered, kitchen top-left, supply near kitchen,
  * sleep tents around scheune from right side, minimal bounding rect
  */
+type PackedRect = { id: string; x: number; y: number; w: number; h: number };
+const PACKING_EPSILON = 1e-6;
+
+function overlaps(a: PackedRect, b: PackedRect) {
+  return (
+    a.x < b.x + b.w - PACKING_EPSILON &&
+    a.x + a.w > b.x + PACKING_EPSILON &&
+    a.y < b.y + b.h - PACKING_EPSILON &&
+    a.y + a.h > b.y + PACKING_EPSILON
+  );
+}
+
+function uniqueSortedNumbers(values: number[]) {
+  const sorted = [...new Set(values.filter((v) => Number.isFinite(v)))].sort((a, b) => a - b);
+  return sorted;
+}
+
+function packTentsIntoWidth(
+  tents: TentItem[],
+  fixedRects: PackedRect[],
+  widthLimit: number,
+  rightBiasStart: number
+) {
+  const positions: Record<string, { x: number; y: number }> = {};
+  const placed: PackedRect[] = [...fixedRects];
+
+  const minX = Math.min(0, ...placed.map((r) => r.x));
+  const minY = Math.min(0, ...placed.map((r) => r.y));
+  let maxX = Math.max(0, ...placed.map((r) => r.x + r.w));
+  let maxY = Math.max(0, ...placed.map((r) => r.y + r.h));
+
+  for (const tent of tents) {
+    if (tent.w > widthLimit + PACKING_EPSILON) return null;
+
+    const candidateXs = uniqueSortedNumbers([
+      0,
+      ...placed.flatMap((r) => [r.x, r.x + r.w]),
+    ]);
+    const candidateYs = uniqueSortedNumbers([
+      0,
+      ...placed.flatMap((r) => [r.y, r.y + r.h]),
+    ]);
+
+    let best: { x: number; y: number; score: number; area: number } | null = null;
+
+    for (const x of candidateXs) {
+      if (x + tent.w > widthLimit + PACKING_EPSILON) continue;
+
+      for (const y of candidateYs) {
+        const candidate: PackedRect = { id: tent.id, x, y, w: tent.w, h: tent.h };
+        if (placed.some((r) => overlaps(candidate, r))) continue;
+
+        const nextMaxX = Math.max(maxX, candidate.x + candidate.w);
+        const nextMaxY = Math.max(maxY, candidate.y + candidate.h);
+        const area = (nextMaxX - minX) * (nextMaxY - minY);
+
+        const rightBiasPenalty =
+          tent.category === "member" && candidate.x < rightBiasStart
+            ? (rightBiasStart - candidate.x) * 4
+            : 0;
+
+        const score = area + rightBiasPenalty;
+
+        if (
+          !best ||
+          score < best.score - PACKING_EPSILON ||
+          (Math.abs(score - best.score) <= PACKING_EPSILON &&
+            (candidate.y < best.y - PACKING_EPSILON ||
+              (Math.abs(candidate.y - best.y) <= PACKING_EPSILON && candidate.x < best.x)))
+        ) {
+          best = { x: candidate.x, y: candidate.y, score, area };
+        }
+      }
+    }
+
+    if (!best) return null;
+
+    positions[tent.id] = { x: best.x, y: best.y };
+    const rect: PackedRect = { id: tent.id, x: best.x, y: best.y, w: tent.w, h: tent.h };
+    placed.push(rect);
+    maxX = Math.max(maxX, rect.x + rect.w);
+    maxY = Math.max(maxY, rect.y + rect.h);
+  }
+
+  return {
+    positions,
+    area: (maxX - minX) * (maxY - minY),
+  };
+}
+
 function autoLayout(items: TentItem[]) {
   if (items.length === 0) return;
 
@@ -861,96 +951,87 @@ function autoLayout(items: TentItem[]) {
 
   const gap = 0; // tents connect via walkways (spacing already in dimensions)
 
-  // Phase 1: Place Scheune in center area
-  // First figure out total width needed
-  const kitchenW = kitchen.reduce((s, k) => Math.max(s, k.w), 0);
-  const kitchenH = kitchen.reduce((s, k) => s + k.h + gap, 0);
-  const supplyMaxW = supply.reduce((s, k) => Math.max(s, k.w), 0);
+  // Place kitchen + supply as left column
+  const leftColumn = [...kitchen, ...supply];
+  let leftColW = 0;
+  let leftCursorY = 0;
 
-  // Kitchen column on the left
-  let leftColW = Math.max(kitchenW, supplyMaxW);
-
-  const scheuneW = scheune?.w || 0;
-  const scheuneH = scheune?.h || 0;
-
-  // Layout: [kitchen/supply col] [scheune] [sleep tents right col]
-  // Then remaining sleep tents below scheune
-
-  let curY = gap;
-
-  // Place kitchen top-left
-  let leftX = gap;
-  let leftY = curY;
-  for (const k of kitchen) {
-    k.x = leftX;
-    k.y = leftY;
-    leftY += k.h + gap;
-  }
-  // Supply below kitchen
-  for (const s of supply) {
-    s.x = leftX;
-    s.y = leftY;
-    leftY += s.h + gap;
+  for (const t of leftColumn) {
+    t.x = 0;
+    t.y = leftCursorY;
+    leftCursorY += t.h + gap;
+    leftColW = Math.max(leftColW, t.w);
   }
 
-  // Place Scheune to the right of kitchen column
-  const scheuneX = leftX + leftColW + gap;
+  const leftColH = Math.max(0, leftCursorY - (leftColumn.length > 0 ? gap : 0));
+
+  // Place scheune next to left column and vertically centered to it
   if (scheune) {
-    scheune.x = scheuneX;
-    scheune.y = curY;
+    scheune.x = leftColW + (leftColumn.length > 0 ? gap : 0);
+    scheune.y = Math.max(0, (leftColH - scheune.h) / 2);
   }
 
-  // Place sleep tents: fill right side first, then below
-  const rightX = scheuneX + scheuneW + gap;
-  let rCurY = curY;
-  let rRowMaxW = 0;
-  const belowTents: TentItem[] = [];
+  const fixedRects: PackedRect[] = [
+    ...leftColumn.map((t) => ({ id: t.id, x: t.x, y: t.y, w: t.w, h: t.h })),
+    ...(scheune ? [{ id: scheune.id, x: scheune.x, y: scheune.y, w: scheune.w, h: scheune.h }] : []),
+  ];
 
-  // Right column: stack tents vertically next to scheune
-  const rightColHeight = Math.max(scheuneH, leftY - curY);
-  for (const t of [...sleepTents, ...rest]) {
-    if (rCurY + t.h <= curY + rightColHeight + gap) {
-      t.x = rightX;
-      t.y = rCurY;
-      rCurY += t.h + gap;
-      rRowMaxW = Math.max(rRowMaxW, t.w);
-    } else {
-      belowTents.push(t);
+  const remaining = [...sleepTents, ...rest].sort((a, b) => b.w * b.h - a.w * a.h);
+  if (remaining.length === 0) return;
+
+  const fixedMaxX = Math.max(0, ...fixedRects.map((r) => r.x + r.w));
+  const fixedMaxY = Math.max(0, ...fixedRects.map((r) => r.y + r.h));
+  const maxTentW = Math.max(...remaining.map((t) => t.w));
+  const minWidth = Math.max(fixedMaxX, maxTentW);
+  const maxWidth = Math.max(minWidth, fixedMaxX + remaining.reduce((sum, t) => sum + t.w, 0));
+  const widthStep = 0.5;
+  const rightBiasStart = scheune ? scheune.x + scheune.w : leftColW;
+
+  let best:
+    | {
+        area: number;
+        width: number;
+        positions: Record<string, { x: number; y: number }>;
+      }
+    | null = null;
+
+  for (let width = minWidth; width <= maxWidth + PACKING_EPSILON; width += widthStep) {
+    const packed = packTentsIntoWidth(remaining, fixedRects, width, rightBiasStart);
+    if (!packed) continue;
+
+    if (
+      !best ||
+      packed.area < best.area - PACKING_EPSILON ||
+      (Math.abs(packed.area - best.area) <= PACKING_EPSILON && width < best.width)
+    ) {
+      best = { area: packed.area, width, positions: packed.positions };
     }
   }
 
-  // If right column has room for a second sub-column
-  if (belowTents.length > 0) {
-    const rightX2 = rightX + rRowMaxW + gap;
-    let r2Y = curY;
-    const stillBelow: TentItem[] = [];
-    for (const t of belowTents) {
-      if (r2Y + t.h <= curY + rightColHeight + gap) {
-        t.x = rightX2;
-        t.y = r2Y;
-        r2Y += t.h + gap;
-      } else {
-        stillBelow.push(t);
+  if (!best) {
+    // Safe fallback: row packing below fixed block
+    let x = 0;
+    let y = fixedMaxY + gap;
+    let rowH = 0;
+    for (const tent of remaining) {
+      if (x + tent.w > minWidth && x > 0) {
+        x = 0;
+        y += rowH + gap;
+        rowH = 0;
       }
+      tent.x = x;
+      tent.y = y;
+      x += tent.w + gap;
+      rowH = Math.max(rowH, tent.h);
     }
-    // Place remaining below scheune in rows
-    if (stillBelow.length > 0) {
-      const totalWidth = rightX2 + (stillBelow.length > 0 ? stillBelow[0].w : 0);
-      let bY = curY + rightColHeight + gap;
-      let bX = gap;
-      let bRowH = 0;
-      for (const t of stillBelow) {
-        if (bX + t.w > totalWidth && bX > gap) {
-          bX = gap;
-          bY += bRowH + gap;
-          bRowH = 0;
-        }
-        t.x = bX;
-        t.y = bY;
-        bX += t.w + gap;
-        bRowH = Math.max(bRowH, t.h);
-      }
-    }
+    return;
+  }
+
+  for (const tent of remaining) {
+    const pos = best.positions[tent.id];
+    if (!pos) continue;
+    tent.x = pos.x;
+    tent.y = pos.y;
   }
 }
 
