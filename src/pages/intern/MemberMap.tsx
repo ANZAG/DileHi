@@ -76,19 +76,61 @@ const MemberMap = () => {
       const uniqueLocations = [...new Set(data.map((e) => e.location!).filter(Boolean))];
       const geoCache: Record<string, { lat: number; lng: number } | null> = {};
 
+      const buildLocationCandidates = (raw: string) => {
+        const normalized = raw.replace(/\s+/g, " ").trim();
+        const withoutParens = normalized
+          .replace(/\([^)]*\)/g, " ")
+          .replace(/\s+,/g, ",")
+          .replace(/,\s*,/g, ",")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const countryNormalized = withoutParens
+          .replace(/\bDeutschland\b/gi, "Germany")
+          .replace(/\bFrankreich\b/gi, "France")
+          .replace(/\bÖsterreich\b/gi, "Austria")
+          .replace(/\bSchweiz\b/gi, "Switzerland");
+
+        const parts = countryNormalized
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean);
+
+        const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
+        const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
+
+        const candidates = [
+          normalized,
+          countryNormalized,
+          cityOrZipPart,
+          cityWithCountry,
+        ].filter(Boolean);
+
+        return [...new Set(candidates)];
+      };
+
+      const geocode = async (query: string): Promise<{ lat: number; lng: number } | null> => {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=0`
+        );
+        if (!res.ok) return null;
+        const results = (await res.json()) as Array<{ lat: string; lon: string }>;
+        if (!Array.isArray(results) || results.length === 0) return null;
+        return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+      };
+
       await Promise.all(
         uniqueLocations.map(async (loc) => {
+          const candidates = buildLocationCandidates(loc);
           try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&limit=1`,
-              { headers: { "User-Agent": "DilehiApp/1.0" } }
-            );
-            const results = await res.json();
-            if (results.length > 0) {
-              geoCache[loc] = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
-            } else {
-              geoCache[loc] = null;
+            for (const candidate of candidates) {
+              const point = await geocode(candidate);
+              if (point) {
+                geoCache[loc] = point;
+                return;
+              }
             }
+            geoCache[loc] = null;
           } catch {
             geoCache[loc] = null;
           }

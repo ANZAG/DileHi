@@ -20,16 +20,30 @@ function formatIcalDate(iso: string, allDay: boolean): string {
 }
 
 function foldLine(line: string): string {
-  // RFC 5545: lines must be <= 75 octets; fold with CRLF + space
-  const maxLen = 75;
-  if (line.length <= maxLen) return line;
-  let result = line.slice(0, maxLen);
-  let pos = maxLen;
-  while (pos < line.length) {
-    result += "\r\n " + line.slice(pos, pos + maxLen - 1);
-    pos += maxLen - 1;
+  // RFC 5545: lines must be <= 75 octets (bytes), not characters
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= 75) return line;
+
+  const chunks: string[] = [];
+  let current = "";
+  let currentBytes = 0;
+
+  for (const char of line) {
+    const charBytes = encoder.encode(char).length;
+    const byteLimit = chunks.length === 0 ? 75 : 74; // continuation line starts with one whitespace
+
+    if (currentBytes + charBytes > byteLimit && current.length > 0) {
+      chunks.push(current);
+      current = char;
+      currentBytes = charBytes;
+    } else {
+      current += char;
+      currentBytes += charBytes;
+    }
   }
-  return result;
+
+  if (current) chunks.push(current);
+  return chunks.join("\r\n ");
 }
 
 Deno.serve(async (req) => {
@@ -101,7 +115,8 @@ Deno.serve(async (req) => {
     headers: {
       ...corsHeaders,
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="dilehi-kalender.ics"',
+      "Content-Disposition": 'inline; filename="dilehi-kalender.ics"',
+      "Cache-Control": "no-cache",
     },
   });
 });
