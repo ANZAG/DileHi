@@ -925,33 +925,80 @@ function TentVisualizer({
   items: TentItem[];
   spacing: number;
   maxHeight: number;
-  onPositionsChange?: (positions: Record<string, { x: number; y: number }>) => void;
-  savedPositions?: Record<string, { x: number; y: number }>;
+  onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
+  savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
   layoutVersion: number;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotated?: boolean }>>({});
+
+  // Track layoutVersion to know when auto-layout was triggered
+  const lastLayoutVersion = useRef(layoutVersion);
 
   // Apply saved positions or auto-layout positions
   useEffect(() => {
-    const pos: Record<string, { x: number; y: number }> = {};
+    const isAutoLayout = layoutVersion !== lastLayoutVersion.current;
+    lastLayoutVersion.current = layoutVersion;
+
+    const pos: Record<string, { x: number; y: number; rotated?: boolean }> = {};
     for (const item of items) {
-      if (layoutVersion === 0 && savedPositions?.[item.id]) {
+      if (!isAutoLayout && savedPositions?.[item.id]) {
         pos[item.id] = savedPositions[item.id];
       } else {
         pos[item.id] = { x: item.x, y: item.y };
       }
     }
     setPositions(pos);
-  }, [items, savedPositions, layoutVersion]);
+    // Only depend on items length + layoutVersion, not the items array itself
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length, savedPositions, layoutVersion]);
+
+  // Sync new items that appear without losing existing positions
+  useEffect(() => {
+    setPositions((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const item of items) {
+        if (!next[item.id]) {
+          next[item.id] = { x: item.x, y: item.y };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items]);
 
   if (items.length === 0) {
     return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
   }
 
-  const bounds = computeBounds(items, positions);
+  // Apply rotation swaps for bounds calculation
+  const getEffectiveDimensions = (item: TentItem) => {
+    const pos = positions[item.id];
+    const rotated = pos?.rotated || false;
+    if (rotated && item.shape === "rect") {
+      return { w: item.h, h: item.w, innerW: item.innerH, innerH: item.innerW };
+    }
+    return { w: item.w, h: item.h, innerW: item.innerW, innerH: item.innerH };
+  };
+
+  const computeBoundsRotated = () => {
+    if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const item of items) {
+      const pos = positions[item.id] || { x: item.x, y: item.y };
+      const dims = getEffectiveDimensions(item);
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + dims.w);
+      maxY = Math.max(maxY, pos.y + dims.h);
+    }
+    return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
+  };
+
+  const bounds = computeBoundsRotated();
   const vbW = bounds.maxX - bounds.minX;
   const vbH = bounds.maxY - bounds.minY;
 
@@ -977,7 +1024,7 @@ function TentVisualizer({
     const pt = getSVGPoint(e);
     setPositions((prev) => ({
       ...prev,
-      [dragging]: { x: pt.x - dragOffset.dx, y: pt.y - dragOffset.dy },
+      [dragging]: { ...prev[dragging], x: pt.x - dragOffset.dx, y: pt.y - dragOffset.dy },
     }));
   };
 
@@ -988,7 +1035,14 @@ function TentVisualizer({
     setDragging(null);
   };
 
-  // Compute total area from bounds
+  const toggleRotation = (id: string) => {
+    setPositions((prev) => {
+      const next = { ...prev, [id]: { ...prev[id], rotated: !prev[id]?.rotated } };
+      if (onPositionsChange) onPositionsChange(next);
+      return next;
+    });
+  };
+
   const totalW = (bounds.maxX - bounds.minX - 2).toFixed(1);
   const totalH = (bounds.maxY - bounds.minY - 2).toFixed(1);
 
@@ -1003,13 +1057,11 @@ function TentVisualizer({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Border rectangle fitting tents */}
+        {/* Border rectangle */}
         <rect
           x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
           fill="none" stroke="hsl(var(--border))" strokeWidth={0.2} strokeDasharray="1 1"
         />
-
-        {/* Dimension labels on edges */}
         <text
           x={bounds.minX + vbW / 2} y={bounds.minY + 0.6}
           textAnchor="middle" fontSize={Math.max(0.4, vbW / 40)}
@@ -1031,20 +1083,23 @@ function TentVisualizer({
 
         {items.map((item) => {
           const pos = positions[item.id] || { x: item.x, y: item.y };
+          const dims = getEffectiveDimensions(item);
           const px = pos.x;
           const py = pos.y;
-          const pw = item.w;
-          const ph = item.h;
-          const innerW = item.innerW;
-          const innerH = item.innerH;
+          const pw = dims.w;
+          const ph = dims.h;
+          const innerW = dims.innerW;
+          const innerH = dims.innerH;
           const guyRope = item.guyRope;
           const spacingVal = spacing;
+          const isRotated = pos.rotated || false;
 
           const fontSize = Math.max(0.4, Math.min(0.7, Math.min(pw, ph) / 8));
           const isClub = item.category !== "member";
           const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
           const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
           const isDragged = dragging === item.id;
+          const canRotate = item.shape === "rect" && item.innerW !== item.innerH;
 
           return (
             <g
@@ -1149,6 +1204,27 @@ function TentVisualizer({
                     Ø{innerW}m
                   </text>
                 </>
+              )}
+
+              {/* Rotate button for rectangular tents */}
+              {canRotate && !isDragged && (
+                <g
+                  onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleRotation(item.id); }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <circle
+                    cx={px + pw - 0.5} cy={py + 0.5}
+                    r={0.5} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.1}
+                  />
+                  <text
+                    x={px + pw - 0.5} y={py + 0.55}
+                    textAnchor="middle" dominantBaseline="central"
+                    fontSize={0.5} fill="hsl(var(--foreground))"
+                    className="select-none"
+                  >
+                    ↻
+                  </text>
+                </g>
               )}
             </g>
           );

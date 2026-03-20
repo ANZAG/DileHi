@@ -408,11 +408,11 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
         );
       })}
 
-      {/* Allow manual entry only if no profile tents exist */}
-      {!hasMemberTents && (
-        <Button variant="outline" size="sm" className="w-full" onClick={() => updateTents([...current.tents, { tent_type: "", diameter: "", length: "", width: "", capacity: 1 }])} type="button">
-          <Plus size={14} className="mr-1" /> Zelt hinzufügen
-        </Button>
+      {/* Manual entry only when no profile tents exist AND no tents added yet */}
+      {!hasMemberTents && current.tents.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center">
+          Hinterlege Zelte in deinem Profil, um sie hier auszuwählen.
+        </p>
       )}
 
       {current.tents.length === 0 && (
