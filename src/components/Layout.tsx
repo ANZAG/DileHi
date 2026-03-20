@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
 
 const navItems = [
   { path: "/", label: "Startseite" },
@@ -82,6 +83,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       <main className="flex-1">{children}</main>
+      <OnboardingTour />
 
       <footer className="border-t bg-card">
         <div className="container py-8 md:py-12">

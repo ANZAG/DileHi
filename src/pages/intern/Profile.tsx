@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus } from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -245,9 +246,17 @@ const Profile = () => {
   return (
     <div className="container py-8 sm:py-12 max-w-lg px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft size={16} /> Zurück
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} /> Zurück
+          </Link>
+          <button
+            onClick={() => { resetOnboardingTour(); window.dispatchEvent(new CustomEvent("start-onboarding")); }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <HelpCircle size={14} /> Tour starten
+          </button>
+        </div>
         <h1 className="font-serif text-2xl font-bold mb-6">Mein Profil</h1>
 
         <div className="space-y-6">
