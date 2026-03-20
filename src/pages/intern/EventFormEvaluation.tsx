@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed, Plus, Trash2, Maximize2 } from "lucide-react";
+import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed, Plus, Trash2, RefreshCw, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
@@ -27,6 +28,22 @@ import {
 interface ProgramItem {
   point: string;
   person: string;
+}
+
+interface TentItem {
+  id: string;
+  label: string;
+  typeName: string;
+  area: number;
+  w: number;
+  h: number;
+  innerW: number;
+  innerH: number;
+  guyRope: number;
+  shape: string;
+  category: string;
+  x: number;
+  y: number;
 }
 
 export default function EventFormEvaluation() {
@@ -48,6 +65,12 @@ export default function EventFormEvaluation() {
 
   // Visualizer size
   const [vizHeight, setVizHeight] = useState(450);
+
+  // Event responsible person
+  const [eventLeadId, setEventLeadId] = useState<string>("");
+
+  // Force re-layout
+  const [layoutVersion, setLayoutVersion] = useState(0);
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
@@ -75,6 +98,7 @@ export default function EventFormEvaluation() {
         setKitchenLead(s.kitchen_lead ?? "");
         setProgramItems(s.program_items ?? []);
         setPoolTentIds(s.pool_tent_ids ?? []);
+        setEventLeadId(s.event_lead_id ?? "");
       }
       return data as any;
     },
@@ -127,10 +151,22 @@ export default function EventFormEvaluation() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("member_tents")
-        .select("*, profiles:user_id(display_name)")
+        .select("*, profiles!member_tents_user_id_fkey(display_name)")
         .order("created_at");
-      if (error) return [];
+      if (error) {
+        console.error("member_tents error:", error);
+        return [];
+      }
       return data;
+    },
+  });
+
+  // Fetch member directory for responsible person dropdown
+  const { data: members = [] } = useQuery({
+    queryKey: ["member_directory"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_member_directory");
+      return data || [];
     },
   });
 
@@ -174,7 +210,6 @@ export default function EventFormEvaluation() {
         }
         return "–";
       case "tent": {
-        // New multi-tent format: { tents: [...] }
         const tents = value?.tents;
         if (Array.isArray(tents) && tents.length > 0) {
           return tents.map((t: any) => {
@@ -186,7 +221,6 @@ export default function EventFormEvaluation() {
             return `${type.label} ${dim}, ${t.capacity || 1} Pl.`;
           }).join("; ");
         }
-        // Legacy single tent format
         if (value?.has_tent && value?.tent_type) {
           const type = TENT_TYPES.find((t) => t.value === value.tent_type);
           if (!type) return "Zelt (Typ unbekannt)";
@@ -219,7 +253,6 @@ export default function EventFormEvaluation() {
     for (const resp of responses) {
       if (tentField) {
         const tv = getAnswer(resp, tentField.id);
-        // New multi-tent format
         if (tv?.tents && Array.isArray(tv.tents)) {
           for (const t of tv.tents) {
             if (t.tent_type) {
@@ -234,9 +267,7 @@ export default function EventFormEvaluation() {
               totalCapacity += t.capacity || 1;
             }
           }
-        }
-        // Legacy single tent
-        else if (tv?.has_tent && tv.tent_type) {
+        } else if (tv?.has_tent && tv.tent_type) {
           tents.push({
             type: tv.tent_type,
             diameter: tv.diameter,
@@ -373,13 +404,12 @@ export default function EventFormEvaluation() {
     }
 
     const totalArea = memberTentArea + poolTentArea + clubTentArea;
-    const side = Math.ceil(Math.sqrt(totalArea * 1.3));
 
-    // Auto-layout: Scheune center, kitchen far from members, supply near kitchen
-    autoLayout(tentItems, side);
+    // Auto-layout in a row, then compute bounding box
+    autoLayout(tentItems);
 
-    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, suggestedSide: side, tentItems };
-  }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents]);
+    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems };
+  }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents, layoutVersion]);
 
   const exportCSV = () => {
     const dataFields = fields.filter((f) => f.type !== "section");
@@ -417,6 +447,20 @@ export default function EventFormEvaluation() {
     saveSettings.mutate({ program_items: updated });
   };
 
+  const resetLayout = () => {
+    // Clear saved positions and force re-layout
+    saveSettings.mutate({ tent_positions: null });
+    setLayoutVersion((v) => v + 1);
+  };
+
+  const whatsappLink = (form?.settings as any)?.whatsapp_link || "";
+  const eventLeadName = eventLeadId
+    ? members.find((m: any) => m.id === eventLeadId)?.display_name
+    : null;
+  const creatorName = event?.created_by
+    ? members.find((m: any) => m.id === event.created_by)?.display_name
+    : null;
+
   const dataFields = fields.filter((f) => f.type !== "section");
 
   return (
@@ -447,26 +491,69 @@ export default function EventFormEvaluation() {
           <SummaryCard icon={<Car size={20} />} label={`PKW (${summary.totalSeats} Plätze)`} value={summary.carsCount} />
         </div>
 
-        {/* Quick stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
+        {/* Event info row */}
+        <div className="grid md:grid-cols-3 gap-3 mb-6">
+          {/* Responsible person */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <h3 className="font-semibold text-sm">Verantwortlicher</h3>
+            {isVorstand ? (
+              <Select
+                value={eventLeadId || event?.created_by || ""}
+                onValueChange={(v) => {
+                  setEventLeadId(v);
+                  saveSettings.mutate({ event_lead_id: v });
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Ersteller" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-sm">{eventLeadName || creatorName || "–"}</p>
+            )}
+          </div>
+
+          {/* WhatsApp link */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <h3 className="font-semibold text-sm flex items-center gap-1.5">
+              <MessageCircle size={14} /> WhatsApp-Gruppe
+            </h3>
+            {whatsappLink ? (
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline break-all">
+                {whatsappLink.length > 40 ? whatsappLink.slice(0, 40) + "…" : whatsappLink}
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground">Kein Link hinterlegt (Einstellungen im Formular-Baukasten)</p>
+            )}
+          </div>
+
+          {/* Quick stat */}
           {eventDays.length > 1 && (
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Teilnehmer pro Tag</h3>
-              <div className="space-y-2">
+              <h3 className="font-semibold text-sm mb-2">Teilnehmer/Tag</h3>
+              <div className="space-y-1">
                 {eventDays.map((day) => {
                   const key = format(day, "yyyy-MM-dd");
                   const count = summary.dayCount[key] || 0;
                   return (
-                    <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm">{format(day, "EE, d. MMM", { locale: de })}</span>
-                      <Badge variant="secondary">{count}</Badge>
+                    <div key={key} className="flex items-center justify-between text-sm">
+                      <span>{format(day, "EE, d. MMM", { locale: de })}</span>
+                      <Badge variant="secondary" className="text-xs">{count}</Badge>
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
+        </div>
 
+        {/* Quick stats row */}
+        <div className="grid md:grid-cols-3 gap-6 mb-6">
           {/* Logistics */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -504,10 +591,8 @@ export default function EventFormEvaluation() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Organizer fields */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Organizer fields */}
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-semibold">Verantwortliche</h3>
             <div>
@@ -517,71 +602,62 @@ export default function EventFormEvaluation() {
                 onChange={(e) => setKitchenLead(e.target.value)}
                 onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
                 placeholder="Name eingeben..."
+                className="h-8 text-sm"
               />
             </div>
             <div>
-              <Label className="text-sm">Programme & Verantwortliche</Label>
+              <Label className="text-sm">Programme</Label>
               {programItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 mt-1.5">
-                  <span className="text-sm flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeProgramItem(i)}>
-                    <Trash2 size={12} className="text-destructive" />
+                <div key={i} className="flex items-center gap-2 mt-1">
+                  <span className="text-xs flex-1">{item.point}: <strong>{item.person || "–"}</strong></span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeProgramItem(i)}>
+                    <Trash2 size={10} className="text-destructive" />
                   </Button>
                 </div>
               ))}
-              <div className="flex gap-2 mt-2">
-                <Input
-                  value={newProgPoint}
-                  onChange={(e) => setNewProgPoint(e.target.value)}
-                  placeholder="Programmpunkt"
-                  className="flex-1"
-                />
-                <Input
-                  value={newProgPerson}
-                  onChange={(e) => setNewProgPerson(e.target.value)}
-                  placeholder="Person"
-                  className="flex-1"
-                />
-                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()}>
-                  <Plus size={14} />
+              <div className="flex gap-1 mt-1.5">
+                <Input value={newProgPoint} onChange={(e) => setNewProgPoint(e.target.value)} placeholder="Punkt" className="flex-1 h-7 text-xs" />
+                <Input value={newProgPerson} onChange={(e) => setNewProgPerson(e.target.value)} placeholder="Person" className="flex-1 h-7 text-xs" />
+                <Button size="sm" variant="outline" onClick={addProgramItem} disabled={!newProgPoint.trim()} className="h-7 px-2">
+                  <Plus size={12} />
                 </Button>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Member tent pool */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
-            <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen.</p>
-            <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {allMemberTents.map((mt: any) => {
-                const ownerName = mt.profiles?.display_name || "Mitglied";
-                const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
-                const dimStr = mt.shape === "circle" && mt.diameter
-                  ? `Ø${mt.diameter}m`
-                  : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
-                return (
-                  <div key={mt.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={poolTentIds.includes(mt.id)}
-                      onCheckedChange={(checked) => {
-                        const next = checked
-                          ? [...poolTentIds, mt.id]
-                          : poolTentIds.filter((id: string) => id !== mt.id);
-                        setPoolTentIds(next);
-                        saveSettings.mutate({ pool_tent_ids: next });
-                      }}
-                    />
-                    <Label className="font-normal cursor-pointer text-sm">
-                      {typeLabel}: {mt.name || "–"} ({ownerName}) {dimStr}
-                    </Label>
-                  </div>
-                );
-              })}
-              {allMemberTents.length === 0 && (
-                <p className="text-xs text-muted-foreground">Keine Mitgliederzelte im Pool vorhanden.</p>
-              )}
-            </div>
+        {/* Member tent pool */}
+        <div className="border rounded-lg p-4 mb-6 space-y-3">
+          <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
+          <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen.</p>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+            {allMemberTents.map((mt: any) => {
+              const ownerName = mt.profiles?.display_name || "Mitglied";
+              const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
+              const dimStr = mt.shape === "circle" && mt.diameter
+                ? `Ø${mt.diameter}m`
+                : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
+              return (
+                <div key={mt.id} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={poolTentIds.includes(mt.id)}
+                    onCheckedChange={(checked) => {
+                      const next = checked
+                        ? [...poolTentIds, mt.id]
+                        : poolTentIds.filter((id: string) => id !== mt.id);
+                      setPoolTentIds(next);
+                      saveSettings.mutate({ pool_tent_ids: next });
+                    }}
+                  />
+                  <Label className="font-normal cursor-pointer text-sm">
+                    {ownerName}: {typeLabel} {dimStr}
+                  </Label>
+                </div>
+              );
+            })}
+            {allMemberTents.length === 0 && (
+              <p className="text-xs text-muted-foreground col-span-full">Keine Mitgliederzelte im Pool vorhanden.</p>
+            )}
           </div>
         </div>
 
@@ -642,10 +718,6 @@ export default function EventFormEvaluation() {
                   <span>Gesamtfläche</span>
                   <span>{summary.totalArea.toFixed(1)} m²</span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Empfohlene Fläche (ca. +30%)</span>
-                  <span>~{summary.suggestedSide}×{summary.suggestedSide} m</span>
-                </div>
               </div>
             </div>
 
@@ -655,34 +727,34 @@ export default function EventFormEvaluation() {
                 <Label className="text-sm">Lagerplan (Zelte verschiebbar)</Label>
                 <div className="flex items-center gap-1">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    title="Größer"
-                    onClick={() => setVizHeight((h) => Math.min(h + 100, 900))}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs px-2"
+                    title="Optimiertes Layout berechnen"
+                    onClick={resetLayout}
                   >
-                    <Maximize2 size={14} />
+                    <RefreshCw size={12} className="mr-1" /> Auto-Layout
                   </Button>
                   <Input
                     type="number"
                     value={vizHeight}
-                    onChange={(e) => setVizHeight(Math.max(200, Math.min(900, Number(e.target.value) || 450)))}
+                    onChange={(e) => setVizHeight(Math.max(200, Math.min(600, Number(e.target.value) || 450)))}
                     className="w-16 h-7 text-xs"
                     min={200}
-                    max={900}
+                    max={600}
                   />
                   <span className="text-xs text-muted-foreground">px</span>
                 </div>
               </div>
               <TentVisualizer
                 items={summary.tentItems}
-                totalSide={summary.suggestedSide}
                 spacing={spacing}
                 maxHeight={vizHeight}
                 onPositionsChange={(positions) => {
                   saveSettings.mutate({ tent_positions: positions });
                 }}
                 savedPositions={(form?.settings as any)?.tent_positions}
+                layoutVersion={layoutVersion}
               />
             </div>
           </div>
@@ -742,24 +814,8 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
   );
 }
 
-interface TentItem {
-  id: string;
-  label: string;
-  typeName: string;
-  area: number;
-  w: number;
-  h: number;
-  innerW: number;
-  innerH: number;
-  guyRope: number;
-  shape: string;
-  category: string;
-  x: number;
-  y: number;
-}
-
-/** Auto-layout: Scheune center, kitchen away from sleep tents, supply near kitchen */
-function autoLayout(items: TentItem[], totalSide: number) {
+/** Auto-layout: place all tents in rows, Scheune center-ish, kitchen separated */
+function autoLayout(items: TentItem[]) {
   if (items.length === 0) return;
 
   const scheune = items.find((i) => i.category === "scheune");
@@ -768,59 +824,74 @@ function autoLayout(items: TentItem[], totalSide: number) {
   const members = items.filter((i) => i.category === "member");
   const rest = items.filter((i) => !["scheune", "kitchen", "supply", "member"].includes(i.category));
 
-  const cx = totalSide / 2;
-  const cy = totalSide / 2;
-
-  // Place scheune in center
-  if (scheune) {
-    scheune.x = cx - scheune.w / 2;
-    scheune.y = cy - scheune.h / 2;
-  }
-
-  // Kitchen top-left area
-  let kx = 1, ky = 1;
-  for (const k of kitchen) {
-    k.x = kx; k.y = ky;
-    kx += k.w + 1;
-  }
-
-  // Supply near kitchen
-  for (const s of supply) {
-    s.x = kx; s.y = ky;
-    kx += s.w + 1;
-    if (kx > totalSide * 0.6) { kx = 1; ky += s.h + 1; }
-  }
-
-  // Members bottom area, row-wrap
-  let mx = 1;
-  let my = Math.max(cy + (scheune ? scheune.h / 2 + 2 : 4), totalSide * 0.55);
+  const gap = 1;
+  let curX = gap;
+  let curY = gap;
   let rowH = 0;
+
+  // Row 1: Kitchen + Supply
+  for (const k of [...kitchen, ...supply]) {
+    k.x = curX;
+    k.y = curY;
+    curX += k.w + gap;
+    rowH = Math.max(rowH, k.h);
+  }
+
+  // Row 2: Scheune
+  if (scheune) {
+    curY += rowH + gap;
+    scheune.x = gap;
+    scheune.y = curY;
+    curX = gap + scheune.w + gap;
+    rowH = scheune.h;
+  }
+
+  // Row 3+: Member tents
+  curY += rowH + gap;
+  curX = gap;
+  rowH = 0;
+  const maxRowWidth = Math.max(40, ...items.map((i) => i.w)) * 3;
   for (const m of [...members, ...rest]) {
-    if (mx + m.w > totalSide - 1) {
-      mx = 1;
-      my += rowH + 1;
+    if (curX + m.w > maxRowWidth) {
+      curX = gap;
+      curY += rowH + gap;
       rowH = 0;
     }
-    m.x = mx; m.y = my;
-    mx += m.w + 1;
+    m.x = curX;
+    m.y = curY;
+    curX += m.w + gap;
     rowH = Math.max(rowH, m.h);
   }
 }
 
+/** Compute tight bounding box from items and their positions */
+function computeBounds(items: TentItem[], positions: Record<string, { x: number; y: number }>) {
+  if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const item of items) {
+    const pos = positions[item.id] || { x: item.x, y: item.y };
+    minX = Math.min(minX, pos.x);
+    minY = Math.min(minY, pos.y);
+    maxX = Math.max(maxX, pos.x + item.w);
+    maxY = Math.max(maxY, pos.y + item.h);
+  }
+  return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
+}
+
 function TentVisualizer({
   items,
-  totalSide,
   spacing,
   maxHeight,
   onPositionsChange,
   savedPositions,
+  layoutVersion,
 }: {
   items: TentItem[];
-  totalSide: number;
   spacing: number;
   maxHeight: number;
   onPositionsChange?: (positions: Record<string, { x: number; y: number }>) => void;
   savedPositions?: Record<string, { x: number; y: number }>;
+  layoutVersion: number;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -831,29 +902,29 @@ function TentVisualizer({
   useEffect(() => {
     const pos: Record<string, { x: number; y: number }> = {};
     for (const item of items) {
-      if (savedPositions?.[item.id]) {
+      if (layoutVersion === 0 && savedPositions?.[item.id]) {
         pos[item.id] = savedPositions[item.id];
       } else {
         pos[item.id] = { x: item.x, y: item.y };
       }
     }
     setPositions(pos);
-  }, [items, savedPositions]);
+  }, [items, savedPositions, layoutVersion]);
 
   if (items.length === 0) {
     return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
   }
 
-  const svgSize = totalSide + 4;
-  const scale = 1;
+  const bounds = computeBounds(items, positions);
+  const vbW = bounds.maxX - bounds.minX;
+  const vbH = bounds.maxY - bounds.minY;
 
   const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-    const x = ((e.clientX - rect.left) / rect.width) * viewBox.width;
-    const y = ((e.clientY - rect.top) / rect.height) * viewBox.height;
+    const x = ((e.clientX - rect.left) / rect.width) * vbW + bounds.minX;
+    const y = ((e.clientY - rect.top) / rect.height) * vbH + bounds.minY;
     return { x, y };
   };
 
@@ -881,142 +952,175 @@ function TentVisualizer({
     setDragging(null);
   };
 
+  // Compute total area from bounds
+  const totalW = (bounds.maxX - bounds.minX - 2).toFixed(1);
+  const totalH = (bounds.maxY - bounds.minY - 2).toFixed(1);
+
   return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${svgSize} ${svgSize}`}
-      className="w-full border rounded bg-muted/30 cursor-crosshair select-none"
-      style={{ maxHeight }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      <rect x={0} y={0} width={svgSize} height={svgSize} fill="none" stroke="hsl(var(--border))" strokeWidth={0.3} strokeDasharray="2 2" />
+    <div>
+      <svg
+        ref={svgRef}
+        viewBox={`${bounds.minX} ${bounds.minY} ${vbW} ${vbH}`}
+        className="w-full border rounded bg-muted/30 cursor-crosshair select-none"
+        style={{ maxHeight }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Border rectangle fitting tents */}
+        <rect
+          x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
+          fill="none" stroke="hsl(var(--border))" strokeWidth={0.2} strokeDasharray="1 1"
+        />
 
-      {items.map((item) => {
-        const pos = positions[item.id] || { x: item.x, y: item.y };
-        const px = pos.x;
-        const py = pos.y;
-        const pw = item.w;
-        const ph = item.h;
-        const innerW = item.innerW;
-        const innerH = item.innerH;
-        const guyRope = item.guyRope;
-        const spacingVal = spacing;
+        {/* Dimension labels on edges */}
+        <text
+          x={bounds.minX + vbW / 2} y={bounds.minY + 0.6}
+          textAnchor="middle" fontSize={Math.max(0.4, vbW / 40)}
+          fill="hsl(var(--muted-foreground))"
+          className="select-none pointer-events-none"
+        >
+          ~{totalW}m
+        </text>
+        <text
+          x={bounds.maxX - 0.3} y={bounds.minY + vbH / 2}
+          textAnchor="middle" dominantBaseline="central"
+          fontSize={Math.max(0.4, vbH / 40)}
+          fill="hsl(var(--muted-foreground))"
+          className="select-none pointer-events-none"
+          transform={`rotate(90, ${bounds.maxX - 0.3}, ${bounds.minY + vbH / 2})`}
+        >
+          ~{totalH}m
+        </text>
 
-        const fontSize = Math.max(0.4, Math.min(0.7, Math.min(pw, ph) / 8));
-        const isClub = item.category !== "member";
-        const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
-        const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
-        const isDragged = dragging === item.id;
+        {items.map((item) => {
+          const pos = positions[item.id] || { x: item.x, y: item.y };
+          const px = pos.x;
+          const py = pos.y;
+          const pw = item.w;
+          const ph = item.h;
+          const innerW = item.innerW;
+          const innerH = item.innerH;
+          const guyRope = item.guyRope;
+          const spacingVal = spacing;
 
-        return (
-          <g
-            key={item.id}
-            onMouseDown={(e) => handleMouseDown(item.id, e)}
-            style={{ cursor: isDragged ? "grabbing" : "grab" }}
-          >
-            {item.shape === "circle" ? (
-              <>
-                <ellipse
-                  cx={px + pw / 2} cy={py + ph / 2}
-                  rx={pw / 2} ry={ph / 2}
-                  fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5"
-                />
-                {guyRope > 0 && (
+          const fontSize = Math.max(0.4, Math.min(0.7, Math.min(pw, ph) / 8));
+          const isClub = item.category !== "member";
+          const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
+          const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
+          const isDragged = dragging === item.id;
+
+          return (
+            <g
+              key={item.id}
+              onMouseDown={(e) => handleMouseDown(item.id, e)}
+              style={{ cursor: isDragged ? "grabbing" : "grab" }}
+            >
+              {item.shape === "circle" ? (
+                <>
                   <ellipse
                     cx={px + pw / 2} cy={py + ph / 2}
-                    rx={(pw / 2) - spacingVal} ry={(ph / 2) - spacingVal}
-                    fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5}
+                    rx={pw / 2} ry={ph / 2}
+                    fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5"
                   />
-                )}
-                <ellipse
-                  cx={px + pw / 2} cy={py + ph / 2}
-                  rx={innerW / 2} ry={innerH / 2}
-                  fill={fillColor} stroke={strokeColor} strokeWidth={0.2}
-                />
-              </>
-            ) : (
-              <>
-                <rect
-                  x={px} y={py} width={pw} height={ph}
-                  fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5" rx={0.2}
-                />
-                {guyRope > 0 && (
+                  {guyRope > 0 && (
+                    <ellipse
+                      cx={px + pw / 2} cy={py + ph / 2}
+                      rx={(pw / 2) - spacingVal} ry={(ph / 2) - spacingVal}
+                      fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5}
+                    />
+                  )}
+                  <ellipse
+                    cx={px + pw / 2} cy={py + ph / 2}
+                    rx={innerW / 2} ry={innerH / 2}
+                    fill={fillColor} stroke={strokeColor} strokeWidth={0.2}
+                  />
+                </>
+              ) : (
+                <>
                   <rect
-                    x={px + spacingVal} y={py + spacingVal}
-                    width={pw - 2 * spacingVal} height={ph - 2 * spacingVal}
-                    fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5} rx={0.2}
+                    x={px} y={py} width={pw} height={ph}
+                    fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5" rx={0.2}
                   />
-                )}
-                <rect
-                  x={px + guyRope + spacingVal} y={py + guyRope + spacingVal}
-                  width={innerW} height={innerH}
-                  fill={fillColor} stroke={strokeColor} strokeWidth={0.2} rx={0.3}
-                />
-              </>
-            )}
+                  {guyRope > 0 && (
+                    <rect
+                      x={px + spacingVal} y={py + spacingVal}
+                      width={pw - 2 * spacingVal} height={ph - 2 * spacingVal}
+                      fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5} rx={0.2}
+                    />
+                  )}
+                  <rect
+                    x={px + guyRope + spacingVal} y={py + guyRope + spacingVal}
+                    width={innerW} height={innerH}
+                    fill={fillColor} stroke={strokeColor} strokeWidth={0.2} rx={0.3}
+                  />
+                </>
+              )}
 
-            {/* Label + area */}
-            <text
-              x={px + pw / 2} y={py + ph / 2 - fontSize * 0.3}
-              textAnchor="middle" dominantBaseline="central"
-              fontSize={fontSize} fill="hsl(var(--foreground))"
-              fontWeight={isClub ? "600" : "400"} className="select-none pointer-events-none"
-            >
-              {item.label.length > 16 ? item.label.slice(0, 14) + "…" : item.label}
-            </text>
-            <text
-              x={px + pw / 2} y={py + ph / 2 + fontSize * 0.9}
-              textAnchor="middle" dominantBaseline="central"
-              fontSize={fontSize * 0.8} fill="hsl(var(--muted-foreground))"
-              className="select-none pointer-events-none"
-            >
-              ({item.area.toFixed(1)} m²)
-            </text>
+              {/* Label + area */}
+              <text
+                x={px + pw / 2} y={py + ph / 2 - fontSize * 0.3}
+                textAnchor="middle" dominantBaseline="central"
+                fontSize={fontSize} fill="hsl(var(--foreground))"
+                fontWeight={isClub ? "600" : "400"} className="select-none pointer-events-none"
+              >
+                {item.label.length > 16 ? item.label.slice(0, 14) + "…" : item.label}
+              </text>
+              <text
+                x={px + pw / 2} y={py + ph / 2 + fontSize * 0.9}
+                textAnchor="middle" dominantBaseline="central"
+                fontSize={fontSize * 0.8} fill="hsl(var(--muted-foreground))"
+                className="select-none pointer-events-none"
+              >
+                ({item.area.toFixed(1)} m²)
+              </text>
 
-            {/* Dimension labels */}
-            {item.shape === "rect" && innerW > 1.5 && (
-              <>
-                <text
-                  x={px + pw / 2} y={py + guyRope + spacingVal - 0.2}
-                  textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
-                  fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
-                >
-                  {innerW}m
-                </text>
-                <text
-                  x={px + guyRope + spacingVal + innerW + 0.3} y={py + ph / 2}
-                  textAnchor="start" dominantBaseline="central"
-                  fontSize={Math.max(0.3, fontSize * 0.6)}
-                  fill="hsl(var(--muted-foreground))"
-                  className="select-none pointer-events-none"
-                  transform={`rotate(90, ${px + guyRope + spacingVal + innerW + 0.3}, ${py + ph / 2})`}
-                >
-                  {innerH}m
-                </text>
-              </>
-            )}
+              {/* Dimension labels */}
+              {item.shape === "rect" && innerW > 1.5 && (
+                <>
+                  <text
+                    x={px + pw / 2} y={py + guyRope + spacingVal - 0.2}
+                    textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
+                    fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
+                  >
+                    {innerW}m
+                  </text>
+                  <text
+                    x={px + guyRope + spacingVal + innerW + 0.3} y={py + ph / 2}
+                    textAnchor="start" dominantBaseline="central"
+                    fontSize={Math.max(0.3, fontSize * 0.6)}
+                    fill="hsl(var(--muted-foreground))"
+                    className="select-none pointer-events-none"
+                    transform={`rotate(90, ${px + guyRope + spacingVal + innerW + 0.3}, ${py + ph / 2})`}
+                  >
+                    {innerH}m
+                  </text>
+                </>
+              )}
 
-            {item.shape === "circle" && innerW > 1.5 && (
-              <>
-                <line
-                  x1={px + pw / 2 - innerW / 2} y1={py + ph / 2 + innerH / 2 + 0.2}
-                  x2={px + pw / 2 + innerW / 2} y2={py + ph / 2 + innerH / 2 + 0.2}
-                  stroke="hsl(var(--muted-foreground))" strokeWidth={0.1}
-                />
-                <text
-                  x={px + pw / 2} y={py + ph / 2 + innerH / 2 + 0.7}
-                  textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
-                  fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
-                >
-                  Ø{innerW}m
-                </text>
-              </>
-            )}
-          </g>
-        );
-      })}
-    </svg>
+              {item.shape === "circle" && innerW > 1.5 && (
+                <>
+                  <line
+                    x1={px + pw / 2 - innerW / 2} y1={py + ph / 2 + innerH / 2 + 0.2}
+                    x2={px + pw / 2 + innerW / 2} y2={py + ph / 2 + innerH / 2 + 0.2}
+                    stroke="hsl(var(--muted-foreground))" strokeWidth={0.1}
+                  />
+                  <text
+                    x={px + pw / 2} y={py + ph / 2 + innerH / 2 + 0.7}
+                    textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
+                    fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
+                  >
+                    Ø{innerW}m
+                  </text>
+                </>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <p className="text-xs text-muted-foreground mt-1 text-center">
+        Gesamtfläche: ~{totalW}×{totalH}m = ~{(Number(totalW) * Number(totalH)).toFixed(0)} m²
+      </p>
+    </div>
   );
 }
