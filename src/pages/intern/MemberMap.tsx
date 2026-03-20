@@ -162,7 +162,7 @@ const MemberMap = () => {
         }
       }
 
-      const result: { id: string; title: string; location: string; start_date: string; end_date: string | null; all_day: boolean; lat: number; lng: number }[] = [];
+      
 
       const geocoded = needsGeocoding
         .filter((e) => e.location && geoCache[e.location!])
