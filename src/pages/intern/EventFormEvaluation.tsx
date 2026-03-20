@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download, Users, Tent, Bed, Car, Truck, ShoppingCart, UtensilsCrossed, Plus, Trash2, RefreshCw, MessageCircle } from "lucide-react";
+import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
@@ -24,27 +23,15 @@ import {
   type FormResponse,
   type FormAnswer,
 } from "@/components/event-forms/types";
+import { autoLayout, type TentItem } from "@/components/evaluation/TentVisualizer";
+import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
+import EvalLogistics from "@/components/evaluation/EvalLogistics";
+import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
+import EvalResponsesTable from "@/components/evaluation/EvalResponsesTable";
 
 interface ProgramItem {
   point: string;
   person: string;
-}
-
-interface TentItem {
-  id: string;
-  label: string;
-  typeName: string;
-  area: number;
-  w: number;
-  h: number;
-  innerW: number;
-  innerH: number;
-  guyRope: number;
-  shape: string;
-  category: string;
-  x: number;
-  y: number;
-  rotated?: boolean;
 }
 
 export default function EventFormEvaluation() {
@@ -54,23 +41,13 @@ export default function EventFormEvaluation() {
 
   const [selectedClubTents, setSelectedClubTents] = useState<string[]>([]);
   const [spacing, setSpacing] = useState(0);
-
-  // Organizer fields
   const [kitchenLead, setKitchenLead] = useState("");
   const [programItems, setProgramItems] = useState<ProgramItem[]>([]);
   const [newProgPoint, setNewProgPoint] = useState("");
   const [newProgPerson, setNewProgPerson] = useState("");
-
-  // Pool tents from members
   const [poolTentIds, setPoolTentIds] = useState<string[]>([]);
-
-  // Visualizer size
   const [vizHeight, setVizHeight] = useState(450);
-
-  // Event responsible person
   const [eventLeadId, setEventLeadId] = useState<string>("");
-
-  // Force re-layout
   const [layoutVersion, setLayoutVersion] = useState(0);
 
   const { data: event } = useQuery({
@@ -146,7 +123,6 @@ export default function EventFormEvaluation() {
     enabled: !!form?.id,
   });
 
-  // Fetch all member tents for pool
   const { data: allMemberTents = [] } = useQuery({
     queryKey: ["all_member_tents"],
     queryFn: async () => {
@@ -154,15 +130,11 @@ export default function EventFormEvaluation() {
         .from("member_tents")
         .select("*, profiles!member_tents_user_id_fkey(display_name)")
         .order("created_at");
-      if (error) {
-        console.error("member_tents error:", error);
-        return [];
-      }
+      if (error) { console.error("member_tents error:", error); return []; }
       return data;
     },
   });
 
-  // Fetch member directory for responsible person dropdown
   const { data: members = [] } = useQuery({
     queryKey: ["member_directory"],
     queryFn: async () => {
@@ -181,6 +153,8 @@ export default function EventFormEvaluation() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
 
+  const doSaveSettings = (patch: Record<string, any>) => saveSettings.mutate(patch);
+
   const eventDays = useMemo(() => {
     if (!event?.start_date) return [];
     const start = parseISO(event.start_date);
@@ -193,55 +167,11 @@ export default function EventFormEvaluation() {
     return answer?.value;
   };
 
-  const formatAnswer = (field: FormField, value: any): string => {
-    if (field.type === "section") return "";
-    if (value === null || value === undefined) return "–";
-    switch (field.type) {
-      case "checkbox":
-        return value === true ? "Ja" : "Nein";
-      case "multi_select":
-        return Array.isArray(value) ? value.join(", ") : String(value);
-      case "attendance_days":
-        if (value?.all_days) return "Alle Tage";
-        if (value?.days?.length) {
-          return value.days.map((d: string) => {
-            try { return format(parseISO(d), "dd.MM.", { locale: de }); }
-            catch { return d; }
-          }).join(", ");
-        }
-        return "–";
-      case "tent": {
-        const tents = value?.tents;
-        if (Array.isArray(tents) && tents.length > 0) {
-          return tents.map((t: any) => {
-            const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
-            if (!type) return "Zelt (unbekannt)";
-            const dim = type.shape === "circle"
-              ? `Ø${t.diameter}m`
-              : `${t.length}×${t.width}m`;
-            return `${type.label} ${dim}, ${t.capacity || 1} Pl.`;
-          }).join("; ");
-        }
-        if (value?.has_tent && value?.tent_type) {
-          const type = TENT_TYPES.find((t) => t.value === value.tent_type);
-          if (!type) return "Zelt (Typ unbekannt)";
-          const dim = type.shape === "circle"
-            ? `Ø${value.diameter}m`
-            : `${value.length}×${value.width}m`;
-          return `${type.label} ${dim}, ${value.capacity} Plätze`;
-        }
-        return "Kein Zelt";
-      }
-      default:
-        return String(value);
-    }
-  };
-
   const summary = useMemo(() => {
     const tentField = fields.find((f) => f.type === "tent");
     const attendanceField = fields.find((f) => f.type === "attendance_days");
 
-    const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string }[] = [];
+    const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string; member_tent_id?: string }[] = [];
     const dayCount: Record<string, number> = {};
     let totalCapacity = 0;
     let carsCount = 0;
@@ -265,7 +195,7 @@ export default function EventFormEvaluation() {
                 capacity: t.capacity || 1,
                 respondent: resp.respondent_name,
                 member_tent_id: t.member_tent_id,
-              } as any);
+              });
               totalCapacity += t.capacity || 1;
             }
           }
@@ -309,14 +239,11 @@ export default function EventFormEvaluation() {
       }
     }
 
-    // Calculate tent areas
     let memberTentArea = 0;
     const tentItems: TentItem[] = [];
-
-    // Collect member_tent_ids from responses to detect duplicates with pool
     const registeredMemberTentIds = new Set<string>();
     for (const t of tents) {
-      if ((t as any).member_tent_id) registeredMemberTentIds.add((t as any).member_tent_id);
+      if (t.member_tent_id) registeredMemberTentIds.add(t.member_tent_id);
     }
 
     for (const t of tents) {
@@ -336,21 +263,16 @@ export default function EventFormEvaluation() {
         }
         tentItems.push({
           id: `resp-${t.respondent}-${tentItems.length}`,
-          label: t.respondent,
-          typeName: typeInfo.label,
+          label: t.respondent, typeName: typeInfo.label,
           area, w, h, innerW, innerH,
-          guyRope: typeInfo.guyRope,
-          shape: typeInfo.shape,
-          category: "member",
-          x: 0, y: 0,
+          guyRope: typeInfo.guyRope, shape: typeInfo.shape,
+          category: "member", x: 0, y: 0,
         });
       }
     }
 
-    // Pool tents from members – skip if already registered via form submission
     let poolTentArea = 0;
     for (const ptId of poolTentIds) {
-      // Skip if this tent was already registered by a respondent
       if (registeredMemberTentIds.has(ptId)) continue;
       const pt = allMemberTents.find((t: any) => t.id === ptId);
       if (!pt) continue;
@@ -370,13 +292,10 @@ export default function EventFormEvaluation() {
       poolTentArea += area;
       tentItems.push({
         id: `pool-${ptId}`,
-        label: `${pt.name} (${ownerName})`,
-        typeName: pt.tent_type,
+        label: `${pt.name} (${ownerName})`, typeName: pt.tent_type,
         area, w, h, innerW, innerH,
-        guyRope: Number(pt.guy_rope),
-        shape: pt.shape,
-        category: "member",
-        x: 0, y: 0,
+        guyRope: Number(pt.guy_rope), shape: pt.shape,
+        category: "member", x: 0, y: 0,
       });
     }
 
@@ -394,28 +313,19 @@ export default function EventFormEvaluation() {
           innerW = ct.width; innerH = ct.length;
         }
         const catMap: Record<string, string> = {
-          kuechenzelt: "kitchen",
-          versorgung_klein: "supply",
-          versorgung_gross: "supply",
-          scheune: "scheune",
+          kuechenzelt: "kitchen", versorgung_klein: "supply",
+          versorgung_gross: "supply", scheune: "scheune",
         };
         tentItems.push({
-          id: `club-${ctId}`,
-          label: ct.label,
-          typeName: "",
-          area, w: dims.w, h: dims.h,
-          innerW, innerH,
-          guyRope: ct.guyRope,
-          shape: ct.shape,
-          category: catMap[ct.id] || "club",
-          x: 0, y: 0,
+          id: `club-${ctId}`, label: ct.label, typeName: "",
+          area, w: dims.w, h: dims.h, innerW, innerH,
+          guyRope: ct.guyRope, shape: ct.shape,
+          category: catMap[ct.id] || "club", x: 0, y: 0,
         });
       }
     }
 
     const totalArea = memberTentArea + poolTentArea + clubTentArea;
-
-    // Auto-layout in a row, then compute bounding box
     autoLayout(tentItems);
 
     return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems };
@@ -424,6 +334,12 @@ export default function EventFormEvaluation() {
   const exportCSV = () => {
     const dataFields = fields.filter((f) => f.type !== "section");
     const headers = ["Name", "E-Mail", ...dataFields.map((f) => f.label)];
+    const formatAnswer = (field: FormField, value: any): string => {
+      if (value === null || value === undefined) return "–";
+      if (field.type === "checkbox") return value === true ? "Ja" : "Nein";
+      if (field.type === "multi_select") return Array.isArray(value) ? value.join(", ") : String(value);
+      return String(value);
+    };
     const rows = responses.map((r) => [
       r.respondent_name,
       r.respondent_email || "",
@@ -446,7 +362,7 @@ export default function EventFormEvaluation() {
     if (!newProgPoint.trim()) return;
     const updated = [...programItems, { point: newProgPoint.trim(), person: newProgPerson.trim() }];
     setProgramItems(updated);
-    saveSettings.mutate({ program_items: updated });
+    doSaveSettings({ program_items: updated });
     setNewProgPoint("");
     setNewProgPerson("");
   };
@@ -454,12 +370,11 @@ export default function EventFormEvaluation() {
   const removeProgramItem = (index: number) => {
     const updated = programItems.filter((_, i) => i !== index);
     setProgramItems(updated);
-    saveSettings.mutate({ program_items: updated });
+    doSaveSettings({ program_items: updated });
   };
 
   const resetLayout = () => {
-    // Clear saved positions and force re-layout
-    saveSettings.mutate({ tent_positions: null });
+    doSaveSettings({ tent_positions: null });
     setLayoutVersion((v) => v + 1);
   };
 
@@ -470,8 +385,6 @@ export default function EventFormEvaluation() {
   const creatorName = event?.created_by
     ? members.find((m: any) => m.id === event.created_by)?.display_name
     : null;
-
-  const dataFields = fields.filter((f) => f.type !== "section");
 
   return (
     <div className="container py-8 max-w-6xl px-4">
@@ -497,17 +410,17 @@ export default function EventFormEvaluation() {
           </div>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <SummaryCard icon={<Users size={20} />} label="Anmeldungen" value={responses.length} />
-          <SummaryCard icon={<Tent size={20} />} label="Zelte" value={summary.tents.length} />
-          <SummaryCard icon={<Bed size={20} />} label="Schlafplätze" value={summary.totalCapacity} />
-          <SummaryCard icon={<Car size={20} />} label={`PKW (${summary.totalSeats} Plätze)`} value={summary.carsCount} />
-        </div>
+        <EvalSummaryCards
+          responsesCount={responses.length}
+          tentsCount={summary.tents.length}
+          totalCapacity={summary.totalCapacity}
+          carsCount={summary.carsCount}
+          totalSeats={summary.totalSeats}
+        />
 
         {/* Event info row */}
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-          {/* All Verantwortliche in one card */}
+          {/* Verantwortliche */}
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-sm">Verantwortliche</h3>
             <div>
@@ -517,7 +430,7 @@ export default function EventFormEvaluation() {
                   value={eventLeadId || event?.created_by || ""}
                   onValueChange={(v) => {
                     setEventLeadId(v);
-                    saveSettings.mutate({ event_lead_id: v });
+                    doSaveSettings({ event_lead_id: v });
                   }}
                 >
                   <SelectTrigger className="h-8 text-sm">
@@ -538,7 +451,7 @@ export default function EventFormEvaluation() {
               <Input
                 value={kitchenLead}
                 onChange={(e) => setKitchenLead(e.target.value)}
-                onBlur={() => saveSettings.mutate({ kitchen_lead: kitchenLead })}
+                onBlur={() => doSaveSettings({ kitchen_lead: kitchenLead })}
                 placeholder="Name eingeben..."
                 className="h-8 text-sm"
               />
@@ -563,7 +476,7 @@ export default function EventFormEvaluation() {
             </div>
           </div>
 
-          {/* WhatsApp link */}
+          {/* WhatsApp */}
           <div className="border rounded-lg p-4 space-y-2">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
               <MessageCircle size={14} /> WhatsApp-Gruppe
@@ -577,7 +490,7 @@ export default function EventFormEvaluation() {
             )}
           </div>
 
-          {/* Quick stat */}
+          {/* Day attendance */}
           {eventDays.length > 1 && (
             <div className="border rounded-lg p-4">
               <h3 className="font-semibold text-sm mb-2">Teilnehmer/Tag</h3>
@@ -597,46 +510,13 @@ export default function EventFormEvaluation() {
           )}
         </div>
 
-        {/* Quick stats row */}
-        <div className="grid sm:grid-cols-2 gap-6 mb-6">
-          {/* Logistics */}
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Truck size={16} /> Logistik
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Car size={14} className="text-muted-foreground" /> PKW</span>
-                <span className="font-medium">{summary.carsCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Car size={14} className="text-muted-foreground" /> PKW mit Anhängerkupplung</span>
-                <span className="font-medium">{summary.canTowCount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Truck size={14} className="text-muted-foreground" /> Anhänger</span>
-                <span className="font-medium">{summary.trailerCount}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Kitchen */}
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <UtensilsCrossed size={16} /> Küche
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><ShoppingCart size={14} className="text-muted-foreground" /> Einkäufer</span>
-                <span className="font-medium">{summary.shoppers}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><UtensilsCrossed size={14} className="text-muted-foreground" /> Küchenteam</span>
-                <span className="font-medium">{summary.kitchenHelpers}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EvalLogistics
+          carsCount={summary.carsCount}
+          canTowCount={summary.canTowCount}
+          trailerCount={summary.trailerCount}
+          shoppers={summary.shoppers}
+          kitchenHelpers={summary.kitchenHelpers}
+        />
 
         {/* Member tent pool */}
         <div className="border rounded-lg p-4 mb-6 space-y-3">
@@ -649,7 +529,6 @@ export default function EventFormEvaluation() {
               const dimStr = mt.shape === "circle" && mt.diameter
                 ? `Ø${mt.diameter}m`
                 : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
-              // Check if this tent was already selected by a respondent
               const selectedByRespondent = responses.some((r: any) => {
                 const tentField = fields.find((f) => f.type === "tent");
                 if (!tentField) return false;
@@ -667,7 +546,7 @@ export default function EventFormEvaluation() {
                         ? [...poolTentIds, mt.id]
                         : poolTentIds.filter((id: string) => id !== mt.id);
                       setPoolTentIds(next);
-                      saveSettings.mutate({ pool_tent_ids: next });
+                      doSaveSettings({ pool_tent_ids: next });
                     }}
                   />
                   <Label className={`font-normal cursor-pointer text-sm ${selectedByRespondent ? "line-through text-muted-foreground" : ""}`}>
@@ -683,700 +562,26 @@ export default function EventFormEvaluation() {
           </div>
         </div>
 
-        {/* Area calculator */}
-        <div className="border rounded-lg p-4 mb-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Tent size={18} /> Flächenrechner & Lagerplan
-          </h3>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm">Abstand / Laufweg pro Zelt (m)</Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => {
-                      const next = Math.max(0, +(spacing - 0.5).toFixed(1));
-                      setSpacing(next);
-                      saveSettings.mutate({ spacing_m: next });
-                    }}
-                    disabled={spacing <= 0}
-                  >
-                    <span className="text-sm font-bold">−</span>
-                  </Button>
-                  <span className="text-sm font-medium w-12 text-center">{spacing.toFixed(1)}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => {
-                      const next = +(spacing + 0.5).toFixed(1);
-                      setSpacing(next);
-                      saveSettings.mutate({ spacing_m: next });
-                    }}
-                  >
-                    <span className="text-sm font-bold">+</span>
-                  </Button>
-                  <span className="text-xs text-muted-foreground">m</span>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm mb-2 block">Vereinszelte einplanen</Label>
-                <div className="space-y-2">
-                  {CLUB_TENTS.map((ct) => (
-                    <div key={ct.id} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selectedClubTents.includes(ct.id)}
-                        onCheckedChange={(checked) => {
-                          const next = checked
-                            ? [...selectedClubTents, ct.id]
-                            : selectedClubTents.filter((id) => id !== ct.id);
-                          setSelectedClubTents(next);
-                          saveSettings.mutate({ club_tents: next });
-                        }}
-                      />
-                      <Label className="font-normal cursor-pointer text-sm">
-                        {ct.label}
-                        <span className="text-muted-foreground ml-1">({calcClubTentArea(ct.id, spacing).toFixed(1)} m²)</span>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Mitgliederzelte</span>
-                  <span className="font-medium">{summary.memberTentArea.toFixed(1)} m²</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Vereinszelte</span>
-                  <span className="font-medium">{summary.clubTentArea.toFixed(1)} m²</span>
-                </div>
-                <div className="flex justify-between font-semibold text-base pt-1 border-t">
-                  <span>Gesamtfläche</span>
-                  <span>{summary.totalArea.toFixed(1)} m²</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual preview with drag & drop */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm">Lagerplan (Zelte verschiebbar)</Label>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs px-2"
-                    title="Optimiertes Layout berechnen"
-                    onClick={resetLayout}
-                  >
-                    <RefreshCw size={12} className="mr-1" /> Auto-Layout
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setVizHeight((v) => Math.max(200, v - 50))}
-                    disabled={vizHeight <= 200}
-                  >
-                    <span className="text-xs font-bold">−</span>
-                  </Button>
-                  <span className="text-xs text-muted-foreground w-10 text-center">{vizHeight}px</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setVizHeight((v) => Math.min(600, v + 50))}
-                    disabled={vizHeight >= 600}
-                  >
-                    <span className="text-xs font-bold">+</span>
-                  </Button>
-                </div>
-              </div>
-              <TentVisualizer
-                items={summary.tentItems}
-                spacing={spacing}
-                maxHeight={vizHeight}
-                onPositionsChange={(positions) => {
-                  saveSettings.mutate({ tent_positions: positions });
-                }}
-                savedPositions={(form?.settings as any)?.tent_positions}
-                layoutVersion={layoutVersion}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Responses table */}
-        <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[120px]">Name</TableHead>
-                  {dataFields.map((f) => (
-                    <TableHead key={f.id} className="min-w-[100px] text-xs">{f.label}</TableHead>
-                  ))}
-                  <TableHead className="text-xs">Datum</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {responses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={dataFields.length + 2} className="text-center text-muted-foreground py-8">
-                      Noch keine Anmeldungen.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  responses.map((resp) => (
-                    <TableRow key={resp.id}>
-                      <TableCell className="font-medium">{resp.respondent_name}</TableCell>
-                      {dataFields.map((f) => (
-                        <TableCell key={f.id} className="text-sm">
-                          {formatAnswer(f, getAnswer(resp, f.id))}
-                        </TableCell>
-                      ))}
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(parseISO(resp.created_at), "dd.MM.yy", { locale: de })}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
-  return (
-    <div className="border rounded-lg p-3 text-center">
-      <div className="flex justify-center text-muted-foreground mb-1">{icon}</div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-/** Auto-layout: pack tents into smallest possible rectangle
- * Scheune centered, kitchen top-left, supply near kitchen,
- * sleep tents around scheune from right side, minimal bounding rect
- */
-type PackedRect = { id: string; x: number; y: number; w: number; h: number };
-const PACKING_EPSILON = 1e-6;
-
-function overlaps(a: PackedRect, b: PackedRect) {
-  return (
-    a.x < b.x + b.w - PACKING_EPSILON &&
-    a.x + a.w > b.x + PACKING_EPSILON &&
-    a.y < b.y + b.h - PACKING_EPSILON &&
-    a.y + a.h > b.y + PACKING_EPSILON
-  );
-}
-
-function uniqueSortedNumbers(values: number[]) {
-  const sorted = [...new Set(values.filter((v) => Number.isFinite(v)))].sort((a, b) => a - b);
-  return sorted;
-}
-
-function packTentsIntoWidth(
-  tents: TentItem[],
-  fixedRects: PackedRect[],
-  widthLimit: number,
-  rightBiasStart: number
-) {
-  const positions: Record<string, { x: number; y: number }> = {};
-  const placed: PackedRect[] = [...fixedRects];
-
-  const minX = Math.min(0, ...placed.map((r) => r.x));
-  const minY = Math.min(0, ...placed.map((r) => r.y));
-  let maxX = Math.max(0, ...placed.map((r) => r.x + r.w));
-  let maxY = Math.max(0, ...placed.map((r) => r.y + r.h));
-
-  for (const tent of tents) {
-    if (tent.w > widthLimit + PACKING_EPSILON) return null;
-
-    const candidateXs = uniqueSortedNumbers([
-      0,
-      ...placed.flatMap((r) => [r.x, r.x + r.w]),
-    ]);
-    const candidateYs = uniqueSortedNumbers([
-      0,
-      ...placed.flatMap((r) => [r.y, r.y + r.h]),
-    ]);
-
-    let best: { x: number; y: number; score: number; area: number } | null = null;
-
-    for (const x of candidateXs) {
-      if (x + tent.w > widthLimit + PACKING_EPSILON) continue;
-
-      for (const y of candidateYs) {
-        const candidate: PackedRect = { id: tent.id, x, y, w: tent.w, h: tent.h };
-        if (placed.some((r) => overlaps(candidate, r))) continue;
-
-        const nextMaxX = Math.max(maxX, candidate.x + candidate.w);
-        const nextMaxY = Math.max(maxY, candidate.y + candidate.h);
-        const area = (nextMaxX - minX) * (nextMaxY - minY);
-
-        const rightBiasPenalty =
-          tent.category === "member" && candidate.x < rightBiasStart
-            ? (rightBiasStart - candidate.x) * 4
-            : 0;
-
-        const score = area + rightBiasPenalty;
-
-        if (
-          !best ||
-          score < best.score - PACKING_EPSILON ||
-          (Math.abs(score - best.score) <= PACKING_EPSILON &&
-            (candidate.y < best.y - PACKING_EPSILON ||
-              (Math.abs(candidate.y - best.y) <= PACKING_EPSILON && candidate.x < best.x)))
-        ) {
-          best = { x: candidate.x, y: candidate.y, score, area };
-        }
-      }
-    }
-
-    if (!best) return null;
-
-    positions[tent.id] = { x: best.x, y: best.y };
-    const rect: PackedRect = { id: tent.id, x: best.x, y: best.y, w: tent.w, h: tent.h };
-    placed.push(rect);
-    maxX = Math.max(maxX, rect.x + rect.w);
-    maxY = Math.max(maxY, rect.y + rect.h);
-  }
-
-  return {
-    positions,
-    area: (maxX - minX) * (maxY - minY),
-  };
-}
-
-function autoLayout(items: TentItem[]) {
-  if (items.length === 0) return;
-
-  const scheune = items.find((i) => i.category === "scheune");
-  const kitchen = items.filter((i) => i.category === "kitchen");
-  const supply = items.filter((i) => i.category === "supply");
-  const sleepTents = items.filter((i) => i.category === "member").sort((a, b) => b.w * b.h - a.w * a.h);
-  const rest = items.filter((i) => !["scheune", "kitchen", "supply", "member"].includes(i.category));
-
-  const gap = 0; // tents connect via walkways (spacing already in dimensions)
-
-  // Place kitchen + supply as left column
-  const leftColumn = [...kitchen, ...supply];
-  let leftColW = 0;
-  let leftCursorY = 0;
-
-  for (const t of leftColumn) {
-    t.x = 0;
-    t.y = leftCursorY;
-    leftCursorY += t.h + gap;
-    leftColW = Math.max(leftColW, t.w);
-  }
-
-  const leftColH = Math.max(0, leftCursorY - (leftColumn.length > 0 ? gap : 0));
-
-  // Place scheune next to left column and vertically centered to it
-  if (scheune) {
-    scheune.x = leftColW + (leftColumn.length > 0 ? gap : 0);
-    scheune.y = Math.max(0, (leftColH - scheune.h) / 2);
-  }
-
-  const fixedRects: PackedRect[] = [
-    ...leftColumn.map((t) => ({ id: t.id, x: t.x, y: t.y, w: t.w, h: t.h })),
-    ...(scheune ? [{ id: scheune.id, x: scheune.x, y: scheune.y, w: scheune.w, h: scheune.h }] : []),
-  ];
-
-  const remaining = [...sleepTents, ...rest].sort((a, b) => b.w * b.h - a.w * a.h);
-  if (remaining.length === 0) return;
-
-  const fixedMaxX = Math.max(0, ...fixedRects.map((r) => r.x + r.w));
-  const fixedMaxY = Math.max(0, ...fixedRects.map((r) => r.y + r.h));
-  const maxTentW = Math.max(...remaining.map((t) => t.w));
-  const minWidth = Math.max(fixedMaxX, maxTentW);
-  const maxWidth = Math.max(minWidth, fixedMaxX + remaining.reduce((sum, t) => sum + t.w, 0));
-  const widthStep = 0.5;
-  const rightBiasStart = scheune ? scheune.x + scheune.w : leftColW;
-
-  let best:
-    | {
-        area: number;
-        width: number;
-        positions: Record<string, { x: number; y: number }>;
-      }
-    | null = null;
-
-  for (let width = minWidth; width <= maxWidth + PACKING_EPSILON; width += widthStep) {
-    const packed = packTentsIntoWidth(remaining, fixedRects, width, rightBiasStart);
-    if (!packed) continue;
-
-    if (
-      !best ||
-      packed.area < best.area - PACKING_EPSILON ||
-      (Math.abs(packed.area - best.area) <= PACKING_EPSILON && width < best.width)
-    ) {
-      best = { area: packed.area, width, positions: packed.positions };
-    }
-  }
-
-  if (!best) {
-    // Safe fallback: row packing below fixed block
-    let x = 0;
-    let y = fixedMaxY + gap;
-    let rowH = 0;
-    for (const tent of remaining) {
-      if (x + tent.w > minWidth && x > 0) {
-        x = 0;
-        y += rowH + gap;
-        rowH = 0;
-      }
-      tent.x = x;
-      tent.y = y;
-      x += tent.w + gap;
-      rowH = Math.max(rowH, tent.h);
-    }
-    return;
-  }
-
-  for (const tent of remaining) {
-    const pos = best.positions[tent.id];
-    if (!pos) continue;
-    tent.x = pos.x;
-    tent.y = pos.y;
-  }
-}
-
-/** Removed: computeBounds is now inlined in TentVisualizer */
-
-function TentVisualizer({
-  items,
-  spacing,
-  maxHeight,
-  onPositionsChange,
-  savedPositions,
-  layoutVersion,
-}: {
-  items: TentItem[];
-  spacing: number;
-  maxHeight: number;
-  onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
-  savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
-  layoutVersion: number;
-}) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotated?: boolean }>>({});
-
-  // Track layoutVersion to know when auto-layout was triggered
-  const lastLayoutVersion = useRef(layoutVersion);
-
-  // Apply saved positions or auto-layout positions
-  useEffect(() => {
-    const isAutoLayout = layoutVersion !== lastLayoutVersion.current;
-    lastLayoutVersion.current = layoutVersion;
-
-    const pos: Record<string, { x: number; y: number; rotated?: boolean }> = {};
-    for (const item of items) {
-      if (!isAutoLayout && savedPositions?.[item.id]) {
-        pos[item.id] = savedPositions[item.id];
-      } else {
-        pos[item.id] = { x: item.x, y: item.y };
-      }
-    }
-    setPositions(pos);
-    // Only depend on items length + layoutVersion, not the items array itself
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length, savedPositions, layoutVersion]);
-
-  // Sync new items that appear without losing existing positions
-  useEffect(() => {
-    setPositions((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const item of items) {
-        if (!next[item.id]) {
-          next[item.id] = { x: item.x, y: item.y };
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [items]);
-
-  if (items.length === 0) {
-    return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
-  }
-
-  // Apply rotation swaps for bounds calculation
-  const getEffectiveDimensions = (item: TentItem) => {
-    const pos = positions[item.id];
-    const rotated = pos?.rotated || false;
-    if (rotated && item.shape === "rect") {
-      return { w: item.h, h: item.w, innerW: item.innerH, innerH: item.innerW };
-    }
-    return { w: item.w, h: item.h, innerW: item.innerW, innerH: item.innerH };
-  };
-
-  const computeBoundsRotated = () => {
-    if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const item of items) {
-      const pos = positions[item.id] || { x: item.x, y: item.y };
-      const dims = getEffectiveDimensions(item);
-      minX = Math.min(minX, pos.x);
-      minY = Math.min(minY, pos.y);
-      maxX = Math.max(maxX, pos.x + dims.w);
-      maxY = Math.max(maxY, pos.y + dims.h);
-    }
-    return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
-  };
-
-  const bounds = computeBoundsRotated();
-  const vbW = bounds.maxX - bounds.minX;
-  const vbH = bounds.maxY - bounds.minY;
-
-  const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>) => {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * vbW + bounds.minX;
-    const y = ((e.clientY - rect.top) / rect.height) * vbH + bounds.minY;
-    return { x, y };
-  };
-
-  const handleMouseDown = (id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    const pt = getSVGPoint(e as any);
-    const pos = positions[id] || { x: 0, y: 0 };
-    setDragOffset({ dx: pt.x - pos.x, dy: pt.y - pos.y });
-    setDragging(id);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!dragging) return;
-    const pt = getSVGPoint(e);
-    setPositions((prev) => ({
-      ...prev,
-      [dragging]: { ...prev[dragging], x: pt.x - dragOffset.dx, y: pt.y - dragOffset.dy },
-    }));
-  };
-
-  const handleMouseUp = () => {
-    if (dragging && onPositionsChange) {
-      onPositionsChange(positions);
-    }
-    setDragging(null);
-  };
-
-  const toggleRotation = (id: string) => {
-    setPositions((prev) => {
-      const next = { ...prev, [id]: { ...prev[id], rotated: !prev[id]?.rotated } };
-      if (onPositionsChange) onPositionsChange(next);
-      return next;
-    });
-  };
-
-  const totalW = (bounds.maxX - bounds.minX - 2).toFixed(1);
-  const totalH = (bounds.maxY - bounds.minY - 2).toFixed(1);
-
-  return (
-    <div>
-      <svg
-        ref={svgRef}
-        viewBox={`${bounds.minX} ${bounds.minY} ${vbW} ${vbH}`}
-        className="w-full border rounded bg-muted/30 cursor-crosshair select-none"
-        style={{ maxHeight }}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        {/* Border rectangle */}
-        <rect
-          x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
-          fill="none" stroke="hsl(var(--border))" strokeWidth={0.2} strokeDasharray="1 1"
+        <EvalAreaCalculator
+          spacing={spacing}
+          setSpacing={setSpacing}
+          selectedClubTents={selectedClubTents}
+          setSelectedClubTents={setSelectedClubTents}
+          saveSettings={doSaveSettings}
+          memberTentArea={summary.memberTentArea}
+          clubTentArea={summary.clubTentArea}
+          totalArea={summary.totalArea}
+          tentItems={summary.tentItems}
+          vizHeight={vizHeight}
+          setVizHeight={setVizHeight}
+          resetLayout={resetLayout}
+          layoutVersion={layoutVersion}
+          savedPositions={(form?.settings as any)?.tent_positions}
+          onPositionsChange={(positions) => doSaveSettings({ tent_positions: positions })}
         />
-        <text
-          x={bounds.minX + vbW / 2} y={bounds.minY + 0.6}
-          textAnchor="middle" fontSize={Math.max(0.4, vbW / 40)}
-          fill="hsl(var(--muted-foreground))"
-          className="select-none pointer-events-none"
-        >
-          ~{totalW}m
-        </text>
-        <text
-          x={bounds.maxX - 0.3} y={bounds.minY + vbH / 2}
-          textAnchor="middle" dominantBaseline="central"
-          fontSize={Math.max(0.4, vbH / 40)}
-          fill="hsl(var(--muted-foreground))"
-          className="select-none pointer-events-none"
-          transform={`rotate(90, ${bounds.maxX - 0.3}, ${bounds.minY + vbH / 2})`}
-        >
-          ~{totalH}m
-        </text>
 
-        {items.map((item) => {
-          const pos = positions[item.id] || { x: item.x, y: item.y };
-          const dims = getEffectiveDimensions(item);
-          const px = pos.x;
-          const py = pos.y;
-          const pw = dims.w;
-          const ph = dims.h;
-          const innerW = dims.innerW;
-          const innerH = dims.innerH;
-          const guyRope = item.guyRope;
-          const spacingVal = spacing;
-          const isRotated = pos.rotated || false;
-
-          const fontSize = Math.max(0.4, Math.min(0.7, Math.min(pw, ph) / 8));
-          const isClub = item.category !== "member";
-          const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
-          const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
-          const isDragged = dragging === item.id;
-          const canRotate = item.shape === "rect" && item.innerW !== item.innerH;
-
-          return (
-            <g
-              key={item.id}
-              onMouseDown={(e) => handleMouseDown(item.id, e)}
-              style={{ cursor: isDragged ? "grabbing" : "grab" }}
-            >
-              {item.shape === "circle" ? (
-                <>
-                  <ellipse
-                    cx={px + pw / 2} cy={py + ph / 2}
-                    rx={pw / 2} ry={ph / 2}
-                    fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5"
-                  />
-                  {guyRope > 0 && (
-                    <ellipse
-                      cx={px + pw / 2} cy={py + ph / 2}
-                      rx={(pw / 2) - spacingVal} ry={(ph / 2) - spacingVal}
-                      fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5}
-                    />
-                  )}
-                  <ellipse
-                    cx={px + pw / 2} cy={py + ph / 2}
-                    rx={innerW / 2} ry={innerH / 2}
-                    fill={fillColor} stroke={strokeColor} strokeWidth={0.2}
-                  />
-                </>
-              ) : (
-                <>
-                  <rect
-                    x={px} y={py} width={pw} height={ph}
-                    fill="none" stroke="hsl(var(--border))" strokeWidth={0.15} strokeDasharray="0.5 0.5" rx={0.2}
-                  />
-                  {guyRope > 0 && (
-                    <rect
-                      x={px + spacingVal} y={py + spacingVal}
-                      width={pw - 2 * spacingVal} height={ph - 2 * spacingVal}
-                      fill="none" stroke={strokeColor} strokeWidth={0.2} strokeDasharray="0.8 0.5" opacity={0.5} rx={0.2}
-                    />
-                  )}
-                  <rect
-                    x={px + guyRope + spacingVal} y={py + guyRope + spacingVal}
-                    width={innerW} height={innerH}
-                    fill={fillColor} stroke={strokeColor} strokeWidth={0.2} rx={0.3}
-                  />
-                </>
-              )}
-
-              {/* Label + area */}
-              <text
-                x={px + pw / 2} y={py + ph / 2 - fontSize * 0.3}
-                textAnchor="middle" dominantBaseline="central"
-                fontSize={fontSize} fill="hsl(var(--foreground))"
-                fontWeight={isClub ? "600" : "400"} className="select-none pointer-events-none"
-              >
-                {item.label.length > 16 ? item.label.slice(0, 14) + "…" : item.label}
-              </text>
-              <text
-                x={px + pw / 2} y={py + ph / 2 + fontSize * 0.9}
-                textAnchor="middle" dominantBaseline="central"
-                fontSize={fontSize * 0.8} fill="hsl(var(--muted-foreground))"
-                className="select-none pointer-events-none"
-              >
-                ({item.area.toFixed(1)} m²)
-              </text>
-
-              {/* Dimension labels */}
-              {item.shape === "rect" && innerW > 1.5 && (
-                <>
-                  <text
-                    x={px + pw / 2} y={py + guyRope + spacingVal - 0.2}
-                    textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
-                    fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
-                  >
-                    {innerW}m
-                  </text>
-                  <text
-                    x={px + guyRope + spacingVal + innerW + 0.3} y={py + ph / 2}
-                    textAnchor="start" dominantBaseline="central"
-                    fontSize={Math.max(0.3, fontSize * 0.6)}
-                    fill="hsl(var(--muted-foreground))"
-                    className="select-none pointer-events-none"
-                    transform={`rotate(90, ${px + guyRope + spacingVal + innerW + 0.3}, ${py + ph / 2})`}
-                  >
-                    {innerH}m
-                  </text>
-                </>
-              )}
-
-              {item.shape === "circle" && innerW > 1.5 && (
-                <>
-                  <line
-                    x1={px + pw / 2 - innerW / 2} y1={py + ph / 2 + innerH / 2 + 0.2}
-                    x2={px + pw / 2 + innerW / 2} y2={py + ph / 2 + innerH / 2 + 0.2}
-                    stroke="hsl(var(--muted-foreground))" strokeWidth={0.1}
-                  />
-                  <text
-                    x={px + pw / 2} y={py + ph / 2 + innerH / 2 + 0.7}
-                    textAnchor="middle" fontSize={Math.max(0.3, fontSize * 0.6)}
-                    fill="hsl(var(--muted-foreground))" className="select-none pointer-events-none"
-                  >
-                    Ø{innerW}m
-                  </text>
-                </>
-              )}
-
-              {/* Rotate button for rectangular tents */}
-              {canRotate && !isDragged && (
-                <g
-                  onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleRotation(item.id); }}
-                  style={{ cursor: "pointer" }}
-                >
-                  <circle
-                    cx={px + pw - 0.5} cy={py + 0.5}
-                    r={0.5} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.1}
-                  />
-                  <text
-                    x={px + pw - 0.5} y={py + 0.55}
-                    textAnchor="middle" dominantBaseline="central"
-                    fontSize={0.5} fill="hsl(var(--foreground))"
-                    className="select-none"
-                  >
-                    ↻
-                  </text>
-                </g>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <p className="text-xs text-muted-foreground mt-1 text-center">
-        Gesamtfläche: ~{totalW}×{totalH}m = ~{(Number(totalW) * Number(totalH)).toFixed(0)} m²
-      </p>
+        <EvalResponsesTable fields={fields} responses={responses} />
+      </motion.div>
     </div>
   );
 }
