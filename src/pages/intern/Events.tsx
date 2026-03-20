@@ -761,15 +761,73 @@ const EventsPage = () => {
         )}
 
         {/* Upcoming Events List */}
-        <UpcomingEventsList
-          events={filteredEvents}
-          eventAttendees={eventAttendees}
-          isAttending={isAttending}
-          onNavigate={(ev) => {
-            setCurrentMonth(parseISO(ev.start_date));
-            setSelectedDate(parseISO(ev.start_date));
-          }}
-        />
+        {(() => {
+          const now = new Date();
+          const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+          const upcoming = filteredEvents.filter(e => new Date(e.start_date) >= now && new Date(e.start_date) <= yearEnd);
+          const showInitial = 5;
+          const [showAll, setShowAll] = useState(false);
+          const displayed = showAll ? upcoming : upcoming.slice(0, showInitial);
+
+          return (
+            <div className="mt-8">
+              <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
+              {upcoming.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {displayed.map(ev => {
+                      const att = eventAttendees(ev.id);
+                      const attending = isAttending(ev.id);
+                      return (
+                        <div
+                          key={ev.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setCurrentMonth(parseISO(ev.start_date));
+                            setSelectedDate(parseISO(ev.start_date));
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-center min-w-[40px]">
+                              <div className="text-xs text-muted-foreground">{format(parseISO(ev.start_date), "MMM", { locale: de })}</div>
+                              <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-sm">{ev.title}</span>
+                                {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
+                              </div>
+                              {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <Users size={12} className="mr-1" /> {att.length}
+                            </Badge>
+                            {attending && <Check size={14} className="text-primary" />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {upcoming.length > showInitial && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setShowAll(!showAll)}
+                    >
+                      <ChevronDown size={14} className={`mr-1 transition-transform ${showAll ? "rotate-180" : ""}`} />
+                      {showAll ? "Weniger anzeigen" : `Alle ${upcoming.length} Termine anzeigen`}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
       </motion.div>
 
       {/* Create Event Dialog */}
