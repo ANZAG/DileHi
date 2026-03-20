@@ -193,7 +193,7 @@ export default function EventRegistration() {
     );
   }
 
-
+  if (submitted) {
     return (
       <div className="container py-20 max-w-lg text-center">
         <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
