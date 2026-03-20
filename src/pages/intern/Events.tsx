@@ -725,18 +725,30 @@ const EventsPage = () => {
                             }
                             return null;
                           })()}
-                          <Button
-                            size="sm"
-                            variant={attending ? "secondary" : "default"}
-                            onClick={() => toggleRSVP.mutate(ev.id)}
-                            disabled={toggleRSVP.isPending}
-                          >
-                            {attending ? (
-                              <><X size={14} className="mr-1" /> Absagen</>
-                            ) : (
-                              <><Check size={14} className="mr-1" /> Zusagen</>
-                            )}
-                          </Button>
+                          {/* Hide Zusagen when a form exists – members must use the form */}
+                          {!getFormForEvent(ev.id) ? (
+                            <Button
+                              size="sm"
+                              variant={attending ? "secondary" : "default"}
+                              onClick={() => toggleRSVP.mutate(ev.id)}
+                              disabled={toggleRSVP.isPending}
+                            >
+                              {attending ? (
+                                <><X size={14} className="mr-1" /> Absagen</>
+                              ) : (
+                                <><Check size={14} className="mr-1" /> Zusagen</>
+                              )}
+                            </Button>
+                          ) : attending && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => toggleRSVP.mutate(ev.id)}
+                              disabled={toggleRSVP.isPending}
+                            >
+                              <X size={14} className="mr-1" /> Absagen
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

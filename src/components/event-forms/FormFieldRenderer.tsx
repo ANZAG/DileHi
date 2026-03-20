@@ -296,7 +296,7 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
 
   return (
     <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-      {/* Select from profile tents */}
+      {/* Select from profile tents – show button only when there are unselected tents */}
       {hasMemberTents && availableTents.length > 0 && (
         <div>
           <Label className="text-sm text-muted-foreground">Zelt aus deinem Profil hinzufügen:</Label>
@@ -321,7 +321,7 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
         </div>
       )}
 
-      {/* Selected tents */}
+      {/* Selected tents – simplified view: just name + capacity */}
       {current.tents.map((tent, index) => {
         const selectedType = TENT_TYPES.find((t) => t.value === tent.tent_type);
         const dimStr = selectedType?.shape === "circle"
@@ -338,63 +338,6 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
               </Button>
             </div>
 
-            {/* If from profile, show read-only info. If not, allow editing */}
-            {!tent.member_tent_id && (
-              <>
-                <div>
-                  <Label className="text-sm">Zelttyp</Label>
-                  <Select value={tent.tent_type} onValueChange={(v) => updateTent(index, { tent_type: v, diameter: "", length: "", width: "" })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Zelttyp wählen..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TENT_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedType?.shape === "circle" && (
-                  <div>
-                    <Label className="text-sm">{selectedType.dimLabel}</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={tent.diameter || ""}
-                      onChange={(e) => updateTent(index, { diameter: e.target.value ? Number(e.target.value) : "" })}
-                      placeholder="z.B. 5"
-                    />
-                  </div>
-                )}
-
-                {selectedType?.shape === "rect" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-sm">Länge (m)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={tent.length || ""}
-                        onChange={(e) => updateTent(index, { length: e.target.value ? Number(e.target.value) : "" })}
-                        placeholder="z.B. 4"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Breite (m)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={tent.width || ""}
-                        onChange={(e) => updateTent(index, { width: e.target.value ? Number(e.target.value) : "" })}
-                        placeholder="z.B. 3"
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
             <div>
               <Label className="text-sm">Schlafplätze (inkl. dir selbst)</Label>
               <Input
@@ -407,13 +350,6 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
           </div>
         );
       })}
-
-      {/* Manual entry only when no profile tents exist AND no tents added yet */}
-      {!hasMemberTents && current.tents.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center">
-          Hinterlege Zelte in deinem Profil, um sie hier auszuwählen.
-        </p>
-      )}
 
       {current.tents.length === 0 && (
         <p className="text-xs text-muted-foreground text-center">
