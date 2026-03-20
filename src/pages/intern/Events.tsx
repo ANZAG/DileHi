@@ -760,52 +760,15 @@ const EventsPage = () => {
         )}
 
         {/* Upcoming Events List */}
-        <div className="mt-8">
-          <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
-          {filteredEvents.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
-          ) : (
-            <div className="space-y-2">
-              {filteredEvents
-                .filter(e => new Date(e.start_date) >= new Date())
-                .slice(0, 5)
-                .map(ev => {
-                  const att = eventAttendees(ev.id);
-                  const attending = isAttending(ev.id);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        setCurrentMonth(parseISO(ev.start_date));
-                        setSelectedDate(parseISO(ev.start_date));
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-center min-w-[40px]">
-                          <div className="text-xs text-muted-foreground">{format(parseISO(ev.start_date), "MMM", { locale: de })}</div>
-                          <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-sm">{ev.title}</span>
-                            {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
-                          </div>
-                          {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          <Users size={12} className="mr-1" /> {att.length}
-                        </Badge>
-                        {attending && <Check size={14} className="text-primary" />}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
+        <UpcomingEventsList
+          events={filteredEvents}
+          eventAttendees={eventAttendees}
+          isAttending={isAttending}
+          onNavigate={(ev) => {
+            setCurrentMonth(parseISO(ev.start_date));
+            setSelectedDate(parseISO(ev.start_date));
+          }}
+        />
       </motion.div>
 
       {/* Create Event Dialog */}

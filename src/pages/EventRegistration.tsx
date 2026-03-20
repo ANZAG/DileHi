@@ -72,25 +72,7 @@ export default function EventRegistration() {
     },
   });
 
-  // Pre-fill tent data from profile tents
-  useEffect(() => {
-    if (memberTents.length > 0 && formData) {
-      const tentField = formData.fields.find((f) => f.type === "tent");
-      if (tentField && !answers[tentField.id]?.tents?.length) {
-        const tents = memberTents.map((mt) => ({
-          tent_type: mt.tent_type,
-          diameter: mt.diameter || "",
-          length: mt.length || "",
-          width: mt.width || "",
-          capacity: 1,
-        }));
-        setAnswers((prev) => ({
-          ...prev,
-          [tentField.id]: { tents },
-        }));
-      }
-    }
-  }, [memberTents, formData]);
+  // No pre-selection of tents – members pick from their profile buttons
 
   // Auto-redirect after submission
   useEffect(() => {
