@@ -264,7 +264,8 @@ export default function EventFormEvaluation() {
                 width: t.width ? Number(t.width) : undefined,
                 capacity: t.capacity || 1,
                 respondent: resp.respondent_name,
-              });
+                member_tent_id: t.member_tent_id,
+              } as any);
               totalCapacity += t.capacity || 1;
             }
           }
