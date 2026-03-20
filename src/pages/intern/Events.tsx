@@ -767,8 +767,7 @@ const EventsPage = () => {
           const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
           const upcoming = filteredEvents.filter(e => new Date(e.start_date) >= now && new Date(e.start_date) <= yearEnd);
           const showInitial = 5;
-          const [showAll, setShowAll] = useState(false);
-          const displayed = showAll ? upcoming : upcoming.slice(0, showInitial);
+          const displayed = showAllUpcoming ? upcoming : upcoming.slice(0, showInitial);
 
           return (
             <div className="mt-8">
