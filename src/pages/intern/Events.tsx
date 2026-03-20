@@ -228,6 +228,15 @@ const EventsPage = () => {
     mutationFn: async (eventId: string) => {
       const existing = attendees.find(a => a.event_id === eventId && a.user_id === user!.id);
       if (existing) {
+        // Also delete the user's form response when canceling
+        const evForm = getFormForEvent(eventId);
+        if (evForm) {
+          const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+          if (myResp) {
+            await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+            await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+          }
+        }
         const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
         if (error) throw error;
       } else {
@@ -235,7 +244,10 @@ const EventsPage = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_attendees"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event_attendees"] });
+      queryClient.invalidateQueries({ queryKey: ["my_form_responses"] });
+    },
   });
 
   const resetForm = () => {
