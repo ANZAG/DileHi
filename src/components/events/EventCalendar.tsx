@@ -31,7 +31,6 @@ export default function EventCalendar({
   eventsForDay, isMultiDay, toDateOnly,
   setSelectedEvent,
 }: Props) {
-  const { addMonths, subMonths } = require("date-fns");
 
   return (
     <>
