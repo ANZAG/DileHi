@@ -822,7 +822,7 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
   );
 }
 
-/** Auto-layout: place all tents in rows, Scheune center-ish, kitchen separated */
+/** Auto-layout: pack tents into smallest possible rectangle */
 function autoLayout(items: TentItem[]) {
   if (items.length === 0) return;
 
@@ -833,34 +833,47 @@ function autoLayout(items: TentItem[]) {
   const rest = items.filter((i) => !["scheune", "kitchen", "supply", "member"].includes(i.category));
 
   const gap = 1;
+
+  // Strategy: pack into rows with a target width, try to minimize total area
+  // Determine target width based on total area estimate
+  const allItems = [...kitchen, ...supply, ...(scheune ? [scheune] : []), ...members, ...rest];
+  const totalItemArea = allItems.reduce((sum, i) => sum + i.w * i.h, 0);
+  const targetWidth = Math.max(
+    Math.sqrt(totalItemArea) * 1.3,
+    ...allItems.map((i) => i.w + 2 * gap)
+  );
+
+  // Place kitchen + supply in first row
   let curX = gap;
   let curY = gap;
   let rowH = 0;
 
-  // Row 1: Kitchen + Supply
   for (const k of [...kitchen, ...supply]) {
+    if (curX + k.w > targetWidth && curX > gap) {
+      curX = gap;
+      curY += rowH + gap;
+      rowH = 0;
+    }
     k.x = curX;
     k.y = curY;
     curX += k.w + gap;
     rowH = Math.max(rowH, k.h);
   }
 
-  // Row 2: Scheune
+  // Next row: Scheune centered
   if (scheune) {
     curY += rowH + gap;
-    scheune.x = gap;
+    scheune.x = Math.max(gap, (targetWidth - scheune.w) / 2);
     scheune.y = curY;
-    curX = gap + scheune.w + gap;
     rowH = scheune.h;
   }
 
-  // Row 3+: Member tents
+  // Remaining rows: member tents packed tightly
   curY += rowH + gap;
   curX = gap;
   rowH = 0;
-  const maxRowWidth = Math.max(40, ...items.map((i) => i.w)) * 3;
   for (const m of [...members, ...rest]) {
-    if (curX + m.w > maxRowWidth) {
+    if (curX + m.w > targetWidth && curX > gap) {
       curX = gap;
       curY += rowH + gap;
       rowH = 0;
