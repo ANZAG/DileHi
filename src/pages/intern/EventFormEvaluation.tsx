@@ -312,6 +312,12 @@ export default function EventFormEvaluation() {
     let memberTentArea = 0;
     const tentItems: TentItem[] = [];
 
+    // Collect member_tent_ids from responses to detect duplicates with pool
+    const registeredMemberTentIds = new Set<string>();
+    for (const t of tents) {
+      if ((t as any).member_tent_id) registeredMemberTentIds.add((t as any).member_tent_id);
+    }
+
     for (const t of tents) {
       const area = calcTentArea(t.type, t.diameter, t.length, t.width, spacing);
       memberTentArea += area;
@@ -340,9 +346,11 @@ export default function EventFormEvaluation() {
       }
     }
 
-    // Pool tents from members
+    // Pool tents from members – skip if already registered via form submission
     let poolTentArea = 0;
     for (const ptId of poolTentIds) {
+      // Skip if this tent was already registered by a respondent
+      if (registeredMemberTentIds.has(ptId)) continue;
       const pt = allMemberTents.find((t: any) => t.id === ptId);
       if (!pt) continue;
       const ownerName = (pt as any).profiles?.display_name || "Mitglied";
