@@ -72,8 +72,9 @@ const MemberMap = () => {
 
       if (!data) return [];
 
+      type EventMarker = { id: string; title: string; location: string; start_date: string; end_date: string | null; all_day: boolean; lat: number; lng: number };
       // Separate events with cached coords vs those needing geocoding
-      const cached: typeof result = [];
+      const cached: EventMarker[] = [];
       const needsGeocoding: typeof data = [];
 
       for (const e of data) {
