@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
 
   push("END:VCALENDAR");
 
-  return new Response(lines.join("\r\n"), {
+  return new Response(lines.join("\r\n") + "\r\n", {
     headers: {
       ...corsHeaders,
       "Content-Type": "text/calendar; charset=utf-8",
