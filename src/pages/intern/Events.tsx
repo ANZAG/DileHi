@@ -714,7 +714,7 @@ const EventsPage = () => {
                         <div className="flex gap-2">
                           {(() => {
                             const evForm = getFormForEvent(ev.id);
-                            if (evForm?.is_open && evForm.public_token) {
+                            if (evForm?.is_open && evForm.public_token && !hasSubmittedForm(evForm.id)) {
                               return (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/anmeldung/${evForm.public_token}`}>
