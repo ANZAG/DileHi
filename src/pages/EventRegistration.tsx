@@ -174,8 +174,26 @@ export default function EventRegistration() {
       </div>
     );
   }
+  // Check time window
+  const now = new Date();
+  const opensAt = formData?.form.settings?.opens_at ? new Date(formData.form.settings.opens_at) : null;
+  const closesAt = formData?.form.settings?.closes_at ? new Date(formData.form.settings.closes_at) : null;
+  const isOutsideWindow = (opensAt && now < opensAt) || (closesAt && now > closesAt);
 
-  if (submitted) {
+  if (formData && !submitted && isOutsideWindow) {
+    return (
+      <div className="container py-20 text-center">
+        <h2 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h2>
+        <p className="text-muted-foreground">
+          {opensAt && now < opensAt
+            ? `Die Anmeldung öffnet am ${format(opensAt, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })}.`
+            : `Die Anmeldung ist seit dem ${format(closesAt!, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })} geschlossen.`}
+        </p>
+      </div>
+    );
+  }
+
+
     return (
       <div className="container py-20 max-w-lg text-center">
         <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
