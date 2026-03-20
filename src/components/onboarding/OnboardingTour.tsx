@@ -17,57 +17,57 @@ const STEPS: TourStep[] = [
   {
     icon: Sparkles,
     title: "Willkommen im Mitgliederbereich!",
-    body: "Sch\u00f6n, dass du dabei bist! Diese kurze Tour zeigt dir die wichtigsten Funktionen und was du als Erstes einrichten solltest.",
+    body: "Schön, dass du dabei bist! Diese kurze Tour zeigt dir die wichtigsten Funktionen und was du als Erstes einrichten solltest.",
   },
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. So k\u00f6nnen dich andere Mitglieder besser zuordnen.",
-    hint: 'Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.',
+    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. So können dich andere Mitglieder besser zuordnen.",
+    hint: 'Tipp: Aktiviere „Auf Karte anzeigen“, damit dein Wohnort auf der Mitgliederkarte erscheint.',
     route: "/intern/profil",
   },
   {
     icon: CalendarDays,
     title: "Veranstaltungen",
-    body: "Hier findest du alle Vereinstermine. Du kannst zu- oder absagen und deinen Kalender per Abo synchronisieren \u2013 auch mit Outlook.",
+    body: "Hier findest du alle Vereinstermine. Du kannst zu- oder absagen und deinen Kalender per Abo synchronisieren – auch mit Outlook.",
     hint: "Tipp: Nutze das Kalender-Abo, um Termine automatisch in deinem Kalender zu sehen.",
     route: "/intern/veranstaltungen",
   },
   {
     icon: Megaphone,
     title: "Versammlungen & Pinnwand",
-    body: "Ank\u00fcndigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beitr\u00e4ge antworten.",
+    body: "Ankündigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beiträge antworten.",
     route: "/intern/pinnwand",
   },
   {
     icon: Vote,
     title: "Abstimmungen",
-    body: "Wahlen und Beschl\u00fcsse der Mitgliederversammlung werden hier digital durchgef\u00fchrt. Du erh\u00e4ltst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
+    body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
     route: "/intern/abstimmungen",
   },
   {
     icon: FileText,
     title: "Dokumente",
-    body: "Satzung, Ordnungen und T\u00e4tigkeitsberichte stehen dir hier zum Download und zur Vorschau bereit.",
+    body: "Satzung, Ordnungen und Tätigkeitsberichte stehen dir hier zum Download und zur Vorschau bereit.",
     route: "/intern/dokumente",
   },
   {
     icon: BookOpen,
     title: "Quellensammlung",
-    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzuf\u00fcgen und Ordner anlegen.",
+    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
     route: "/intern/quellen",
   },
   {
     icon: MapPin,
     title: "Mitgliederkarte",
-    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere n\u00e4chsten Veranstaltungen stattfinden \u2013 alles auf einer Karte.",
+    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden – alles auf einer Karte.",
     hint: "Tipp: Aktiviere die Karten-Funktion in deinem Profil, um auch sichtbar zu sein.",
     route: "/intern/karte",
   },
   {
     icon: Sparkles,
     title: "Alles bereit!",
-    body: "Du kannst die Tour jederzeit \u00fcber dein Profil erneut starten. Viel Spa\u00df im Verein!",
+    body: "Du kannst die Tour jederzeit über dein Profil erneut starten. Viel Spaß im Verein!",
     hint: "Empfohlen: Pflege jetzt als Erstes dein Profil.",
   },
 ];
@@ -164,7 +164,7 @@ export default function OnboardingTour() {
           <button
             onClick={close}
             className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Tour schlie\u00dfen"
+            aria-label="Tour schließen"
           >
             <X size={16} />
           </button>
@@ -201,7 +201,7 @@ export default function OnboardingTour() {
               disabled={isFirst}
               className="gap-1"
             >
-              <ChevronLeft size={14} /> Zur\u00fcck
+              <ChevronLeft size={14} /> Zurück
             </Button>
 
             <Button size="sm" onClick={next} className="gap-1">
