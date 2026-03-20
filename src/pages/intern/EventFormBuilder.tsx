@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ArrowLeft, Plus, GripVertical, Trash2, Copy, Link as LinkIcon, FileText, Settings, Pencil, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -21,7 +22,7 @@ import { DEFAULT_TEMPLATE_FIELDS } from "@/components/event-forms/defaultTemplat
 export default function EventFormBuilder() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isVorstand } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -116,6 +117,26 @@ export default function EventFormBuilder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
       toast({ title: "Standardvorlage geladen" });
+    },
+  });
+
+  const deleteForm = useMutation({
+    mutationFn: async () => {
+      if (!form) return;
+      // Delete fields first, then form
+      await supabase.from("event_form_answers").delete().in(
+        "response_id",
+        (await supabase.from("event_form_responses").select("id").eq("form_id", form.id)).data?.map((r: any) => r.id) || []
+      );
+      await supabase.from("event_form_responses").delete().eq("form_id", form.id);
+      await supabase.from("event_form_fields").delete().eq("form_id", form.id);
+      const { error } = await supabase.from("event_forms").delete().eq("id", form.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
+      setShowSettings(false);
+      toast({ title: "Formular gelöscht" });
     },
   });
 
@@ -607,6 +628,36 @@ export default function EventFormBuilder() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Delete form - only for Vorstand */}
+                {isVorstand && (
+                  <div className="border-t pt-4">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" className="w-full">
+                          <Trash2 size={14} className="mr-1" /> Formular unwiderruflich löschen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Formular löschen?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Alle Felder und Anmeldungen werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteForm.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Endgültig löschen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
             )}
             <DialogFooter>
