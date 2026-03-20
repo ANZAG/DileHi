@@ -76,12 +76,15 @@ Deno.serve(async (req) => {
   push("CALSCALE:GREGORIAN");
   push("METHOD:PUBLISH");
   push("X-WR-CALNAME:Diu lebendec Historje Veranstaltungen");
+  push("X-WR-TIMEZONE:Europe/Berlin");
+  push("REFRESH-INTERVAL;VALUE=DURATION:PT1H");
 
   for (const ev of events || []) {
     const allDay = ev.all_day ?? false;
 
     push("BEGIN:VEVENT");
     push(`UID:${ev.id}@dilehi.de`);
+    push(`SEQUENCE:0`);
 
     if (allDay) {
       push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
@@ -111,7 +114,7 @@ Deno.serve(async (req) => {
 
   push("END:VCALENDAR");
 
-  return new Response(lines.join("\r\n"), {
+  return new Response(lines.join("\r\n") + "\r\n", {
     headers: {
       ...corsHeaders,
       "Content-Type": "text/calendar; charset=utf-8",

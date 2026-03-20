@@ -693,14 +693,35 @@ export default function EventFormEvaluation() {
             <div className="space-y-4">
               <div>
                 <Label className="text-sm">Abstand / Laufweg pro Zelt (m)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={spacing}
-                  onChange={(e) => setSpacing(Number(e.target.value) || 0)}
-                  className="w-32"
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      const next = Math.max(0, +(spacing - 0.5).toFixed(1));
+                      setSpacing(next);
+                      saveSettings.mutate({ spacing_m: next });
+                    }}
+                    disabled={spacing <= 0}
+                  >
+                    <span className="text-sm font-bold">−</span>
+                  </Button>
+                  <span className="text-sm font-medium w-12 text-center">{spacing.toFixed(1)}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      const next = +(spacing + 0.5).toFixed(1);
+                      setSpacing(next);
+                      saveSettings.mutate({ spacing_m: next });
+                    }}
+                  >
+                    <span className="text-sm font-bold">+</span>
+                  </Button>
+                  <span className="text-xs text-muted-foreground">m</span>
+                </div>
               </div>
 
               <div>

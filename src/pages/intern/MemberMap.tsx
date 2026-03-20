@@ -57,14 +57,14 @@ const MemberMap = () => {
     },
   });
 
-  // Fetch upcoming events with location
+  // Fetch upcoming events with location (use cached lat/lng when available)
   const { data: events = [] } = useQuery({
     queryKey: ["member-map-events"],
     queryFn: async () => {
       const now = new Date().toISOString();
       const { data } = await supabase
         .from("events")
-        .select("id, title, location, start_date, end_date, all_day")
+        .select("id, title, location, start_date, end_date, all_day, location_lat, location_lng")
         .gte("start_date", now)
         .not("location", "is", null)
         .order("start_date", { ascending: true })
@@ -72,8 +72,32 @@ const MemberMap = () => {
 
       if (!data) return [];
 
-      // Geocode locations via Nominatim (cached per unique location string)
-      const uniqueLocations = [...new Set(data.map((e) => e.location!).filter(Boolean))];
+      type EventMarker = { id: string; title: string; location: string; start_date: string; end_date: string | null; all_day: boolean; lat: number; lng: number };
+      // Separate events with cached coords vs those needing geocoding
+      const cached: EventMarker[] = [];
+      const needsGeocoding: typeof data = [];
+
+      for (const e of data) {
+        if (e.location_lat != null && e.location_lng != null) {
+          cached.push({
+            id: e.id,
+            title: e.title,
+            location: e.location!,
+            start_date: e.start_date,
+            end_date: e.end_date,
+            all_day: e.all_day,
+            lat: e.location_lat,
+            lng: e.location_lng,
+          });
+        } else if (e.location) {
+          needsGeocoding.push(e);
+        }
+      }
+
+      if (needsGeocoding.length === 0) return cached;
+
+      // Geocode remaining locations
+      const uniqueLocations = [...new Set(needsGeocoding.map((e) => e.location!))];
       const geoCache: Record<string, { lat: number; lng: number } | null> = {};
 
       const buildLocationCandidates = (raw: string) => {
@@ -99,14 +123,7 @@ const MemberMap = () => {
         const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
         const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
 
-        const candidates = [
-          normalized,
-          countryNormalized,
-          cityOrZipPart,
-          cityWithCountry,
-        ].filter(Boolean);
-
-        return [...new Set(candidates)];
+        return [...new Set([normalized, countryNormalized, cityOrZipPart, cityWithCountry].filter(Boolean))];
       };
 
       const geocode = async (query: string): Promise<{ lat: number; lng: number } | null> => {
@@ -137,7 +154,17 @@ const MemberMap = () => {
         })
       );
 
-      return data
+      // Save geocoded results back to DB for caching
+      for (const e of needsGeocoding) {
+        const geo = e.location ? geoCache[e.location] : null;
+        if (geo) {
+          supabase.from("events").update({ location_lat: geo.lat, location_lng: geo.lng }).eq("id", e.id).then();
+        }
+      }
+
+      
+
+      const geocoded = needsGeocoding
         .filter((e) => e.location && geoCache[e.location!])
         .map((e) => ({
           id: e.id,
@@ -149,6 +176,8 @@ const MemberMap = () => {
           lat: geoCache[e.location!]!.lat,
           lng: geoCache[e.location!]!.lng,
         }));
+
+      return [...cached, ...geocoded];
     },
   });
 

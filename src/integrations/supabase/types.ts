@@ -651,6 +651,8 @@ export type Database = {
           id: string
           is_public: boolean
           location: string | null
+          location_lat: number | null
+          location_lng: number | null
           start_date: string
           title: string
           updated_at: string
@@ -664,6 +666,8 @@ export type Database = {
           id?: string
           is_public?: boolean
           location?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           start_date: string
           title: string
           updated_at?: string
@@ -677,6 +681,8 @@ export type Database = {
           id?: string
           is_public?: boolean
           location?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           start_date?: string
           title?: string
           updated_at?: string
