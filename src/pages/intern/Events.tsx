@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 type VisibilityFilter = "all" | "public" | "internal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,7 @@ const EventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showCalendarSync, setShowCalendarSync] = useState(false);
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -93,7 +95,7 @@ const EventsPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_forms")
-        .select("id, event_id, is_open, public_token");
+        .select("id, event_id, is_open, public_token, settings");
       if (error) throw error;
       return data;
     },
@@ -714,7 +716,12 @@ const EventsPage = () => {
                         <div className="flex gap-2">
                           {(() => {
                             const evForm = getFormForEvent(ev.id);
-                            if (evForm?.is_open && evForm.public_token && !hasSubmittedForm(evForm.id)) {
+                            const formSettings = evForm?.settings as any;
+                            const fNow = new Date();
+                            const fOpensAt = formSettings?.opens_at ? new Date(formSettings.opens_at) : null;
+                            const fClosesAt = formSettings?.closes_at ? new Date(formSettings.closes_at) : null;
+                            const isInWindow = (!fOpensAt || fNow >= fOpensAt) && (!fClosesAt || fNow <= fClosesAt);
+                            if (evForm?.is_open && isInWindow && evForm.public_token && !hasSubmittedForm(evForm.id)) {
                               return (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/anmeldung/${evForm.public_token}`}>
@@ -760,52 +767,72 @@ const EventsPage = () => {
         )}
 
         {/* Upcoming Events List */}
-        <div className="mt-8">
-          <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
-          {filteredEvents.filter(e => new Date(e.start_date) >= new Date()).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
-          ) : (
-            <div className="space-y-2">
-              {filteredEvents
-                .filter(e => new Date(e.start_date) >= new Date())
-                .slice(0, 5)
-                .map(ev => {
-                  const att = eventAttendees(ev.id);
-                  const attending = isAttending(ev.id);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        setCurrentMonth(parseISO(ev.start_date));
-                        setSelectedDate(parseISO(ev.start_date));
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-center min-w-[40px]">
-                          <div className="text-xs text-muted-foreground">{format(parseISO(ev.start_date), "MMM", { locale: de })}</div>
-                          <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-sm">{ev.title}</span>
-                            {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
+        {(() => {
+          const now = new Date();
+          const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+          const upcoming = filteredEvents.filter(e => new Date(e.start_date) >= now && new Date(e.start_date) <= yearEnd);
+          const showInitial = 5;
+          const displayed = showAllUpcoming ? upcoming : upcoming.slice(0, showInitial);
+
+          return (
+            <div className="mt-8">
+              <h3 className="font-serif text-lg font-semibold mb-3">Nächste Veranstaltungen</h3>
+              {upcoming.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Keine anstehenden Veranstaltungen.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {displayed.map(ev => {
+                      const att = eventAttendees(ev.id);
+                      const attending = isAttending(ev.id);
+                      return (
+                        <div
+                          key={ev.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setCurrentMonth(parseISO(ev.start_date));
+                            setSelectedDate(parseISO(ev.start_date));
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-center min-w-[40px]">
+                              <div className="text-xs text-muted-foreground">{format(parseISO(ev.start_date), "MMM", { locale: de })}</div>
+                              <div className="text-lg font-bold">{format(parseISO(ev.start_date), "d")}</div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-sm">{ev.title}</span>
+                                {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
+                              </div>
+                              {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
+                            </div>
                           </div>
-                          {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              <Users size={12} className="mr-1" /> {att.length}
+                            </Badge>
+                            {attending && <Check size={14} className="text-primary" />}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          <Users size={12} className="mr-1" /> {att.length}
-                        </Badge>
-                        {attending && <Check size={14} className="text-primary" />}
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                  {upcoming.length > showInitial && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setShowAllUpcoming(!showAllUpcoming)}
+                    >
+                      <ChevronDown size={14} className={`mr-1 transition-transform ${showAllUpcoming ? "rotate-180" : ""}`} />
+                      {showAllUpcoming ? "Weniger anzeigen" : `Alle ${upcoming.length} Termine anzeigen`}
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
       </motion.div>
 
       {/* Create Event Dialog */}

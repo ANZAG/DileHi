@@ -17,7 +17,7 @@ import SEO from "@/components/SEO";
 import type { FormField } from "@/components/event-forms/types";
 
 interface FormData {
-  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { whatsapp_link?: string } };
+  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { whatsapp_link?: string; opens_at?: string; closes_at?: string } };
   event: { title: string; start_date: string; end_date: string | null; location: string | null; all_day: boolean };
   fields: FormField[];
 }
@@ -72,25 +72,7 @@ export default function EventRegistration() {
     },
   });
 
-  // Pre-fill tent data from profile tents
-  useEffect(() => {
-    if (memberTents.length > 0 && formData) {
-      const tentField = formData.fields.find((f) => f.type === "tent");
-      if (tentField && !answers[tentField.id]?.tents?.length) {
-        const tents = memberTents.map((mt) => ({
-          tent_type: mt.tent_type,
-          diameter: mt.diameter || "",
-          length: mt.length || "",
-          width: mt.width || "",
-          capacity: 1,
-        }));
-        setAnswers((prev) => ({
-          ...prev,
-          [tentField.id]: { tents },
-        }));
-      }
-    }
-  }, [memberTents, formData]);
+  // No pre-selection of tents – members pick from their profile buttons
 
   // Auto-redirect after submission
   useEffect(() => {
@@ -189,6 +171,24 @@ export default function EventRegistration() {
       <div className="container py-20 text-center">
         <h2 className="text-xl font-bold mb-2">Formular nicht gefunden</h2>
         <p className="text-muted-foreground">Dieses Formular existiert nicht oder ist geschlossen.</p>
+      </div>
+    );
+  }
+  // Check time window
+  const now = new Date();
+  const opensAt = formData?.form.settings?.opens_at ? new Date(formData.form.settings.opens_at) : null;
+  const closesAt = formData?.form.settings?.closes_at ? new Date(formData.form.settings.closes_at) : null;
+  const isOutsideWindow = (opensAt && now < opensAt) || (closesAt && now > closesAt);
+
+  if (formData && !submitted && isOutsideWindow) {
+    return (
+      <div className="container py-20 text-center">
+        <h2 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h2>
+        <p className="text-muted-foreground">
+          {opensAt && now < opensAt
+            ? `Die Anmeldung öffnet am ${format(opensAt, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })}.`
+            : `Die Anmeldung ist seit dem ${format(closesAt!, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })} geschlossen.`}
+        </p>
       </div>
     );
   }

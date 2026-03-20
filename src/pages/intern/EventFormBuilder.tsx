@@ -590,6 +590,29 @@ export default function EventFormBuilder() {
                     rows={2}
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Öffnet am</Label>
+                    <Input
+                      type="datetime-local"
+                      defaultValue={form.settings?.opens_at || ""}
+                      onBlur={(e) => {
+                        updateForm.mutate({ settings: { ...form.settings, opens_at: e.target.value || null } });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label>Schließt am</Label>
+                    <Input
+                      type="datetime-local"
+                      defaultValue={form.settings?.closes_at || ""}
+                      onBlur={(e) => {
+                        updateForm.mutate({ settings: { ...form.settings, closes_at: e.target.value || null } });
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground col-span-2">Leer lassen = unbegrenzt. Wird zusätzlich zum Schalter „Anmeldung möglich" geprüft.</p>
+                </div>
                 <div>
                   <Label>Zelt-Abstand / Laufweg (m)</Label>
                   <Input
