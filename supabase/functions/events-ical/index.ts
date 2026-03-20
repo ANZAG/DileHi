@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
 
     push("BEGIN:VEVENT");
     push(`UID:${ev.id}@dilehi.de`);
+    push(`SEQUENCE:0`);
 
     if (allDay) {
       push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
