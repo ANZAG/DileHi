@@ -121,6 +121,23 @@ Deno.serve(async (req) => {
   push("X-WR-CALDESC:Veranstaltungen denen du zugesagt hast");
   push("X-WR-TIMEZONE:Europe/Berlin");
   push("REFRESH-INTERVAL;VALUE=DURATION:PT1H");
+  push("BEGIN:VTIMEZONE");
+  push("TZID:Europe/Berlin");
+  push("BEGIN:STANDARD");
+  push("DTSTART:19701025T030000");
+  push("RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10");
+  push("TZOFFSETFROM:+0200");
+  push("TZOFFSETTO:+0100");
+  push("TZNAME:CET");
+  push("END:STANDARD");
+  push("BEGIN:DAYLIGHT");
+  push("DTSTART:19700329T020000");
+  push("RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3");
+  push("TZOFFSETFROM:+0100");
+  push("TZOFFSETTO:+0200");
+  push("TZNAME:CEST");
+  push("END:DAYLIGHT");
+  push("END:VTIMEZONE");
 
   for (const ev of events) {
     const allDay = ev.all_day ?? false;
