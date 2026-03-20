@@ -246,9 +246,17 @@ const Profile = () => {
   return (
     <div className="container py-8 sm:py-12 max-w-lg px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft size={16} /> Zurück
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={16} /> Zurück
+          </Link>
+          <button
+            onClick={() => { resetOnboardingTour(); window.dispatchEvent(new CustomEvent("start-onboarding")); }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <HelpCircle size={14} /> Tour starten
+          </button>
+        </div>
         <h1 className="font-serif text-2xl font-bold mb-6">Mein Profil</h1>
 
         <div className="space-y-6">
