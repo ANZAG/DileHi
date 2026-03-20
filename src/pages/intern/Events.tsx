@@ -95,7 +95,7 @@ const EventsPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_forms")
-        .select("id, event_id, is_open, public_token");
+        .select("id, event_id, is_open, public_token, settings");
       if (error) throw error;
       return data;
     },
