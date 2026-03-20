@@ -155,7 +155,7 @@ const EventsPage = () => {
   });
 
   const personalIcalUrl = calendarToken
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/events-personal-ical?token=${calendarToken}`
+    ? `${import.meta.env.VITE_SUPABASE_URL?.replace(/^https?:\/\//, 'webcal://')}/functions/v1/events-personal-ical?token=${calendarToken}`
     : null;
 
   const copyCalendarUrl = () => {
