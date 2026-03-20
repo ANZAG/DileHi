@@ -256,6 +256,7 @@ interface TentEntry {
   length: number | string;
   width: number | string;
   capacity: number;
+  member_tent_id?: string;
 }
 
 function TentListField({ value, onChange, memberTents }: { value: any; onChange: (v: any) => void; memberTents?: MemberTent[] }) {
