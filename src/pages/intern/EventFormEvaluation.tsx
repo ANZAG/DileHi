@@ -467,20 +467,24 @@ export default function EventFormEvaluation() {
     <div className="container py-8 max-w-6xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="font-serif text-2xl font-bold">Auswertung</h1>
-            {event && <p className="text-sm text-muted-foreground">{event.title}</p>}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 flex-1">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-serif text-xl sm:text-2xl font-bold">Auswertung</h1>
+              {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
+            </div>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/intern/veranstaltungen/${eventId}/formular`}>Formular bearbeiten</Link>
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download size={14} className="mr-1" /> CSV
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/intern/veranstaltungen/${eventId}/formular`}>Formular</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download size={14} className="mr-1" /> CSV
+            </Button>
+          </div>
         </div>
 
         {/* Summary cards */}
