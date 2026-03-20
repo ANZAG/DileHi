@@ -26,9 +26,9 @@ const EpochWW1 = () => {
   const { data: galleryImages = [] } = useQuery({
     queryKey: ["gallery_images", "wk1"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("gallery_images" as any).select("*").eq("epoch", "wk1").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("gallery_images").select("*").eq("epoch", "wk1").order("created_at", { ascending: false });
       if (error) return [];
-      return (data as any[]).map((img: any) => {
+      return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild", showSubtitle: img.show_subtitle ?? false };
       });
