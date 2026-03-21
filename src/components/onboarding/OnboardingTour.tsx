@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote, BookOpen, User, Sparkles } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote, BookOpen, User, Sparkles, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TourStep {
   icon: React.ElementType;
@@ -22,15 +23,15 @@ const STEPS: TourStep[] = [
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. So können dich andere Mitglieder besser zuordnen.",
-    hint: 'Tipp: Aktiviere „Auf Karte anzeigen“, damit dein Wohnort auf der Mitgliederkarte erscheint.',
+    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Zelte eintragen \u2013 diese werden dann bei Umfragen automatisch vorgeschlagen.",
+    hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
   {
     icon: CalendarDays,
     title: "Veranstaltungen",
-    body: "Hier findest du alle Vereinstermine. Du kannst zu- oder absagen und deinen Kalender per Abo synchronisieren – auch mit Outlook.",
-    hint: "Tipp: Nutze das Kalender-Abo, um Termine automatisch in deinem Kalender zu sehen.",
+    body: "Hier findest du alle Vereinstermine. Du kannst dich für Veranstaltungen an- und abmelden und deinen Kalender per Abo synchronisieren, um Termine automatisch zu sehen.",
+    hint: "Tipp: Schau regelmäßig nach neuen Terminen und melde dich frühzeitig an.",
     route: "/intern/veranstaltungen",
   },
   {
@@ -52,6 +53,12 @@ const STEPS: TourStep[] = [
     route: "/intern/dokumente",
   },
   {
+    icon: Coins,
+    title: "Beiträge",
+    body: "Hier siehst du den Status deiner Mitgliedsbeiträge und ob noch offene Zahlungen ausstehen.",
+    route: "/intern/beitraege",
+  },
+  {
     icon: BookOpen,
     title: "Quellensammlung",
     body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
@@ -68,7 +75,7 @@ const STEPS: TourStep[] = [
     icon: Sparkles,
     title: "Alles bereit!",
     body: "Du kannst die Tour jederzeit über dein Profil erneut starten. Viel Spaß im Verein!",
-    hint: "Empfohlen: Pflege jetzt als Erstes dein Profil.",
+    hint: "Empfohlen: Pflege jetzt als Erstes dein Profil und trage deine Zelte ein.",
   },
 ];
 
@@ -79,16 +86,21 @@ export default function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
-  // Auto-open on first visit to any /intern route
+  // Auto-open on first visit to any /intern route (also triggers after login redirect)
   useEffect(() => {
+    if (!user) return;
     if (!location.pathname.startsWith("/intern")) return;
     const done = localStorage.getItem(STORAGE_KEY);
-    if (!done) {
-      setStep(0);
-      setOpen(true);
+    if (!done && !open) {
+      const timer = setTimeout(() => {
+        setStep(0);
+        setOpen(true);
+      }, 600);
+      return () => clearTimeout(timer);
     }
-  }, []); // only on mount
+  }, [location.pathname, user]);
 
   // Listen for manual restart from Profile page
   useEffect(() => {
@@ -157,7 +169,7 @@ export default function OnboardingTour() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.97 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-md bg-card rounded-xl border shadow-xl overflow-hidden"
+          className="relative w-full max-w-md bg-card rounded-xl border shadow-xl overflow-hidden mb-safe"
         >
           <Progress value={progress} className="h-1 rounded-none" />
 
@@ -169,7 +181,7 @@ export default function OnboardingTour() {
             <X size={16} />
           </button>
 
-          <div className="p-6 pt-5">
+          <div className="p-5 sm:p-6 pt-4 sm:pt-5">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
                 <Icon size={20} />
@@ -178,7 +190,7 @@ export default function OnboardingTour() {
                 <p className="text-xs text-muted-foreground font-medium">
                   Schritt {step + 1} von {STEPS.length}
                 </p>
-                <h3 className="font-serif text-lg font-semibold leading-tight">{current.title}</h3>
+                <h3 className="font-serif text-base sm:text-lg font-semibold leading-tight">{current.title}</h3>
               </div>
             </div>
 
@@ -193,7 +205,7 @@ export default function OnboardingTour() {
             )}
           </div>
 
-          <div className="flex items-center justify-between px-6 pb-5 pt-1">
+          <div className="flex items-center justify-between px-5 sm:px-6 pb-4 sm:pb-5 pt-1">
             <Button
               variant="ghost"
               size="sm"

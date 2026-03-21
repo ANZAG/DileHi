@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 
@@ -220,6 +223,14 @@ const MemberMap = () => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
+    // Use marker cluster group so overlapping markers are visible
+    const clusterGroup = (L as any).markerClusterGroup({
+      maxClusterRadius: 30,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+    });
+
     // Member markers (default blue)
     members.forEach((m) => {
       const popupContent = `
@@ -228,7 +239,7 @@ const MemberMap = () => {
           <span style="color:#666;">${m.city}</span>
         </div>
       `;
-      L.marker([m.map_lat, m.map_lng]).addTo(map).bindPopup(popupContent);
+      clusterGroup.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupContent));
     });
 
     // Event markers (orange calendar icon)
@@ -243,8 +254,10 @@ const MemberMap = () => {
           <span style="color:#888;font-size:11px;">${ev.location}</span>
         </div>
       `;
-      L.marker([ev.lat, ev.lng], { icon: eventIcon }).addTo(map).bindPopup(popupContent);
+      clusterGroup.addLayer(L.marker([ev.lat, ev.lng], { icon: eventIcon }).bindPopup(popupContent));
     });
+
+    map.addLayer(clusterGroup);
 
     if (allPoints.length > 1) {
       const bounds = L.latLngBounds(allPoints);

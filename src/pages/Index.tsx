@@ -26,10 +26,25 @@ const Index = () => {
   return (
     <div>
       <SEO 
-        title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
-        description="Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
+        title="Diu lebendec Hist\u00f4rje - Nassauische Geschichte lebendig"
+        description="Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
         url="/"
         image="/hero-medieval.jpg"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Diu lebendec Hist\u00f4rje e.V.",
+          "alternateName": "DiLeHi",
+          "url": "https://www.dilehi.de",
+          "description": "Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg.",
+          "foundingDate": "2013",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Wiesbaden",
+            "addressCountry": "DE"
+          },
+          "sameAs": ["https://www.facebook.com/dilehi"]
+        }}
       />
       {/* Hero */}
       <section className="relative py-16 md:py-20 flex items-center justify-center overflow-hidden">

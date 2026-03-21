@@ -14,6 +14,10 @@ const navItems = [
   { path: "/kontakt", label: "Kontakt" },
 ];
 
+const mobileOnlyItems = [
+  { path: "/intern", label: "Mitgliederbereich", requiresAuth: false },
+];
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -78,6 +82,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {item.label}
               </Link>
             ))}
+            <div className="border-t my-1" />
+            <Link
+              to={user ? "/intern" : "/login"}
+              onClick={() => setMenuOpen(false)}
+              className={`block px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted ${
+                location.pathname.startsWith("/intern") ? "text-primary bg-muted" : "text-muted-foreground"
+              }`}
+            >
+              Mitgliederbereich
+            </Link>
           </nav>
         )}
       </header>
