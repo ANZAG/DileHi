@@ -223,12 +223,31 @@ const MemberMap = () => {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
-    // Use marker cluster group so overlapping markers are visible
-    const clusterGroup = (L as any).markerClusterGroup({
-      maxClusterRadius: 30,
+    // Separate cluster groups for members (blue) and events (orange)
+    const createClusterIcon = (color: string) => (cluster: any) => {
+      const count = cluster.getChildCount();
+      return L.divIcon({
+        className: "",
+        html: `<div style="background:${color};color:#fff;border:2px solid #fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.35);">${count}</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+      });
+    };
+
+    const memberCluster = (L as any).markerClusterGroup({
+      maxClusterRadius: 20,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
+      iconCreateFunction: createClusterIcon("#3b82f6"),
+    });
+
+    const eventCluster = (L as any).markerClusterGroup({
+      maxClusterRadius: 20,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: createClusterIcon("#c2410c"),
     });
 
     // Member markers (default blue)
@@ -239,7 +258,7 @@ const MemberMap = () => {
           <span style="color:#666;">${m.city}</span>
         </div>
       `;
-      clusterGroup.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupContent));
+      memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupContent));
     });
 
     // Event markers (orange calendar icon)
@@ -254,10 +273,11 @@ const MemberMap = () => {
           <span style="color:#888;font-size:11px;">${ev.location}</span>
         </div>
       `;
-      clusterGroup.addLayer(L.marker([ev.lat, ev.lng], { icon: eventIcon }).bindPopup(popupContent));
+      eventCluster.addLayer(L.marker([ev.lat, ev.lng], { icon: eventIcon }).bindPopup(popupContent));
     });
 
-    map.addLayer(clusterGroup);
+    map.addLayer(memberCluster);
+    map.addLayer(eventCluster);
 
     if (allPoints.length > 1) {
       const bounds = L.latLngBounds(allPoints);
