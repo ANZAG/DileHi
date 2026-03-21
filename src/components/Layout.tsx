@@ -14,6 +14,10 @@ const navItems = [
   { path: "/kontakt", label: "Kontakt" },
 ];
 
+const mobileOnlyItems = [
+  { path: "/intern", label: "Mitgliederbereich", requiresAuth: false },
+];
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
