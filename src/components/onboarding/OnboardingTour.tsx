@@ -4,6 +4,7 @@ import { X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TourStep {
   icon: React.ElementType;
