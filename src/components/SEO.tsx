@@ -7,18 +7,20 @@ interface SEOProps {
   url?: string;
   type?: string;
   noindex?: boolean;
+  jsonLd?: Record<string, unknown>;
 }
 
 const SEO = ({ 
   title = "Diu lebendec Histôrje - Nassauische Geschichte lebendig", 
-  description = "Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben.",
+  description = "Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben.",
   image = "/hero-medieval.jpg",
   url,
   type = "website",
-  noindex = false 
+  noindex = false,
+  jsonLd,
 }: SEOProps) => {
-  const baseUrl = window.location.origin;
-  const fullUrl = url ? `${baseUrl}${url}` : window.location.href;
+  const baseUrl = "https://www.dilehi.de";
+  const fullUrl = url ? `${baseUrl}${url}` : (typeof window !== "undefined" ? window.location.href : baseUrl);
   const fullImageUrl = image.startsWith('http') ? image : `${baseUrl}${image}`;
 
   return (
@@ -35,7 +37,7 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="Diu lebendec Histôrje" />
+      <meta property="og:site_name" content="Diu lebendec Hist\u00f4rje" />
       <meta property="og:locale" content="de_DE" />
       
       {/* Twitter Card */}
@@ -43,6 +45,13 @@ const SEO = ({
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={fullImageUrl} />
+
+      {/* JSON-LD */}
+      {jsonLd && (
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      )}
     </Helmet>
   );
 };
