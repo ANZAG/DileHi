@@ -416,7 +416,7 @@ const Profile = () => {
               </Button>
             </div>
             {myTents.length === 0 && !showAddTent && (
-              <p className="text-sm text-muted-foreground">Noch keine Zelte hinterlegt. Zelte werden in Umfragen automatisch vorausgefüllt.</p>
+              <p className="text-sm text-muted-foreground">Noch keine Zelte hinterlegt. Trage deine Zelte hier ein, damit sie bei Veranstaltungsumfragen automatisch zur Auswahl stehen.</p>
             )}
             {myTents.map((tent) => {
               const typeLabel = TENT_TYPE_OPTIONS.find((t) => t.value === tent.tent_type)?.label || tent.tent_type;
