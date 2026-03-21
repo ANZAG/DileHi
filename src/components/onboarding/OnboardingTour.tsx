@@ -86,20 +86,21 @@ export default function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
-  // Auto-open on first visit to any /intern route
+  // Auto-open on first visit to any /intern route (also triggers after login redirect)
   useEffect(() => {
+    if (!user) return;
     if (!location.pathname.startsWith("/intern")) return;
     const done = localStorage.getItem(STORAGE_KEY);
-    if (!done) {
-      // Small delay so the dashboard renders first
+    if (!done && !open) {
       const timer = setTimeout(() => {
         setStep(0);
         setOpen(true);
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname]);
+  }, [location.pathname, user]);
 
   // Listen for manual restart from Profile page
   useEffect(() => {
