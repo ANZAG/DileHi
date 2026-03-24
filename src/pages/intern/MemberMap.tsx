@@ -310,7 +310,7 @@ const MemberMap = () => {
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
           <span className="flex items-center gap-1.5">
-            <MapPin size={14} className="text-primary" /> Mitglieder
+            <MapPin size={14} className="text-[#3b82f6]" /> Mitglieder
           </span>
           <span className="flex items-center gap-1.5">
             <CalendarDays size={14} className="text-orange-700" /> Veranstaltungen
