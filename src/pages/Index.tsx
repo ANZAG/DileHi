@@ -26,8 +26,8 @@ const Index = () => {
   return (
     <div>
       <SEO 
-        title="Diu lebendec Hist\u00f4rje - Nassauische Geschichte lebendig"
-        description="Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
+        title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
+        description="Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
         url="/"
         image="/hero-medieval.jpg"
         jsonLd={{
