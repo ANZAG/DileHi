@@ -12,7 +12,7 @@ interface SEOProps {
 
 const SEO = ({ 
   title = "Diu lebendec Histôrje - Nassauische Geschichte lebendig", 
-  description = "Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben.",
+  description = "Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben.",
   image = "/hero-medieval.jpg",
   url,
   type = "website",
@@ -37,7 +37,7 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="Diu lebendec Hist\u00f4rje" />
+      <meta property="og:site_name" content="Diu lebendec Histôrje" />
       <meta property="og:locale" content="de_DE" />
       
       {/* Twitter Card */}
