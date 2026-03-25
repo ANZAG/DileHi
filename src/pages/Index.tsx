@@ -36,7 +36,7 @@ const Index = () => {
           "name": "Diu lebendec Histôrje e.V.",
           "alternateName": "DiLeHi",
           "url": "https://www.dilehi.de",
-          "description": "Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg.",
+          "description": "Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg.",
           "foundingDate": "2013",
           "address": {
             "@type": "PostalAddress",

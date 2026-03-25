@@ -37,7 +37,7 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="Diu lebendec Hist\u00f4rje" />
+      <meta property="og:site_name" content="Diu lebendec Histôrje" />
       <meta property="og:locale" content="de_DE" />
       
       {/* Twitter Card */}
