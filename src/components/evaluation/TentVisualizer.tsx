@@ -202,6 +202,8 @@ export default function TentVisualizer({
 
   const lastLayoutVersion = useRef(layoutVersion);
 
+  const itemsKey = items.map((i) => i.id).join(",");
+
   useEffect(() => {
     const isAutoLayout = layoutVersion !== lastLayoutVersion.current;
     lastLayoutVersion.current = layoutVersion;
@@ -216,7 +218,7 @@ export default function TentVisualizer({
     }
     setPositions(pos);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length, savedPositions, layoutVersion]);
+  }, [itemsKey, savedPositions, layoutVersion]);
 
   useEffect(() => {
     setPositions((prev) => {
