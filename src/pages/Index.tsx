@@ -33,7 +33,7 @@ const Index = () => {
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Organization",
-          "name": "Diu lebendec Hist\u00f4rje e.V.",
+          "name": "Diu lebendec Histôrje e.V.",
           "alternateName": "DiLeHi",
           "url": "https://www.dilehi.de",
           "description": "Wiesbadener Verein f\u00fcr Living History \u2013 nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg.",
