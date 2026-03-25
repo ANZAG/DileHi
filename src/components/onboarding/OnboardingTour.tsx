@@ -24,7 +24,7 @@ const STEPS: TourStep[] = [
     icon: User,
     title: "Dein Profil pflegen",
     body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Zelte eintragen – diese werden dann bei Umfragen automatisch vorgeschlagen.",
-    hint: "Tipp: Aktiviere „Auf Karte anzeigen", damit dein Wohnort auf der Mitgliederkarte erscheint.",
+    hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
   {
