@@ -69,19 +69,25 @@ export default function EventFormEvaluation() {
         .eq("event_id", eventId!)
         .maybeSingle();
       if (error) throw error;
-      if (data?.settings) {
-        const s = data.settings as any;
-        setSpacing(s.spacing_m ?? 0);
-        setSelectedClubTents(s.club_tents ?? []);
-        setKitchenLead(s.kitchen_lead ?? "");
-        setProgramItems(s.program_items ?? []);
-        setPoolTentIds(s.pool_tent_ids ?? []);
-        setEventLeadId(s.event_lead_id ?? "");
-      }
       return data as any;
     },
     enabled: !!eventId,
   });
+
+  // Sync local state from form settings whenever form data is available (including from cache)
+  const formSettingsKey = form?.id;
+  const settingsApplied = useRef<string | null>(null);
+  useEffect(() => {
+    if (!form?.settings || settingsApplied.current === form.id) return;
+    settingsApplied.current = form.id;
+    const s = form.settings as any;
+    setSpacing(s.spacing_m ?? 0);
+    setSelectedClubTents(s.club_tents ?? []);
+    setKitchenLead(s.kitchen_lead ?? "");
+    setProgramItems(s.program_items ?? []);
+    setPoolTentIds(s.pool_tent_ids ?? []);
+    setEventLeadId(s.event_lead_id ?? "");
+  }, [formSettingsKey, form]);
 
   const { data: fields = [] } = useQuery({
     queryKey: ["event_form_fields", form?.id],
