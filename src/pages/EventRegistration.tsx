@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,8 @@ interface FormData {
 
 export default function EventRegistration() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const editToken = searchParams.get("edit");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -36,9 +38,42 @@ export default function EventRegistration() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingResponseId, setExistingResponseId] = useState<string | null>(null);
+  const [guestEditToken, setGuestEditToken] = useState<string | null>(editToken);
 
+  // Load form by guest edit token
   useEffect(() => {
-    if (!token) return;
+    if (!editToken) return;
+    (async () => {
+      const { data, error } = await (supabase.rpc as any)("get_response_by_edit_token", { _edit_token: editToken });
+      if (error || !data) {
+        // Fall back to normal token load
+        setGuestEditToken(null);
+        return;
+      }
+      const d = data as any;
+      setFormData({
+        form: d.form,
+        event: d.event,
+        fields: d.fields,
+      });
+      setName(d.response.respondent_name);
+      setEmail(d.response.respondent_email || "");
+      setExistingResponseId(d.response.id);
+      setIsEditMode(true);
+
+      // Load answers
+      const answerMap: Record<string, any> = {};
+      (d.answers || []).forEach((a: any) => {
+        answerMap[a.field_id] = a.value;
+      });
+      setAnswers(answerMap);
+      setLoading(false);
+    })();
+  }, [editToken]);
+
+  // Load form by public token (normal flow)
+  useEffect(() => {
+    if (!token || editToken) return;
     supabase.rpc("get_form_by_token", { _token: token }).then(({ data, error }) => {
       if (error || !data) {
         setLoading(false);
@@ -47,21 +82,21 @@ export default function EventRegistration() {
       setFormData(data as unknown as FormData);
       setLoading(false);
     });
-  }, [token]);
+  }, [token, editToken]);
 
   // Pre-fill name and email for logged-in members
   useEffect(() => {
-    if (user) {
+    if (user && !editToken) {
       supabase.from("profiles").select("display_name").eq("id", user.id).single().then(({ data }) => {
         if (data) setName(data.display_name);
       });
       setEmail(user.email || "");
     }
-  }, [user]);
+  }, [user, editToken]);
 
-  // Load existing response if user already submitted
+  // Load existing response if user already submitted (logged-in members only)
   useEffect(() => {
-    if (!user || !formData?.form.id) return;
+    if (!user || !formData?.form.id || editToken) return;
     (async () => {
       const { data: responses } = await supabase
         .from("event_form_responses")
@@ -77,7 +112,6 @@ export default function EventRegistration() {
         setName(resp.respondent_name);
         if (resp.respondent_email) setEmail(resp.respondent_email);
 
-        // Load existing answers
         const { data: existingAnswers } = await supabase
           .from("event_form_answers")
           .select("field_id, value")
@@ -92,7 +126,7 @@ export default function EventRegistration() {
         }
       }
     })();
-  }, [user, formData?.form.id]);
+  }, [user, formData?.form.id, editToken]);
 
   // Fetch member's saved tents
   const { data: memberTents = [] } = useQuery({
@@ -141,15 +175,29 @@ export default function EventRegistration() {
 
     setSubmitting(true);
     try {
-      if (isEditMode && existingResponseId) {
-        // Update existing response
+      // Guest edit via edit_token
+      if (guestEditToken && !user) {
+        const answerArray = visibleFields
+          .filter((f) => answers[f.id] !== undefined)
+          .map((f) => ({ field_id: f.id, value: answers[f.id] }));
+
+        const { error } = await (supabase.rpc as any)("update_response_by_edit_token", {
+          _edit_token: guestEditToken,
+          _name: name.trim(),
+          _email: email.trim() || null,
+          _answers: answerArray as any,
+        });
+        if (error) throw error;
+        setSubmitted(true);
+        toast({ title: "Anmeldung aktualisiert!" });
+      } else if (isEditMode && existingResponseId) {
+        // Logged-in member edit
         const { error: respError } = await supabase
           .from("event_form_responses")
           .update({ respondent_name: name.trim(), respondent_email: email.trim() || null })
           .eq("id", existingResponseId);
         if (respError) throw respError;
 
-        // Upsert answers: delete old, insert new
         await supabase
           .from("event_form_answers")
           .delete()
@@ -181,7 +229,7 @@ export default function EventRegistration() {
             value: answers[f.id],
           }));
 
-        const { error } = await supabase.rpc("submit_form_response", {
+        const { data: returnedEditToken, error } = await supabase.rpc("submit_form_response", {
           _token: token!,
           _name: name.trim(),
           _email: email.trim() || null,
@@ -205,6 +253,10 @@ export default function EventRegistration() {
               (formData.event.end_date ? ` – ${format(parseISO(formData.event.end_date), "d. MMMM yyyy", { locale: de })}` : "")
             : "";
 
+          const editUrl = returnedEditToken
+            ? `${window.location.origin}/anmeldung/${token}?edit=${returnedEditToken}`
+            : "";
+
           supabase.functions.invoke("confirm-registration", {
             body: {
               email: email.trim(),
@@ -213,6 +265,7 @@ export default function EventRegistration() {
               eventDate: eventDateStr,
               eventLocation: formData.event.location || "",
               whatsappLink: formData.form.settings?.whatsapp_link || "",
+              editUrl,
             },
           }).catch(() => {});
         }
@@ -243,6 +296,7 @@ export default function EventRegistration() {
       </div>
     );
   }
+
   // Check time window
   const now = new Date();
   const opensAt = formData?.form.settings?.opens_at ? new Date(formData.form.settings.opens_at) : null;

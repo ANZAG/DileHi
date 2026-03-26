@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
@@ -39,6 +40,28 @@ const EventsPage = () => {
             </Button>
           </div>
         </div>
+
+        {/* Banner for open, unsubmitted forms */}
+        {ev.openUnsubmittedForms.length > 0 && (
+          <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5">
+            <p className="font-semibold text-sm mb-2 flex items-center gap-2">
+              <FileText size={16} className="text-primary" />
+              Offene Anmeldungen
+            </p>
+            <div className="space-y-2">
+              {ev.openUnsubmittedForms.map(({ form, event }) => (
+                <div key={form.id} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{event!.title}</span>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to={`/anmeldung/${form.public_token}`}>
+                      Jetzt anmelden
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <EventCalendar
           currentMonth={ev.currentMonth}
