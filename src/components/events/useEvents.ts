@@ -326,6 +326,26 @@ export function useEvents() {
     }
   };
 
+  // Open forms the member hasn't submitted yet (for banner)
+  const openUnsubmittedForms = useMemo(() => {
+    const now = new Date();
+    return eventForms
+      .filter((f) => {
+        if (!f.is_open || !f.public_token) return false;
+        const settings = f.settings as any;
+        const opensAt = settings?.opens_at ? new Date(settings.opens_at) : null;
+        const closesAt = settings?.closes_at ? new Date(settings.closes_at) : null;
+        if (opensAt && now < opensAt) return false;
+        if (closesAt && now > closesAt) return false;
+        return !hasSubmittedForm(f.id);
+      })
+      .map((f) => {
+        const event = events.find((e) => e.id === f.event_id);
+        return { form: f, event };
+      })
+      .filter((item) => item.event != null);
+  }, [eventForms, events, myFormResponses]);
+
   return {
     user, canModerate, canSetPublic, toast,
     currentMonth, setCurrentMonth,
