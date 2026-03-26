@@ -181,7 +181,7 @@ export default function EventRegistration() {
           .filter((f) => answers[f.id] !== undefined)
           .map((f) => ({ field_id: f.id, value: answers[f.id] }));
 
-        const { error } = await supabase.rpc("update_response_by_edit_token", {
+        const { error } = await (supabase.rpc as any)("update_response_by_edit_token", {
           _edit_token: guestEditToken,
           _name: name.trim(),
           _email: email.trim() || null,
