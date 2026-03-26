@@ -352,6 +352,7 @@ export function useEvents() {
     formatTimeDisplay, selectedDayEvents,
     copyCalendarUrl,
     getFormForEvent, hasSubmittedForm,
+    openUnsubmittedForms,
   };
 }
 
