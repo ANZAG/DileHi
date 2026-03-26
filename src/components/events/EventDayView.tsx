@@ -112,11 +112,12 @@ export default function EventDayView({
                       const fOpensAt = formSettings?.opens_at ? new Date(formSettings.opens_at) : null;
                       const fClosesAt = formSettings?.closes_at ? new Date(formSettings.closes_at) : null;
                       const isInWindow = (!fOpensAt || fNow >= fOpensAt) && (!fClosesAt || fNow <= fClosesAt);
-                      if (evForm?.is_open && isInWindow && evForm.public_token && !hasSubmittedForm(evForm.id)) {
+                      if (evForm?.is_open && isInWindow && evForm.public_token) {
+                        const alreadySubmitted = hasSubmittedForm(evForm.id);
                         return (
                           <Button size="sm" variant="outline" asChild>
                             <Link to={`/anmeldung/${evForm.public_token}`}>
-                              <FileText size={14} className="mr-1" /> Anmelden
+                              <FileText size={14} className="mr-1" /> {alreadySubmitted ? "Bearbeiten" : "Anmelden"}
                             </Link>
                           </Button>
                         );

@@ -34,6 +34,8 @@ export default function EventRegistration() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingResponseId, setExistingResponseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -57,6 +59,41 @@ export default function EventRegistration() {
     }
   }, [user]);
 
+  // Load existing response if user already submitted
+  useEffect(() => {
+    if (!user || !formData?.form.id) return;
+    (async () => {
+      const { data: responses } = await supabase
+        .from("event_form_responses")
+        .select("id, respondent_name, respondent_email")
+        .eq("form_id", formData.form.id)
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (responses && responses.length > 0) {
+        const resp = responses[0];
+        setExistingResponseId(resp.id);
+        setIsEditMode(true);
+        setName(resp.respondent_name);
+        if (resp.respondent_email) setEmail(resp.respondent_email);
+
+        // Load existing answers
+        const { data: existingAnswers } = await supabase
+          .from("event_form_answers")
+          .select("field_id, value")
+          .eq("response_id", resp.id);
+
+        if (existingAnswers && existingAnswers.length > 0) {
+          const answerMap: Record<string, any> = {};
+          existingAnswers.forEach((a) => {
+            answerMap[a.field_id] = a.value;
+          });
+          setAnswers(answerMap);
+        }
+      }
+    })();
+  }, [user, formData?.form.id]);
+
   // Fetch member's saved tents
   const { data: memberTents = [] } = useQuery({
     queryKey: ["member_tents", user?.id],
@@ -71,8 +108,6 @@ export default function EventRegistration() {
       return data;
     },
   });
-
-  // No pre-selection of tents – members pick from their profile buttons
 
   // Auto-redirect after submission
   useEffect(() => {
@@ -106,51 +141,85 @@ export default function EventRegistration() {
 
     setSubmitting(true);
     try {
-      const answerArray = visibleFields
-        .filter((f) => answers[f.id] !== undefined)
-        .map((f) => ({
-          field_id: f.id,
-          value: answers[f.id],
-        }));
+      if (isEditMode && existingResponseId) {
+        // Update existing response
+        const { error: respError } = await supabase
+          .from("event_form_responses")
+          .update({ respondent_name: name.trim(), respondent_email: email.trim() || null })
+          .eq("id", existingResponseId);
+        if (respError) throw respError;
 
-      const { error } = await supabase.rpc("submit_form_response", {
-        _token: token!,
-        _name: name.trim(),
-        _email: email.trim() || null,
-        _answers: answerArray as any,
-      });
+        // Upsert answers: delete old, insert new
+        await supabase
+          .from("event_form_answers")
+          .delete()
+          .eq("response_id", existingResponseId);
 
-      if (error) throw error;
+        const answerRows = visibleFields
+          .filter((f) => answers[f.id] !== undefined)
+          .map((f) => ({
+            response_id: existingResponseId,
+            field_id: f.id,
+            value: answers[f.id],
+          }));
 
-      // Auto-RSVP for logged-in members
-      if (user && formData.form.event_id) {
-        await supabase.from("event_attendees").upsert(
-          { event_id: formData.form.event_id, user_id: user.id },
-          { onConflict: "event_id,user_id", ignoreDuplicates: true }
-        ).then(() => {});
+        if (answerRows.length > 0) {
+          const { error: ansError } = await supabase
+            .from("event_form_answers")
+            .insert(answerRows);
+          if (ansError) throw ansError;
+        }
+
+        setSubmitted(true);
+        toast({ title: "Anmeldung aktualisiert!" });
+      } else {
+        // New submission
+        const answerArray = visibleFields
+          .filter((f) => answers[f.id] !== undefined)
+          .map((f) => ({
+            field_id: f.id,
+            value: answers[f.id],
+          }));
+
+        const { error } = await supabase.rpc("submit_form_response", {
+          _token: token!,
+          _name: name.trim(),
+          _email: email.trim() || null,
+          _answers: answerArray as any,
+        });
+
+        if (error) throw error;
+
+        // Auto-RSVP for logged-in members
+        if (user && formData.form.event_id) {
+          await supabase.from("event_attendees").upsert(
+            { event_id: formData.form.event_id, user_id: user.id },
+            { onConflict: "event_id,user_id", ignoreDuplicates: true }
+          ).then(() => {});
+        }
+
+        // Send confirmation email
+        if (email.trim()) {
+          const eventDateStr = formData.event.start_date
+            ? format(parseISO(formData.event.start_date), "d. MMMM yyyy", { locale: de }) +
+              (formData.event.end_date ? ` – ${format(parseISO(formData.event.end_date), "d. MMMM yyyy", { locale: de })}` : "")
+            : "";
+
+          supabase.functions.invoke("confirm-registration", {
+            body: {
+              email: email.trim(),
+              name: name.trim(),
+              eventTitle: formData.event.title,
+              eventDate: eventDateStr,
+              eventLocation: formData.event.location || "",
+              whatsappLink: formData.form.settings?.whatsapp_link || "",
+            },
+          }).catch(() => {});
+        }
+
+        setSubmitted(true);
+        toast({ title: "Anmeldung erfolgreich!" });
       }
-
-      // Send confirmation email
-      if (email.trim()) {
-        const eventDateStr = formData.event.start_date
-          ? format(parseISO(formData.event.start_date), "d. MMMM yyyy", { locale: de }) +
-            (formData.event.end_date ? ` – ${format(parseISO(formData.event.end_date), "d. MMMM yyyy", { locale: de })}` : "")
-          : "";
-
-        supabase.functions.invoke("confirm-registration", {
-          body: {
-            email: email.trim(),
-            name: name.trim(),
-            eventTitle: formData.event.title,
-            eventDate: eventDateStr,
-            eventLocation: formData.event.location || "",
-            whatsappLink: formData.form.settings?.whatsapp_link || "",
-          },
-        }).catch(() => {}); // fire and forget
-      }
-
-      setSubmitted(true);
-      toast({ title: "Anmeldung erfolgreich!" });
     } catch (err: any) {
       toast({ title: "Fehler beim Absenden", description: err.message, variant: "destructive" });
     } finally {
@@ -199,9 +268,15 @@ export default function EventRegistration() {
         <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
-          <h2 className="text-2xl font-serif font-bold mb-2">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Anmeldung für „{formData.event.title}" wurde gespeichert.</p>
-          {email.trim() && (
+          <h2 className="text-2xl font-serif font-bold mb-2">
+            {isEditMode ? "Änderungen gespeichert!" : "Vielen Dank!"}
+          </h2>
+          <p className="text-muted-foreground">
+            {isEditMode
+              ? `Deine Anmeldung für „${formData.event.title}" wurde aktualisiert.`
+              : `Deine Anmeldung für „${formData.event.title}" wurde gespeichert.`}
+          </p>
+          {!isEditMode && email.trim() && (
             <p className="text-sm text-muted-foreground mt-2">Eine Bestätigung wurde an {email} gesendet.</p>
           )}
           {user && (
@@ -248,6 +323,12 @@ export default function EventRegistration() {
           </CardContent>
         </Card>
 
+        {isEditMode && (
+          <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+            Du bearbeitest deine bestehende Anmeldung. Änderungen werden beim Speichern übernommen.
+          </div>
+        )}
+
         {/* Form */}
         <div className="space-y-6">
           {/* Name & Email */}
@@ -276,7 +357,7 @@ export default function EventRegistration() {
           ))}
 
           <Button onClick={handleSubmit} disabled={submitting || !name.trim()} className="w-full" size="lg">
-            {submitting ? "Wird gesendet..." : "Anmeldung absenden"}
+            {submitting ? "Wird gespeichert..." : isEditMode ? "Änderungen speichern" : "Anmeldung absenden"}
           </Button>
         </div>
       </motion.div>
