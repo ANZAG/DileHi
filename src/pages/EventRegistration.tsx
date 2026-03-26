@@ -44,7 +44,7 @@ export default function EventRegistration() {
   useEffect(() => {
     if (!editToken) return;
     (async () => {
-      const { data, error } = await supabase.rpc("get_response_by_edit_token", { _edit_token: editToken });
+      const { data, error } = await (supabase.rpc as any)("get_response_by_edit_token", { _edit_token: editToken });
       if (error || !data) {
         // Fall back to normal token load
         setGuestEditToken(null);
