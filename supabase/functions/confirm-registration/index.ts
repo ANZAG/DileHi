@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, name, eventTitle, eventDate, eventLocation, whatsappLink } = await req.json();
+    const { email, name, eventTitle, eventDate, eventLocation, whatsappLink, editUrl } = await req.json();
 
     if (!email || !name || !eventTitle) {
       throw new Error("E-Mail, Name und Veranstaltungstitel erforderlich");
@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
 
     let whatsappSection = "";
     if (whatsappLink) {
-      // Generate QR code via public API
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(whatsappLink)}`;
       whatsappSection = `
         <div style="margin-top: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center;">
@@ -29,6 +28,17 @@ Deno.serve(async (req) => {
           <p style="margin: 0 0 12px; font-size: 13px; color: #15803d;">Tritt der Veranstaltungsgruppe bei, um auf dem Laufenden zu bleiben.</p>
           <img src="${qrUrl}" alt="WhatsApp QR-Code" width="160" height="160" style="display: block; margin: 0 auto 12px;" />
           <a href="${escapeHtml(whatsappLink)}" style="color: #166534; font-size: 13px; text-decoration: underline;">Direkt beitreten →</a>
+        </div>
+      `;
+    }
+
+    let editSection = "";
+    if (editUrl) {
+      editSection = `
+        <div style="margin-top: 24px; padding: 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; text-align: center;">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #854d0e; font-size: 14px;">✏️ Anmeldung bearbeiten</p>
+          <p style="margin: 0 0 12px; font-size: 13px; color: #a16207;">Du kannst deine Anmeldung bis zum Anmeldeschluss jederzeit ändern.</p>
+          ${buildButton(editUrl, "Anmeldung bearbeiten")}
         </div>
       `;
     }
@@ -55,6 +65,7 @@ Deno.serve(async (req) => {
         </tr>` : ""}
       </table>
 
+      ${editSection}
       ${whatsappSection}
 
       <p style="margin: 20px 0 0; font-size: 13px; color: #57534e;">
