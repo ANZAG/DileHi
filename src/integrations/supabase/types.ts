@@ -559,6 +559,7 @@ export type Database = {
       event_form_responses: {
         Row: {
           created_at: string
+          edit_token: string | null
           form_id: string
           id: string
           respondent_email: string | null
@@ -568,6 +569,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          edit_token?: string | null
           form_id: string
           id?: string
           respondent_email?: string | null
@@ -577,6 +579,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          edit_token?: string | null
           form_id?: string
           id?: string
           respondent_email?: string | null
@@ -1180,6 +1183,10 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      get_response_by_edit_token: {
+        Args: { _edit_token: string }
+        Returns: Json
+      }
       get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
       get_user_vote_count: {
         Args: { _election_id: string; _user_id: string }
@@ -1200,6 +1207,15 @@ export type Database = {
       submit_form_response: {
         Args: { _answers: Json; _email: string; _name: string; _token: string }
         Returns: string
+      }
+      update_response_by_edit_token: {
+        Args: {
+          _answers: Json
+          _edit_token: string
+          _email: string
+          _name: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
