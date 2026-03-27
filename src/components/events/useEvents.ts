@@ -370,7 +370,7 @@ export function useEvents() {
         return { form: f, event };
       })
       .filter((item) => item.event != null);
-  }, [eventForms, events, myFormResponses]);
+  }, [eventForms, events, myFormResponses, attendees, user?.id]);
 
   return {
     user, canModerate, canSetPublic, toast,

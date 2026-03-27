@@ -52,11 +52,22 @@ const EventsPage = () => {
               {ev.openUnsubmittedForms.map(({ form, event }) => (
                 <div key={form.id} className="flex items-center justify-between gap-2">
                   <span className="text-sm">{event!.title}</span>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to={`/anmeldung/${form.public_token}`}>
-                      Jetzt anmelden
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/anmeldung/${form.public_token}`}>
+                        Jetzt anmelden
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-muted-foreground"
+                      onClick={() => ev.toggleRSVP.mutate({ eventId: event!.id, decline: true })}
+                      disabled={ev.toggleRSVP.isPending}
+                    >
+                      <X size={14} className="mr-1" /> Absagen
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
