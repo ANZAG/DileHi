@@ -12,20 +12,22 @@ interface Props {
   events: Event[];
   eventAttendees: (id: string) => Attendee[];
   isAttending: (id: string) => boolean;
+  hasDeclined: (id: string) => boolean;
   canEdit: (ev: Event) => boolean;
   formatTimeDisplay: (ev: Event) => string;
   openCreate: (date?: Date) => void;
   openEdit: (ev: Event) => void;
   deleteEvent: (id: string) => void;
   toggleRSVP: (id: string) => void;
+  declineEvent: (id: string) => void;
   toggleRSVPPending: boolean;
   getFormForEvent: (eventId: string) => any;
   hasSubmittedForm: (formId: string) => boolean;
 }
 
 export default function EventDayView({
-  selectedDate, events, eventAttendees, isAttending, canEdit,
-  formatTimeDisplay, openCreate, openEdit, deleteEvent, toggleRSVP, toggleRSVPPending,
+  selectedDate, events, eventAttendees, isAttending, hasDeclined, canEdit,
+  formatTimeDisplay, openCreate, openEdit, deleteEvent, toggleRSVP, declineEvent, toggleRSVPPending,
   getFormForEvent, hasSubmittedForm,
 }: Props) {
   return (
