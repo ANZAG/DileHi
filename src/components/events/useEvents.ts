@@ -179,21 +179,41 @@ export function useEvents() {
   });
 
   const toggleRSVP = useMutation({
-    mutationFn: async (eventId: string) => {
+    mutationFn: async ({ eventId, decline }: { eventId: string; decline?: boolean }) => {
       const existing = attendees.find(a => a.event_id === eventId && a.user_id === user!.id);
       if (existing) {
-        const evForm = getFormForEvent(eventId);
-        if (evForm) {
-          const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
-          if (myResp) {
-            await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
-            await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+        if (decline && existing.status !== 'declined') {
+          // Switch from attending to declined — also remove form response
+          const evForm = getFormForEvent(eventId);
+          if (evForm) {
+            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+            if (myResp) {
+              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+            }
           }
+          const { error } = await supabase.from("event_attendees").update({ status: 'declined' }).eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          // Remove RSVP entirely (un-attend or un-decline)
+          const evForm = getFormForEvent(eventId);
+          if (evForm && existing.status === 'attending') {
+            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+            if (myResp) {
+              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+            }
+          }
+          const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
+          if (error) throw error;
         }
-        const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
+      } else if (decline) {
+        // Insert as declined
+        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'declined' });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id });
+        // Insert as attending
+        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'attending' });
         if (error) throw error;
       }
     },
