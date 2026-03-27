@@ -179,21 +179,41 @@ export function useEvents() {
   });
 
   const toggleRSVP = useMutation({
-    mutationFn: async (eventId: string) => {
+    mutationFn: async ({ eventId, decline }: { eventId: string; decline?: boolean }) => {
       const existing = attendees.find(a => a.event_id === eventId && a.user_id === user!.id);
       if (existing) {
-        const evForm = getFormForEvent(eventId);
-        if (evForm) {
-          const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
-          if (myResp) {
-            await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
-            await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+        if (decline && existing.status !== 'declined') {
+          // Switch from attending to declined — also remove form response
+          const evForm = getFormForEvent(eventId);
+          if (evForm) {
+            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+            if (myResp) {
+              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+            }
           }
+          const { error } = await supabase.from("event_attendees").update({ status: 'declined' }).eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          // Remove RSVP entirely (un-attend or un-decline)
+          const evForm = getFormForEvent(eventId);
+          if (evForm && existing.status === 'attending') {
+            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
+            if (myResp) {
+              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
+              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
+            }
+          }
+          const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
+          if (error) throw error;
         }
-        const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
+      } else if (decline) {
+        // Insert as declined
+        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'declined' });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id });
+        // Insert as attending
+        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'attending' });
         if (error) throw error;
       }
     },
@@ -302,8 +322,10 @@ export function useEvents() {
     return rows;
   }, [calendarDays, filteredEvents]);
 
-  const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
-  const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
+  const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId && a.status === 'attending');
+  const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'attending');
+  const hasDeclined = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'declined');
+  const eventDeclines = (eventId: string) => attendees.filter(a => a.event_id === eventId && a.status === 'declined');
   const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
   const canSetPublic = canPublish;
 
@@ -337,14 +359,18 @@ export function useEvents() {
         const closesAt = settings?.closes_at ? new Date(settings.closes_at) : null;
         if (opensAt && now < opensAt) return false;
         if (closesAt && now > closesAt) return false;
-        return !hasSubmittedForm(f.id);
+        if (hasSubmittedForm(f.id)) return false;
+        // Exclude events the member has declined
+        const eventId = f.event_id;
+        if (attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'declined')) return false;
+        return true;
       })
       .map((f) => {
         const event = events.find((e) => e.id === f.event_id);
         return { form: f, event };
       })
       .filter((item) => item.event != null);
-  }, [eventForms, events, myFormResponses]);
+  }, [eventForms, events, myFormResponses, attendees, user?.id]);
 
   return {
     user, canModerate, canSetPublic, toast,
@@ -368,7 +394,7 @@ export function useEvents() {
     createEvent, updateEvent, deleteEvent, toggleRSVP,
     openCreate, openEdit, resetForm,
     eventsForDay, isMultiDay, toDateOnly,
-    eventAttendees, isAttending, canEdit,
+    eventAttendees, isAttending, hasDeclined, eventDeclines, canEdit,
     formatTimeDisplay, selectedDayEvents,
     copyCalendarUrl,
     getFormForEvent, hasSubmittedForm,

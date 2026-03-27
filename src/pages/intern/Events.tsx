@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
@@ -52,11 +52,22 @@ const EventsPage = () => {
               {ev.openUnsubmittedForms.map(({ form, event }) => (
                 <div key={form.id} className="flex items-center justify-between gap-2">
                   <span className="text-sm">{event!.title}</span>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to={`/anmeldung/${form.public_token}`}>
-                      Jetzt anmelden
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/anmeldung/${form.public_token}`}>
+                        Jetzt anmelden
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-muted-foreground"
+                      onClick={() => ev.toggleRSVP.mutate({ eventId: event!.id, decline: true })}
+                      disabled={ev.toggleRSVP.isPending}
+                    >
+                      <X size={14} className="mr-1" /> Absagen
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -86,12 +97,14 @@ const EventsPage = () => {
             events={ev.selectedDayEvents}
             eventAttendees={ev.eventAttendees}
             isAttending={ev.isAttending}
+            hasDeclined={ev.hasDeclined}
             canEdit={ev.canEdit}
             formatTimeDisplay={ev.formatTimeDisplay}
             openCreate={ev.openCreate}
             openEdit={ev.openEdit}
             deleteEvent={(id) => ev.deleteEvent.mutate(id)}
-            toggleRSVP={(id) => ev.toggleRSVP.mutate(id)}
+            toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
+            declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
             toggleRSVPPending={ev.toggleRSVP.isPending}
             getFormForEvent={ev.getFormForEvent}
             hasSubmittedForm={ev.hasSubmittedForm}
@@ -172,7 +185,7 @@ const EventsPage = () => {
         isAttending={ev.isAttending}
         canEdit={ev.canEdit}
         openEdit={ev.openEdit}
-        toggleRSVP={(id) => ev.toggleRSVP.mutate(id)}
+        toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
       />
 
       <CalendarSyncDialog

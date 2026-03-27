@@ -12,20 +12,22 @@ interface Props {
   events: Event[];
   eventAttendees: (id: string) => Attendee[];
   isAttending: (id: string) => boolean;
+  hasDeclined: (id: string) => boolean;
   canEdit: (ev: Event) => boolean;
   formatTimeDisplay: (ev: Event) => string;
   openCreate: (date?: Date) => void;
   openEdit: (ev: Event) => void;
   deleteEvent: (id: string) => void;
   toggleRSVP: (id: string) => void;
+  declineEvent: (id: string) => void;
   toggleRSVPPending: boolean;
   getFormForEvent: (eventId: string) => any;
   hasSubmittedForm: (formId: string) => boolean;
 }
 
 export default function EventDayView({
-  selectedDate, events, eventAttendees, isAttending, canEdit,
-  formatTimeDisplay, openCreate, openEdit, deleteEvent, toggleRSVP, toggleRSVPPending,
+  selectedDate, events, eventAttendees, isAttending, hasDeclined, canEdit,
+  formatTimeDisplay, openCreate, openEdit, deleteEvent, toggleRSVP, declineEvent, toggleRSVPPending,
   getFormForEvent, hasSubmittedForm,
 }: Props) {
   return (
@@ -46,6 +48,7 @@ export default function EventDayView({
           {events.map(ev => {
             const att = eventAttendees(ev.id);
             const attending = isAttending(ev.id);
+            const declined = hasDeclined(ev.id);
             return (
               <div key={ev.id} className="p-4 border rounded-lg bg-card">
                 <div className="flex items-start justify-between gap-2">
@@ -115,11 +118,36 @@ export default function EventDayView({
                       if (evForm?.is_open && isInWindow && evForm.public_token) {
                         const alreadySubmitted = hasSubmittedForm(evForm.id);
                         return (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to={`/anmeldung/${evForm.public_token}`}>
-                              <FileText size={14} className="mr-1" /> {alreadySubmitted ? "Bearbeiten" : "Anmelden"}
-                            </Link>
-                          </Button>
+                          <>
+                            {!declined && (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link to={`/anmeldung/${evForm.public_token}`}>
+                                  <FileText size={14} className="mr-1" /> {alreadySubmitted ? "Bearbeiten" : "Anmelden"}
+                                </Link>
+                              </Button>
+                            )}
+                            {/* Decline / undo decline for form events */}
+                            {declined ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => toggleRSVP(ev.id)}
+                                disabled={toggleRSVPPending}
+                              >
+                                Absage zurücknehmen
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground"
+                                onClick={() => declineEvent(ev.id)}
+                                disabled={toggleRSVPPending}
+                              >
+                                <X size={14} className="mr-1" /> Absagen
+                              </Button>
+                            )}
+                          </>
                         );
                       }
                       return null;
@@ -137,7 +165,7 @@ export default function EventDayView({
                           <><Check size={14} className="mr-1" /> Zusagen</>
                         )}
                       </Button>
-                    ) : attending && (
+                    ) : attending && !getFormForEvent(ev.id)?.is_open && (
                       <Button
                         size="sm"
                         variant="secondary"
