@@ -86,12 +86,14 @@ const EventsPage = () => {
             events={ev.selectedDayEvents}
             eventAttendees={ev.eventAttendees}
             isAttending={ev.isAttending}
+            hasDeclined={ev.hasDeclined}
             canEdit={ev.canEdit}
             formatTimeDisplay={ev.formatTimeDisplay}
             openCreate={ev.openCreate}
             openEdit={ev.openEdit}
             deleteEvent={(id) => ev.deleteEvent.mutate(id)}
-            toggleRSVP={(id) => ev.toggleRSVP.mutate(id)}
+            toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
+            declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
             toggleRSVPPending={ev.toggleRSVP.isPending}
             getFormForEvent={ev.getFormForEvent}
             hasSubmittedForm={ev.hasSubmittedForm}
