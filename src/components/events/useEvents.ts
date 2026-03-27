@@ -359,7 +359,11 @@ export function useEvents() {
         const closesAt = settings?.closes_at ? new Date(settings.closes_at) : null;
         if (opensAt && now < opensAt) return false;
         if (closesAt && now > closesAt) return false;
-        return !hasSubmittedForm(f.id);
+        if (hasSubmittedForm(f.id)) return false;
+        // Exclude events the member has declined
+        const eventId = f.event_id;
+        if (attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'declined')) return false;
+        return true;
       })
       .map((f) => {
         const event = events.find((e) => e.id === f.event_id);
