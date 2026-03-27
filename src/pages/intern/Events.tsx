@@ -174,7 +174,7 @@ const EventsPage = () => {
         isAttending={ev.isAttending}
         canEdit={ev.canEdit}
         openEdit={ev.openEdit}
-        toggleRSVP={(id) => ev.toggleRSVP.mutate(id)}
+        toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
       />
 
       <CalendarSyncDialog

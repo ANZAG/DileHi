@@ -394,7 +394,7 @@ export function useEvents() {
     createEvent, updateEvent, deleteEvent, toggleRSVP,
     openCreate, openEdit, resetForm,
     eventsForDay, isMultiDay, toDateOnly,
-    eventAttendees, isAttending, canEdit,
+    eventAttendees, isAttending, hasDeclined, eventDeclines, canEdit,
     formatTimeDisplay, selectedDayEvents,
     copyCalendarUrl,
     getFormForEvent, hasSubmittedForm,
