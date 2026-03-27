@@ -322,8 +322,10 @@ export function useEvents() {
     return rows;
   }, [calendarDays, filteredEvents]);
 
-  const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId);
-  const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id);
+  const eventAttendees = (eventId: string) => attendees.filter(a => a.event_id === eventId && a.status === 'attending');
+  const isAttending = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'attending');
+  const hasDeclined = (eventId: string) => attendees.some(a => a.event_id === eventId && a.user_id === user?.id && a.status === 'declined');
+  const eventDeclines = (eventId: string) => attendees.filter(a => a.event_id === eventId && a.status === 'declined');
   const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
   const canSetPublic = canPublish;
 
