@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
