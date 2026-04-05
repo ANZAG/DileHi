@@ -251,7 +251,7 @@ const ForumThread = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm whitespace-pre-wrap">{post.content}</div>
+                  <MarkdownContent content={post.content} />
                 )}
               </div>
             );
