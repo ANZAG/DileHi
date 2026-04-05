@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins, MapPin, MessageSquare } from "lucide-react";
 
-const FORUM_BETA_EMAIL = "eric.triesbach@outlook.de";
+const FORUM_BETA_EMAIL = "eric.treisbach@outlook.de";
 
 const baseCards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
