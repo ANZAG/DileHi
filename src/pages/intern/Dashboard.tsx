@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins, MapPin } from "lucide-react";
+import { BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, FileText, Coins, MapPin, MessageSquare } from "lucide-react";
 
-const cards = [
+const FORUM_BETA_EMAIL = "eric.triesbach@outlook.de";
+
+const baseCards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
   { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
@@ -15,6 +17,10 @@ const cards = [
 const Dashboard = () => {
   const { user, signOut, isVorstand, isHerold, isSchatzmeister, hasPermission } = useAuth();
   const canAdmin = hasPermission("admin.access");
+  const showForum = user?.email === FORUM_BETA_EMAIL;
+  const cards = showForum
+    ? [...baseCards, { title: "Forum", desc: "Diskussionen und Austausch.", icon: MessageSquare, path: "/intern/forum" }]
+    : baseCards;
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
