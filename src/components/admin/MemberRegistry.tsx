@@ -70,6 +70,7 @@ const MemberRegistry = () => {
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [editRole, setEditRole] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editExitDate, setEditExitDate] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);

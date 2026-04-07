@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, Reply, Pencil, Trash2, Pin, Lock } from "lucide-react";
 import MarkdownContent from "@/components/forum/MarkdownContent";
+import MarkdownToolbar from "@/components/forum/MarkdownToolbar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,10 +19,11 @@ const ForumThread = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [content, setContent] = useState("");
-  const [replyTo, setReplyTo] = useState<{ id: string; author: string; preview: string } | null>(null);
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const canModerate = hasPermission("forum.moderate");
 
   const { data: thread } = useQuery({
@@ -88,6 +90,18 @@ const ForumThread = () => {
     return () => { supabase.removeChannel(channel); };
   }, [threadId, queryClient]);
 
+  // Quote helper: inserts a blockquote into the textarea
+  const insertQuote = (authorName: string, postContent: string) => {
+    const quotedLines = postContent.split("\n").map((l) => `> ${l}`).join("\n");
+    const quote = `> **${authorName}:**\n${quotedLines}\n\n`;
+    setContent((prev) => quote + prev);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      const len = quote.length;
+      textareaRef.current?.setSelectionRange(len + content.length, len + content.length);
+    });
+  };
+
   const sendPost = useMutation({
     mutationFn: async () => {
       if (!user || !threadId || !content.trim()) return;
@@ -95,13 +109,11 @@ const ForumThread = () => {
         thread_id: threadId,
         content: content.trim(),
         created_by: user.id,
-        reply_to_id: replyTo?.id || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setContent("");
-      setReplyTo(null);
       queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     },
@@ -160,10 +172,6 @@ const ForumThread = () => {
   const catSlug = (thread as any)?.forum_categories?.slug || "";
   const catName = (thread as any)?.forum_categories?.name || "Forum";
 
-  // First post is the opening post
-  const openingPost = posts[0];
-  const replies = posts.slice(1);
-
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -181,14 +189,14 @@ const ForumThread = () => {
           </div>
           {canModerate && (
             <div className="flex gap-1 shrink-0">
-              <Button variant="ghost" size="icon" onClick={() => togglePin.mutate()} title={thread.is_pinned ? "Lösen" : "Anpinnen"}>
-                <Pin size={16} />
+              <Button variant="outline" size="sm" onClick={() => togglePin.mutate()} title={thread.is_pinned ? "Lösen" : "Anpinnen"}>
+                <Pin size={14} className="mr-1" /> {thread.is_pinned ? "Lösen" : "Pinnen"}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => toggleLock.mutate()} title={thread.is_locked ? "Entsperren" : "Sperren"}>
-                <Lock size={16} />
+              <Button variant="outline" size="sm" onClick={() => toggleLock.mutate()} title={thread.is_locked ? "Entsperren" : "Sperren"}>
+                <Lock size={14} className="mr-1" /> {thread.is_locked ? "Entsperren" : "Sperren"}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => { if (confirm("Thread wirklich löschen?")) deleteThread.mutate(); }}>
-                <Trash2 size={16} className="text-destructive" />
+              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { if (confirm("Thread wirklich löschen?")) deleteThread.mutate(); }}>
+                <Trash2 size={14} className="mr-1" /> Löschen
               </Button>
             </div>
           )}
@@ -199,24 +207,16 @@ const ForumThread = () => {
           {posts.map((post, idx) => {
             const isOpening = idx === 0;
             const isOwn = post.created_by === user?.id;
-            const quotedPost = post.reply_to_id ? posts.find((p) => p.id === post.reply_to_id) : null;
+            const authorName = nameMap.get(post.created_by) || "Unbekannt";
 
             return (
               <div
                 key={post.id}
                 className={`p-4 rounded-lg border ${isOpening ? "bg-primary/5 border-primary/20" : "bg-card"}`}
               >
-                {quotedPost && (
-                  <div className="mb-2 p-2 rounded bg-muted text-xs text-muted-foreground border-l-2 border-primary/30">
-                    <span className="font-semibold">{nameMap.get(quotedPost.created_by) || "Unbekannt"}:</span>{" "}
-                    {quotedPost.content.slice(0, 120)}
-                    {quotedPost.content.length > 120 && "…"}
-                  </div>
-                )}
-
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{nameMap.get(post.created_by) || "Unbekannt"}</span>
+                    <span className="text-sm font-semibold">{authorName}</span>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(post.created_at), "d. MMM yyyy, HH:mm", { locale: de })}
                     </span>
@@ -224,18 +224,28 @@ const ForumThread = () => {
                   </div>
                   <div className="flex gap-1">
                     {!thread.is_locked && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setReplyTo({ id: post.id, author: nameMap.get(post.created_by) || "", preview: post.content.slice(0, 60) })}>
-                        <Reply size={14} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => insertQuote(authorName, post.content)}
+                      >
+                        <Reply size={13} className="mr-1" /> Zitieren
                       </Button>
                     )}
                     {(isOwn || canModerate) && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
-                          <Pencil size={14} />
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
+                          <Pencil size={13} className="mr-1" /> Bearbeiten
                         </Button>
                         {(!isOpening || canModerate) && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (confirm("Beitrag löschen?")) deletePost.mutate(post.id); }}>
-                            <Trash2 size={14} className="text-destructive" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-destructive hover:text-destructive"
+                            onClick={() => { if (confirm("Beitrag löschen?")) deletePost.mutate(post.id); }}
+                          >
+                            <Trash2 size={13} className="mr-1" /> Löschen
                           </Button>
                         )}
                       </>
@@ -245,7 +255,8 @@ const ForumThread = () => {
 
                 {editingPost === post.id ? (
                   <div className="space-y-2">
-                    <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={3} />
+                    <MarkdownToolbar textareaRef={editTextareaRef} value={editContent} onChange={setEditContent} />
+                    <Textarea ref={editTextareaRef} value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={4} />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => updatePost.mutate({ postId: post.id, newContent: editContent })}>Speichern</Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingPost(null)}>Abbrechen</Button>
@@ -264,19 +275,14 @@ const ForumThread = () => {
         {/* Reply box */}
         {!thread.is_locked ? (
           <div className="mt-6 sticky bottom-4 bg-background border rounded-lg p-4 shadow-lg">
-            {replyTo && (
-              <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                <Reply size={12} />
-                <span>Antwort auf {replyTo.author}: „{replyTo.preview}…"</span>
-                <button className="text-destructive hover:underline" onClick={() => setReplyTo(null)}>×</button>
-              </div>
-            )}
+            <MarkdownToolbar textareaRef={textareaRef} value={content} onChange={setContent} />
             <div className="flex gap-2">
               <Textarea
-                placeholder="Nachricht schreiben…"
+                ref={textareaRef}
+                placeholder="Nachricht schreiben… (Markdown wird unterstützt)"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                rows={2}
+                rows={3}
                 className="flex-1 resize-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
