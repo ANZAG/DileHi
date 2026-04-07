@@ -221,6 +221,14 @@ const MemberRegistry = () => {
       if (!selectedMember) return;
       const userId = selectedMember.user_id;
 
+      // Update display name if changed
+      if (editDisplayName !== selectedMember.display_name) {
+        const { error } = await supabase.functions.invoke("manage-member", {
+          body: { action: "update_profile", userId, displayName: editDisplayName },
+        });
+        if (error) throw error;
+      }
+
       // Update role if changed
       if (selectedMember.role !== editRole) {
         const { error } = await supabase.functions.invoke("manage-member", {
@@ -354,6 +362,7 @@ const MemberRegistry = () => {
   const openMemberDetail = (m: MemberData) => {
     setSelectedMember(m);
     setEditRole(m.role);
+    setEditDisplayName(m.display_name);
     setEditEntryDate(m.entry_date || "");
     setEditExitDate(m.exit_date || "");
     setEditIsActive(m.is_active);
