@@ -70,6 +70,7 @@ const MemberRegistry = () => {
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
   const [editRole, setEditRole] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editExitDate, setEditExitDate] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
@@ -220,6 +221,14 @@ const MemberRegistry = () => {
       if (!selectedMember) return;
       const userId = selectedMember.user_id;
 
+      // Update display name if changed
+      if (editDisplayName !== selectedMember.display_name) {
+        const { error } = await supabase.functions.invoke("manage-member", {
+          body: { action: "update_profile", userId, displayName: editDisplayName },
+        });
+        if (error) throw error;
+      }
+
       // Update role if changed
       if (selectedMember.role !== editRole) {
         const { error } = await supabase.functions.invoke("manage-member", {
@@ -353,6 +362,7 @@ const MemberRegistry = () => {
   const openMemberDetail = (m: MemberData) => {
     setSelectedMember(m);
     setEditRole(m.role);
+    setEditDisplayName(m.display_name);
     setEditEntryDate(m.entry_date || "");
     setEditExitDate(m.exit_date || "");
     setEditIsActive(m.is_active);
@@ -562,12 +572,18 @@ const MemberRegistry = () => {
 
           {selectedMember && (
             <div className="space-y-5">
-              {/* Personal data (read-only) */}
+              {/* Personal data */}
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Persönliche Daten</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <span className="text-muted-foreground">Name</span>
-                  <span>{selectedMember.first_name || selectedMember.last_name ? `${selectedMember.first_name} ${selectedMember.last_name}`.trim() : selectedMember.display_name}</span>
+                  <span className="text-muted-foreground">Anzeigename</span>
+                  <Input
+                    value={editDisplayName}
+                    onChange={(e) => setEditDisplayName(e.target.value)}
+                    className="h-7 text-sm"
+                  />
+                  <span className="text-muted-foreground">Vor-/Nachname</span>
+                  <span>{selectedMember.first_name || selectedMember.last_name ? `${selectedMember.first_name} ${selectedMember.last_name}`.trim() : "–"}</span>
                   <span className="text-muted-foreground">E-Mail</span>
                   <span className="break-all">{selectedMember.email || "–"}</span>
                   <span className="text-muted-foreground">Telefon</span>
