@@ -21,7 +21,7 @@ import kaserneImage from "@/assets/kaserne-mainz-kastel.webp";
 import uniformImage from "@/assets/pibat21-uniform.webp";
 import karteImage from "@/assets/karte-hessen-nassau.webp";
 
-const FALLBACKS: Record<string, string> = {
+export const SITE_IMAGE_FALLBACKS: Record<string, string> = {
   "hero-startseite": heroMedieval,
   "epochenkarte-mittelalter": epochMedieval,
   "epochenkarte-napoleonik": epoch1815,
