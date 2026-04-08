@@ -181,18 +181,18 @@ const ForumThread = () => {
           </Link>
         </div>
 
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 flex-wrap mb-2">
             {thread.is_pinned && <Pin size={16} className="text-primary" />}
             {thread.is_locked && <Lock size={16} className="text-muted-foreground" />}
             <h1 className="font-serif text-xl sm:text-2xl font-bold">{thread.title}</h1>
           </div>
           {canModerate && (
-            <div className="flex gap-1 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => togglePin.mutate()} title={thread.is_pinned ? "Lösen" : "Anpinnen"}>
+            <div className="flex flex-wrap gap-1">
+              <Button variant="outline" size="sm" onClick={() => togglePin.mutate()}>
                 <Pin size={14} className="mr-1" /> {thread.is_pinned ? "Lösen" : "Pinnen"}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toggleLock.mutate()} title={thread.is_locked ? "Entsperren" : "Sperren"}>
+              <Button variant="outline" size="sm" onClick={() => toggleLock.mutate()}>
                 <Lock size={14} className="mr-1" /> {thread.is_locked ? "Entsperren" : "Sperren"}
               </Button>
               <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { if (confirm("Thread wirklich löschen?")) deleteThread.mutate(); }}>
@@ -222,7 +222,7 @@ const ForumThread = () => {
                     </span>
                     {post.is_edited && <span className="text-xs text-muted-foreground italic">(bearbeitet)</span>}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     {!thread.is_locked && (
                       <Button
                         variant="outline"
@@ -233,22 +233,25 @@ const ForumThread = () => {
                         <Reply size={13} className="mr-1" /> Zitieren
                       </Button>
                     )}
-                    {(isOwn || canModerate) && (
-                      <>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
-                          <Pencil size={13} className="mr-1" /> Bearbeiten
-                        </Button>
-                        {(!isOpening || canModerate) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-destructive hover:text-destructive"
-                            onClick={() => { if (confirm("Beitrag löschen?")) deletePost.mutate(post.id); }}
-                          >
-                            <Trash2 size={13} className="mr-1" /> Löschen
-                          </Button>
-                        )}
-                      </>
+                    {isOwn && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
+                        <Pencil size={13} className="mr-1" /> Bearbeiten
+                      </Button>
+                    )}
+                    {(isOwn && !isOpening) || canModerate ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-destructive hover:text-destructive"
+                        onClick={() => { if (confirm("Beitrag löschen?")) deletePost.mutate(post.id); }}
+                      >
+                        <Trash2 size={13} className="mr-1" /> Löschen
+                      </Button>
+                    ) : null}
+                    {canModerate && !isOwn && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
+                        <Pencil size={13} className="mr-1" /> Bearbeiten
+                      </Button>
                     )}
                   </div>
                 </div>

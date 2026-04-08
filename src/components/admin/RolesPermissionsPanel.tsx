@@ -35,6 +35,7 @@ const ALL_PERMISSIONS = [
   { key: "announcements.moderate", label: "Ankündigungen erstellen & moderieren", category: "Kommunikation" },
   { key: "events.moderate", label: "Alle Veranstaltungen bearbeiten & löschen", category: "Kommunikation" },
   { key: "events.publish", label: "Veranstaltungen öffentlich stellen", category: "Kommunikation" },
+  { key: "forum.moderate", label: "Forum moderieren (Pinnen, Sperren, Löschen)", category: "Kommunikation" },
 ];
 
 type RoleKey = (typeof ROLES)[number]["key"];
