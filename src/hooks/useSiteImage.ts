@@ -63,7 +63,7 @@ export function useSiteImages() {
       
       const map: Record<string, SiteImageData> = {};
       for (const img of data) {
-        let src = FALLBACKS[img.slot] || "";
+        let src = SITE_IMAGE_FALLBACKS[img.slot] || "";
         if (img.storage_path) {
           const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
           src = urlData.publicUrl;
@@ -80,5 +80,5 @@ export function useSiteImages() {
 export function useSiteImage(slot: string): SiteImageData {
   const { data } = useSiteImages();
   if (data?.[slot]) return data[slot];
-  return { src: FALLBACKS[slot] || "", alt: "" };
+  return { src: SITE_IMAGE_FALLBACKS[slot] || "", alt: "" };
 }
