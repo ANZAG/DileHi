@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Pencil, Check, X, Image } from "lucide-react";
+import { SITE_IMAGE_FALLBACKS } from "@/hooks/useSiteImage";
 
 /** Converts any image File to WebP using the Canvas API */
 const convertToWebP = (file: File): Promise<File> =>
@@ -177,10 +178,15 @@ const SiteImagesAdmin = () => {
                         <div className="aspect-[4/3] bg-muted flex items-center justify-center">
                           {previewUrl ? (
                             <img src={previewUrl} alt={img.alt_text} className="w-full h-full object-cover" />
+                          ) : SITE_IMAGE_FALLBACKS[img.slot] ? (
+                            <div className="relative w-full h-full">
+                              <img src={SITE_IMAGE_FALLBACKS[img.slot]} alt={img.alt_text || "Standard-Bild"} className="w-full h-full object-cover" />
+                              <span className="absolute bottom-1 left-1 text-[10px] bg-background/80 text-muted-foreground px-1 rounded">Standard</span>
+                            </div>
                           ) : (
                             <div className="text-center text-xs text-muted-foreground p-2">
                               <Image size={24} className="mx-auto mb-1 opacity-40" />
-                              Standard-Bild
+                              Kein Bild
                             </div>
                           )}
                         </div>
