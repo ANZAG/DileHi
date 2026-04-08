@@ -60,7 +60,7 @@ export function useSiteImages() {
         .from("site_images")
         .select("*");
       if (error) return {} as Record<string, SiteImageData>;
-      
+
       const map: Record<string, SiteImageData> = {};
       for (const img of data) {
         let src = SITE_IMAGE_FALLBACKS[img.slot] || "";
