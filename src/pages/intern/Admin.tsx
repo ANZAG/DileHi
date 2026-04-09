@@ -48,6 +48,9 @@ const Admin = () => {
     ...(canRoles ? [
       { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
     ] : []),
+    ...(canForumCategories ? [
+      { id: "forum" as const, label: "Forum", icon: MessageSquare, desc: "Kategorien verwalten" },
+    ] : []),
     ...(canAudit ? [
       { id: "audit" as const, label: "Audit-Log", icon: FileText, desc: "Abstimmungsprotokoll einsehen" },
     ] : []),
