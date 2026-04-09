@@ -94,7 +94,7 @@ const ForumCategoriesAdmin = () => {
       slug: cat.slug,
       description: cat.description || "",
       icon: cat.icon || "MessageSquare",
-      category_type: (cat as any).category_type || "diskussion",
+      category_type: cat.category_type || "diskussion",
       sort_order: cat.sort_order || 0,
     });
     setDialogOpen(true);
@@ -179,7 +179,7 @@ const ForumCategoriesAdmin = () => {
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{cat.name}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                    {typeLabel((cat as any).category_type || "diskussion")}
+                    {typeLabel(cat.category_type || "diskussion")}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{cat.description}</p>
