@@ -97,6 +97,7 @@ const Admin = () => {
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
+          {activeTab === "forum" && canForumCategories && <ForumCategoriesAdmin />}
         </div>
       </motion.div>
     </div>
