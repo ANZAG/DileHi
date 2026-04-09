@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Reply, Pencil, Trash2, Pin, Lock } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Pin, Lock } from "lucide-react";
 import MarkdownContent from "@/components/forum/MarkdownContent";
+import ForumEditor from "@/components/forum/ForumEditor";
+import ForumSubscribeButton from "@/components/forum/ForumSubscribeButton";
 import MarkdownToolbar from "@/components/forum/MarkdownToolbar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { de } from "date-fns/locale";
 
 const ForumThread = () => {
@@ -22,7 +24,6 @@ const ForumThread = () => {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const canModerate = hasPermission("forum.moderate");
 
@@ -90,16 +91,11 @@ const ForumThread = () => {
     return () => { supabase.removeChannel(channel); };
   }, [threadId, queryClient]);
 
-  // Quote helper: inserts a blockquote into the textarea
-  const insertQuote = (authorName: string, postContent: string) => {
-    const quotedLines = postContent.split("\n").map((l) => `> ${l}`).join("\n");
-    const quote = `> **${authorName}:**\n${quotedLines}\n\n`;
-    setContent((prev) => quote + prev);
-    requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-      const len = quote.length;
-      textareaRef.current?.setSelectionRange(len + content.length, len + content.length);
-    });
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const days = differenceInDays(new Date(), date);
+    if (days < 1) return formatDistanceToNow(date, { addSuffix: true, locale: de });
+    return format(date, "d. MMM yyyy, HH:mm", { locale: de });
   };
 
   const sendPost = useMutation({
@@ -175,10 +171,11 @@ const ForumThread = () => {
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <Link to={`/intern/forum/${catSlug}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={16} /> {catName}
           </Link>
+          <ForumSubscribeButton threadId={threadId} />
         </div>
 
         <div className="mb-6">
@@ -218,21 +215,11 @@ const ForumThread = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{authorName}</span>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(post.created_at), "d. MMM yyyy, HH:mm", { locale: de })}
+                      {formatTime(post.created_at)}
                     </span>
                     {post.is_edited && <span className="text-xs text-muted-foreground italic">(bearbeitet)</span>}
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {!thread.is_locked && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => insertQuote(authorName, post.content)}
-                      >
-                        <Reply size={13} className="mr-1" /> Zitieren
-                      </Button>
-                    )}
                     {isOwn && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditingPost(post.id); setEditContent(post.content); }}>
                         <Pencil size={13} className="mr-1" /> Bearbeiten
@@ -278,26 +265,13 @@ const ForumThread = () => {
         {/* Reply box */}
         {!thread.is_locked ? (
           <div className="mt-6 sticky bottom-4 bg-background border rounded-lg p-4 shadow-lg">
-            <MarkdownToolbar textareaRef={textareaRef} value={content} onChange={setContent} />
-            <div className="flex gap-2">
-              <Textarea
-                ref={textareaRef}
-                placeholder="Nachricht schreiben… (Markdown wird unterstützt)"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={3}
-                className="flex-1 resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    sendPost.mutate();
-                  }
-                }}
-              />
-              <Button onClick={() => sendPost.mutate()} disabled={!content.trim() || sendPost.isPending} className="self-end">
-                <Send size={16} />
-              </Button>
-            </div>
+            <ForumEditor
+              value={content}
+              onChange={setContent}
+              onSubmit={() => sendPost.mutate()}
+              isPending={sendPost.isPending}
+              rows={3}
+            />
           </div>
         ) : (
           <p className="mt-6 text-center text-sm text-muted-foreground">Dieses Thema ist gesperrt.</p>

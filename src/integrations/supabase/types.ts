@@ -697,6 +697,7 @@ export type Database = {
       }
       forum_categories: {
         Row: {
+          category_type: Database["public"]["Enums"]["forum_category_type"]
           created_at: string
           description: string | null
           icon: string | null
@@ -706,6 +707,7 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
+          category_type?: Database["public"]["Enums"]["forum_category_type"]
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -715,6 +717,7 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
+          category_type?: Database["public"]["Enums"]["forum_category_type"]
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -795,6 +798,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "forum_read_status_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_subscriptions: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_subscriptions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "forum_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_subscriptions_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "forum_threads"
@@ -984,6 +1026,48 @@ export type Database = {
           name?: string
           storage_path?: string
           uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_read: boolean
+          link: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -1377,6 +1461,7 @@ export type Database = {
     }
     Enums: {
       app_role: "vorstand" | "mitglied" | "herold" | "schatzmeister"
+      forum_category_type: "wissen" | "diskussion" | "organisation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1505,6 +1590,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["vorstand", "mitglied", "herold", "schatzmeister"],
+      forum_category_type: ["wissen", "diskussion", "organisation"],
     },
   },
 } as const

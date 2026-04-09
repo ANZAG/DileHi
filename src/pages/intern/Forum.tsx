@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MessageSquare, Shield, Swords, Target, Calendar, Plus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, MessageSquare, Shield, Swords, Target, Calendar, BookOpen, Users, Lightbulb, Wrench } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,21 @@ const iconMap: Record<string, React.ElementType> = {
   Swords,
   Target,
   Calendar,
+  BookOpen,
+  Users,
+  Lightbulb,
+  Wrench,
+};
+
+const typeLabels: Record<string, string> = {
+  diskussion: "Diskussion",
+  wissen: "Wissen",
+  organisation: "Organisation",
 };
 
 const Forum = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: categories = [] } = useQuery({
     queryKey: ["forum-categories"],
@@ -29,34 +41,23 @@ const Forum = () => {
     },
   });
 
-  // Thread counts per category
   const { data: threadCounts = {} } = useQuery({
     queryKey: ["forum-thread-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("forum_threads")
-        .select("category_id");
+      const { data, error } = await supabase.from("forum_threads").select("category_id");
       if (error) throw error;
       const counts: Record<string, number> = {};
-      data.forEach((t) => {
-        counts[t.category_id] = (counts[t.category_id] || 0) + 1;
-      });
+      data.forEach((t) => { counts[t.category_id] = (counts[t.category_id] || 0) + 1; });
       return counts;
     },
   });
 
-  // Unread counts
   const { data: unreadCounts = {} } = useQuery({
     queryKey: ["forum-unread-counts", user?.id],
     queryFn: async () => {
       if (!user) return {};
-      const { data: threads } = await supabase
-        .from("forum_threads")
-        .select("id, category_id, last_post_at");
-      const { data: readStatus } = await supabase
-        .from("forum_read_status")
-        .select("thread_id, last_read_at")
-        .eq("user_id", user.id);
+      const { data: threads } = await supabase.from("forum_threads").select("id, category_id, last_post_at");
+      const { data: readStatus } = await supabase.from("forum_read_status").select("thread_id, last_read_at").eq("user_id", user.id);
       if (!threads) return {};
       const readMap = new Map(readStatus?.map((r) => [r.thread_id, r.last_read_at]) || []);
       const counts: Record<string, number> = {};
@@ -70,6 +71,19 @@ const Forum = () => {
     },
     enabled: !!user,
   });
+
+  // Realtime: refresh when any thread is added/deleted
+  useEffect(() => {
+    const channel = supabase
+      .channel("forum-overview")
+      .on("postgres_changes", { event: "*", schema: "public", table: "forum_threads" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["forum-thread-counts"] });
+        queryClient.invalidateQueries({ queryKey: ["forum-unread-counts"] });
+        queryClient.invalidateQueries({ queryKey: ["forum-categories"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
@@ -98,6 +112,9 @@ const Forum = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="font-serif font-semibold">{cat.name}</h2>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      {typeLabels[cat.category_type] || cat.category_type}
+                    </span>
                     {unread > 0 && (
                       <Badge variant="default" className="text-xs">{unread}</Badge>
                     )}
