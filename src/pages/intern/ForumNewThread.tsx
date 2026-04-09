@@ -7,8 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import ForumEditor from "@/components/forum/ForumEditor";
 import { toast } from "@/hooks/use-toast";
 
 const ForumNewThread = () => {
@@ -35,8 +35,6 @@ const ForumNewThread = () => {
   const createThread = useMutation({
     mutationFn: async () => {
       if (!user || !category) return;
-
-      // Create thread
       const { data: thread, error: threadError } = await supabase
         .from("forum_threads")
         .insert({
@@ -48,7 +46,6 @@ const ForumNewThread = () => {
         .single();
       if (threadError) throw threadError;
 
-      // Create opening post
       const { error: postError } = await supabase
         .from("forum_posts")
         .insert({
@@ -84,8 +81,16 @@ const ForumNewThread = () => {
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Worum geht es?" className="mt-1" />
           </div>
           <div>
-            <Label htmlFor="content">Beitrag</Label>
-            <Textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} placeholder="Schreibe deinen Beitrag…" rows={8} className="mt-1" />
+            <Label>Beitrag</Label>
+            <div className="mt-1">
+              <ForumEditor
+                value={content}
+                onChange={setContent}
+                rows={8}
+                showSubmitButton={false}
+                placeholder="Schreibe deinen Beitrag…"
+              />
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => createThread.mutate()} disabled={!title.trim() || !content.trim() || createThread.isPending}>

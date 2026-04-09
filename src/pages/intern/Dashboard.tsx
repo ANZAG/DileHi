@@ -11,6 +11,7 @@ const baseCards = [
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente" },
   { title: "Forum", desc: "Diskussionen und Austausch.", icon: MessageSquare, path: "/intern/forum" },
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
+  { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte" },
 ];
 
 const Dashboard = () => {
