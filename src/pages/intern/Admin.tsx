@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, MessageSquare } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -11,8 +11,9 @@ import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
+import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 
-type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
+type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "forum";
 
 const Admin = () => {
   const { hasPermission } = useAuth();
@@ -20,6 +21,7 @@ const Admin = () => {
   const canMembers = hasPermission("members.manage");
   const canRoles = hasPermission("roles.manage");
   const canAudit = hasPermission("audit.view");
+  const canForumCategories = hasPermission("forum.categories_manage");
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
