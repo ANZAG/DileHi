@@ -130,7 +130,7 @@ const ForumCategoriesAdmin = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Typ</Label>
-                  <Select value={form.category_type} onValueChange={(v) => setForm({ ...form, category_type: v })}>
+                  <Select value={form.category_type} onValueChange={(v: "diskussion" | "wissen" | "organisation") => setForm({ ...form, category_type: v })}>
                     <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {CATEGORY_TYPES.map((t) => (
