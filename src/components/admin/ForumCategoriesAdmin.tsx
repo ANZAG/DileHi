@@ -22,7 +22,7 @@ interface CategoryForm {
   slug: string;
   description: string;
   icon: string;
-  category_type: string;
+  category_type: "diskussion" | "wissen" | "organisation";
   sort_order: number;
 }
 

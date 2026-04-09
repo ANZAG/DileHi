@@ -43,10 +43,11 @@ const ForumSubscribeButton = ({ threadId, categoryId, size = "sm" }: ForumSubscr
       if (isSubscribed) {
         await supabase.from("forum_subscriptions").delete().eq("id", subscription!.id);
       } else {
-        const row: Record<string, string> = { user_id: user.id };
-        if (threadId) row.thread_id = threadId;
-        if (categoryId) row.category_id = categoryId;
-        await supabase.from("forum_subscriptions").insert(row);
+        await supabase.from("forum_subscriptions").insert({
+          user_id: user.id,
+          thread_id: threadId || null,
+          category_id: categoryId || null,
+        });
       }
     },
     onSuccess: () => {
