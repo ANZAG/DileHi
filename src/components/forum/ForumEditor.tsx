@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePlus, Send } from "lucide-react";
 import MarkdownToolbar from "./MarkdownToolbar";
 import MarkdownContent from "./MarkdownContent";
+import MentionAutocomplete from "./MentionAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -151,6 +152,7 @@ const ForumEditor = ({
             onDragOver={handleDragOver}
             className="relative"
           >
+            <MentionAutocomplete textareaRef={textareaRef} value={value} onChange={onChange} />
             <Textarea
               ref={textareaRef}
               placeholder={placeholder}
