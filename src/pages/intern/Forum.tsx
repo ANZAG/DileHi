@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MessageSquare, Shield, Swords, Target, Calendar, BookOpen, Users, Lightbulb, Wrench } from "lucide-react";
+import { ArrowLeft, MessageSquare, Shield, Swords, Target, Calendar, BookOpen, Users, Lightbulb, Wrench, Search } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import ForumSearch from "@/components/forum/ForumSearch";
 
 const iconMap: Record<string, React.ElementType> = {
   MessageSquare,
@@ -28,6 +30,7 @@ const typeLabels: Record<string, string> = {
 const Forum = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [showSearch, setShowSearch] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["forum-categories"],
@@ -93,7 +96,18 @@ const Forum = () => {
             <ArrowLeft size={16} /> Zurück
           </Link>
           <h1 className="font-serif text-2xl font-bold">Forum</h1>
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" onClick={() => setShowSearch(!showSearch)}>
+              <Search size={16} className="mr-1" /> Suche
+            </Button>
+          </div>
         </div>
+
+        {showSearch && (
+          <div className="mb-6">
+            <ForumSearch />
+          </div>
+        )}
 
         <div className="grid gap-3">
           {categories.map((cat) => {
