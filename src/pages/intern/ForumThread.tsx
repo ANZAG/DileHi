@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil, Trash2, Pin, Lock } from "lucide-react";
 import MarkdownContent from "@/components/forum/MarkdownContent";
 import ForumEditor from "@/components/forum/ForumEditor";
 import ForumSubscribeButton from "@/components/forum/ForumSubscribeButton";
+import ForumReactions from "@/components/forum/ForumReactions";
 import MarkdownToolbar from "@/components/forum/MarkdownToolbar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -253,7 +254,10 @@ const ForumThread = () => {
                     </div>
                   </div>
                 ) : (
-                  <MarkdownContent content={post.content} />
+                  <>
+                    <MarkdownContent content={post.content} />
+                    <ForumReactions postId={post.id} />
+                  </>
                 )}
               </div>
             );
