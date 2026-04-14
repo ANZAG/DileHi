@@ -23,7 +23,7 @@ export function useEvents() {
   const [showCalendarSync, setShowCalendarSync] = useState(false);
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-
+  const [organizerId, setOrganizerId] = useState("");
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
