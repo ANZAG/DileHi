@@ -23,7 +23,7 @@ export function useEvents() {
   const [showCalendarSync, setShowCalendarSync] = useState(false);
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-
+  const [organizerId, setOrganizerId] = useState("");
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -149,10 +149,14 @@ export function useEvents() {
       const end = endDate
         ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
         : null;
-      const { error } = await supabase.from("events").update({
+      const updateData: any = {
         title, description: description || null, location: location || null,
         start_date: start, end_date: end, all_day: allDay, is_public: isPublic,
-      }).eq("id", editingEvent.id);
+      };
+      if (organizerId && canModerate) {
+        updateData.created_by = organizerId;
+      }
+      const { error } = await supabase.from("events").update(updateData).eq("id", editingEvent.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -226,7 +230,7 @@ export function useEvents() {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
-    setAllDay(false); setIsPublic(false);
+    setAllDay(false); setIsPublic(false); setOrganizerId("");
   };
 
   const openCreate = (date?: Date) => {
@@ -247,6 +251,7 @@ export function useEvents() {
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
     setIsPublic(ev.is_public ?? false);
+    setOrganizerId(ev.created_by);
     setEditingEvent(ev);
     setShowEdit(true);
   };
@@ -388,6 +393,7 @@ export function useEvents() {
     startDate, setStartDate, startTime, setStartTime,
     endDate, setEndDate, endTime, setEndTime,
     allDay, setAllDay, isPublic, setIsPublic,
+    organizerId, setOrganizerId,
     events, filteredEvents, attendees,
     calendarDays, holidays, rowSpanSegments,
     personalIcalUrl, icalUrl, calendarToken,

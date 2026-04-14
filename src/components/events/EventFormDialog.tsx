@@ -1,5 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   title: string; setTitle: (v: string) => void;
@@ -13,6 +16,9 @@ interface Props {
   isPublic: boolean; setIsPublic: (v: boolean) => void;
   canSetPublic: boolean;
   isEdit: boolean;
+  organizerId?: string;
+  setOrganizerId?: (v: string) => void;
+  canChangeOrganizer?: boolean;
 }
 
 export default function EventFormDialog({
@@ -22,7 +28,17 @@ export default function EventFormDialog({
   endDate, setEndDate, endTime, setEndTime,
   allDay, setAllDay, isPublic, setIsPublic,
   canSetPublic, isEdit,
+  organizerId, setOrganizerId, canChangeOrganizer,
 }: Props) {
+  const { data: members = [] } = useQuery({
+    queryKey: ["member_directory"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_member_directory");
+      return (data || []).filter((m: any) => m.is_active).sort((a: any, b: any) => a.display_name.localeCompare(b.display_name));
+    },
+    enabled: !!canChangeOrganizer && isEdit,
+  });
+
   return (
     <div className="space-y-4">
       <div>
@@ -37,6 +53,21 @@ export default function EventFormDialog({
         <label className="text-sm font-medium">Beschreibung</label>
         <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
       </div>
+      {isEdit && canChangeOrganizer && setOrganizerId && organizerId && (
+        <div>
+          <label className="text-sm font-medium">Organisator</label>
+          <Select value={organizerId} onValueChange={setOrganizerId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Organisator wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              {members.map((m: any) => (
+                <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <input type="checkbox" id={`allDay-${isEdit ? 'edit' : 'create'}`} checked={allDay} onChange={e => setAllDay(e.target.checked)} className="rounded border-input" />
