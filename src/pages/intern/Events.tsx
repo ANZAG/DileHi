@@ -168,6 +168,9 @@ const EventsPage = () => {
             isPublic={ev.isPublic} setIsPublic={ev.setIsPublic}
             canSetPublic={ev.canSetPublic}
             isEdit={true}
+            organizerId={ev.organizerId}
+            setOrganizerId={ev.setOrganizerId}
+            canChangeOrganizer={ev.canModerate}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => { ev.setShowEdit(false); ev.setEditingEvent(null); }}>Abbrechen</Button>
