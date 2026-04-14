@@ -66,8 +66,9 @@ export default function EventDayView({
                         <CalIcon size={14} /> {formatTimeDisplay(ev)}
                       </span>
                       {ev.location && (
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin size={14} /> {ev.location}
+                        <span className="inline-flex items-start gap-1 min-w-0">
+                          <MapPin size={14} className="shrink-0 mt-0.5" />
+                          <span className="break-all">{ev.location}</span>
                         </span>
                       )}
                     </div>
