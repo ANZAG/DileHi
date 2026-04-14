@@ -42,8 +42,9 @@ export default function EventDetailDialog({
                 }
               </div>
               {selectedEvent.location && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin size={16} /> {selectedEvent.location}
+                <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
+                  <MapPin size={16} className="shrink-0 mt-0.5" />
+                  <span className="break-all">{selectedEvent.location}</span>
                 </div>
               )}
               {selectedEvent.description && <p className="text-sm">{selectedEvent.description}</p>}

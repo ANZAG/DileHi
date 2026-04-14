@@ -56,7 +56,7 @@ export default function UpcomingEvents({
                         <span className="font-medium text-sm">{ev.title}</span>
                         {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
                       </div>
-                      {ev.location && <div className="text-xs text-muted-foreground">{ev.location}</div>}
+                      {ev.location && <div className="text-xs text-muted-foreground break-all">{ev.location}</div>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
