@@ -393,6 +393,7 @@ export function useEvents() {
     startDate, setStartDate, startTime, setStartTime,
     endDate, setEndDate, endTime, setEndTime,
     allDay, setAllDay, isPublic, setIsPublic,
+    organizerId, setOrganizerId,
     events, filteredEvents, attendees,
     calendarDays, holidays, rowSpanSegments,
     personalIcalUrl, icalUrl, calendarToken,
