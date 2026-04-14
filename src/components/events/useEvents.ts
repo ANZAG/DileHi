@@ -230,7 +230,7 @@ export function useEvents() {
   const resetForm = () => {
     setTitle(""); setDescription(""); setLocation("");
     setStartDate(""); setStartTime("10:00"); setEndDate(""); setEndTime("16:00");
-    setAllDay(false); setIsPublic(false);
+    setAllDay(false); setIsPublic(false); setOrganizerId("");
   };
 
   const openCreate = (date?: Date) => {
