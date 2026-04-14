@@ -251,6 +251,7 @@ export function useEvents() {
     setEndTime(end ? format(end, "HH:mm") : "16:00");
     setAllDay(ev.all_day);
     setIsPublic(ev.is_public ?? false);
+    setOrganizerId(ev.created_by);
     setEditingEvent(ev);
     setShowEdit(true);
   };
