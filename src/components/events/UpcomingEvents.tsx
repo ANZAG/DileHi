@@ -4,6 +4,7 @@ import { ChevronDown, Users, Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Event, Attendee } from "./types";
+import Linkify from "./Linkify";
 
 interface Props {
   filteredEvents: Event[];
@@ -56,7 +57,7 @@ export default function UpcomingEvents({
                         <span className="font-medium text-sm">{ev.title}</span>
                         {ev.is_public && <Globe size={12} className="text-primary opacity-70 shrink-0" />}
                       </div>
-                      {ev.location && <div className="text-xs text-muted-foreground break-all">{ev.location}</div>}
+                      {ev.location && <div className="text-xs text-muted-foreground break-all"><Linkify text={ev.location} /></div>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

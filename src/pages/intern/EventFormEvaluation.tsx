@@ -236,7 +236,7 @@ export default function EventFormEvaluation() {
           if (lbl.includes("anhänger zur verfügung")) trailerCount++;
           if (lbl.includes("anhänger") && lbl.includes("ziehen")) canTowCount++;
           if (lbl.includes("küche")) kitchenHelpers++;
-          if (lbl.includes("einkauf")) shoppers++;
+          if (lbl.includes("einkauf") || lbl.includes("einkaufen") || lbl.includes("einzukaufen")) shoppers++;
         }
 
         if (field.type === "number" && (lbl.includes("mitnehmen") || lbl.includes("sitzplätze")) && typeof val === "number") {
