@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { Event, Attendee } from "./types";
+import Linkify from "./Linkify";
 
 interface Props {
   selectedDate: Date;
@@ -68,11 +69,11 @@ export default function EventDayView({
                       {ev.location && (
                         <span className="inline-flex items-start gap-1 min-w-0">
                           <MapPin size={14} className="shrink-0 mt-0.5" />
-                          <span className="break-all">{ev.location}</span>
+                          <Linkify text={ev.location} className="break-all" />
                         </span>
                       )}
                     </div>
-                    {ev.description && <p className="text-sm mt-2">{ev.description}</p>}
+                    {ev.description && <p className="text-sm mt-2"><Linkify text={ev.description} /></p>}
                   </div>
                   <div className="flex gap-1">
                     {canEdit(ev) && (

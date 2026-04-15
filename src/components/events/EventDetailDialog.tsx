@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import type { Event, Attendee } from "./types";
+import Linkify from "./Linkify";
 
 interface Props {
   selectedEvent: Event | null;
@@ -44,10 +45,10 @@ export default function EventDetailDialog({
               {selectedEvent.location && (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
                   <MapPin size={16} className="shrink-0 mt-0.5" />
-                  <span className="break-all">{selectedEvent.location}</span>
+                  <Linkify text={selectedEvent.location} className="break-all" />
                 </div>
               )}
-              {selectedEvent.description && <p className="text-sm">{selectedEvent.description}</p>}
+              {selectedEvent.description && <p className="text-sm"><Linkify text={selectedEvent.description} /></p>}
               <div className="pt-3 border-t">
                 <div className="flex items-center gap-2 mb-2">
                   <Users size={16} className="text-muted-foreground" />
