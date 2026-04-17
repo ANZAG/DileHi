@@ -340,21 +340,70 @@ export default function EventFormEvaluation() {
   const exportCSV = () => {
     const dataFields = fields.filter((f) => f.type !== "section");
     const headers = ["Name", "E-Mail", ...dataFields.map((f) => f.label)];
+
     const formatAnswer = (field: FormField, value: any): string => {
-      if (value === null || value === undefined) return "–";
-      if (field.type === "checkbox") return value === true ? "Ja" : "Nein";
-      if (field.type === "multi_select") return Array.isArray(value) ? value.join(", ") : String(value);
-      return String(value);
+      if (value === null || value === undefined || value === "") return "–";
+      switch (field.type) {
+        case "checkbox":
+          return value === true ? "Ja" : "Nein";
+        case "multi_select":
+          return Array.isArray(value) ? value.join("; ") : String(value);
+        case "attendance_days": {
+          if (value?.all_days) return "Alle Tage";
+          if (Array.isArray(value?.days) && value.days.length) {
+            return value.days
+              .map((d: string) => {
+                try { return format(parseISO(d), "dd.MM.yyyy", { locale: de }); }
+                catch { return d; }
+              })
+              .join("; ");
+          }
+          return "–";
+        }
+        case "tent": {
+          const tents = value?.tents;
+          if (Array.isArray(tents) && tents.length > 0) {
+            return tents.map((t: any) => {
+              const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
+              const typeLabel = type?.label || t.tent_type || "Zelt";
+              const dim = type?.shape === "circle"
+                ? (t.diameter ? `Ø${t.diameter}m` : "")
+                : (t.length && t.width ? `${t.length}×${t.width}m` : "");
+              return `${typeLabel}${dim ? " " + dim : ""}, ${t.capacity || 1} Pl.`;
+            }).join(" | ");
+          }
+          if (value?.has_tent && value?.tent_type) {
+            const type = TENT_TYPES.find((t) => t.value === value.tent_type);
+            const typeLabel = type?.label || value.tent_type;
+            const dim = type?.shape === "circle"
+              ? (value.diameter ? `Ø${value.diameter}m` : "")
+              : (value.length && value.width ? `${value.length}×${value.width}m` : "");
+            return `${typeLabel}${dim ? " " + dim : ""}, ${value.capacity || 1} Pl.`;
+          }
+          return "Kein Zelt";
+        }
+        default:
+          return String(value);
+      }
     };
+
+    // Excel-friendly: semicolon delimiter, CRLF line endings, RFC4180 quoting
+    const escape = (s: string) => {
+      const needsQuotes = /[";\r\n]/.test(s);
+      const cleaned = s.replace(/\r?\n/g, " "); // collapse line breaks within cells
+      return needsQuotes ? `"${cleaned.replace(/"/g, '""')}"` : cleaned;
+    };
+
     const rows = responses.map((r) => [
       r.respondent_name,
       r.respondent_email || "",
-      ...dataFields.map((f) => {
-        const val = getAnswer(r, f.id);
-        return formatAnswer(f, val).replace(/,/g, ";");
-      }),
+      ...dataFields.map((f) => formatAnswer(f, getAnswer(r, f.id))),
     ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((c) => escape(String(c ?? ""))).join(";"))
+      .join("\r\n");
+
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -363,6 +412,15 @@ export default function EventFormEvaluation() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Delete a single response (board / event organizer)
+  const deleteResponse = useMutation({
+    mutationFn: async (responseId: string) => {
+      const { error } = await supabase.from("event_form_responses").delete().eq("id", responseId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form_responses", form?.id] }),
+  });
 
   const addProgramItem = () => {
     if (!newProgPoint.trim()) return;
