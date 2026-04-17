@@ -1,4 +1,11 @@
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import type { FormField, FormResponse, FormAnswer } from "@/components/event-forms/types";
@@ -7,6 +14,8 @@ import { TENT_TYPES } from "@/components/event-forms/types";
 interface Props {
   fields: FormField[];
   responses: (FormResponse & { answers: FormAnswer[] })[];
+  canDelete?: boolean;
+  onDelete?: (responseId: string) => void;
 }
 
 function getAnswer(response: FormResponse & { answers: FormAnswer[] }, fieldId: string) {
@@ -58,8 +67,9 @@ function formatAnswer(field: FormField, value: any): string {
   }
 }
 
-export default function EvalResponsesTable({ fields, responses }: Props) {
+export default function EvalResponsesTable({ fields, responses, canDelete, onDelete }: Props) {
   const dataFields = fields.filter((f) => f.type !== "section");
+  const [pendingDelete, setPendingDelete] = useState<(FormResponse & { answers: FormAnswer[] }) | null>(null);
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -72,12 +82,13 @@ export default function EvalResponsesTable({ fields, responses }: Props) {
                 <TableHead key={f.id} className="min-w-[100px] text-xs">{f.label}</TableHead>
               ))}
               <TableHead className="text-xs">Datum</TableHead>
+              {canDelete && <TableHead className="w-10" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {responses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={dataFields.length + 2} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={dataFields.length + 2 + (canDelete ? 1 : 0)} className="text-center text-muted-foreground py-8">
                   Noch keine Anmeldungen.
                 </TableCell>
               </TableRow>
@@ -93,12 +104,53 @@ export default function EvalResponsesTable({ fields, responses }: Props) {
                   <TableCell className="text-xs text-muted-foreground">
                     {format(parseISO(resp.created_at), "dd.MM.yy", { locale: de })}
                   </TableCell>
+                  {canDelete && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setPendingDelete(resp)}
+                        aria-label="Anmeldung löschen"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anmeldung wirklich löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Die Anmeldung von <strong>{pendingDelete?.respondent_name}</strong> wird unwiderruflich gelöscht.
+              Alle damit verbundenen Antworten (Tage, Zelte, Einkäufer-Status etc.) gehen verloren und
+              fließen nicht mehr in die Auswertung oder Logistik-Planung ein.
+              <br /><br />
+              Diese Aktion kann nicht rückgängig gemacht werden. Bitte stelle vorab sicher, dass die
+              Anmeldung wirklich entfernt werden soll – z.B. weil sie doppelt erfasst wurde (Mitglied + Gast).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDelete && onDelete) onDelete(pendingDelete.id);
+                setPendingDelete(null);
+              }}
+            >
+              Endgültig löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

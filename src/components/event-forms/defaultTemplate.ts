@@ -148,18 +148,18 @@ export const DEFAULT_TEMPLATE_FIELDS = [
   },
   {
     type: "checkbox",
-    label: "Ausrüstung vollständig",
+    label: "Ich benötige noch Ausrüstung",
     required: false,
     options: [] as string[],
     settings: {},
-    description: "Hast du alles, was du brauchst?",
+    description: "Bitte ankreuzen, falls dir noch etwas fehlt.",
   },
   {
     type: "textarea",
     label: "Was fehlt?",
     required: false,
     options: [] as string[],
-    settings: { conditional_on: "Ausrüstung vollständig", conditional_value: false, placeholder: "Was benötigst du noch?" },
+    settings: { conditional_on: "Ich benötige noch Ausrüstung", conditional_value: true, placeholder: "Was benötigst du noch?" },
     description: null,
   },
   {
