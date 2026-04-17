@@ -36,7 +36,7 @@ interface ProgramItem {
 
 export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { isVorstand } = useAuth();
+  const { user, isVorstand } = useAuth();
   const queryClient = useQueryClient();
 
   const [selectedClubTents, setSelectedClubTents] = useState<string[]>([]);
@@ -647,7 +647,7 @@ export default function EventFormEvaluation() {
         <EvalResponsesTable
           fields={fields}
           responses={responses}
-          canDelete={isVorstand || event?.created_by === useAuth().user?.id}
+          canDelete={isVorstand || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
         />
       </motion.div>
