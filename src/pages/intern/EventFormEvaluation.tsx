@@ -644,7 +644,12 @@ export default function EventFormEvaluation() {
           onPositionsChange={(positions) => doSaveSettings({ tent_positions: positions })}
         />
 
-        <EvalResponsesTable fields={fields} responses={responses} />
+        <EvalResponsesTable
+          fields={fields}
+          responses={responses}
+          canDelete={isVorstand || event?.created_by === useAuth().user?.id}
+          onDelete={(id) => deleteResponse.mutate(id)}
+        />
       </motion.div>
     </div>
   );
