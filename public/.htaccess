@@ -1,0 +1,20 @@
+Options -MultiViews
+RewriteEngine On
+
+# 1. HTTP → HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# 2. non-www → www (kanonische Domain)
+RewriteCond %{HTTP_HOST} ^dilehi\.de$ [NC]
+RewriteRule ^ https://www.dilehi.de%{REQUEST_URI} [R=301,L]
+
+# 3. SPA-Fallback: alle Routen auf index.html leiten
+#    (außer tatsächlich existierende Dateien und Verzeichnisse)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
+
+# 4. Zeichensatz im HTTP Content-Type Header
+AddDefaultCharset UTF-8
+AddCharset UTF-8 .html .css .js .json .svg .webp
