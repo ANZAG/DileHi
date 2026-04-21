@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,14 +28,7 @@ export default function EventFormBuilder() {
   const queryClient = useQueryClient();
 
   const handleBack = () => {
-    const referrer = (location.state as any)?.from as string | undefined;
-    if (referrer) {
-      navigate(referrer);
-    } else if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/intern/veranstaltungen");
-    }
+    navigate("/intern/veranstaltungen");
   };
 
   const [showAddField, setShowAddField] = useState(false);
