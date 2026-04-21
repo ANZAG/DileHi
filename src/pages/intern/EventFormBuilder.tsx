@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,9 +22,21 @@ import { DEFAULT_TEMPLATE_FIELDS } from "@/components/event-forms/defaultTemplat
 export default function EventFormBuilder() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isVorstand } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleBack = () => {
+    const referrer = (location.state as any)?.from as string | undefined;
+    if (referrer) {
+      navigate(referrer);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/intern/veranstaltungen");
+    }
+  };
 
   const [showAddField, setShowAddField] = useState(false);
   const [editingField, setEditingField] = useState<FormField | null>(null);
@@ -263,9 +275,7 @@ export default function EventFormBuilder() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
-          </Button>
+          <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
           <div className="flex-1">
             <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
             {event && <p className="text-sm text-muted-foreground">{event.title}</p>}
@@ -299,7 +309,7 @@ export default function EventFormBuilder() {
                 <Settings size={14} className="mr-1" /> Einstellungen
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/intern/veranstaltungen/${eventId}/auswertung`}>
+                <Link to={`/intern/veranstaltungen/${eventId}/auswertung`} state={{ from: `/intern/veranstaltungen/${eventId}/formular` }}>
                   Auswertung →
                 </Link>
               </Button>

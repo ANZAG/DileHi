@@ -15,7 +15,7 @@ const About = () => {
         title="Über uns - Diu lebendec Histôrje"
         description="Seit 2011 erforschen und vermitteln wir als Wiesbadener Verein die Geschichte des Nassauer Landes authentisch und quellenbasiert."
         url="/verein"
-        image="/gruppenfoto.jpg"
+        image="/gruppenfoto.webp"
       />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
         <h1 className="font-serif text-3xl md:text-4xl font-bold mb-10">Über unseren Verein</h1>

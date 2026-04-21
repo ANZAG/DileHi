@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +38,22 @@ export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
   const { user, isVorstand } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Zurück-Navigation: woher kam der Nutzer?
+  // Mögliche Quellen: /intern/auswertungen (Liste) oder /intern/veranstaltungen/:id/formular (Formular-Builder)
+  // Fallback: Auswertungsliste
+  const handleBack = () => {
+    const referrer = (location.state as any)?.from as string | undefined;
+    if (referrer) {
+      navigate(referrer);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/intern/auswertungen");
+    }
+  };
 
   const [selectedClubTents, setSelectedClubTents] = useState<string[]>([]);
   const [spacing, setSpacing] = useState(0);
@@ -456,9 +472,7 @@ export default function EventFormEvaluation() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
           <div className="flex items-center gap-3 flex-1">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/intern/auswertungen"><ArrowLeft size={20} /></Link>
-            </Button>
+            <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
               <h1 className="font-serif text-xl sm:text-2xl font-bold">Auswertung</h1>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
@@ -466,7 +480,7 @@ export default function EventFormEvaluation() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/intern/veranstaltungen/${eventId}/formular`}>Formular</Link>
+              <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung` }}>Formular</Link>
             </Button>
             <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download size={14} className="mr-1" /> CSV

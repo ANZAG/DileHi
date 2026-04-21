@@ -32,7 +32,7 @@ const Auswertungen = () => {
         .from("events")
         .select("id, title, start_date, end_date, created_by")
         .in("id", eventIds)
-        .order("start_date", { ascending: false });
+        .order("start_date", { ascending: true });
 
       if (!isVorstand) {
         query = query.eq("created_by", user.id);
@@ -88,6 +88,7 @@ const Auswertungen = () => {
               >
                 <Link
                   to={`/intern/veranstaltungen/${event.id}/auswertung`}
+                  state={{ from: "/intern/auswertungen" }}
                   className="flex items-center justify-between gap-4 p-4 rounded-lg border bg-card hover:shadow-sm hover:border-primary/40 transition-all group"
                 >
                   <div className="flex items-start gap-3 min-w-0">
