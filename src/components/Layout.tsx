@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
-import NotificationBell from "@/components/notifications/NotificationBell";
+// NotificationBell deaktiviert – war Forum-Funktion
+// import NotificationBell from "@/components/notifications/NotificationBell";
 
 const navItems = [
   { path: "/", label: "Startseite" },
@@ -62,14 +63,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to={user ? "/intern" : "/login"}
+              className={`ml-2 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+                location.pathname.startsWith("/intern")
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-border text-foreground hover:bg-muted"
+              }`}
+            >
+              Mitgliederbereich
+            </Link>
           </nav>
 
-          <div className="hidden md:flex items-center gap-1">
-            {user && location.pathname.startsWith("/intern") && <NotificationBell />}
-          </div>
-
           <div className="flex md:hidden items-center gap-1">
-            {user && location.pathname.startsWith("/intern") && <NotificationBell />}
+            {/* NotificationBell deaktiviert – war Forum-Funktion */}
             <button className="p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -124,6 +131,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    to={user ? "/intern" : "/login"}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Mitgliederbereich
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -131,7 +146,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <ul className="space-y-1">
                 <li><Link to="/impressum" className="text-sm text-muted-foreground hover:text-primary transition-colors">Impressum</Link></li>
                 <li><Link to="/datenschutz" className="text-sm text-muted-foreground hover:text-primary transition-colors">Datenschutz</Link></li>
-                <li><Link to={user ? "/intern" : "/login"} className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors">Mitgliederbereich</Link></li>
               </ul>
             </div>
           </div>

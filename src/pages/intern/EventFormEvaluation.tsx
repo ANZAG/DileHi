@@ -457,7 +457,7 @@ export default function EventFormEvaluation() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
           <div className="flex items-center gap-3 flex-1">
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/intern/veranstaltungen"><ArrowLeft size={20} /></Link>
+              <Link to="/intern/auswertungen"><ArrowLeft size={20} /></Link>
             </Button>
             <div className="flex-1 min-w-0">
               <h1 className="font-serif text-xl sm:text-2xl font-bold">Auswertung</h1>
@@ -647,6 +647,8 @@ export default function EventFormEvaluation() {
         <EvalResponsesTable
           fields={fields}
           responses={responses}
+          formId={form?.id}
+          canEdit={isVorstand || event?.created_by === user?.id}
           canDelete={isVorstand || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
         />

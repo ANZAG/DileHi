@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Pencil, Save } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { FormField, FormResponse, FormAnswer } from "@/components/event-forms/types";
 import { TENT_TYPES } from "@/components/event-forms/types";
 
@@ -15,6 +25,8 @@ interface Props {
   fields: FormField[];
   responses: (FormResponse & { answers: FormAnswer[] })[];
   canDelete?: boolean;
+  canEdit?: boolean;
+  formId?: string;
   onDelete?: (responseId: string) => void;
 }
 
@@ -22,6 +34,9 @@ function getAnswer(response: FormResponse & { answers: FormAnswer[] }, fieldId: 
   const answer = response.answers?.find((a) => a.field_id === fieldId);
   return answer?.value;
 }
+
+// Typen, die im Edit-Dialog bearbeitet werden können
+const EDITABLE_TYPES = ["text", "number", "checkbox", "select", "multi_select", "textarea"];
 
 function formatAnswer(field: FormField, value: any): string {
   if (field.type === "section") return "";
@@ -46,18 +61,14 @@ function formatAnswer(field: FormField, value: any): string {
         return tents.map((t: any) => {
           const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
           if (!type) return "Zelt (unbekannt)";
-          const dim = type.shape === "circle"
-            ? `Ø${t.diameter}m`
-            : `${t.length}×${t.width}m`;
+          const dim = type.shape === "circle" ? `Ø${t.diameter}m` : `${t.length}×${t.width}m`;
           return `${type.label} ${dim}, ${t.capacity || 1} Pl.`;
         }).join("; ");
       }
       if (value?.has_tent && value?.tent_type) {
         const type = TENT_TYPES.find((t) => t.value === value.tent_type);
         if (!type) return "Zelt (Typ unbekannt)";
-        const dim = type.shape === "circle"
-          ? `Ø${value.diameter}m`
-          : `${value.length}×${value.width}m`;
+        const dim = type.shape === "circle" ? `Ø${value.diameter}m` : `${value.length}×${value.width}m`;
         return `${type.label} ${dim}, ${value.capacity} Plätze`;
       }
       return "Kein Zelt";
@@ -67,61 +78,263 @@ function formatAnswer(field: FormField, value: any): string {
   }
 }
 
-export default function EvalResponsesTable({ fields, responses, canDelete, onDelete }: Props) {
-  const dataFields = fields.filter((f) => f.type !== "section");
-  const [pendingDelete, setPendingDelete] = useState<(FormResponse & { answers: FormAnswer[] }) | null>(null);
+// ---------------------------------------------------------------------------
+// Edit-Dialog
+// ---------------------------------------------------------------------------
+interface EditDialogProps {
+  open: boolean;
+  onClose: () => void;
+  response: (FormResponse & { answers: FormAnswer[] }) | null;
+  fields: FormField[];
+  formId: string;
+  onSaved: () => void;
+}
+
+function EditDialog({ open, onClose, response, fields, formId, onSaved }: EditDialogProps) {
+  const queryClient = useQueryClient();
+  const [editValues, setEditValues] = useState<Record<string, any>>({});
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const initState = (resp: typeof response) => {
+    if (!resp) return;
+    setEditName(resp.respondent_name ?? "");
+    const initial: Record<string, any> = {};
+    for (const field of fields) {
+      if (field.type === "section") continue;
+      const ans = resp.answers?.find((a) => a.field_id === field.id);
+      initial[field.id] = ans?.value ?? null;
+    }
+    setEditValues(initial);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen && response) initState(response);
+    if (!isOpen) onClose();
+  };
+
+  const setValue = (fieldId: string, value: any) => {
+    setEditValues((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!response) return;
+    setSaving(true);
+    try {
+      await supabase
+        .from("event_form_responses")
+        .update({ respondent_name: editName.trim() })
+        .eq("id", response.id);
+
+      const editableFields = fields.filter((f) => EDITABLE_TYPES.includes(f.type));
+      for (const field of editableFields) {
+        const newVal = editValues[field.id];
+        const existingAnswer = response.answers?.find((a) => a.field_id === field.id);
+        if (existingAnswer) {
+          await supabase
+            .from("event_form_answers")
+            .update({ value: newVal })
+            .eq("id", existingAnswer.id);
+        } else if (newVal !== null && newVal !== undefined) {
+          await supabase.from("event_form_answers").insert({
+            response_id: response.id,
+            field_id: field.id,
+            form_id: formId,
+            value: newVal,
+          });
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["event_form_responses"] });
+      onSaved();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!response) return null;
+  const editableFields = fields.filter((f) => f.type !== "section");
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[120px]">Name</TableHead>
-              {dataFields.map((f) => (
-                <TableHead key={f.id} className="min-w-[100px] text-xs">{f.label}</TableHead>
-              ))}
-              <TableHead className="text-xs">Datum</TableHead>
-              {canDelete && <TableHead className="w-10" />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {responses.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={dataFields.length + 2 + (canDelete ? 1 : 0)} className="text-center text-muted-foreground py-8">
-                  Noch keine Anmeldungen.
-                </TableCell>
-              </TableRow>
-            ) : (
-              responses.map((resp) => (
-                <TableRow key={resp.id}>
-                  <TableCell className="font-medium">{resp.respondent_name}</TableCell>
-                  {dataFields.map((f) => (
-                    <TableCell key={f.id} className="text-sm">
-                      {formatAnswer(f, getAnswer(resp, f.id))}
-                    </TableCell>
-                  ))}
-                  <TableCell className="text-xs text-muted-foreground">
-                    {format(parseISO(resp.created_at), "dd.MM.yy", { locale: de })}
-                  </TableCell>
-                  {canDelete && (
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setPendingDelete(resp)}
-                        aria-label="Anmeldung löschen"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </TableCell>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">Anmeldung bearbeiten</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1">
+            <Label className="text-sm font-medium">Name</Label>
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Name des Teilnehmers"
+            />
+          </div>
+
+          {editableFields.map((field) => {
+            const isEditable = EDITABLE_TYPES.includes(field.type);
+            const currentVal = editValues[field.id];
+
+            return (
+              <div key={field.id} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">{field.label}</Label>
+                  {!isEditable && (
+                    <Badge variant="secondary" className="text-[10px] py-0">Nur Ansicht</Badge>
                   )}
+                </div>
+
+                {!isEditable ? (
+                  <p className="text-sm text-muted-foreground">{formatAnswer(field, currentVal)}</p>
+                ) : field.type === "checkbox" ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={currentVal === true}
+                      onCheckedChange={(checked) => setValue(field.id, !!checked)}
+                    />
+                    <span className="text-sm text-muted-foreground">{currentVal === true ? "Ja" : "Nein"}</span>
+                  </div>
+                ) : field.type === "select" ? (
+                  <Select value={currentVal ?? ""} onValueChange={(v) => setValue(field.id, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Auswählen…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(field.options ?? []).map((opt: string) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : field.type === "multi_select" ? (
+                  <div className="space-y-1">
+                    {(field.options ?? []).map((opt: string) => {
+                      const selected = Array.isArray(currentVal) ? currentVal.includes(opt) : false;
+                      return (
+                        <div key={opt} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selected}
+                            onCheckedChange={(checked) => {
+                              const prev = Array.isArray(currentVal) ? currentVal : [];
+                              setValue(field.id, checked ? [...prev, opt] : prev.filter((v: string) => v !== opt));
+                            }}
+                          />
+                          <span className="text-sm">{opt}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : field.type === "number" ? (
+                  <Input
+                    type="number"
+                    value={currentVal ?? ""}
+                    onChange={(e) => setValue(field.id, e.target.value === "" ? null : Number(e.target.value))}
+                  />
+                ) : (
+                  <Input
+                    value={currentVal ?? ""}
+                    onChange={(e) => setValue(field.id, e.target.value)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Abbrechen</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            <Save size={14} className="mr-1" />
+            {saving ? "Speichern…" : "Speichern"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hauptkomponente
+// ---------------------------------------------------------------------------
+export default function EvalResponsesTable({
+  fields, responses, canDelete, canEdit, formId, onDelete,
+}: Props) {
+  const dataFields = fields.filter((f) => f.type !== "section");
+  const [pendingDelete, setPendingDelete] = useState<(FormResponse & { answers: FormAnswer[] }) | null>(null);
+  const [editingResponse, setEditingResponse] = useState<(FormResponse & { answers: FormAnswer[] }) | null>(null);
+  const queryClient = useQueryClient();
+
+  const showActions = canDelete || canEdit;
+
+  return (
+    <>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[120px]">Name</TableHead>
+                {dataFields.map((f) => (
+                  <TableHead key={f.id} className="min-w-[100px] text-xs">{f.label}</TableHead>
+                ))}
+                <TableHead className="text-xs">Datum</TableHead>
+                {showActions && <TableHead className="w-16" />}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {responses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={dataFields.length + 2 + (showActions ? 1 : 0)} className="text-center text-muted-foreground py-8">
+                    Noch keine Anmeldungen.
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                responses.map((resp) => (
+                  <TableRow key={resp.id}>
+                    <TableCell className="font-medium">{resp.respondent_name}</TableCell>
+                    {dataFields.map((f) => (
+                      <TableCell key={f.id} className="text-sm">
+                        {formatAnswer(f, getAnswer(resp, f.id))}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-xs text-muted-foreground">
+                      {format(parseISO(resp.created_at), "dd.MM.yy", { locale: de })}
+                    </TableCell>
+                    {showActions && (
+                      <TableCell>
+                        <div className="flex items-center gap-0.5">
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => setEditingResponse(resp)}
+                              aria-label="Anmeldung bearbeiten"
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setPendingDelete(resp)}
+                              aria-label="Anmeldung löschen"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
@@ -133,8 +346,7 @@ export default function EvalResponsesTable({ fields, responses, canDelete, onDel
               Alle damit verbundenen Antworten (Tage, Zelte, Einkäufer-Status etc.) gehen verloren und
               fließen nicht mehr in die Auswertung oder Logistik-Planung ein.
               <br /><br />
-              Diese Aktion kann nicht rückgängig gemacht werden. Bitte stelle vorab sicher, dass die
-              Anmeldung wirklich entfernt werden soll – z.B. weil sie doppelt erfasst wurde (Mitglied + Gast).
+              Diese Aktion kann nicht rückgängig gemacht werden.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -151,6 +363,15 @@ export default function EvalResponsesTable({ fields, responses, canDelete, onDel
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+
+      <EditDialog
+        open={!!editingResponse}
+        onClose={() => setEditingResponse(null)}
+        response={editingResponse}
+        fields={fields}
+        formId={formId ?? ""}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["event_form_responses"] })}
+      />
+    </>
   );
 }

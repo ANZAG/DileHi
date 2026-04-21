@@ -51,8 +51,7 @@ const Dashboard = () => {
           title: "Auswertungen",
           desc: "Anmeldungen & Logistik deiner Veranstaltungen.",
           icon: ClipboardList,
-          path: `/intern/veranstaltungen/${organizedEvents[0].id}/auswertung`,
-          isEval: true as const,
+          path: "/intern/auswertungen",
         },
         ...baseCards.slice(1),
       ]
@@ -116,22 +115,6 @@ const Dashboard = () => {
                 <card.icon size={24} className="text-primary mb-2 shrink-0" />
                 <h2 className="font-serif text-sm sm:text-lg font-semibold mb-1 break-words hyphens-auto" lang="de">{card.title}</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground break-words">{card.desc}</p>
-                {card.isEval && organizedEvents.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
-                    {organizedEvents.slice(0, 3).map((ev: any) => (
-                      <button
-                        key={ev.id}
-                        onClick={(e) => { e.preventDefault(); window.location.href = `/intern/veranstaltungen/${ev.id}/auswertung`; }}
-                        className="block w-full text-left text-[11px] sm:text-xs text-muted-foreground hover:text-primary truncate"
-                      >
-                        → {ev.title}
-                      </button>
-                    ))}
-                    {organizedEvents.length > 3 && (
-                      <span className="block text-[10px] text-muted-foreground/70">+{organizedEvents.length - 3} weitere</span>
-                    )}
-                  </div>
-                )}
               </Link>
             </motion.div>
           ))}
