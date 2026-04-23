@@ -314,7 +314,7 @@ export default function TentVisualizer({
       <svg
         ref={svgRef}
         viewBox={`${bounds.minX} ${bounds.minY} ${vbW} ${vbH}`}
-        className="w-full border rounded bg-muted/30 cursor-crosshair select-none"
+        className="w-full border rounded bg-muted/30 cursor-crosshair select-none tent-visualizer-svg"
         style={{ maxHeight }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

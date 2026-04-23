@@ -27,16 +27,19 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!user) return [];
       const todayIso = new Date().toISOString().slice(0, 10);
+
+      // Nur Events mit existierendem event_form (inner join via select)
       const query = supabase
         .from("events")
-        .select("id, title, start_date, end_date, created_by")
+        .select("id, title, start_date, end_date, created_by, event_forms!inner(id)")
         .gte("start_date", todayIso)
         .order("start_date", { ascending: true })
         .limit(10);
-      // Vorstand sieht alle aktuellen/künftigen, sonst nur eigene
+
       const { data, error } = isVorstand
         ? await query
         : await query.eq("created_by", user.id);
+
       if (error) return [];
       return data || [];
     },

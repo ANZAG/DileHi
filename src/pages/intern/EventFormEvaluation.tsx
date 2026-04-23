@@ -124,7 +124,7 @@ export default function EventFormEvaluation() {
     queryFn: async () => {
       const { data: respData, error } = await supabase
         .from("event_form_responses")
-        .select("*, profiles!event_form_responses_assigned_member_id_fkey(display_name)")
+        .select("*")
         .eq("form_id", form!.id)
         .order("created_at");
       if (error) throw error;
@@ -137,11 +137,10 @@ export default function EventFormEvaluation() {
         .select("*")
         .in("response_id", responseIds);
 
-      return respData.map((r: any) => ({
+      return respData.map((r) => ({
         ...r,
-        assigned_member_name: (r.profiles as any)?.display_name ?? null,
         answers: (ansData || []).filter((a) => a.response_id === r.id),
-      })) as (FormResponse & { answers: FormAnswer[]; assigned_member_id?: string | null; assigned_member_name?: string | null })[];
+      })) as (FormResponse & { answers: FormAnswer[] })[];
     },
     enabled: !!form?.id,
   });
@@ -206,51 +205,32 @@ export default function EventFormEvaluation() {
 
     for (const resp of responses) {
       if (tentField) {
-        const assignedId = (resp as any).assigned_member_id as string | null | undefined;
-
-        if (assignedId) {
-          // Zugewiesenes Mitglied: hinterlegte Zelte aus member_tents verwenden
-          const memberTents = allMemberTents.filter((t: any) => t.user_id === assignedId);
-          for (const mt of memberTents) {
-            tents.push({
-              type: mt.tent_type,
-              diameter: mt.diameter ? Number(mt.diameter) : undefined,
-              length: mt.length ? Number(mt.length) : undefined,
-              width: mt.width ? Number(mt.width) : undefined,
-              capacity: 1,
-              respondent: resp.respondent_name,
-              member_tent_id: mt.id,
-            });
-          }
-        } else {
-          // Kein zugewiesenes Mitglied: Formular-Antwort verwenden
-          const tv = getAnswer(resp, tentField.id);
-          if (tv?.tents && Array.isArray(tv.tents)) {
-            for (const t of tv.tents) {
-              if (t.tent_type) {
-                tents.push({
-                  type: t.tent_type,
-                  diameter: t.diameter ? Number(t.diameter) : undefined,
-                  length: t.length ? Number(t.length) : undefined,
-                  width: t.width ? Number(t.width) : undefined,
-                  capacity: t.capacity || 1,
-                  respondent: resp.respondent_name,
-                  member_tent_id: t.member_tent_id,
-                });
-                totalCapacity += t.capacity || 1;
-              }
+        const tv = getAnswer(resp, tentField.id);
+        if (tv?.tents && Array.isArray(tv.tents)) {
+          for (const t of tv.tents) {
+            if (t.tent_type) {
+              tents.push({
+                type: t.tent_type,
+                diameter: t.diameter ? Number(t.diameter) : undefined,
+                length: t.length ? Number(t.length) : undefined,
+                width: t.width ? Number(t.width) : undefined,
+                capacity: t.capacity || 1,
+                respondent: resp.respondent_name,
+                member_tent_id: t.member_tent_id,
+              });
+              totalCapacity += t.capacity || 1;
             }
-          } else if (tv?.has_tent && tv.tent_type) {
-            tents.push({
-              type: tv.tent_type,
-              diameter: tv.diameter,
-              length: tv.length,
-              width: tv.width,
-              capacity: tv.capacity || 1,
-              respondent: resp.respondent_name,
-            });
-            totalCapacity += tv.capacity || 1;
           }
+        } else if (tv?.has_tent && tv.tent_type) {
+          tents.push({
+            type: tv.tent_type,
+            diameter: tv.diameter,
+            length: tv.length,
+            width: tv.width,
+            capacity: tv.capacity || 1,
+            respondent: resp.respondent_name,
+          });
+          totalCapacity += tv.capacity || 1;
         }
       }
 
@@ -367,8 +347,21 @@ export default function EventFormEvaluation() {
       }
     }
 
-    const totalArea = memberTentArea + poolTentArea + clubTentArea;
     autoLayout(tentItems);
+
+    // Gesamtfläche = Bounding-Box aller platzierten Zelte (inkl. Abspannseile + Abstand)
+    // Das ist die tatsächlich benötigte Grundfläche auf dem Gelände.
+    // Die Summe der Einzelflächen würde durch Kreiszelte und Lücken verfälscht.
+    let boundingArea = 0;
+    if (tentItems.length > 0) {
+      const minX = Math.min(...tentItems.map((t) => t.x));
+      const minY = Math.min(...tentItems.map((t) => t.y));
+      const maxX = Math.max(...tentItems.map((t) => t.x + t.w));
+      const maxY = Math.max(...tentItems.map((t) => t.y + t.h));
+      boundingArea = (maxX - minX) * (maxY - minY);
+    }
+
+    const totalArea = boundingArea;
 
     return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems };
   }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents, layoutVersion]);
@@ -676,14 +669,12 @@ export default function EventFormEvaluation() {
           layoutVersion={layoutVersion}
           savedPositions={(form?.settings as any)?.tent_positions}
           onPositionsChange={(positions) => doSaveSettings({ tent_positions: positions })}
+          eventTitle={event?.title}
         />
 
         <EvalResponsesTable
           fields={fields}
           responses={responses}
-          members={members}
-          formId={form?.id}
-          canEdit={isVorstand || event?.created_by === user?.id}
           canDelete={isVorstand || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
         />
