@@ -72,7 +72,7 @@ export default function EvalResponsesTable({ fields, responses, canDelete, onDel
               <TableRow>
                 {/* Sticky first column */}
                 <TableHead
-                  className="min-w-[140px] sticky left-0 z-20 bg-background shadow-[1px_0_0_0_hsl(var(--border))]"
+                  className="min-w-[140px] sticky left-0 z-20 bg-background border-r"
                 >
                   Name
                 </TableHead>
@@ -100,7 +100,7 @@ export default function EvalResponsesTable({ fields, responses, canDelete, onDel
                   <TableRow key={resp.id}>
                     {/* Sticky first column */}
                     <TableCell
-                      className="font-medium sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]"
+                      className="font-medium sticky left-0 z-10 bg-background border-r"
                     >
                       {resp.respondent_name}
                     </TableCell>
