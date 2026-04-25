@@ -135,7 +135,7 @@ const Elections = () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .in("role", ["vorstand", "mitglied"]);
+        .in("role", ["vorstand", "mitglied", "herold"]);
       if (roles && roles.length > 0) {
         const uniqueUserIds = [...new Set(roles.map((r) => r.user_id))];
         await supabase.from("group_members").insert(
