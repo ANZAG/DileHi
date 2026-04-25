@@ -45,7 +45,7 @@ const ALL_CATEGORIES = [
 const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 
 const Documents = () => {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canManageDocs = hasPermission("documents.manage");
   const canSeeVorstand = hasPermission("profiles.view_all");
   const CATEGORIES = canSeeVorstand
@@ -92,7 +92,7 @@ const Documents = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    // user is already available from useAuth – no extra round-trip needed
     const { error } = await supabase.from("documents").insert({
       title: title.trim(),
       category,

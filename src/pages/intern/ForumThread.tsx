@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Pencil, Trash2, Pin, Lock } from "lucide-react";
@@ -56,19 +56,27 @@ const ForumThread = () => {
     enabled: !!threadId,
   });
 
-  // Profiles
-  const authorIds = [...new Set(posts.map((p) => p.created_by))];
-  if (thread) authorIds.push(thread.created_by);
+  // Collect all unique author IDs from posts + thread opener.
+  // useMemo prevents a new array reference on every render, which would cause
+  // the query below to refetch even when the actual IDs haven't changed.
+  const authorIds = useMemo(() => {
+    const ids = new Set(posts.map((p) => p.created_by));
+    if (thread) ids.add(thread.created_by);
+    return [...ids];
+  }, [posts, thread]);
+
   const { data: profiles = [] } = useQuery({
-    queryKey: ["forum-profiles", authorIds],
+    // Serialize IDs to a stable string so React Query can correctly detect changes
+    queryKey: ["forum-profiles", authorIds.slice().sort().join(",")],
     queryFn: async () => {
       if (authorIds.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("id, display_name").in("id", [...new Set(authorIds)]);
+      const { data } = await supabase.from("profiles").select("id, display_name").in("id", authorIds);
       return data || [];
     },
     enabled: authorIds.length > 0,
   });
-  const nameMap = new Map(profiles.map((p) => [p.id, p.display_name]));
+  // Map for O(1) name lookups when rendering posts
+  const nameMap = useMemo(() => new Map(profiles.map((p) => [p.id, p.display_name])), [profiles]);
 
   // Mark as read
   useEffect(() => {
@@ -226,7 +234,8 @@ const ForumThread = () => {
                         <Pencil size={13} className="mr-1" /> Bearbeiten
                       </Button>
                     )}
-                    {(isOwn && !isOpening) || canModerate ? (
+                    {/* Own non-opening posts, OR any post if moderator */}
+                    {((isOwn && !isOpening) || canModerate) ? (
                       <Button
                         variant="ghost"
                         size="sm"

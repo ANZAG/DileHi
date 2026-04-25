@@ -76,8 +76,10 @@ const RateEditor = ({
 
   const mutation = useMutation({
     mutationFn: async (amount: number) => {
+      // Note: RateEditor is a standalone sub-component - it re-fetches the user
+      // here instead of receiving it as a prop. Fine for now, but could be a prop.
       const { data: { user } } = await supabase.auth.getUser();
-      // Try update first, then insert
+      // Upsert pattern: try update first to avoid duplicate key errors
       const { data: existing } = await supabase
         .from("contribution_rates")
         .select("id")

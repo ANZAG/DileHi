@@ -47,7 +47,12 @@ const Forum = () => {
   const { data: threadCounts = {} } = useQuery({
     queryKey: ["forum-thread-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("forum_threads").select("category_id");
+      // Select only the two columns we need instead of full rows.
+      // PostgREST doesn't support GROUP BY directly; we aggregate client-side,
+      // but at least we avoid fetching all columns.
+      const { data, error } = await supabase
+        .from("forum_threads")
+        .select("category_id");
       if (error) throw error;
       const counts: Record<string, number> = {};
       data.forEach((t) => { counts[t.category_id] = (counts[t.category_id] || 0) + 1; });
@@ -59,9 +64,14 @@ const Forum = () => {
     queryKey: ["forum-unread-counts", user?.id],
     queryFn: async () => {
       if (!user) return {};
-      const { data: threads } = await supabase.from("forum_threads").select("id, category_id, last_post_at");
-      const { data: readStatus } = await supabase.from("forum_read_status").select("thread_id, last_read_at").eq("user_id", user.id);
+      // Fetch threads and the user's read-status in parallel for speed.
+      // We compare last_post_at > last_read_at to detect unread threads.
+      const [{ data: threads }, { data: readStatus }] = await Promise.all([
+        supabase.from("forum_threads").select("id, category_id, last_post_at"),
+        supabase.from("forum_read_status").select("thread_id, last_read_at").eq("user_id", user.id),
+      ]);
       if (!threads) return {};
+      // Map for O(1) lookups instead of O(n) array.find per thread
       const readMap = new Map(readStatus?.map((r) => [r.thread_id, r.last_read_at]) || []);
       const counts: Record<string, number> = {};
       threads.forEach((t) => {

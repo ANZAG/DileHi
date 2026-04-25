@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,26 +35,33 @@ const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [displayName, setDisplayName] = useState("");
+  // All editable profile fields in one object to avoid 18 separate useState calls.
+  // This makes handleSave simpler and field additions require only one change here.
+  const [form, setForm] = useState({
+    displayName: "",
+    salutation: "",
+    firstName: "",
+    lastName: "",
+    street: "",
+    zip: "",
+    city: "",
+    birthdate: "",
+    phone: "",
+    membershipType: "aktiv",
+    contributionInterval: "jaehrlich",
+    entryDate: "",
+    exitDate: "",
+    isActive: true,
+    showOnMap: false,
+  });
+  const setField = useCallback(<K extends keyof typeof form>(key: K, value: typeof form[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const [salutation, setSalutation] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [street, setStreet] = useState("");
-  const [zip, setZip] = useState("");
-  const [city, setCity] = useState("");
-  const [birthdate, setBirthdate] = useState("");
-  const [phone, setPhone] = useState("");
-  const [membershipType, setMembershipType] = useState("aktiv");
-  const [contributionInterval, setContributionInterval] = useState("jaehrlich");
-  const [entryDate, setEntryDate] = useState("");
-  const [exitDate, setExitDate] = useState("");
-  const [isActive, setIsActive] = useState(true);
-  const [showOnMap, setShowOnMap] = useState(false);
 
   // Tent form state
   const [showAddTent, setShowAddTent] = useState(false);
@@ -65,35 +72,42 @@ const Profile = () => {
   const [tentWidth, setTentWidth] = useState("");
   const [tentGuyRope, setTentGuyRope] = useState("0");
 
+  // Load profile via useQuery for proper caching + loading state.
+  // The raw useEffect approach would refetch on every mount without caching.
+  const { data: profileData } = useQuery({
+    queryKey: ["my-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+      return data;
+    },
+  });
+
   useEffect(() => {
-    if (user) {
-      setEmail(user.email || "");
-      supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setDisplayName(data.display_name || "");
-            setSalutation(data.salutation || "");
-            setFirstName(data.first_name || "");
-            setLastName(data.last_name || "");
-            setStreet(data.street || "");
-            setZip(data.zip || "");
-            setCity(data.city || "");
-            setBirthdate(data.birthdate || "");
-            setPhone(data.phone || "");
-            setMembershipType(data.membership_type || "aktiv");
-            setContributionInterval(data.contribution_interval || "jaehrlich");
-            setEntryDate(data.entry_date || "");
-            setExitDate(data.exit_date || "");
-            setIsActive(data.is_active ?? true);
-            setShowOnMap(data.show_on_map ?? false);
-          }
-        });
-    }
+    if (user) setEmail(user.email || "");
   }, [user]);
+
+  useEffect(() => {
+    if (profileData) {
+      setForm({
+        displayName: profileData.display_name || "",
+        salutation: profileData.salutation || "",
+        firstName: profileData.first_name || "",
+        lastName: profileData.last_name || "",
+        street: profileData.street || "",
+        zip: profileData.zip || "",
+        city: profileData.city || "",
+        birthdate: profileData.birthdate || "",
+        phone: profileData.phone || "",
+        membershipType: profileData.membership_type || "aktiv",
+        contributionInterval: profileData.contribution_interval || "jaehrlich",
+        entryDate: profileData.entry_date || "",
+        exitDate: profileData.exit_date || "",
+        isActive: profileData.is_active ?? true,
+        showOnMap: profileData.show_on_map ?? false,
+      });
+    }
+  }, [profileData]);
 
   const { data: membershipFiles = [] } = useQuery({
     queryKey: ["membership_files", user?.id],
@@ -143,8 +157,8 @@ const Profile = () => {
       let mapLat: number | null = null;
       let mapLng: number | null = null;
 
-      if (showOnMap && (zip || city)) {
-        const coords = await geocodeCity(zip, city);
+      if (form.showOnMap && (form.zip || form.city)) {
+        const coords = await geocodeCity(form.zip, form.city);
         if (coords) {
           mapLat = coords.lat;
           mapLng = coords.lng;
@@ -154,20 +168,20 @@ const Profile = () => {
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          display_name: displayName,
-          salutation,
-          first_name: firstName,
-          last_name: lastName,
-          street,
-          zip,
-          city,
-          birthdate: birthdate || null,
-          phone,
-          membership_type: membershipType,
-          contribution_interval: contributionInterval,
-          show_on_map: showOnMap,
-          map_lat: showOnMap ? mapLat : null,
-          map_lng: showOnMap ? mapLng : null,
+          display_name: form.displayName,
+          salutation: form.salutation,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          street: form.street,
+          zip: form.zip,
+          city: form.city,
+          birthdate: form.birthdate || null,
+          phone: form.phone,
+          membership_type: form.membershipType,
+          contribution_interval: form.contributionInterval,
+          show_on_map: form.showOnMap,
+          map_lat: form.showOnMap ? mapLat : null,
+          map_lng: form.showOnMap ? mapLng : null,
         })
         .eq("id", user.id);
       if (profileError) throw profileError;
@@ -267,8 +281,8 @@ const Profile = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Anrede</label>
                 <select
-                  value={salutation}
-                  onChange={(e) => setSalutation(e.target.value)}
+                  value={form.salutation}
+                  onChange={(e) => setField("salutation", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">–</option>
@@ -279,8 +293,8 @@ const Profile = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Anzeigename</label>
                 <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  value={form.displayName}
+                  onChange={(e) => setField("displayName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -289,16 +303,16 @@ const Profile = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Vorname</label>
                 <input
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  value={form.firstName}
+                  onChange={(e) => setField("firstName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Nachname</label>
                 <input
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  value={form.lastName}
+                  onChange={(e) => setField("lastName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -306,8 +320,8 @@ const Profile = () => {
             <div>
               <label className="text-sm font-medium mb-1.5 block">Straße und Hausnummer</label>
               <input
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
+                value={form.street}
+                onChange={(e) => setField("street", e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
@@ -315,16 +329,16 @@ const Profile = () => {
               <div className="sm:col-span-1">
                 <label className="text-sm font-medium mb-1.5 block">PLZ</label>
                 <input
-                  value={zip}
-                  onChange={(e) => setZip(e.target.value)}
+                  value={form.zip}
+                  onChange={(e) => setField("zip", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div className="col-span-2">
                 <label className="text-sm font-medium mb-1.5 block">Wohnort</label>
                 <input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  value={form.city}
+                  onChange={(e) => setField("city", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -334,16 +348,16 @@ const Profile = () => {
                 <label className="text-sm font-medium mb-1.5 block">Geburtsdatum</label>
                 <input
                   type="date"
-                  value={birthdate}
-                  onChange={(e) => setBirthdate(e.target.value)}
+                  value={form.birthdate}
+                  onChange={(e) => setField("birthdate", e.target.value)}
                   className="flex h-10 max-h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm appearance-none [&::-webkit-date-and-time-value]:text-left"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Telefon / Handy</label>
                 <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={form.phone}
+                  onChange={(e) => setField("phone", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -357,8 +371,8 @@ const Profile = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
                 <select
-                  value={membershipType}
-                  onChange={(e) => setMembershipType(e.target.value)}
+                  value={form.membershipType}
+                  onChange={(e) => setField("membershipType", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="aktiv">Aktives Mitglied</option>
@@ -368,8 +382,8 @@ const Profile = () => {
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Beitragseinzug</label>
                 <select
-                  value={contributionInterval}
-                  onChange={(e) => setContributionInterval(e.target.value)}
+                  value={form.contributionInterval}
+                  onChange={(e) => setField("contributionInterval", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="jaehrlich">Jährlich</option>
@@ -382,25 +396,25 @@ const Profile = () => {
                 <label className="text-sm font-medium mb-1.5 block">Eintrittsdatum</label>
                 <input
                   type="date"
-                  value={entryDate}
+                  value={form.entryDate}
                   disabled
                   className="flex h-10 max-h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed appearance-none [&::-webkit-date-and-time-value]:text-left"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Wird vom Vorstand eingetragen</p>
               </div>
-              {exitDate && (
+              {form.exitDate && (
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Austrittsdatum</label>
                   <input
                     type="date"
-                    value={exitDate}
+                    value={form.exitDate}
                     disabled
                     className="flex h-10 max-h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed appearance-none [&::-webkit-date-and-time-value]:text-left"
                   />
                 </div>
               )}
             </div>
-            {!isActive && (
+            {!form.isActive && (
               <p className="text-sm text-destructive font-medium">Mitgliedschaft beendet</p>
             )}
           </div>
@@ -497,8 +511,8 @@ const Profile = () => {
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={showOnMap}
-                onChange={(e) => setShowOnMap(e.target.checked)}
+                checked={form.showOnMap}
+                onChange={(e) => setField("showOnMap", e.target.checked)}
                 className="mt-0.5 h-4 w-4 rounded border-input"
               />
               <div>
@@ -508,7 +522,7 @@ const Profile = () => {
                 </p>
               </div>
             </label>
-            {showOnMap && (!zip && !city) && (
+            {form.showOnMap && (!form.zip && !form.city) && (
               <p className="text-xs text-destructive">Bitte trage oben PLZ und Wohnort ein, damit dein Standort angezeigt werden kann.</p>
             )}
           </div>

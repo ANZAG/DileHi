@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,12 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const ROLES = [
-  { value: "mitglied", label: "Mitglied", icon: User },
-  { value: "vorstand", label: "Vorstand", icon: Shield },
-  { value: "herold", label: "Herold", icon: Crown },
-  { value: "schatzmeister", label: "Schatzmeister", icon: Coins },
-];
+// Roles are loaded from DB (role_catalog) – no frontend change needed when a new role is added.
+// Icon mapping is a display concern only; unknown roles fall back to User icon.
+const ROLE_ICONS: Record<string, React.ElementType> = {
+  mitglied: User,
+  vorstand: Shield,
+  herold: Crown,
+  schatzmeister: Coins,
+};
 
 type MemberData = {
   id: string;
@@ -52,6 +54,14 @@ type MemberData = {
 
 const MemberRegistry = () => {
   const { user } = useAuth();
+
+  const { data: roleCatalog = [] } = useQuery({
+    queryKey: ["role_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_role_catalog");
+      return (data ?? []) as { key: string; label: string }[];
+    },
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,13 +69,21 @@ const MemberRegistry = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("mitglied");
 
+  const { data: roleCatalog = [] } = useQuery({
+    queryKey: ["role_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_role_catalog");
+      return (data ?? []) as { key: string; label: string }[];
+    },
+  });
+  const roleLabel = (role: string) => roleCatalog.find((r) => r.key === role)?.label ?? role;
+
   // Filter/search/sort
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const roleLabel = (role: string) => ROLES.find((r) => r.value === role)?.label ?? role;
 
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
@@ -398,7 +416,7 @@ const MemberRegistry = () => {
               onChange={(e) => setInviteRole(e.target.value)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm flex-1 sm:flex-none"
             >
-              {ROLES.map((r) => (
+              {roleCatalog.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
@@ -498,7 +516,7 @@ const MemberRegistry = () => {
                   >
                     <TableCell className="font-medium">{m.display_name}</TableCell>
                     <TableCell>
-                      <Badge variant={m.role === "vorstand" ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={roleCatalog[0]?.key === m.role ? "default" : "secondary"} className="text-xs">
                         {roleLabel(m.role)}
                       </Badge>
                     </TableCell>
@@ -530,7 +548,7 @@ const MemberRegistry = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{m.display_name}</span>
-                      <Badge variant={m.role === "vorstand" ? "default" : "secondary"} className="text-xs shrink-0">
+                      <Badge variant={roleCatalog[0]?.key === m.role ? "default" : "secondary"} className="text-xs shrink-0">
                         {roleLabel(m.role)}
                       </Badge>
                     </div>
@@ -608,7 +626,7 @@ const MemberRegistry = () => {
                       onChange={(e) => setEditRole(e.target.value)}
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1"
                     >
-                      {ROLES.map((r) => (
+                      {roleCatalog.map((r) => (
                         <option key={r.value} value={r.value}>{r.label}</option>
                       ))}
                     </select>

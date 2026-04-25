@@ -6,10 +6,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  isVorstand: boolean;
+  /** All roles the user holds, e.g. ["vorstand", "mitglied"] */
+  roles: string[];
+  /** DB-sourced label map, e.g. { vorstand: "Vorstand" }. Falls back to key if unknown. */
+  roleLabels: Record<string, string>;
+  /** True if the user holds any role (= is an active member) */
   isMember: boolean;
-  isHerold: boolean;
-  isSchatzmeister: boolean;
   permissions: string[];
   hasPermission: (permission: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -25,13 +27,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isVorstand, setIsVorstand] = useState(false);
-  const [isMember, setIsMember] = useState(false);
-  const [isHerold, setIsHerold] = useState(false);
-  const [isSchatzmeister, setIsSchatzmeister] = useState(false);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [roleLabels, setRoleLabels] = useState<Record<string, string>>({});
   const [permissions, setPermissions] = useState<string[]>([]);
   const [realPermissions, setRealPermissions] = useState<string[]>([]);
   const [impersonatingRole, setImpersonatingRole] = useState<string | null>(null);
+
+  const isMember = roles.length > 0;
 
   const fetchRolesAndPermissions = async (userId: string) => {
     // Fetch roles
@@ -40,11 +42,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .select("role")
       .eq("user_id", userId);
     if (rolesData) {
-      const roles = rolesData.map((r) => r.role);
-      setIsVorstand(roles.includes("vorstand"));
-      setIsHerold(roles.includes("herold"));
-      setIsSchatzmeister(roles.includes("schatzmeister"));
-      setIsMember(roles.length > 0);
+      setRoles(rolesData.map((r) => r.role));
+    }
+
+    // Fetch role catalog for display labels (single source of truth from DB)
+    const { data: catalogData } = await supabase.rpc("get_role_catalog");
+    if (catalogData) {
+      const labels: Record<string, string> = {};
+      (catalogData as { key: string; label: string }[]).forEach((r) => {
+        labels[r.key] = r.label;
+      });
+      setRoleLabels(labels);
     }
 
     // Fetch permissions
@@ -59,7 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const startImpersonation = useCallback(async (role: string) => {
-    // Fetch permissions for the target role from role_permissions table
     const { data } = await supabase
       .from("role_permissions")
       .select("permission")
@@ -91,10 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           setTimeout(() => fetchRolesAndPermissions(session.user.id), 0);
         } else {
-          setIsVorstand(false);
-          setIsHerold(false);
-          setIsSchatzmeister(false);
-          setIsMember(false);
+          setRoles([]);
+          setRoleLabels({});
           setPermissions([]);
         }
         setLoading(false);
@@ -102,7 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Only use getSession as fallback if onAuthStateChange hasn't fired yet
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!initialized) {
         setSession(session);
@@ -127,7 +131,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isVorstand, isMember, isHerold, isSchatzmeister, permissions, hasPermission, signIn, signOut, impersonatingRole, startImpersonation, stopImpersonation }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        roles,
+        roleLabels,
+        isMember,
+        permissions,
+        hasPermission,
+        signIn,
+        signOut,
+        impersonatingRole,
+        startImpersonation,
+        stopImpersonation,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

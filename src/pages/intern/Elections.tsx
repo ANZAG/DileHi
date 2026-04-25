@@ -187,18 +187,20 @@ const Elections = () => {
 
   const closeGroup = useMutation({
     mutationFn: async (groupId: string) => {
-      // Close the group
+      const now = new Date().toISOString();
+      // Close group and all its active elections in two queries instead of N+1
       await supabase
         .from("election_groups")
-        .update({ status: "closed", closed_at: new Date().toISOString() })
+        .update({ status: "closed", closed_at: now })
         .eq("id", groupId);
-      // Close all active elections in this group
-      const activeElections = elections.filter((e) => e.group_id === groupId && e.status === "active");
-      for (const e of activeElections) {
+      const activeIds = elections
+        .filter((e) => e.group_id === groupId && e.status === "active")
+        .map((e) => e.id);
+      if (activeIds.length > 0) {
         await supabase
           .from("elections")
-          .update({ status: "closed", closed_at: new Date().toISOString() })
-          .eq("id", e.id);
+          .update({ status: "closed", closed_at: now })
+          .in("id", activeIds);
       }
     },
     onSuccess: () => {
@@ -211,12 +213,15 @@ const Elections = () => {
 
   const deleteGroup = useMutation({
     mutationFn: async (groupId: string) => {
-      // Delete all elections in this group first
-      const groupElections = elections.filter((e) => e.group_id === groupId);
-      for (const e of groupElections) {
-        await supabase.from("votes").delete().eq("election_id", e.id);
-        await supabase.from("candidates").delete().eq("election_id", e.id);
-        await supabase.from("elections").delete().eq("id", e.id);
+      // Batch delete: one query per table instead of one per election
+      const electionIds = elections
+        .filter((e) => e.group_id === groupId)
+        .map((e) => e.id);
+      if (electionIds.length > 0) {
+        // Cascade order: votes → candidates → elections
+        await supabase.from("votes").delete().in("election_id", electionIds);
+        await supabase.from("candidates").delete().in("election_id", electionIds);
+        await supabase.from("elections").delete().in("id", electionIds);
       }
       const { error } = await supabase.from("election_groups").delete().eq("id", groupId);
       if (error) throw error;
@@ -408,7 +413,6 @@ const Elections = () => {
                           myVoteCount={getMyVoteCount(election)}
                           totalMembers={getTotalMembers(election.group_id)}
                           totalPossibleVotes={getTotalPossibleVotes(election.group_id)}
-                          isVorstand={isVorstand}
                         />
                       ))}
                     </div>
@@ -433,7 +437,6 @@ const Elections = () => {
                       myVoteCount={1}
                       totalMembers={1}
                       totalPossibleVotes={1}
-                      isVorstand={isVorstand}
                     />
                   ))}
                 </div>

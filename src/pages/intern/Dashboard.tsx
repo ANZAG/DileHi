@@ -18,7 +18,7 @@ const baseCards = [
 ];
 
 const Dashboard = () => {
-  const { user, signOut, isVorstand, isHerold, isSchatzmeister, hasPermission } = useAuth();
+  const { user, signOut, roles, roleLabels, hasPermission } = useAuth();
   const canAdmin = hasPermission("admin.access");
 
   // Veranstaltungs-Auswertungen: zeigen, wenn Vorstand ODER Organisator eines aktuellen/zukünftigen Events
@@ -36,7 +36,8 @@ const Dashboard = () => {
         .order("start_date", { ascending: true })
         .limit(10);
 
-      const { data, error } = isVorstand
+      const canModerateEvents = hasPermission("events.moderate");
+      const { data, error } = canModerateEvents
         ? await query
         : await query.eq("created_by", user.id);
 
@@ -68,9 +69,11 @@ const Dashboard = () => {
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
             <p className="text-sm text-muted-foreground mt-1 break-all sm:break-normal">
               Angemeldet als {user?.email}
-              {isVorstand && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Vorstand</span>}
-              {isHerold && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Herold</span>}
-              {isSchatzmeister && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Schatzmeister</span>}
+              {roles.map((r) => (
+                <span key={r} className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  {roleLabels[r] ?? r}
+                </span>
+              ))}
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">

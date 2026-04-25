@@ -7,54 +7,58 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const ROLES = [
-  { key: "vorstand" as const, label: "Vorstand" },
-  { key: "herold" as const, label: "Herold" },
-  { key: "schatzmeister" as const, label: "Schatzmeister" },
-  { key: "mitglied" as const, label: "Mitglied" },
-] as const;
+// Roles and permissions are loaded from DB catalog tables.
 
-const ALL_PERMISSIONS = [
-  { key: "admin.access", label: "Verwaltungsbereich öffnen", category: "Allgemein" },
-  { key: "roles.manage", label: "Rollen & Berechtigungen verwalten", category: "Allgemein" },
-  { key: "audit.view", label: "Audit-Log einsehen", category: "Allgemein" },
-  { key: "members.manage", label: "Mitglieder verwalten", category: "Mitglieder" },
-  { key: "profiles.view_all", label: "Alle Profile einsehen", category: "Mitglieder" },
-  { key: "membership_files.manage", label: "Mitgliedsunterlagen verwalten", category: "Mitglieder" },
-  { key: "membership_files.view", label: "Mitgliedsunterlagen einsehen", category: "Mitglieder" },
-  { key: "gallery.manage", label: "Galerie verwalten", category: "Inhalte" },
-  { key: "epoch_sources.manage", label: "Epochen-Quellen verwalten", category: "Inhalte" },
-  { key: "visitor_highlights.manage", label: "Besucher-Highlights verwalten", category: "Inhalte" },
-  { key: "site_images.manage", label: "Seitenbilder verwalten", category: "Inhalte" },
-  { key: "contacts.view", label: "Kontaktanfragen sehen", category: "Kontakt" },
-  { key: "contacts.reply", label: "Kontaktanfragen beantworten", category: "Kontakt" },
-  { key: "contacts.delete", label: "Kontaktanfragen löschen", category: "Kontakt" },
-  { key: "documents.manage", label: "Dokumente verwalten", category: "Verein" },
-  { key: "elections.manage", label: "Abstimmungen verwalten", category: "Verein" },
-  { key: "contributions.manage", label: "Beiträge verwalten", category: "Finanzen" },
-  { key: "announcements.moderate", label: "Ankündigungen erstellen & moderieren", category: "Kommunikation" },
-  { key: "events.moderate", label: "Alle Veranstaltungen bearbeiten & löschen", category: "Kommunikation" },
-  { key: "events.publish", label: "Veranstaltungen öffentlich stellen", category: "Kommunikation" },
-  { key: "forum.moderate", label: "Forum moderieren (Pinnen, Sperren, Löschen)", category: "Kommunikation" },
-];
 
-type RoleKey = (typeof ROLES)[number]["key"];
 
 const RolesPermissionsPanel = () => {
   const queryClient = useQueryClient();
   const { startImpersonation } = useAuth();
+
+  // Roles and permissions come from DB – no frontend change when new ones are added
+  const { data: roleCatalog = [] } = useQuery({
+    queryKey: ["role_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_role_catalog");
+      return (data ?? []) as { key: string; label: string }[];
+    },
+  });
+
+  const { data: permCatalog = [] } = useQuery({
+    queryKey: ["permission_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_permission_catalog");
+      return (data ?? []) as { key: string; label: string; category: string }[];
+    },
+  });
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
 
-  const { data: rolePermissions = [], isLoading } = useQuery({
+  const { data: rolePermissions = [], isLoading: rpLoading } = useQuery({
     queryKey: ["role_permissions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("role_permissions")
-        .select("*");
+      const { data, error } = await supabase.from("role_permissions").select("*");
       if (error) throw error;
       return data;
     },
   });
+
+  const { data: roleCatalog = [], isLoading: rcLoading } = useQuery({
+    queryKey: ["role_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_role_catalog");
+      return (data ?? []) as { key: string; label: string }[];
+    },
+  });
+
+  const { data: permCatalog = [], isLoading: pcLoading } = useQuery({
+    queryKey: ["permission_catalog"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_permission_catalog");
+      return (data ?? []) as { key: string; label: string; category: string }[];
+    },
+  });
+
+  const isLoading = rpLoading || rcLoading || pcLoading;
 
   const toggleMutation = useMutation({
     mutationFn: async ({ role, permission, granted }: { role: RoleKey; permission: string; granted: boolean }) => {
@@ -91,10 +95,10 @@ const RolesPermissionsPanel = () => {
     },
   });
 
-  const isGranted = (role: RoleKey, permission: string) =>
+  const isGranted = (role: string, permission: string) =>
     rolePermissions.some((rp) => rp.role === role && rp.permission === permission && rp.granted);
 
-  const categories = [...new Set(ALL_PERMISSIONS.map((p) => p.category))];
+  const categories = [...new Set(permCatalog.map((p) => p.category))];
 
   if (isLoading) {
     return (
@@ -112,7 +116,7 @@ const RolesPermissionsPanel = () => {
           <Eye size={16} /> Ansicht testen als:
         </p>
         <div className="flex flex-wrap gap-2">
-          {ROLES.filter((role) => role.key !== "vorstand").map((role) => (
+          {roleCatalog.filter((role) => role.key !== "vorstand").map((role) => (
             <Button
               key={role.key}
               variant="outline"
@@ -133,7 +137,7 @@ const RolesPermissionsPanel = () => {
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="text-left p-3 font-semibold min-w-[220px]">Berechtigung</th>
-              {ROLES.map((role) => (
+              {roleCatalog.map((role) => (
                 <th key={role.key} className="p-3 text-center font-semibold min-w-[100px]">
                   {role.label}
                 </th>
@@ -144,14 +148,14 @@ const RolesPermissionsPanel = () => {
             {categories.map((cat) => (
               <>{/* Fragment key handled by category row */}
                 <tr key={`cat-${cat}`}>
-                  <td colSpan={ROLES.length + 1} className="px-3 pt-4 pb-1">
+                  <td colSpan={roleCatalog.length + 1} className="px-3 pt-4 pb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{cat}</span>
                   </td>
                 </tr>
-                {ALL_PERMISSIONS.filter((p) => p.category === cat).map((perm) => (
+                {permCatalog.filter((p) => p.category === cat).map((perm) => (
                   <tr key={perm.key} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-3 text-foreground">{perm.label}</td>
-                    {ROLES.map((role) => {
+                    {roleCatalog.map((role) => {
                       const toggleKey = `${role.key}:${perm.key}`;
                       const isPending = pendingToggles.has(toggleKey);
                       const granted = isGranted(role.key, perm.key);

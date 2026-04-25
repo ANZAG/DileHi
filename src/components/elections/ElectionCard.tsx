@@ -13,7 +13,6 @@ interface Props {
   myVoteCount: number;
   totalMembers: number;
   totalPossibleVotes: number;
-  isVorstand: boolean;
 }
 
 const formatTimestamp = (iso: string) => {
@@ -22,8 +21,9 @@ const formatTimestamp = (iso: string) => {
     " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", hour12: false });
 };
 
-const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, isVorstand }: Props) => {
-  const { user } = useAuth();
+const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes }: Props) => {
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("elections.manage");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

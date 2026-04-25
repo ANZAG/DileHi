@@ -42,18 +42,32 @@ const Announcements = () => {
     },
   });
 
+  // Collect unique author IDs from announcements + replies to fetch only what's needed.
+  // This avoids loading all member profiles when we only need a handful.
+  const authorIds = [
+    ...new Set([
+      ...announcements.map((a: any) => a.created_by),
+      ...replies.map((r: any) => r.created_by),
+    ]),
+  ];
+
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles_all"],
+    queryKey: ["profiles_subset", authorIds.slice().sort().join(",")],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, display_name");
+      if (authorIds.length === 0) return [];
+      const { data } = await supabase.from("profiles").select("id, display_name").in("id", authorIds);
       return data || [];
     },
+    enabled: authorIds.length > 0,
   });
 
-  const getName = (userId: string) =>
-    profiles.find((p) => p.id === userId)?.display_name || "Unbekannt";
+  // Map for O(1) name lookups
+  const profileMap = new Map(profiles.map((p) => [p.id, p.display_name]));
+  const getName = (userId: string) => profileMap.get(userId) || "Unbekannt";
 
-  // Auto-expand the newest announcement
+  // The newest announcement is auto-expanded unless the user has explicitly collapsed it.
+  // We track explicit collapses via a sentinel "__collapsed_<id>" key so that
+  // navigating away and back doesn't re-expand something the user already closed.
   const newestId = announcements[0]?.id;
 
   const isExpanded = (id: string) => {

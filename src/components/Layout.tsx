@@ -23,14 +23,10 @@ const mobileOnlyItems = [
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, impersonatingRole, stopImpersonation } = useAuth();
+  const { user, impersonatingRole, stopImpersonation, roleLabels } = useAuth();
 
-  const roleLabels: Record<string, string> = {
-    vorstand: "Vorstand",
-    herold: "Herold",
-    schatzmeister: "Schatzmeister",
-    mitglied: "Mitglied",
-  };
+  // roleLabels comes from useAuth (loaded from role_catalog in DB)
+  // → no frontend change needed when a new role is added
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
