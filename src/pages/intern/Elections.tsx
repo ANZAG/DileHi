@@ -131,17 +131,15 @@ const Elections = () => {
         .single();
       if (error) throw error;
 
-      // Auto-add all members with 1 vote each
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["vorstand", "mitglied", "herold"]);
-      if (roles && roles.length > 0) {
-        const uniqueUserIds = [...new Set(roles.map((r) => r.user_id))];
+      // Auto-add all members with 1 vote each.
+      // Uses get_member_ids() so role logic stays in the DB –
+      // no frontend change needed when a new role is added.
+      const { data: members } = await supabase.rpc("get_member_ids");
+      if (members && members.length > 0) {
         await supabase.from("group_members").insert(
-          uniqueUserIds.map((uid) => ({
+          members.map((m: { user_id: string }) => ({
             group_id: group.id,
-            user_id: uid,
+            user_id: m.user_id,
             vote_count: 1,
           }))
         );
