@@ -30,6 +30,10 @@ const Elections = () => {
         queryClient.invalidateQueries({ queryKey: ["election_results"] });
         queryClient.invalidateQueries({ queryKey: ["my_votes"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["election_results"] });
+        queryClient.invalidateQueries({ queryKey: ["my_votes"] });
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members" }, () => {
         queryClient.invalidateQueries({ queryKey: ["group_members"] });
       })
