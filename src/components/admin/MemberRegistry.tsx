@@ -22,8 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Roles are loaded from DB (role_catalog) – no frontend change needed when a new role is added.
-// Icon mapping is a display concern only; unknown roles fall back to User icon.
 const ROLE_ICONS: Record<string, React.ElementType> = {
   mitglied: User,
   vorstand: Shield,
@@ -54,7 +52,10 @@ type MemberData = {
 
 const MemberRegistry = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
+  // Role catalog – loaded once
   const { data: roleCatalog = [] } = useQuery({
     queryKey: ["role_catalog"],
     queryFn: async () => {
@@ -62,28 +63,19 @@ const MemberRegistry = () => {
       return (data ?? []) as { key: string; label: string }[];
     },
   });
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+
+  const roleLabel = (role: string) =>
+    roleCatalog.find((r) => r.key === role)?.label ?? role;
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("mitglied");
-
-  const { data: roleCatalog = [] } = useQuery({
-    queryKey: ["role_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
-    },
-  });
-  const roleLabel = (role: string) => roleCatalog.find((r) => r.key === role)?.label ?? role;
 
   // Filter/search/sort
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortKey, setSortKey] = useState<"display_name" | "role" | "email" | "city" | "entry_date" | "is_active">("display_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
 
   // Detail dialog
   const [selectedMember, setSelectedMember] = useState<MemberData | null>(null);
@@ -108,7 +100,6 @@ const MemberRegistry = () => {
       if (error) throw error;
       const userIds = roles.map((r) => r.user_id);
 
-      // Fetch profiles and emails in parallel to reduce latency
       const [profilesResult, emailsResult] = await Promise.all([
         supabase.from("profiles").select("*").in("id", userIds),
         supabase.functions.invoke("manage-member", {
@@ -239,7 +230,6 @@ const MemberRegistry = () => {
       if (!selectedMember) return;
       const userId = selectedMember.user_id;
 
-      // Update display name if changed
       if (editDisplayName !== selectedMember.display_name) {
         const { error } = await supabase.functions.invoke("manage-member", {
           body: { action: "update_profile", userId, displayName: editDisplayName },
@@ -247,7 +237,6 @@ const MemberRegistry = () => {
         if (error) throw error;
       }
 
-      // Update role if changed
       if (selectedMember.role !== editRole) {
         const { error } = await supabase.functions.invoke("manage-member", {
           body: { action: "update_role", userId, role: editRole },
@@ -255,7 +244,6 @@ const MemberRegistry = () => {
         if (error) throw error;
       }
 
-      // Update membership data
       const { error } = await supabase.functions.invoke("manage-member", {
         body: {
           action: "update_membership",
@@ -278,11 +266,9 @@ const MemberRegistry = () => {
   const deactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
       const today = new Date().toISOString().slice(0, 10);
-      // Set inactive + exit date
       await supabase.functions.invoke("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: today, isActive: false },
       });
-      // Remove role -> loses access
       await supabase.from("user_roles").delete().eq("user_id", m.user_id);
     },
     onSuccess: () => {
@@ -295,11 +281,9 @@ const MemberRegistry = () => {
 
   const reactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
-      // Re-add role
       await supabase.functions.invoke("manage-member", {
         body: { action: "update_role", userId: m.user_id, role: "mitglied" },
       });
-      // Clear exit date, set active
       await supabase.functions.invoke("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: null, isActive: true },
       });
@@ -386,7 +370,6 @@ const MemberRegistry = () => {
     setEditIsActive(m.is_active);
   };
 
-  // roleLabel moved above sort logic
   const contributionLabel = (val: string) => {
     const map: Record<string, string> = {
       jaehrlich: "Jährlich", halbjaehrlich: "Halbjährlich",
@@ -417,7 +400,7 @@ const MemberRegistry = () => {
               className="h-10 rounded-md border border-input bg-background px-3 text-sm flex-1 sm:flex-none"
             >
               {roleCatalog.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+                <option key={r.key} value={r.key}>{r.label}</option>
               ))}
             </select>
             <Button
@@ -456,7 +439,6 @@ const MemberRegistry = () => {
       {/* Members table */}
       {isLoading ? (
         <div className="space-y-3">
-          {/* Desktop skeleton */}
           <div className="hidden md:block">
             <div className="border rounded-lg overflow-hidden">
               <div className="grid grid-cols-6 gap-4 p-3 border-b bg-muted/30">
@@ -476,7 +458,6 @@ const MemberRegistry = () => {
               ))}
             </div>
           </div>
-          {/* Mobile skeleton */}
           <div className="md:hidden space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="border rounded-lg p-4 space-y-2">
@@ -627,7 +608,7 @@ const MemberRegistry = () => {
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1"
                     >
                       {roleCatalog.map((r) => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
+                        <option key={r.key} value={r.key}>{r.label}</option>
                       ))}
                     </select>
                   </div>
