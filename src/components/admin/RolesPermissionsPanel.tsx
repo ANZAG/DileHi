@@ -7,30 +7,10 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-// Roles and permissions are loaded from DB catalog tables.
-
-
-
 const RolesPermissionsPanel = () => {
   const queryClient = useQueryClient();
   const { startImpersonation } = useAuth();
 
-  // Roles and permissions come from DB – no frontend change when new ones are added
-  const { data: roleCatalog = [] } = useQuery({
-    queryKey: ["role_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
-    },
-  });
-
-  const { data: permCatalog = [] } = useQuery({
-    queryKey: ["permission_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_permission_catalog");
-      return (data ?? []) as { key: string; label: string; category: string }[];
-    },
-  });
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
 
   const { data: rolePermissions = [], isLoading: rpLoading } = useQuery({
@@ -61,7 +41,7 @@ const RolesPermissionsPanel = () => {
   const isLoading = rpLoading || rcLoading || pcLoading;
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ role, permission, granted }: { role: RoleKey; permission: string; granted: boolean }) => {
+    mutationFn: async ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) => {
       if (granted) {
         const { error } = await supabase
           .from("role_permissions")
@@ -146,7 +126,7 @@ const RolesPermissionsPanel = () => {
           </thead>
           <tbody>
             {categories.map((cat) => (
-              <>{/* Fragment key handled by category row */}
+              <>
                 <tr key={`cat-${cat}`}>
                   <td colSpan={roleCatalog.length + 1} className="px-3 pt-4 pb-1">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{cat}</span>
