@@ -219,8 +219,8 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
           group_id: groupId,
           action: currentlyAbsent ? "Anwesenheit wiederhergestellt" : "Mitglied ausgetragen",
           details: currentlyAbsent
-            ? \`\${getName(memberId)} wurde als anwesend markiert\`
-            : \`\${getName(memberId)} wurde als abwesend ausgetragen\`,
+            ? `${getName(memberId)} wurde als anwesend markiert`
+            : `${getName(memberId)} wurde als abwesend ausgetragen`,
           changed_by: user!.id,
         });
       }

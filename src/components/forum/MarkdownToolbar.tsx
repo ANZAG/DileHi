@@ -57,12 +57,12 @@ const tools: ToolAction[] = [
   { icon: ListOrdered,  label: "Nummerierte Liste (1. …)",             action: prefixLine("1. ", "Eintrag") },
   { icon: Link,         label: "Link",                                  action: (text, selStart, selEnd) => {
     const selected = text.slice(selStart, selEnd) || "Linktext";
-    const insert = \`[\${selected}](url)\`;
+    const insert = `[\${selected}](url)`;
     const newText = text.slice(0, selStart) + insert + text.slice(selEnd);
     return { text: newText, cursorStart: selStart + selected.length + 3, cursorEnd: selStart + selected.length + 6 };
   }},
   { icon: Quote,        label: "Zitat",                                 action: prefixLine("> ", "Zitat") },
-  { icon: Code,         label: "Code",                                  action: wrap("\`", "\`") },
+  { icon: Code,         label: "Code",                                  action: wrap("`", "`") },
   { icon: Table,        label: "Tabelle",                               action: (text, selStart) => {
     const tpl = "\n| Spalte 1 | Spalte 2 |\n|----------|----------|\n| Zelle    | Zelle    |\n";
     const newText = text.slice(0, selStart) + tpl + text.slice(selStart);
