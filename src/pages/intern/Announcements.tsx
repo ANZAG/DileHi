@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import MarkdownToolbar from "@/components/forum/MarkdownToolbar";
+import MarkdownContent from "@/components/forum/MarkdownContent";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,8 @@ const Announcements = () => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  // Ref for the create-form textarea so MarkdownToolbar can insert text at cursor position
+  const newContentRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: announcements = [], isLoading } = useQuery({
     queryKey: ["announcements"],
@@ -200,12 +204,16 @@ const Announcements = () => {
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
             />
-            <textarea
-              placeholder="Inhalt *"
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[120px]"
-            />
+            <div className="border rounded-md p-2 bg-background">
+              <MarkdownToolbar textareaRef={newContentRef} value={form.content} onChange={(v) => setForm({ ...form, content: v })} />
+              <textarea
+                ref={newContentRef}
+                placeholder="Inhalt *"
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                className="w-full rounded-md border-0 bg-background px-1 py-1 text-sm min-h-[120px] focus:outline-none resize-none"
+              />
+            </div>
             <button
               onClick={() => form.title && form.content && addAnnouncement.mutate()}
               disabled={!form.title || !form.content || addAnnouncement.isPending}
@@ -258,7 +266,7 @@ const Announcements = () => {
                   {/* Expanded content */}
                   {expanded && (
                     <div className="px-5 pb-5 space-y-4">
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{a.content}</p>
+                      <MarkdownContent content={a.content} />
 
                       {/* Files */}
                       {a.announcement_files && a.announcement_files.length > 0 && (

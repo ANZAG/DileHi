@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { X, History } from "lucide-react";
+import { X, History, UserX, UserCheck } from "lucide-react";
 import type { GroupMember, RepresentationLogEntry } from "./types";
 
 interface Props {
@@ -162,9 +162,81 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
   });
 
-  // Members who are not represented by anyone (available to be representatives)
+  // Toggle a member's presence without assigning a representative.
+  // Absent members (vote_count=0, no represented_by) are excluded from the total vote count.
+  // This is distinct from "represented" (vote_count=0, represented_by=someId).
+  const toggleAbsent = useMutation({
+    mutationFn: async ({ memberId, currentlyAbsent }: { memberId: string; currentlyAbsent: boolean }) => {
+      const member = members.find((m) => m.user_id === memberId);
+      if (!member) return;
+
+      if (currentlyAbsent || member.represented_by) {
+        // Restore to present: clear any representation, set vote_count back to 1.
+        // Works whether the member was absent (vote_count=0) or represented by someone.
+        if (member.represented_by) {
+          // Decrease the representative's vote count first
+          const rep = members.find((m) => m.user_id === member.represented_by);
+          if (rep) {
+            await supabase
+              .from("group_members" as any)
+              .update({ vote_count: Math.max(1, rep.vote_count - 1) })
+              .eq("group_id", groupId)
+              .eq("user_id", member.represented_by);
+          }
+        }
+        await supabase
+          .from("group_members" as any)
+          .update({ vote_count: 1, represented_by: null })
+          .eq("group_id", groupId)
+          .eq("user_id", memberId);
+      } else {
+        // Mark as absent: clear any existing representation first
+        if (member.represented_by) {
+          const rep = members.find((m) => m.user_id === member.represented_by);
+          if (rep) {
+            await supabase
+              .from("group_members" as any)
+              .update({ vote_count: Math.max(1, rep.vote_count - 1) })
+              .eq("group_id", groupId)
+              .eq("user_id", member.represented_by);
+          }
+          await supabase
+            .from("group_members" as any)
+            .update({ represented_by: null, vote_count: 0 })
+            .eq("group_id", groupId)
+            .eq("user_id", memberId);
+        } else {
+          await supabase
+            .from("group_members" as any)
+            .update({ vote_count: 0 })
+            .eq("group_id", groupId)
+            .eq("user_id", memberId);
+        }
+      }
+
+      if (hasVotes) {
+        await supabase.from("representation_log" as any).insert({
+          group_id: groupId,
+          action: currentlyAbsent ? "Anwesenheit wiederhergestellt" : "Mitglied ausgetragen",
+          details: currentlyAbsent
+            ? \`\${getName(memberId)} wurde als anwesend markiert\`
+            : \`\${getName(memberId)} wurde als abwesend ausgetragen\`,
+          changed_by: user!.id,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group_members", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["representation_log", groupId] });
+      toast({ title: "Anwesenheit aktualisiert" });
+    },
+    onError: () => toast({ title: "Fehler", variant: "destructive" }),
+  });
+
+  // Members who are not represented by anyone (available to be representatives).
+  // Also exclude absent members (vote_count=0, no represented_by).
   const availableRepresentatives = (forUserId: string) =>
-    members.filter((m) => m.user_id !== forUserId && !m.represented_by);
+    members.filter((m) => m.user_id !== forUserId && !m.represented_by && m.vote_count > 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -225,16 +297,38 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
                 {members.map((member) => {
                   const representedUsers = getRepresentedUsers(member.user_id);
                   const isRepresented = !!member.represented_by;
+                  // Absent = vote_count is 0 without being represented by someone
+                  const isAbsent = member.vote_count === 0 && !member.represented_by;
 
                   return (
-                    <tr key={member.id} className={`border-b ${isRepresented ? "opacity-50" : ""}`}>
+                    <tr key={member.id} className={`border-b ${(isRepresented || isAbsent) ? "opacity-50" : ""}`}>
                       <td className="py-2 px-2">
-                        {getName(member.user_id)}
-                        {isRepresented && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            (vertreten durch {getName(member.represented_by!)})
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span>{getName(member.user_id)}</span>
+                          {isAbsent && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              abwesend
+                            </span>
+                          )}
+                          {isRepresented && (
+                            <span className="text-xs text-muted-foreground">
+                              (vertreten durch {getName(member.represented_by!)})
+                            </span>
+                          )}
+                          {!isReadOnly && (
+                            <button
+                              onClick={() => toggleAbsent.mutate({ memberId: member.user_id, currentlyAbsent: isAbsent })}
+                              className="ml-auto p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                              title={
+                                isAbsent || isRepresented
+                                  ? "Als anwesend eintragen (Vertretung wird aufgehoben)"
+                                  : "Als abwesend austragen"
+                              }
+                            >
+                              {(isAbsent || isRepresented) ? <UserCheck size={15} /> : <UserX size={15} />}
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="text-center py-2 px-2 font-medium">{member.vote_count}</td>
                       <td className="py-2 px-2">
@@ -258,7 +352,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
                             ))}
                           </div>
                         ) : null}
-                        {!isReadOnly && !isRepresented && (
+                        {!isReadOnly && !isRepresented && !isAbsent && (
                           <select
                             className="mt-1 text-xs rounded border border-input bg-background px-2 py-1"
                             value=""
@@ -273,7 +367,8 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
                           >
                             <option value="">+ Vertretung hinzufügen</option>
                             {members
-                              .filter((m) => m.user_id !== member.user_id && !m.represented_by && m.vote_count > 0)
+                              // Exclude self, already-represented members, and absent members
+                            .filter((m) => m.user_id !== member.user_id && !m.represented_by && m.vote_count > 0)
                               .map((m) => (
                                 <option key={m.user_id} value={m.user_id}>
                                   {getName(m.user_id)}

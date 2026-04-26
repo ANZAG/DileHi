@@ -1,4 +1,4 @@
-import { Bold, Italic, Link, Code, Quote, Table, List, Heading } from "lucide-react";
+import { Bold, Italic, Underline, Link, Code, Quote, Table, List, ListOrdered, Minus, Heading } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
@@ -40,19 +40,30 @@ const prefixLine = (prefix: string, placeholder: string) => (text: string, selSt
 };
 
 const tools: ToolAction[] = [
-  { icon: Bold, label: "Fett", shortcut: "Ctrl+B", action: wrap("**", "**") },
-  { icon: Italic, label: "Kursiv", shortcut: "Ctrl+I", action: wrap("*", "*") },
-  { icon: Heading, label: "Überschrift", action: prefixLine("### ", "Überschrift") },
-  { icon: Link, label: "Link", action: (text, selStart, selEnd) => {
+  { icon: Bold,         label: "Fett",             shortcut: "Ctrl+B", action: wrap("**", "**") },
+  { icon: Italic,       label: "Kursiv",            shortcut: "Ctrl+I", action: wrap("*", "*") },
+  // Underline via HTML <u> tag – not in standard CommonMark but rendered by most browsers
+  { icon: Underline,    label: "Unterstrichen",                         action: wrap("<u>", "</u>") },
+  { icon: Heading,      label: "Überschrift",                           action: prefixLine("### ", "Überschrift") },
+  { icon: Minus,        label: "Trennstrich",                           action: (text, selStart) => {
+    const needsNewline = selStart > 0 && text[selStart - 1] !== "\n";
+    const rule = (needsNewline ? "\n" : "") + "---\n";
+    const newText = text.slice(0, selStart) + rule + text.slice(selStart);
+    return { text: newText, cursorStart: selStart + rule.length, cursorEnd: selStart + rule.length };
+  }},
+  // Unordered list (- item). Nested lists: use Tab or add two spaces before -
+  { icon: List,         label: "Stichpunkte  (- …)",                   action: prefixLine("- ", "Eintrag") },
+  // Ordered list (1. item)
+  { icon: ListOrdered,  label: "Nummerierte Liste (1. …)",             action: prefixLine("1. ", "Eintrag") },
+  { icon: Link,         label: "Link",                                  action: (text, selStart, selEnd) => {
     const selected = text.slice(selStart, selEnd) || "Linktext";
-    const insert = `[${selected}](url)`;
+    const insert = \`[\${selected}](url)\`;
     const newText = text.slice(0, selStart) + insert + text.slice(selEnd);
     return { text: newText, cursorStart: selStart + selected.length + 3, cursorEnd: selStart + selected.length + 6 };
   }},
-  { icon: Quote, label: "Zitat", action: prefixLine("> ", "Zitat") },
-  { icon: Code, label: "Code", action: wrap("`", "`") },
-  { icon: List, label: "Liste", action: prefixLine("- ", "Eintrag") },
-  { icon: Table, label: "Tabelle", action: (text, selStart) => {
+  { icon: Quote,        label: "Zitat",                                 action: prefixLine("> ", "Zitat") },
+  { icon: Code,         label: "Code",                                  action: wrap("\`", "\`") },
+  { icon: Table,        label: "Tabelle",                               action: (text, selStart) => {
     const tpl = "\n| Spalte 1 | Spalte 2 |\n|----------|----------|\n| Zelle    | Zelle    |\n";
     const newText = text.slice(0, selStart) + tpl + text.slice(selStart);
     return { text: newText, cursorStart: selStart + tpl.length, cursorEnd: selStart + tpl.length };
