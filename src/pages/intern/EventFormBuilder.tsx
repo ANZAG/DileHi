@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +23,8 @@ export default function EventFormBuilder() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("events.moderate");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

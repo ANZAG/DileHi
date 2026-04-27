@@ -9,7 +9,8 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 
 const Auswertungen = () => {
-  const { user, isVorstand } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isVorstand = hasPermission("events.moderate");
 
   // Alle Events laden, für die ein event_form existiert UND
   // die der Nutzer als Organisator erstellt hat (oder Vorstand ist)
@@ -27,18 +28,15 @@ const Auswertungen = () => {
       const eventIds = forms.map((f) => f.event_id);
       if (eventIds.length === 0) return [];
 
-      // Dann die Events dazu laden – gefiltert nach Organisator oder Vorstand
-      let query = supabase
+      // Load all events that have a form – the evaluation page itself is
+      // permission-guarded, so we don't need to restrict the list here.
+      // Previously this filtered by created_by for non-Vorstand, which caused
+      // events created by others to disappear from the overview.
+      const { data, error } = await supabase
         .from("events")
         .select("id, title, start_date, end_date, created_by")
         .in("id", eventIds)
         .order("start_date", { ascending: true });
-
-      if (!isVorstand) {
-        query = query.eq("created_by", user.id);
-      }
-
-      const { data, error } = await query;
       if (error) return [];
       return data || [];
     },
