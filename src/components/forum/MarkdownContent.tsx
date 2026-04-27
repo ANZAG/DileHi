@@ -1,13 +1,13 @@
 // MarkdownContent.tsx
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 interface MarkdownContentProps {
   content: string;
   className?: string;
 }
 
-// Highlight @mentions in text nodes
 const highlightMentions = (text: string): (string | React.ReactElement)[] => {
   const parts = text.split(/(@[\wÀ-ÿ][\wÀ-ÿ .\\-]*)/g);
   return parts.map((part, i) => {
@@ -46,7 +46,7 @@ const MarkdownContent = ({ content, className = "" }: MarkdownContentProps) => (
     `}
   >
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkBreaks]}
       components={{
         a: ({ ...props }) => (
           <a {...props} target="_blank" rel="noopener noreferrer" />
