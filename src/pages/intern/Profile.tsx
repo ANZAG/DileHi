@@ -53,6 +53,9 @@ const Profile = () => {
     exitDate: "",
     isActive: true,
     showOnMap: false,
+    // Dietary preferences – used to pre-fill event registration forms automatically
+    diet: "",
+    allergies: "",
   });
   const setField = useCallback(<K extends keyof typeof form>(key: K, value: typeof form[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -105,6 +108,8 @@ const Profile = () => {
         exitDate: profileData.exit_date || "",
         isActive: profileData.is_active ?? true,
         showOnMap: profileData.show_on_map ?? false,
+        diet: profileData.diet || "",
+        allergies: profileData.allergies || "",
       });
     }
   }, [profileData]);
@@ -358,6 +363,40 @@ const Profile = () => {
                 <input
                   value={form.phone}
                   onChange={(e) => setField("phone", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Dietary preferences – pre-fill event registration forms automatically */}
+          <div className="p-6 rounded-lg border bg-card space-y-4">
+            <div>
+              <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
+                <select
+                  value={form.diet}
+                  onChange={(e) => setField("diet", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">– keine Angabe –</option>
+                  <option value="Keine Einschränkung">Keine Einschränkung</option>
+                  <option value="Vegetarisch">Vegetarisch</option>
+                  <option value="Vegan">Vegan</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
+                <input
+                  value={form.allergies}
+                  onChange={(e) => setField("allergies", e.target.value)}
+                  placeholder="z.B. Nüsse, Laktose …"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>

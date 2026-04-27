@@ -84,15 +84,39 @@ export default function EventRegistration() {
     });
   }, [token, editToken]);
 
-  // Pre-fill name and email for logged-in members
+  // Pre-fill name, email, and dietary preferences for logged-in members.
+  // Diet and allergies are matched against field labels so they work with
+  // any form that uses the standard template labels.
   useEffect(() => {
     if (user && !editToken) {
-      supabase.from("profiles").select("display_name").eq("id", user.id).single().then(({ data }) => {
-        if (data) setName(data.display_name);
-      });
+      supabase
+        .from("profiles")
+        .select("display_name, diet, allergies")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (!data) return;
+          if (data.display_name) setName(data.display_name);
+          // Pre-fill dynamic form fields by matching their label
+          if (data.diet || data.allergies) {
+            setAnswers((prev) => {
+              const updated = { ...prev };
+              formData?.fields?.forEach((field: any) => {
+                const lbl = field.label?.toLowerCase() || "";
+                if (data.diet && lbl.includes("ernährung") && !updated[field.id]) {
+                  updated[field.id] = data.diet;
+                }
+                if (data.allergies && lbl.includes("allergi") && !updated[field.id]) {
+                  updated[field.id] = data.allergies;
+                }
+              });
+              return updated;
+            });
+          }
+        });
       setEmail(user.email || "");
     }
-  }, [user, editToken]);
+  }, [user, editToken, formData?.fields]);
 
   // Load existing response if user already submitted (logged-in members only)
   useEffect(() => {
