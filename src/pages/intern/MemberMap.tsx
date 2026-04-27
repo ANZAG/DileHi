@@ -39,15 +39,43 @@ const MemberMap = () => {
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["member-map"],
     queryFn: async () => {
+      // Fetch all opted-in active members, including those with missing coords.
+      // We attempt on-the-fly geocoding for members whose coordinates were lost
+      // due to a previous bug (Profile.tsx overwrote coords with null on failed save).
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, display_name, city, map_lat, map_lng, show_on_map, is_active")
+        .select("id, display_name, city, zip, map_lat, map_lng")
         .eq("show_on_map", true)
-        .eq("is_active", true)
-        .not("map_lat", "is", null)
-        .not("map_lng", "is", null);
+        .eq("is_active", true);
 
       if (!profiles || profiles.length === 0) return [];
+
+      // Geocode members who have city/zip but no stored coordinates
+      const missingCoords = profiles.filter(
+        (p) => (p.map_lat == null || p.map_lng == null) && (p.city || p.zip)
+      );
+
+      if (missingCoords.length > 0) {
+        await Promise.all(
+          missingCoords.map(async (p) => {
+            const q = [p.zip, p.city].filter(Boolean).join(" ");
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`
+              );
+              const geo = await res.json();
+              if (Array.isArray(geo) && geo.length > 0) {
+                const lat = parseFloat(geo[0].lat);
+                const lng = parseFloat(geo[0].lon);
+                p.map_lat = lat;
+                p.map_lng = lng;
+                // Persist back to DB so Profile.tsx doesn't need to re-geocode on next save
+                supabase.from("profiles").update({ map_lat: lat, map_lng: lng }).eq("id", p.id).then();
+              }
+            } catch {}
+          })
+        );
+      }
 
       return profiles
         .filter((p) => p.map_lat != null && p.map_lng != null)

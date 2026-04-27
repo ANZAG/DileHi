@@ -144,14 +144,24 @@ const Profile = () => {
 
   const geocodeCity = async (plz: string, ort: string): Promise<{ lat: number; lng: number } | null> => {
     if (!plz && !ort) return null;
-    try {
-      const query = `${plz} ${ort}, Germany`;
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      }
-    } catch {}
+    // Try progressively broader queries until one succeeds.
+    // No hardcoded country so it works for members outside Germany.
+    const candidates = [
+      [plz, ort].filter(Boolean).join(" "),          // "68159 Mannheim"
+      ort,                                            // "Mannheim" (city only)
+      plz,                                            // "68159" (zip only)
+    ].filter(Boolean);
+    for (const query of candidates) {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+        );
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        }
+      } catch {}
+    }
     return null;
   };
 
@@ -159,14 +169,29 @@ const Profile = () => {
     if (!user) return;
     setSaving(true);
     try {
-      let mapLat: number | null = null;
-      let mapLng: number | null = null;
+      // Determine map coordinates.
+      // Strategy: keep existing coordinates from the DB unless we can get fresh ones.
+      // This prevents wiping valid coords whenever Nominatim is slow or unreachable.
+      let mapLat: number | null = profileData?.map_lat ?? null;
+      let mapLng: number | null = profileData?.map_lng ?? null;
+      let geocodeFailed = false;
 
       if (form.showOnMap && (form.zip || form.city)) {
-        const coords = await geocodeCity(form.zip, form.city);
-        if (coords) {
-          mapLat = coords.lat;
-          mapLng = coords.lng;
+        // Only re-geocode if address fields actually changed, or coords are missing
+        const addressChanged =
+          form.zip !== (profileData?.zip || "") ||
+          form.city !== (profileData?.city || "");
+        const missingCoords = mapLat == null || mapLng == null;
+
+        if (addressChanged || missingCoords) {
+          const coords = await geocodeCity(form.zip, form.city);
+          if (coords) {
+            mapLat = coords.lat;
+            mapLng = coords.lng;
+          } else {
+            geocodeFailed = true;
+            // Keep existing coords – don't overwrite with null
+          }
         }
       }
 
@@ -187,6 +212,8 @@ const Profile = () => {
           show_on_map: form.showOnMap,
           map_lat: form.showOnMap ? mapLat : null,
           map_lng: form.showOnMap ? mapLng : null,
+          diet: form.diet || null,
+          allergies: form.allergies || null,
         })
         .eq("id", user.id);
       if (profileError) throw profileError;
@@ -212,7 +239,15 @@ const Profile = () => {
         if (pwError) throw pwError;
       }
 
-      toast({ title: "Profil gespeichert" });
+      if (geocodeFailed) {
+        toast({
+          title: "Profil gespeichert",
+          description: "Wohnort konnte nicht auf der Karte eingetragen werden – bitte PLZ und Ort prüfen.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Profil gespeichert" });
+      }
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
