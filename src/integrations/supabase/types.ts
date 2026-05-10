@@ -354,6 +354,7 @@ export type Database = {
           status: string
           title: string
           type: string
+          updated_at: string
         }
         Insert: {
           closed_at?: string | null
@@ -365,6 +366,7 @@ export type Database = {
           status?: string
           title: string
           type?: string
+          updated_at?: string
         }
         Update: {
           closed_at?: string | null
@@ -376,6 +378,7 @@ export type Database = {
           status?: string
           title?: string
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1030,6 +1033,13 @@ export type Database = {
             foreignKeyName: "member_tents_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "map_missing_coords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_tents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1104,13 +1114,36 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_catalog: {
+        Row: {
+          category: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          allergies: string | null
           birthdate: string | null
           calendar_token: string | null
           city: string | null
           contribution_interval: string | null
           created_at: string
+          diet: string | null
           display_name: string
           entry_date: string | null
           exit_date: string | null
@@ -1129,11 +1162,13 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
           city?: string | null
           contribution_interval?: string | null
           created_at?: string
+          diet?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1152,11 +1187,13 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
           city?: string | null
           contribution_interval?: string | null
           created_at?: string
+          diet?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1210,6 +1247,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_catalog: {
+        Row: {
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -1436,6 +1491,36 @@ export type Database = {
           },
         ]
       }
+      map_missing_coords: {
+        Row: {
+          city: string | null
+          display_name: string | null
+          id: string | null
+          map_lat: number | null
+          map_lng: number | null
+          show_on_map: boolean | null
+          zip: string | null
+        }
+        Insert: {
+          city?: string | null
+          display_name?: string | null
+          id?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
+          show_on_map?: boolean | null
+          zip?: string | null
+        }
+        Update: {
+          city?: string | null
+          display_name?: string | null
+          id?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
+          show_on_map?: boolean | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_vote: {
@@ -1456,9 +1541,30 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      get_member_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_permission_catalog: {
+        Args: never
+        Returns: {
+          category: string
+          key: string
+          label: string
+        }[]
+      }
       get_response_by_edit_token: {
         Args: { _edit_token: string }
         Returns: Json
+      }
+      get_role_catalog: {
+        Args: never
+        Returns: {
+          key: string
+          label: string
+        }[]
       }
       get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
       get_user_vote_count: {
