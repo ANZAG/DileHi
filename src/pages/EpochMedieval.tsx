@@ -37,7 +37,7 @@ const EpochMedieval = () => {
 
   return (
     <div>
-      <SEO title="Spätmittelalter - Grafschaft Nassau (1290-1310)" description="Als Nassau den König stellte: Unsere Darstellung des Spätmittelalters in der Grafschaft Nassau. Vom Niederadel bis zum Handwerk - Leben um 1300 authentisch erfahrbar." url="/epochen/mittelalter" image="/epoch-medieval.webp" />
+      <SEO title="Spätmittelalter - Grafschaft Nassau (1290-1310)" description="Als Nassau den König stellte: Darstellung des Spätmittelalters in der Grafschaft Nassau – Niederadel und Handwerk um 1300 authentisch erfahrbar." url="/epochen/mittelalter" image="/epoch-medieval.webp" jsonLd={{ "@context": "https://schema.org", "@type": "Article", headline: "Spätmittelalter in der Grafschaft Nassau (1290–1310)", description: "Darstellung des Spätmittelalters in der Grafschaft Nassau – Niederadel und Handwerk um 1300.", image: "https://www.dilehi.de/epoch-medieval.webp", author: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." }, publisher: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." } }} />
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={heroImg.src} alt={heroImg.alt} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />

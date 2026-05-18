@@ -39,7 +39,7 @@ const EpochWW1 = () => {
 
   return (
     <div>
-      <SEO title="Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21" description="Pioniere aus Hessen-Nassau 1916/17: Unsere Darstellung des 1. Nassauischen Pionier-Bataillons Nr. 21 zeigt den Alltag der Soldaten im Stellungskrieg an der Westfront." url="/epochen/wk1" image="/epoch-ww1.webp" />
+      <SEO title="Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21" description="Pioniere aus Hessen-Nassau 1916/17: Unsere Darstellung des 1. Nassauischen Pionier-Bataillons Nr. 21 zeigt den Alltag der Soldaten im Stellungskrieg an der Westfront." url="/epochen/wk1" image="/epoch-ww1.webp" jsonLd={{ "@context": "https://schema.org", "@type": "Article", headline: "Erster Weltkrieg – 1. Nassauisches Pionier-Bataillon Nr. 21", description: "Darstellung des Alltags der Pioniere des 1. Nassauischen Pionier-Bataillons Nr. 21 im Stellungskrieg 1916/17.", image: "https://www.dilehi.de/epoch-ww1.webp", author: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." }, publisher: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." } }} />
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={heroImg.src} alt={heroImg.alt} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />

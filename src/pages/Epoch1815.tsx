@@ -39,7 +39,7 @@ const Epoch1815 = () => {
 
   return (
     <div>
-      <SEO title="Napoleonik - Grenadiere des 1. Nassauischen Linien-Regiments 1815" description="Nassauer bei Waterloo: Unsere Darstellung der Grenadiere des 1. Nassauischen Linien-Regiments zeigt die nassauischen Soldaten in den Befreiungskriegen 1815." url="/epochen/1815" image="/epoch-1815.webp" />
+      <SEO title="Napoleonik - Grenadiere des 1. Nassauischen Linien-Regiments 1815" description="Nassauer bei Waterloo: Unsere Darstellung der Grenadiere des 1. Nassauischen Linien-Regiments zeigt die nassauischen Soldaten in den Befreiungskriegen 1815." url="/epochen/1815" image="/epoch-1815.webp" jsonLd={{ "@context": "https://schema.org", "@type": "Article", headline: "Napoleonik – Grenadiere des 1. Nassauischen Linien-Regiments 1815", description: "Darstellung der nassauischen Grenadiere in den Befreiungskriegen 1815.", image: "https://www.dilehi.de/epoch-1815.webp", author: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." }, publisher: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." } }} />
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={heroImg.src} alt={heroImg.alt} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
