@@ -30,7 +30,7 @@ const EpochWW1 = () => {
       if (error) return [];
       return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
-        return { src: urlData.publicUrl, alt: img.alt_text || "Galeriebild", showSubtitle: img.show_subtitle ?? false };
+        return { src: urlData.publicUrl, alt: img.alt_text || "Darstellung Erster Weltkrieg Pioniere", showSubtitle: img.show_subtitle ?? false };
       });
     },
   });
