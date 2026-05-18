@@ -97,8 +97,9 @@ const Kontakt = () => {
           />
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Name *</label>
+            <label htmlFor="contact-name" className="text-sm font-medium mb-1.5 block">Name *</label>
             <input
+              id="contact-name"
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -110,8 +111,9 @@ const Kontakt = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">E-Mail *</label>
+            <label htmlFor="contact-email" className="text-sm font-medium mb-1.5 block">E-Mail *</label>
             <input
+              id="contact-email"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -123,8 +125,9 @@ const Kontakt = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Nachricht *</label>
+            <label htmlFor="contact-message" className="text-sm font-medium mb-1.5 block">Nachricht *</label>
             <textarea
+              id="contact-message"
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               required
@@ -136,8 +139,9 @@ const Kontakt = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">{captcha.question}</label>
+            <label htmlFor="contact-captcha" className="text-sm font-medium mb-1.5 block">{captcha.question}</label>
             <input
+              id="contact-captcha"
               type="number"
               value={captchaInput}
               onChange={(e) => setCaptchaInput(e.target.value)}
