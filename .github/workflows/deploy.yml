@@ -1,5 +1,4 @@
 name: Build & Deploy
-
 on:
   push:
     branches:
@@ -7,7 +6,6 @@ on:
   pull_request:
     branches:
       - main
-
 jobs:
   seo-checks:
     runs-on: ubuntu-latest
@@ -19,27 +17,24 @@ jobs:
       - name: Install
         run: npm install
       - name: ESLint (alt-text, label-has-associated-control, a11y)
-        run: npx eslint . --rule 'jsx-a11y/alt-text: error' --rule 'jsx-a11y/label-has-associated-control: error'
+        run: |
+          npx eslint . --rule 'jsx-a11y/alt-text: error' --rule 'jsx-a11y/label-has-associated-control: error'
       - name: SEO check (meta, JSON-LD, sitemap, robots)
         run: npm run seo:check
-
   deploy:
     needs: seo-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Node.js setup
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install & Build
         run: |
           npm install
           npm run build
-
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
