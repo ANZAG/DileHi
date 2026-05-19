@@ -34,11 +34,6 @@ import MemberMap from "./pages/intern/MemberMap";
 import EventFormBuilder from "./pages/intern/EventFormBuilder";
 import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
 import Auswertungen from "./pages/intern/Auswertungen";
-// Forum archived – routes & tiles disabled (files retained for future re-activation)
-// import Forum from "./pages/intern/Forum";
-// import ForumCategory from "./pages/intern/ForumCategory";
-// import ForumThread from "./pages/intern/ForumThread";
-// import ForumNewThread from "./pages/intern/ForumNewThread";
 import EventRegistration from "./pages/EventRegistration";
 import NotFound from "./pages/NotFound";
 
