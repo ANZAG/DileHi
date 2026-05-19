@@ -7,7 +7,7 @@ import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays,
   FileText, Coins, MapPin, ClipboardList,
 } from "lucide-react";
-import { BirthdayBanner } from "@/components/birthday-banner/BirthdayBanner";
+import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 
 const baseCards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
