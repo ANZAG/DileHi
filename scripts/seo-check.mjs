@@ -38,7 +38,9 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) =
   return d.isDirectory() ? walk(p) : [p];
 });
 const allPages = walk(pagesDir).filter((p) => p.endsWith(".tsx"));
-const publicPages = allPages.filter((p) => !p.includes(`${path.sep}intern${path.sep}`) && !/NotFound\.tsx$/.test(p));
+// Skip intern/, NotFound, and auth pages (Login/ResetPassword are noindex)
+const skipPattern = /(NotFound|Login|ResetPassword)\.tsx$/;
+const publicPages = allPages.filter((p) => !p.includes(`${path.sep}intern${path.sep}`) && !skipPattern.test(p));
 
 for (const file of publicPages) {
   const src = fs.readFileSync(file, "utf8");
