@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, MessageSquare } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -11,9 +11,8 @@ import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
-import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 
-type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "forum";
+type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
 
 const Admin = () => {
   const { hasPermission } = useAuth();
@@ -21,7 +20,6 @@ const Admin = () => {
   const canMembers = hasPermission("members.manage");
   const canRoles = hasPermission("roles.manage");
   const canAudit = hasPermission("audit.view");
-  const canForumCategories = hasPermission("forum.categories_manage");
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
@@ -48,10 +46,6 @@ const Admin = () => {
     ...(canRoles ? [
       { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
     ] : []),
-    // Forum archived – tab hidden
-    // ...(canForumCategories ? [
-    //   { id: "forum" as const, label: "Forum", icon: MessageSquare, desc: "Kategorien verwalten" },
-    // ] : []),
     ...(canAudit ? [
       { id: "audit" as const, label: "Audit-Log", icon: FileText, desc: "Abstimmungsprotokoll einsehen" },
     ] : []),
@@ -67,7 +61,6 @@ const Admin = () => {
           <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
         </div>
 
-        {/* Tab cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {tabs.map((tab) => (
             <button
@@ -88,7 +81,6 @@ const Admin = () => {
           ))}
         </div>
 
-        {/* Tab content */}
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "messages" && <ContactMessages />}
@@ -98,7 +90,6 @@ const Admin = () => {
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
-          {activeTab === "forum" && canForumCategories && <ForumCategoriesAdmin />}
         </div>
       </motion.div>
     </div>
