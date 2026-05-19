@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import MarkdownToolbar from "@/components/forum/MarkdownToolbar";
-import MarkdownContent from "@/components/forum/MarkdownContent";
+import MarkdownToolbar from "@/components/markdown/MarkdownToolbar";
+import MarkdownContent from "@/components/markdown/MarkdownContent";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
