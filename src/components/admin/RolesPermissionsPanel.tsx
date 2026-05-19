@@ -41,7 +41,7 @@ const RolesPermissionsPanel = () => {
   const isLoading = rpLoading || rcLoading || pcLoading;
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) => {
+    mutationFn: async ({ role, permission, granted }: { role: "herold" | "mitglied" | "schatzmeister" | "vorstand"; permission: string; granted: boolean }) => {
       if (granted) {
         const { error } = await supabase
           .from("role_permissions")
