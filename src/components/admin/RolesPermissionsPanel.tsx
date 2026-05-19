@@ -145,7 +145,7 @@ const RolesPermissionsPanel = () => {
                             checked={granted}
                             disabled={isPending}
                             onCheckedChange={(checked) =>
-                              toggleMutation.mutate({ role: role.key, permission: perm.key, granted: checked })
+                              toggleMutation.mutate({ role: role.key as "herold" | "mitglied" | "schatzmeister" | "vorstand", permission: perm.key, granted: checked })
                             }
                           />
                         </td>
