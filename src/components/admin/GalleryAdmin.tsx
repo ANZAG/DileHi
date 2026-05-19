@@ -168,8 +168,8 @@ const GalleryAdmin = () => {
       {/* Upload form */}
       <div className="flex flex-wrap gap-2 mb-4 items-end">
         <div className="flex-1 min-w-[150px]">
-          <label className="text-xs text-muted-foreground mb-1 block">Beschreibung</label>
-          <input
+          <label htmlFor="gallery-alt" className="text-xs text-muted-foreground mb-1 block">Beschreibung</label>
+          <input id="gallery-alt"
             value={altText}
             onChange={(e) => setAltText(e.target.value)}
             placeholder="Bildbeschreibung"
@@ -177,8 +177,8 @@ const GalleryAdmin = () => {
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Epoche</label>
-          <select
+          <label htmlFor="gallery-epoch" className="text-xs text-muted-foreground mb-1 block">Epoche</label>
+          <select id="gallery-epoch"
             value={selectedEpoch}
             onChange={(e) => setSelectedEpoch(e.target.value)}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"

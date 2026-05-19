@@ -160,7 +160,7 @@ const Profile = () => {
         if (Array.isArray(data) && data.length > 0) {
           return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
         }
-      } catch {}
+      } catch (_e) { /* intentional — geocode failure is non-critical */ }
     }
     return null;
   };
@@ -319,8 +319,9 @@ const Profile = () => {
             <h2 className="font-serif text-lg font-semibold">Persönliche Daten</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Anrede</label>
+                <label htmlFor="profile-salutation" className="text-sm font-medium mb-1.5 block">Anrede</label>
                 <select
+                  id="profile-salutation"
                   value={form.salutation}
                   onChange={(e) => setField("salutation", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -331,8 +332,9 @@ const Profile = () => {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Anzeigename</label>
+                <label htmlFor="profile-display-name" className="text-sm font-medium mb-1.5 block">Anzeigename</label>
                 <input
+                  id="profile-display-name"
                   value={form.displayName}
                   onChange={(e) => setField("displayName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -341,16 +343,18 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Vorname</label>
+                <label htmlFor="profile-first-name" className="text-sm font-medium mb-1.5 block">Vorname</label>
                 <input
+                  id="profile-first-name"
                   value={form.firstName}
                   onChange={(e) => setField("firstName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Nachname</label>
+                <label htmlFor="profile-last-name" className="text-sm font-medium mb-1.5 block">Nachname</label>
                 <input
+                  id="profile-last-name"
                   value={form.lastName}
                   onChange={(e) => setField("lastName", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -358,8 +362,9 @@ const Profile = () => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Straße und Hausnummer</label>
+              <label htmlFor="profile-street" className="text-sm font-medium mb-1.5 block">Straße und Hausnummer</label>
               <input
+                  id="profile-street"
                 value={form.street}
                 onChange={(e) => setField("street", e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -367,16 +372,18 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-1">
-                <label className="text-sm font-medium mb-1.5 block">PLZ</label>
+                <label htmlFor="profile-zip" className="text-sm font-medium mb-1.5 block">PLZ</label>
                 <input
+                  id="profile-zip"
                   value={form.zip}
                   onChange={(e) => setField("zip", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-sm font-medium mb-1.5 block">Wohnort</label>
+                <label htmlFor="profile-city" className="text-sm font-medium mb-1.5 block">Wohnort</label>
                 <input
+                  id="profile-city"
                   value={form.city}
                   onChange={(e) => setField("city", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -385,8 +392,9 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Geburtsdatum</label>
+                <label htmlFor="profile-birthdate" className="text-sm font-medium mb-1.5 block">Geburtsdatum</label>
                 <input
+                  id="profile-birthdate"
                   type="date"
                   value={form.birthdate}
                   onChange={(e) => setField("birthdate", e.target.value)}
@@ -394,8 +402,9 @@ const Profile = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Telefon / Handy</label>
+                <label htmlFor="profile-phone" className="text-sm font-medium mb-1.5 block">Telefon / Handy</label>
                 <input
+                  id="profile-phone"
                   value={form.phone}
                   onChange={(e) => setField("phone", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -414,8 +423,9 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
+                <label htmlFor="profile-diet" className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
                 <select
+                  id="profile-diet"
                   value={form.diet}
                   onChange={(e) => setField("diet", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -427,8 +437,9 @@ const Profile = () => {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
+                <label htmlFor="profile-allergies" className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
                 <input
+                  id="profile-allergies"
                   value={form.allergies}
                   onChange={(e) => setField("allergies", e.target.value)}
                   placeholder="z.B. Nüsse, Laktose …"
@@ -443,8 +454,9 @@ const Profile = () => {
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
+                <label htmlFor="profile-membership" className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
                 <select
+                  id="profile-membership"
                   value={form.membershipType}
                   onChange={(e) => setField("membershipType", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -454,8 +466,9 @@ const Profile = () => {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Beitragseinzug</label>
+                <label htmlFor="profile-payment" className="text-sm font-medium mb-1.5 block">Beitragseinzug</label>
                 <select
+                  id="profile-payment"
                   value={form.contributionInterval}
                   onChange={(e) => setField("contributionInterval", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -467,8 +480,9 @@ const Profile = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Eintrittsdatum</label>
+                <label htmlFor="profile-join-date" className="text-sm font-medium mb-1.5 block">Eintrittsdatum</label>
                 <input
+                  id="profile-join-date"
                   type="date"
                   value={form.entryDate}
                   disabled
@@ -478,8 +492,9 @@ const Profile = () => {
               </div>
               {form.exitDate && (
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Austrittsdatum</label>
+                  <label htmlFor="profile-leave-date" className="text-sm font-medium mb-1.5 block">Austrittsdatum</label>
                   <input
+                  id="profile-leave-date"
                     type="date"
                     value={form.exitDate}
                     disabled
@@ -604,8 +619,9 @@ const Profile = () => {
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Konto</h2>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">E-Mail</label>
+              <label htmlFor="profile-email" className="text-sm font-medium mb-1.5 block">E-Mail</label>
               <input
+                  id="profile-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -615,8 +631,9 @@ const Profile = () => {
             <hr className="border-border" />
             <p className="text-xs text-muted-foreground">Passwort ändern (leer lassen um es beizubehalten)</p>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Neues Passwort</label>
+              <label htmlFor="profile-new-password" className="text-sm font-medium mb-1.5 block">Neues Passwort</label>
               <input
+                  id="profile-new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -625,8 +642,9 @@ const Profile = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Passwort bestätigen</label>
+              <label htmlFor="profile-confirm-pw" className="text-sm font-medium mb-1.5 block">Passwort bestätigen</label>
               <input
+                  id="profile-confirm-pw"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

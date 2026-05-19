@@ -72,7 +72,7 @@ const MemberMap = () => {
                 // Persist back to DB so Profile.tsx doesn't need to re-geocode on next save
                 supabase.from("profiles").update({ map_lat: lat, map_lng: lng }).eq("id", p.id).then();
               }
-            } catch {}
+            } catch (_e) { /* intentional — geocode failure is non-critical */ }
           })
         );
       }

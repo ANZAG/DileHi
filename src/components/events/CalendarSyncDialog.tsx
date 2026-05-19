@@ -29,9 +29,9 @@ export default function CalendarSyncDialog({ open, onOpenChange, personalIcalUrl
           </p>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Meine zugesagten Termine</label>
+            <label htmlFor="cal-personal" className="text-sm font-medium">Meine zugesagten Termine</label>
             <div className="flex gap-2">
-              <Input readOnly value={personalIcalUrl || "Wird geladen..."} className="text-xs font-mono" />
+              <Input id="cal-personal" readOnly value={personalIcalUrl || "Wird geladen..."} className="text-xs font-mono" />
               <Button size="icon" variant="outline" onClick={copyCalendarUrl} disabled={!personalIcalUrl}>
                 <Copy size={16} />
               </Button>
@@ -42,9 +42,9 @@ export default function CalendarSyncDialog({ open, onOpenChange, personalIcalUrl
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Alle Vereinstermine</label>
+            <label htmlFor="cal-all" className="text-sm font-medium">Alle Vereinstermine</label>
             <div className="flex gap-2">
-              <Input readOnly value={icalUrl} className="text-xs font-mono" />
+              <Input id="cal-all" readOnly value={icalUrl} className="text-xs font-mono" />
               <Button size="icon" variant="outline" onClick={() => {
                 navigator.clipboard.writeText(icalUrl);
                 toast({ title: "URL kopiert" });

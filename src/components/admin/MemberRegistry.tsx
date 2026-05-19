@@ -601,8 +601,8 @@ const MemberRegistry = () => {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Mitgliedschaft verwalten</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-muted-foreground">Rolle</label>
-                    <select
+                    <label htmlFor="mr-role" className="text-xs text-muted-foreground">Rolle</label>
+                    <select id="mr-role"
                       value={editRole}
                       onChange={(e) => setEditRole(e.target.value)}
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1"
@@ -614,8 +614,8 @@ const MemberRegistry = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-muted-foreground">Eintrittsdatum</label>
-                      <Input
+                      <label htmlFor="mr-join-date" className="text-xs text-muted-foreground">Eintrittsdatum</label>
+                      <Input id="mr-join-date"
                         type="date"
                         value={editEntryDate}
                         onChange={(e) => setEditEntryDate(e.target.value)}
@@ -623,8 +623,8 @@ const MemberRegistry = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground">Austrittsdatum</label>
-                      <Input
+                      <label htmlFor="mr-leave-date" className="text-xs text-muted-foreground">Austrittsdatum</label>
+                      <Input id="mr-leave-date"
                         type="date"
                         value={editExitDate}
                         onChange={(e) => setEditExitDate(e.target.value)}
@@ -743,8 +743,8 @@ const MemberRegistry = () => {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium">Vorgänge übertragen auf:</label>
-              <select
+              <label htmlFor="mr-transfer" className="text-sm font-medium">Vorgänge übertragen auf:</label>
+              <select id="mr-transfer"
                 value={reassignTo}
                 onChange={(e) => setReassignTo(e.target.value)}
                 className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm mt-1"
