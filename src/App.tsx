@@ -85,12 +85,7 @@ const App = () => (
               <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormBuilder /></ProtectedRoute>} />
               <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormEvaluation /></ProtectedRoute>} />
               <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
-              {/* Forum archived – routes deactivated
-              <Route path="/intern/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
-              <Route path="/intern/forum/:slug" element={<ProtectedRoute><ForumCategory /></ProtectedRoute>} />
-              <Route path="/intern/forum/thread/:threadId" element={<ProtectedRoute><ForumThread /></ProtectedRoute>} />
-              <Route path="/intern/forum/neu/:slug" element={<ProtectedRoute><ForumNewThread /></ProtectedRoute>} />
-              */}
+              {/* Forum permanently removed */}
               <Route path="/anmeldung/:token" element={<EventRegistration />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
