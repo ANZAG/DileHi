@@ -124,8 +124,9 @@ const ResetPassword = () => {
         </div>
         <form onSubmit={handleSubmit} className="p-6 rounded-lg border bg-card space-y-4">
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Neues Passwort</label>
+            <label htmlFor="reset-new-password" className="text-sm font-medium mb-1.5 block">Neues Passwort</label>
             <input
+              id="reset-new-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -135,8 +136,9 @@ const ResetPassword = () => {
             />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Passwort bestätigen</label>
+            <label htmlFor="reset-confirm-password" className="text-sm font-medium mb-1.5 block">Passwort bestätigen</label>
             <input
+              id="reset-confirm-password"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

@@ -354,6 +354,7 @@ export type Database = {
           status: string
           title: string
           type: string
+          updated_at: string
         }
         Insert: {
           closed_at?: string | null
@@ -365,6 +366,7 @@ export type Database = {
           status?: string
           title: string
           type?: string
+          updated_at?: string
         }
         Update: {
           closed_at?: string | null
@@ -376,6 +378,7 @@ export type Database = {
           status?: string
           title?: string
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -695,234 +698,6 @@ export type Database = {
         }
         Relationships: []
       }
-      forum_categories: {
-        Row: {
-          category_type: Database["public"]["Enums"]["forum_category_type"]
-          created_at: string
-          description: string | null
-          icon: string | null
-          id: string
-          name: string
-          slug: string
-          sort_order: number | null
-        }
-        Insert: {
-          category_type?: Database["public"]["Enums"]["forum_category_type"]
-          created_at?: string
-          description?: string | null
-          icon?: string | null
-          id?: string
-          name: string
-          slug: string
-          sort_order?: number | null
-        }
-        Update: {
-          category_type?: Database["public"]["Enums"]["forum_category_type"]
-          created_at?: string
-          description?: string | null
-          icon?: string | null
-          id?: string
-          name?: string
-          slug?: string
-          sort_order?: number | null
-        }
-        Relationships: []
-      }
-      forum_posts: {
-        Row: {
-          content: string
-          created_at: string
-          created_by: string
-          id: string
-          is_edited: boolean | null
-          reply_to_id: string | null
-          thread_id: string
-          updated_at: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          created_by: string
-          id?: string
-          is_edited?: boolean | null
-          reply_to_id?: string | null
-          thread_id: string
-          updated_at?: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          is_edited?: boolean | null
-          reply_to_id?: string | null
-          thread_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_posts_reply_to_id_fkey"
-            columns: ["reply_to_id"]
-            isOneToOne: false
-            referencedRelation: "forum_posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_posts_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "forum_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_reactions: {
-        Row: {
-          created_at: string
-          emoji: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          emoji: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          emoji?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "forum_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_read_status: {
-        Row: {
-          id: string
-          last_read_at: string
-          thread_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          last_read_at?: string
-          thread_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          last_read_at?: string
-          thread_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_read_status_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "forum_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_subscriptions: {
-        Row: {
-          category_id: string | null
-          created_at: string
-          id: string
-          thread_id: string | null
-          user_id: string
-        }
-        Insert: {
-          category_id?: string | null
-          created_at?: string
-          id?: string
-          thread_id?: string | null
-          user_id: string
-        }
-        Update: {
-          category_id?: string | null
-          created_at?: string
-          id?: string
-          thread_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_subscriptions_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "forum_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forum_subscriptions_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "forum_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forum_threads: {
-        Row: {
-          category_id: string
-          created_at: string
-          created_by: string
-          id: string
-          is_locked: boolean | null
-          is_pinned: boolean | null
-          last_post_at: string | null
-          last_post_by: string | null
-          post_count: number | null
-          title: string
-        }
-        Insert: {
-          category_id: string
-          created_at?: string
-          created_by: string
-          id?: string
-          is_locked?: boolean | null
-          is_pinned?: boolean | null
-          last_post_at?: string | null
-          last_post_by?: string | null
-          post_count?: number | null
-          title: string
-        }
-        Update: {
-          category_id?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          is_locked?: boolean | null
-          is_pinned?: boolean | null
-          last_post_at?: string | null
-          last_post_by?: string | null
-          post_count?: number | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forum_threads_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "forum_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       gallery_images: {
         Row: {
           alt_text: string
@@ -1030,6 +805,13 @@ export type Database = {
             foreignKeyName: "member_tents_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "map_missing_coords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_tents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1104,13 +886,36 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_catalog: {
+        Row: {
+          category: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          allergies: string | null
           birthdate: string | null
           calendar_token: string | null
           city: string | null
           contribution_interval: string | null
           created_at: string
+          diet: string | null
           display_name: string
           entry_date: string | null
           exit_date: string | null
@@ -1129,11 +934,13 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
           city?: string | null
           contribution_interval?: string | null
           created_at?: string
+          diet?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1152,11 +959,13 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
           city?: string | null
           contribution_interval?: string | null
           created_at?: string
+          diet?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1210,6 +1019,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_catalog: {
+        Row: {
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -1436,6 +1263,36 @@ export type Database = {
           },
         ]
       }
+      map_missing_coords: {
+        Row: {
+          city: string | null
+          display_name: string | null
+          id: string | null
+          map_lat: number | null
+          map_lng: number | null
+          show_on_map: boolean | null
+          zip: string | null
+        }
+        Insert: {
+          city?: string | null
+          display_name?: string | null
+          id?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
+          show_on_map?: boolean | null
+          zip?: string | null
+        }
+        Update: {
+          city?: string | null
+          display_name?: string | null
+          id?: string | null
+          map_lat?: number | null
+          map_lng?: number | null
+          show_on_map?: boolean | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_vote: {
@@ -1456,9 +1313,30 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      get_member_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      get_permission_catalog: {
+        Args: never
+        Returns: {
+          category: string
+          key: string
+          label: string
+        }[]
+      }
       get_response_by_edit_token: {
         Args: { _edit_token: string }
         Returns: Json
+      }
+      get_role_catalog: {
+        Args: never
+        Returns: {
+          key: string
+          label: string
+        }[]
       }
       get_user_permissions: { Args: { _user_id: string }; Returns: string[] }
       get_user_vote_count: {
@@ -1493,7 +1371,6 @@ export type Database = {
     }
     Enums: {
       app_role: "vorstand" | "mitglied" | "herold" | "schatzmeister"
-      forum_category_type: "wissen" | "diskussion" | "organisation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1622,7 +1499,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["vorstand", "mitglied", "herold", "schatzmeister"],
-      forum_category_type: ["wissen", "diskussion", "organisation"],
     },
   },
 } as const

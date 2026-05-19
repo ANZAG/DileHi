@@ -1,5 +1,9 @@
 project_id = "sstplyhfebexeyqehsvv"
 
+[auth.email]
+# Invitation / OTP / magic link expiry: 7 days
+otp_expiry = 604800
+
 [functions.events-ical]
 verify_jwt = false
 

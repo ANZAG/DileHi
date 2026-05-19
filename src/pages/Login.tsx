@@ -65,8 +65,9 @@ const Login = () => {
           </div>
           <form onSubmit={handleForgotPassword} className="p-6 rounded-lg border bg-card space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1.5 block">E-Mail</label>
+              <label htmlFor="forgot-email" className="text-sm font-medium mb-1.5 block">E-Mail</label>
               <input
+                id="forgot-email"
                 type="email"
                 placeholder="name@beispiel.de"
                 value={forgotEmail}
@@ -110,8 +111,9 @@ const Login = () => {
         </div>
         <form onSubmit={handleSubmit} className="p-6 rounded-lg border bg-card space-y-4">
           <div>
-            <label className="text-sm font-medium mb-1.5 block">E-Mail</label>
+            <label htmlFor="login-email" className="text-sm font-medium mb-1.5 block">E-Mail</label>
             <input
+              id="login-email"
               type="email"
               placeholder="name@beispiel.de"
               value={email}
@@ -121,8 +123,9 @@ const Login = () => {
             />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Passwort</label>
+            <label htmlFor="login-password" className="text-sm font-medium mb-1.5 block">Passwort</label>
             <input
+              id="login-password"
               type="password"
               placeholder="••••••••"
               value={password}

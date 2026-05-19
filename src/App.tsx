@@ -34,11 +34,6 @@ import MemberMap from "./pages/intern/MemberMap";
 import EventFormBuilder from "./pages/intern/EventFormBuilder";
 import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
 import Auswertungen from "./pages/intern/Auswertungen";
-// Forum archived – routes & tiles disabled (files retained for future re-activation)
-// import Forum from "./pages/intern/Forum";
-// import ForumCategory from "./pages/intern/ForumCategory";
-// import ForumThread from "./pages/intern/ForumThread";
-// import ForumNewThread from "./pages/intern/ForumNewThread";
 import EventRegistration from "./pages/EventRegistration";
 import NotFound from "./pages/NotFound";
 
@@ -90,12 +85,7 @@ const App = () => (
               <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormBuilder /></ProtectedRoute>} />
               <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormEvaluation /></ProtectedRoute>} />
               <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
-              {/* Forum archived – routes deactivated
-              <Route path="/intern/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
-              <Route path="/intern/forum/:slug" element={<ProtectedRoute><ForumCategory /></ProtectedRoute>} />
-              <Route path="/intern/forum/thread/:threadId" element={<ProtectedRoute><ForumThread /></ProtectedRoute>} />
-              <Route path="/intern/forum/neu/:slug" element={<ProtectedRoute><ForumNewThread /></ProtectedRoute>} />
-              */}
+              {/* Forum permanently removed */}
               <Route path="/anmeldung/:token" element={<EventRegistration />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

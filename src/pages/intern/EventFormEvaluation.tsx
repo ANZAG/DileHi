@@ -36,7 +36,8 @@ interface ProgramItem {
 
 export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { user, isVorstand } = useAuth();
+  const { user, roles } = useAuth();
+  const isVorstand = roles.includes("vorstand");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
