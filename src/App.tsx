@@ -35,6 +35,7 @@ import EventFormBuilder from "./pages/intern/EventFormBuilder";
 import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
 import Auswertungen from "./pages/intern/Auswertungen";
 import EventRegistration from "./pages/EventRegistration";
+import MembershipApplication from "./pages/MembershipApplication";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
               {/* Forum permanently removed */}
               <Route path="/anmeldung/:token" element={<EventRegistration />} />
+              <Route path="/mitglied-werden" element={<MembershipApplication />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

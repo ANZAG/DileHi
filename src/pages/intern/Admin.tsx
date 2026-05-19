@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -11,8 +11,9 @@ import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
+import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin";
 
-type AdminTab = "members" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
 
 const Admin = () => {
   const { hasPermission } = useAuth();
@@ -29,6 +30,7 @@ const Admin = () => {
   const tabs = [
     ...(canMembers ? [
       { id: "members" as const, label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
+      { id: "applications" as const, label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" },
     ] : []),
     { id: "messages" as const, label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     ...(hasPermission("gallery.manage") ? [
@@ -83,6 +85,7 @@ const Admin = () => {
 
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && canMembers && <MemberRegistry />}
+          {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}

@@ -100,18 +100,23 @@ const MemberRegistry = () => {
       if (error) throw error;
       const userIds = roles.map((r) => r.user_id);
 
-      const [profilesResult, emailsResult] = await Promise.all([
+      // Also fetch inactive profiles that may no longer have a user_roles row
+      // (happens when they were deactivated and their role entry was removed)
+      const [profilesResult, inactiveProfilesResult, emailsResult] = await Promise.all([
         supabase.from("profiles").select("*").in("id", userIds),
+        supabase.from("profiles").select("*").eq("is_active", false),
         supabase.functions.invoke("manage-member", {
           body: { action: "get_emails", userIds },
         }).catch(() => ({ data: null })),
       ]);
 
-      const profiles = profilesResult.data;
+      const profiles = profilesResult.data ?? [];
+      const inactiveProfiles = inactiveProfilesResult.data ?? [];
       const emailMap: Record<string, string> = emailsResult.data ?? {};
 
-      return roles.map((r) => {
-        const p = profiles?.find((pr) => pr.id === r.user_id);
+      // Members coming from user_roles (the normal path)
+      const fromRoles: MemberData[] = roles.map((r) => {
+        const p = profiles.find((pr) => pr.id === r.user_id);
         return {
           id: r.id,
           user_id: r.user_id,
@@ -133,6 +138,33 @@ const MemberRegistry = () => {
           birthdate: p?.birthdate ?? "",
         } as MemberData;
       });
+
+      // Inactive profiles that lost their user_roles row – add them back as "ausgetreten"
+      const activeIds = new Set(userIds);
+      const orphans: MemberData[] = inactiveProfiles
+        .filter((p) => !activeIds.has(p.id))
+        .map((p) => ({
+          id: p.id, // no user_roles id – use profile id
+          user_id: p.id,
+          role: "mitglied",
+          display_name: p.display_name ?? "–",
+          first_name: p.first_name ?? "",
+          last_name: p.last_name ?? "",
+          email: emailMap[p.id] ?? "",
+          phone: p.phone ?? "",
+          salutation: p.salutation ?? "",
+          street: p.street ?? "",
+          zip: p.zip ?? "",
+          city: p.city ?? "",
+          entry_date: p.entry_date ?? "",
+          exit_date: p.exit_date ?? "",
+          is_active: false,
+          contribution_interval: p.contribution_interval ?? "",
+          membership_type: p.membership_type ?? "",
+          birthdate: p.birthdate ?? "",
+        } as MemberData));
+
+      return [...fromRoles, ...orphans];
     },
   });
 
@@ -622,15 +654,17 @@ const MemberRegistry = () => {
                         className="mt-1"
                       />
                     </div>
-                    <div>
-                      <label htmlFor="mr-leave-date" className="text-xs text-muted-foreground">Austrittsdatum</label>
-                      <Input id="mr-leave-date"
-                        type="date"
-                        value={editExitDate}
-                        onChange={(e) => setEditExitDate(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
+                    {!editIsActive && (
+                      <div>
+                        <label htmlFor="mr-leave-date" className="text-xs text-muted-foreground">Austrittsdatum</label>
+                        <Input id="mr-leave-date"
+                          type="date"
+                          value={editExitDate}
+                          onChange={(e) => setEditExitDate(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -670,6 +704,11 @@ const MemberRegistry = () => {
 
               {/* Actions */}
               <div className="pt-3 border-t space-y-2">
+                {!editIsActive && selectedMember.is_active && (
+                  <p className="text-xs text-destructive bg-destructive/10 rounded px-3 py-2">
+                    Austrittsdatum prüfen und dann <strong>Speichern</strong> klicken, um die Deaktivierung zu übernehmen.
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <Button className="flex-1" size="sm" onClick={() => updateMember.mutate()} disabled={updateMember.isPending}>
                     Speichern
@@ -691,9 +730,9 @@ const MemberRegistry = () => {
                       variant="outline"
                       className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => {
-                        if (confirm("Mitglied deaktivieren? Es verliert sofort alle Zugänge.")) {
-                          deactivateMember.mutate(selectedMember);
-                        }
+                        const today = new Date().toISOString().slice(0, 10);
+                        setEditIsActive(false);
+                        if (!editExitDate) setEditExitDate(today);
                       }}
                       disabled={deactivateMember.isPending}
                     >
