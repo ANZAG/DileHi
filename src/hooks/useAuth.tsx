@@ -132,6 +132,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime: if the current user is deactivated, log them out immediately
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`profile-active-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+        async (payload) => {
+          const next = payload.new as { is_active?: boolean };
+          if (next?.is_active === false) {
+            await supabase.auth.signOut();
+            window.location.href = "/login?deactivated=1";
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
