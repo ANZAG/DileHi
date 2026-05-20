@@ -37,7 +37,16 @@ const Login = () => {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: "Anmeldung fehlgeschlagen", description: "E-Mail oder Passwort ist falsch.", variant: "destructive" });
+      const msg = (error.message || "").toLowerCase();
+      const isBanned = msg.includes("banned") || msg.includes("disabled") || msg.includes("user is")
+        || msg.includes("not allowed");
+      toast({
+        title: isBanned ? "Zugang deaktiviert" : "Anmeldung fehlgeschlagen",
+        description: isBanned
+          ? "Dein Konto ist derzeit deaktiviert. Bitte wende dich an vorstand@dilehi.de."
+          : "E-Mail oder Passwort ist falsch.",
+        variant: "destructive",
+      });
     } else {
       navigate("/intern");
     }
