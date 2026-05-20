@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
@@ -16,6 +16,16 @@ const Login = () => {
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
+      toast({
+        title: "Zugang deaktiviert",
+        description: "Dein Mitgliedskonto wurde vom Vorstand deaktiviert. Bitte wende dich an vorstand@dilehi.de.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   if (user) {
     return <Navigate to="/intern" replace />;
