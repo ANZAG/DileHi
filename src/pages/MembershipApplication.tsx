@@ -166,6 +166,9 @@ const MembershipApplication = () => {
                   value={form.birthdate}
                   onChange={(e) => set("birthdate", e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Die Mitgliedschaft ist ab 16 Jahren möglich. Bei unter 18-Jährigen muss der Antrag von einem Erziehungsberechtigten mitunterschrieben werden – wir kommen in diesem Fall per E-Mail auf dich zu.
+                </p>
               </div>
 
               <div>
@@ -187,8 +190,22 @@ const MembershipApplication = () => {
             {/* Mitgliedschaft */}
             <section className="p-6 rounded-lg border bg-card space-y-4">
               <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
+
+              <div>
+                <Label htmlFor="membership_type">Art der Mitgliedschaft *</Label>
+                <select
+                  id="membership_type"
+                  value={form.membership_type}
+                  onChange={(e) => set("membership_type", e.target.value)}
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="aktiv">Aktives Mitglied</option>
+                  <option value="foerder">Fördermitglied</option>
+                </select>
+              </div>
+
               <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
-                Aktives Mitglied – Jahresbeitrag <strong className="text-foreground">36,00 €</strong>
+                Jahresbeitrag <strong className="text-foreground">36,00 €</strong>
               </div>
               <div>
                 <Label htmlFor="contribution_interval">Beitragseinzug</Label>
