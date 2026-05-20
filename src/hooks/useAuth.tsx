@@ -36,6 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isMember = roles.length > 0;
 
   const fetchRolesAndPermissions = async (userId: string) => {
+    // Check if profile is active – if not, log out immediately
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("is_active")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileData && profileData.is_active === false) {
+      await supabase.auth.signOut();
+      return;
+    }
+
     // Fetch roles
     const { data: rolesData } = await supabase
       .from("user_roles")
