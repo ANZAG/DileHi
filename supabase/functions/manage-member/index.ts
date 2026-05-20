@@ -74,6 +74,20 @@ Deno.serve(async (req) => {
         const { error } = await adminClient.from("profiles").update(updates).eq("id", userId);
         if (error) throw error;
       }
+      // Toggle login access: ban deactivated users so they cannot log in
+      if (isActive === false) {
+        try {
+          await adminClient.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+        } catch (e) {
+          console.error("ban_user failed:", e);
+        }
+      } else if (isActive === true) {
+        try {
+          await adminClient.auth.admin.updateUserById(userId, { ban_duration: "none" });
+        } catch (e) {
+          console.error("unban_user failed:", e);
+        }
+      }
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -817,6 +817,87 @@ export type Database = {
           },
         ]
       }
+      membership_applications: {
+        Row: {
+          account_holder: string | null
+          bic: string | null
+          birthdate: string | null
+          city: string | null
+          contribution_interval: string
+          created_at: string
+          created_user_id: string | null
+          data_processing_accepted: boolean
+          email: string
+          first_name: string
+          iban: string | null
+          id: string
+          last_name: string
+          membership_type: string
+          phone: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          salutation: string | null
+          sepa_accepted: boolean
+          status: string
+          statutes_accepted: boolean
+          street: string | null
+          zip: string | null
+        }
+        Insert: {
+          account_holder?: string | null
+          bic?: string | null
+          birthdate?: string | null
+          city?: string | null
+          contribution_interval?: string
+          created_at?: string
+          created_user_id?: string | null
+          data_processing_accepted?: boolean
+          email: string
+          first_name: string
+          iban?: string | null
+          id?: string
+          last_name: string
+          membership_type?: string
+          phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          salutation?: string | null
+          sepa_accepted?: boolean
+          status?: string
+          statutes_accepted?: boolean
+          street?: string | null
+          zip?: string | null
+        }
+        Update: {
+          account_holder?: string | null
+          bic?: string | null
+          birthdate?: string | null
+          city?: string | null
+          contribution_interval?: string
+          created_at?: string
+          created_user_id?: string | null
+          data_processing_accepted?: boolean
+          email?: string
+          first_name?: string
+          iban?: string | null
+          id?: string
+          last_name?: string
+          membership_type?: string
+          phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          salutation?: string | null
+          sepa_accepted?: boolean
+          status?: string
+          statutes_accepted?: boolean
+          street?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       membership_files: {
         Row: {
           created_at: string
@@ -1319,6 +1400,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_pending_application_count: { Args: never; Returns: number }
       get_permission_catalog: {
         Args: never
         Returns: {

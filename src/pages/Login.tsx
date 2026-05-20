@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
@@ -17,6 +17,16 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
+      toast({
+        title: "Zugang deaktiviert",
+        description: "Dein Mitgliedskonto wurde vom Vorstand deaktiviert. Bitte wende dich an vorstand@dilehi.de.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   if (user) {
     return <Navigate to="/intern" replace />;
   }
@@ -27,7 +37,16 @@ const Login = () => {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: "Anmeldung fehlgeschlagen", description: "E-Mail oder Passwort ist falsch.", variant: "destructive" });
+      const msg = (error.message || "").toLowerCase();
+      const isBanned = msg.includes("banned") || msg.includes("disabled") || msg.includes("user is")
+        || msg.includes("not allowed");
+      toast({
+        title: isBanned ? "Zugang deaktiviert" : "Anmeldung fehlgeschlagen",
+        description: isBanned
+          ? "Dein Konto ist derzeit deaktiviert. Bitte wende dich an vorstand@dilehi.de."
+          : "E-Mail oder Passwort ist falsch.",
+        variant: "destructive",
+      });
     } else {
       navigate("/intern");
     }
