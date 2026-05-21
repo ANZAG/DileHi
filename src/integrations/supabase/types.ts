@@ -1376,6 +1376,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_response_to_member: {
+        Args: { _response_id: string; _user_id: string }
+        Returns: undefined
+      }
       can_vote: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
