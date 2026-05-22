@@ -56,7 +56,7 @@ export default function EventFormDialog({
       {isEdit && canChangeOrganizer && setOrganizerId && organizerId && (
         <div>
           <label htmlFor="efd-organizer" className="text-sm font-medium">Organisator</label>
-          <Select id="efd-organizer" value={organizerId} onValueChange={setOrganizerId}>
+          <Select value={organizerId} onValueChange={setOrganizerId}>
             <SelectTrigger>
               <SelectValue placeholder="Organisator wählen" />
             </SelectTrigger>

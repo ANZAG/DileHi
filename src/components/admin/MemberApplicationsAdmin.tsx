@@ -83,47 +83,19 @@ const MemberApplicationsAdmin = () => {
 
   const approveMutation = useMutation({
     mutationFn: async (app: Application) => {
-      // 1. Invite the member via the existing Edge Function
+      // Invite the member; the edge function also generates the PDF,
+      // pre-fills the profile and attaches the application to the member.
       const { error: inviteErr } = await supabase.functions.invoke("invite-member", {
-        body: { email: app.email, role: "mitglied" },
+        body: { email: app.email, role: "mitglied", applicationId: app.id },
       });
       if (inviteErr) throw inviteErr;
 
-      // 2. Mark application as approved
+      // Mark application as approved
       const { error: updateErr } = await supabase
         .from("membership_applications")
         .update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq("id", app.id);
       if (updateErr) throw updateErr;
-
-      // 3. Try to pre-fill the profile (user might not exist yet, so ignore errors)
-      try {
-        // Find the newly created user by email
-        const { data: emailData } = await supabase.functions.invoke("manage-member", {
-          body: { action: "find_user_by_email", email: app.email },
-        });
-        if (emailData?.userId) {
-          await supabase.functions.invoke("manage-member", {
-            body: {
-              action: "update_profile",
-              userId: emailData.userId,
-              salutation: app.salutation,
-              firstName: app.first_name,
-              lastName: app.last_name,
-              displayName: `${app.first_name} ${app.last_name}`,
-              phone: app.phone,
-              street: app.street,
-              zip: app.zip,
-              city: app.city,
-              birthdate: app.birthdate,
-              membershipType: app.membership_type,
-              contributionInterval: app.contribution_interval,
-            },
-          });
-        }
-      } catch (_) {
-        // Profile pre-fill is best-effort; the admin can fill it in manually
-      }
     },
     onSuccess: (_, app) => {
       queryClient.invalidateQueries({ queryKey: ["membership_applications"] });
@@ -131,7 +103,7 @@ const MemberApplicationsAdmin = () => {
       setSelected(null);
       toast({
         title: "Antrag genehmigt",
-        description: `${app.first_name} ${app.last_name} wurde eingeladen. Profil bitte in der Mitgliederliste vervollständigen.`,
+        description: `${app.first_name} ${app.last_name} wurde eingeladen, das Profil befüllt und der Antrag als PDF im Profil hinterlegt.`,
       });
     },
     onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),

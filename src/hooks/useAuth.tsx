@@ -36,6 +36,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isMember = roles.length > 0;
 
   const fetchRolesAndPermissions = async (userId: string) => {
+    // Check if profile is active – if not, log out immediately
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("is_active")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileData && profileData.is_active === false) {
+      await supabase.auth.signOut();
+      return;
+    }
+
     // Fetch roles
     const { data: rolesData } = await supabase
       .from("user_roles")
@@ -120,6 +131,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Realtime: if the current user is deactivated, log them out immediately
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`profile-active-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+        async (payload) => {
+          const next = payload.new as { is_active?: boolean };
+          if (next?.is_active === false) {
+            await supabase.auth.signOut();
+            window.location.href = "/login?deactivated=1";
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

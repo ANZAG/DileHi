@@ -3,8 +3,6 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
-// NotificationBell deaktiviert – war Forum-Funktion
-// import NotificationBell from "@/components/notifications/NotificationBell";
 
 const navItems = [
   { path: "/", label: "Startseite" },
@@ -72,7 +70,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
 
           <div className="flex md:hidden items-center gap-1">
-            {/* NotificationBell deaktiviert – war Forum-Funktion */}
+            
             <button className="p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>

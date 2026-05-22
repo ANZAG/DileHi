@@ -678,6 +678,9 @@ export default function EventFormEvaluation() {
           responses={responses}
           canDelete={isVorstand || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
+          members={members as any}
+          formId={form?.id}
+          canAssign={isVorstand || event?.created_by === user?.id}
         />
       </motion.div>
     </div>
