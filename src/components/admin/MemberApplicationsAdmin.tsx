@@ -267,18 +267,6 @@ const MemberApplicationsAdmin = () => {
                 </div>
               </div>
 
-              {/* SEPA */}
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">SEPA-Lastschrift</h4>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  <span className="text-muted-foreground">Kontoinhaber</span>
-                  <span>{selected.account_holder || "–"}</span>
-                  <span className="text-muted-foreground">IBAN</span>
-                  <span className="font-mono text-xs">{selected.iban || "–"}</span>
-                  {selected.bic && <><span className="text-muted-foreground">BIC</span><span className="font-mono text-xs">{selected.bic}</span></>}
-                </div>
-              </div>
-
               {/* Consents */}
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Einverständnis</h4>
@@ -286,7 +274,6 @@ const MemberApplicationsAdmin = () => {
                   {[
                     { ok: selected.statutes_accepted, label: "Satzung anerkannt" },
                     { ok: selected.data_processing_accepted, label: "Datenschutz zugestimmt" },
-                    { ok: selected.sepa_accepted, label: "SEPA-Mandat erteilt" },
                   ].map(({ ok, label }) => (
                     <div key={label} className="flex items-center gap-2">
                       {ok
