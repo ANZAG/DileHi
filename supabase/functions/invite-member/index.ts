@@ -299,7 +299,8 @@ Deno.serve(async (req) => {
 
       // Generate PDF and store
       try {
-        const pdfBytes = await buildApplicationPdf(app);
+        const rate = await getCurrentRate(adminClient);
+        const pdfBytes = await buildApplicationPdf(app, rate);
         const fileName = `Mitgliedsantrag_${app.last_name}_${app.first_name}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
         const storagePath = `membership/${userId}/${Date.now()}_${fileName}`;
         const { error: upErr } = await adminClient.storage
