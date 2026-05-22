@@ -1389,6 +1389,8 @@ export type Database = {
         Returns: undefined
       }
       count_members: { Args: never; Returns: number }
+      get_current_contribution_rate: { Args: never; Returns: number }
+      get_current_satzung_path: { Args: never; Returns: string }
       get_form_by_token: { Args: { _token: string }; Returns: Json }
       get_member_directory: {
         Args: never
