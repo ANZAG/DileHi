@@ -165,22 +165,6 @@ const MembershipApplication = () => {
 
           {/* ── CI-Header (angelehnt ans Briefpapier) ── */}
           <div className="mb-8 pb-6 border-b border-border">
-            <div className="flex items-center justify-between gap-4">
-              {/* Vereinsname + Adresse */}
-              <div>
-                <p className="text-xs text-muted-foreground leading-snug">
-                  An: Eric Müller (2. Officiatus)
-                  <br />
-                  Am Schlosspark 17 · 65203 Wiesbaden
-                </p>
-              </div>
-              {/* Logo */}
-              <img
-                src="/favicon.ico"
-                alt="Diu lebendec Histôrje e.V. – Wappen"
-                className="h-14 w-14 object-contain flex-shrink-0"
-              />
-            </div>
 
             {/* Seitenüberschrift */}
             <h1 className="font-serif text-3xl font-bold text-primary mt-5">
@@ -331,7 +315,6 @@ const MembershipApplication = () => {
               <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
                 Jahresbeitrag{" "}
                 <strong className="text-foreground">{fmt(rate)}</strong>
-                <span className="text-xs ml-1">(durch den Schatzmeister festgelegt)</span>
               </div>
 
               <div className="space-y-1">
