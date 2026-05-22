@@ -194,6 +194,21 @@ const Contributions = () => {
     enabled: !canEdit && !!user?.id,
   });
 
+  // Eigenes Profil – für Eintrittsdatum-basierten Historien-Filter
+  const { data: myProfile } = useQuery({
+    queryKey: ["my-profile-entry", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("entry_date")
+        .eq("id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !canEdit && !!user?.id,
+  });
+
   const { data: rates = [] } = useQuery({
     queryKey: ["contribution-rates"],
     queryFn: async () => {
@@ -280,7 +295,10 @@ const Contributions = () => {
           <BankInfoCard />
 
           <div className="space-y-3">
-            {YEARS.map((y) => {
+            {YEARS.filter((y) => {
+              const entryYear = myProfile?.entry_date ? parseInt(String(myProfile.entry_date).slice(0, 4)) : null;
+              return entryYear ? y >= entryYear : true;
+            }).map((y) => {
               const yearRate = rates.find((r: any) => r.year === y);
               const myContrib = myContribs.find((c: any) => c.year === y);
               const status = myContrib?.status || "offen";

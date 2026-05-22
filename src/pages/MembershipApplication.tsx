@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle2, Loader2, ChevronRight } from "lucide-react";
+import { CheckCircle2, Loader2, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
+
+const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-satzung-link`;
+const FALLBACK_RATE = 36;
 
 // ─── Typ-Hilfen ───────────────────────────────────────────────────────────────
 type RadioOption = { value: string; label: string };
@@ -55,12 +58,6 @@ const MembershipApplication = () => {
     city: "",
     membership_type: "aktiv",
     contribution_interval: "jaehrlich",
-    // SEPA – noch nicht aktiv; Felder im State für spätere Aktivierung reserviert
-    iban: "",
-    bic: "",
-    account_holder: "",
-    sepa_accepted: false,
-    // ─────────────────────────────────────────────────────────────────────────
     statutes_accepted: false,
     data_processing_accepted: false,
   });
@@ -71,6 +68,18 @@ const MembershipApplication = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [rate, setRate] = useState<number>(FALLBACK_RATE);
+
+  useEffect(() => {
+    supabase.rpc("get_current_contribution_rate").then(({ data }) => {
+      const n = typeof data === "number" ? data : Number(data);
+      if (Number.isFinite(n) && n > 0) setRate(n);
+    });
+  }, []);
+
+  const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " \u20AC";
+  const halfFmt = (n: number) =>
+    (Math.round((n / 2) * 100) / 100).toFixed(2).replace(".", ",") + " \u20AC";
 
   const isValid =
     form.first_name.trim() &&
@@ -100,7 +109,6 @@ const MembershipApplication = () => {
         city: form.city.trim(),
         membership_type: form.membership_type,
         contribution_interval: form.contribution_interval,
-        // SEPA-Felder bewusst leer – werden nach Aktivierung befüllt
         iban: null,
         bic: null,
         account_holder: null,
@@ -322,7 +330,8 @@ const MembershipApplication = () => {
 
               <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
                 Jahresbeitrag{" "}
-                <strong className="text-foreground">36,00 €</strong>
+                <strong className="text-foreground">{fmt(rate)}</strong>
+                <span className="text-xs ml-1">(durch den Schatzmeister festgelegt)</span>
               </div>
 
               <div className="space-y-1">
@@ -331,8 +340,8 @@ const MembershipApplication = () => {
                   name="contribution_interval"
                   value={form.contribution_interval}
                   options={[
-                    { value: "jaehrlich", label: "Jährlich (36,00 €)" },
-                    { value: "halbjaehrlich", label: "Halbjährlich (2 × 18,00 €)" },
+                    { value: "jaehrlich", label: `Jährlich (${fmt(rate)})` },
+                    { value: "halbjaehrlich", label: `Halbjährlich (2 × ${halfFmt(rate)})` },
                   ]}
                   onChange={(v) => set("contribution_interval", v)}
                 />
@@ -349,30 +358,39 @@ const MembershipApplication = () => {
                 Einverständnis
               </h2>
 
-              {(
-                [
-                  {
-                    key: "statutes_accepted" as const,
-                    label:
-                      "Ich habe die Satzung von Diu lebendec Histôrje e.V. gelesen und erkenne sie an. *",
-                  },
-                  {
-                    key: "data_processing_accepted" as const,
-                    label:
-                      "Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß Datenschutzerklärung zu. *",
-                  },
-                ] as const
-              ).map(({ key, label }) => (
-                <label key={key} className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form[key]}
-                    onChange={(e) => set(key, e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
-                  />
-                  <span className="text-sm">{label}</span>
-                </label>
-              ))}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.statutes_accepted}
+                  onChange={(e) => set("statutes_accepted", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+                />
+                <span className="text-sm">
+                  Ich habe die{" "}
+                  <a
+                    href={SATZUNG_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText size={12} /> Satzung
+                  </a>{" "}
+                  von Diu lebendec Histôrje e.V. gelesen und erkenne sie an. *
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.data_processing_accepted}
+                  onChange={(e) => set("data_processing_accepted", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+                />
+                <span className="text-sm">
+                  Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß Datenschutzerklärung zu. *
+                </span>
+              </label>
 
               <p className="text-xs text-muted-foreground">
                 Mit Absenden bestätigst du die vorstehenden Erklärungen. Die

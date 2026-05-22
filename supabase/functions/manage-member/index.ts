@@ -181,6 +181,21 @@ Deno.serve(async (req) => {
       await adminClient.from("membership_files").delete().eq("user_id", userId);
       await adminClient.from("contributions").delete().eq("user_id", userId);
 
+      // Mitgliedsanträge des Nutzers (per created_user_id oder per E-Mail) löschen
+      await adminClient.from("membership_applications").delete().eq("created_user_id", userId);
+      try {
+        const { data: u } = await adminClient.auth.admin.getUserById(userId);
+        const email = u?.user?.email;
+        if (email) {
+          await adminClient
+            .from("membership_applications")
+            .delete()
+            .ilike("email", email);
+        }
+      } catch (e) {
+        console.error("application cleanup by email failed:", e);
+      }
+
       // Remove roles
       await adminClient.from("user_roles").delete().eq("user_id", userId);
 
