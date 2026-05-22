@@ -20,12 +20,8 @@ type Application = {
   city: string | null;
   membership_type: string;
   contribution_interval: string;
-  iban: string | null;
-  bic: string | null;
-  account_holder: string | null;
   statutes_accepted: boolean;
   data_processing_accepted: boolean;
-  sepa_accepted: boolean;
   created_at: string;
 };
 
@@ -39,84 +35,169 @@ const fmtDate = (d: string | null) => {
   }
 };
 
-// Replace common umlauts/special chars that the WinAnsi-encoded standard fonts cannot render.
+// Helvetica nutzt WinAnsi und kann ä ö ü ß abbilden – nur normalisieren.
 const safe = (s: string | null | undefined) => (s ?? "").normalize("NFC");
 
-async function buildApplicationPdf(app: Application): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]); // A4 portrait
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+async function getCurrentRate(client: ReturnType<typeof createClient>): Promise<number> {
+  try {
+    const { data } = await client.rpc("get_current_contribution_rate");
+    const n = typeof data === "number" ? data : Number(data);
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch (_) {/* ignore */}
+  return 36;
+}
 
-  const margin = 50;
+async function buildApplicationPdf(app: Application, rate: number): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595.28, 841.89]); // A4
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+
+  const left = 56;
+  const right = 539;
   let y = 800;
 
-  const write = (text: string, opts: { size?: number; bold?: boolean; gap?: number } = {}) => {
+  const text = (s: string, opts: { x?: number; size?: number; font?: any; gap?: number } = {}) => {
     const size = opts.size ?? 10;
-    const f = opts.bold ? fontBold : font;
-    page.drawText(safe(text), { x: margin, y, size, font: f, color: rgb(0, 0, 0) });
-    y -= (opts.gap ?? size + 4);
+    page.drawText(safe(s), {
+      x: opts.x ?? left,
+      y,
+      size,
+      font: opts.font ?? font,
+      color: rgb(0.1, 0.1, 0.12),
+    });
+    y -= opts.gap ?? size + 4;
   };
 
-  const writeLabelValue = (label: string, value: string) => {
-    page.drawText(safe(label), { x: margin, y, size: 10, font: fontBold, color: rgb(0, 0, 0) });
-    page.drawText(safe(value), { x: margin + 160, y, size: 10, font, color: rgb(0, 0, 0) });
-    y -= 16;
+  const wrap = (s: string, size: number, f = font, maxWidth = right - left): string[] => {
+    const words = safe(s).split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    for (const w of words) {
+      const t = line ? line + " " + w : w;
+      if (f.widthOfTextAtSize(t, size) > maxWidth) {
+        if (line) lines.push(line);
+        line = w;
+      } else line = t;
+    }
+    if (line) lines.push(line);
+    return lines;
   };
 
-  // Header
-  write("diu lebendec histOrje e. v.", { size: 11, bold: true, gap: 14 });
-  write("An: Eric Müller (2. Officiatus)", { size: 9, gap: 11 });
-  write("Am Schlosspark 17 – 65203 Wiesbaden", { size: 9, gap: 20 });
+  const para = (s: string, size = 10, f = font, gap = 4) => {
+    for (const ln of wrap(s, size, f)) text(ln, { size, font: f, gap: size + gap });
+    y -= 2;
+  };
 
-  write("Mitglied werden", { size: 16, bold: true, gap: 24 });
+  const labelValue = (label: string, value: string, gap = 18) => {
+    page.drawText(safe(label), { x: left, y, size: 10, font: bold, color: rgb(0.1, 0.1, 0.12) });
+    page.drawText(safe(value), { x: left + 150, y, size: 10, font, color: rgb(0.1, 0.1, 0.12) });
+    y -= gap;
+  };
 
-  // Personal data
-  const anrede = app.salutation || "—";
-  writeLabelValue("Anrede:", anrede);
-  writeLabelValue("Name, Vorname:", `${app.last_name}, ${app.first_name}`);
-  writeLabelValue("Straße und Hausnr.:", app.street ?? "");
-  writeLabelValue("PLZ und Wohnort:", `${app.zip ?? ""} ${app.city ?? ""}`.trim());
-  writeLabelValue("Geburtsdatum:", fmtDate(app.birthdate));
-  writeLabelValue("E-Mail:", app.email);
-  writeLabelValue("Telefon / Handy:", app.phone ?? "");
+  const box = (x: number, checked: boolean) => {
+    page.drawRectangle({ x, y: y - 1, width: 9, height: 9, borderColor: rgb(0.2, 0.2, 0.22), borderWidth: 0.8 });
+    if (checked) {
+      page.drawText("x", { x: x + 1.7, y: y + 0.5, size: 9, font: bold, color: rgb(0.1, 0.1, 0.12) });
+    }
+  };
 
-  y -= 8;
-  const artLabel = app.membership_type === "foerder" ? "Fördermitglied" : "Aktives Mitglied";
-  writeLabelValue("Art der Mitgliedschaft:", artLabel);
+  const checkboxLine = (items: Array<{ label: string; checked: boolean }>) => {
+    let cx = left;
+    for (const it of items) {
+      box(cx, it.checked);
+      page.drawText(safe(it.label), { x: cx + 14, y, size: 10, font, color: rgb(0.1, 0.1, 0.12) });
+      cx += 14 + font.widthOfTextAtSize(it.label, 10) + 24;
+    }
+    y -= 18;
+  };
 
+  // ── Header ────────────────────────────────────────────────────────────────
+  page.drawText("Diu lebendec histOrje e. v.", { x: left, y, size: 14, font: bold, color: rgb(0.866, 0.6, 0.2) });
+  y -= 18;
+  text("An: Eric Müller (2. Officiatus)", { size: 9, gap: 12 });
+  text("Am Schlosspark 17 – 65203 Wiesbaden", { size: 9, gap: 22 });
+
+  // Trennlinie
+  page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.6, color: rgb(0.85, 0.85, 0.88) });
+  y -= 18;
+
+  text("Mitglied werden", { size: 18, font: bold, gap: 24 });
+
+  // ── Anrede ────────────────────────────────────────────────────────────────
+  page.drawText("Anrede:", { x: left, y, size: 10, font: bold, color: rgb(0.1, 0.1, 0.12) });
+  let cx = left + 60;
+  for (const opt of ["Herr", "Frau"]) {
+    box(cx, app.salutation === opt);
+    page.drawText(opt, { x: cx + 14, y, size: 10, font, color: rgb(0.1, 0.1, 0.12) });
+    cx += 14 + font.widthOfTextAtSize(opt, 10) + 24;
+  }
+  y -= 22;
+
+  // ── Persönliche Daten ─────────────────────────────────────────────────────
+  labelValue("Name, Vorname:", `${app.last_name}, ${app.first_name}`);
+  labelValue("Straße und Hausnr.:", app.street ?? "");
+  labelValue("PLZ und Wohnort:", `${app.zip ?? ""} ${app.city ?? ""}`.trim());
+  labelValue("Geburtsdatum:", fmtDate(app.birthdate));
+  text("(Die Mitgliedschaft ist ab 16 Jahren möglich.)", { x: left + 150, size: 8.5, font: italic, gap: 14 });
+  labelValue("E-Mail:", app.email);
+  labelValue("Telefon / Handy:", app.phone ?? "", 22);
+
+  // ── Art der Mitgliedschaft ────────────────────────────────────────────────
+  page.drawText("Art der Mitgliedschaft:", { x: left, y, size: 10, font: bold, color: rgb(0.1, 0.1, 0.12) });
+  cx = left + 130;
+  const types = [
+    { label: "Aktives Mitglied", val: "aktiv" },
+    { label: "Fördermitglied", val: "foerder" },
+  ];
+  for (const t of types) {
+    box(cx, app.membership_type === t.val);
+    page.drawText(t.label, { x: cx + 14, y, size: 10, font, color: rgb(0.1, 0.1, 0.12) });
+    cx += 14 + font.widthOfTextAtSize(t.label, 10) + 24;
+  }
+  y -= 24;
+
+  // ── Erklärung ─────────────────────────────────────────────────────────────
+  para("Ja, ich will Mitglied bei Diu lebendec Histôrje e. V. werden und beantrage hiermit meine Aufnahme!", 10, font, 2);
+  para("Mit dem Antrag auf Mitgliedschaft erkenne ich die Satzung des Vereins Diu lebendec Histôrje e. V. an.", 10, font, 2);
+  para("Mir ist bekannt, dass die Mitgliedschaft bei Diu lebendec Histôrje e. V. beitragspflichtig ist.", 10, font, 8);
+
+  const rateStr = rate.toFixed(2).replace(".", ",");
+  para(`Derzeit beträgt der jährliche Beitragssatz ${rateStr} €.`, 10, bold, 10);
+
+  page.drawText("Der Einzug des Beitrags erfolgt dabei:", { x: left, y, size: 10, font, color: rgb(0.1, 0.1, 0.12) });
+  y -= 18;
+  checkboxLine([
+    { label: "Jährlich", checked: app.contribution_interval === "jaehrlich" },
+    { label: "Halbjährlich", checked: app.contribution_interval === "halbjaehrlich" },
+  ]);
   y -= 6;
-  write("Ja, ich will Mitglied bei Diu lebendec Histôrje e. V. werden und beantrage hiermit meine Aufnahme.", { size: 9, gap: 12 });
-  write("Mit dem Antrag auf Mitgliedschaft erkenne ich die Satzung des Vereins an.", { size: 9, gap: 12 });
-  write("Mir ist bekannt, dass die Mitgliedschaft beitragspflichtig ist. Der Jahresbeitrag beträgt 36,00 €.", { size: 9, gap: 16 });
 
-  const interval = app.contribution_interval === "halbjaehrlich" ? "Halbjährlich (2 × 18,00 €)" : "Jährlich (36,00 €)";
-  writeLabelValue("Beitragseinzug:", interval);
+  para("Die Mitgliedschaft ist nach schriftlicher Bestätigung durch den Vorstand gültig. Das Eintrittsdatum ist das Datum der Unterschrift.", 9, italic, 8);
 
+  // ── Datenschutz ───────────────────────────────────────────────────────────
+  para(
+    "Der Schutz Deiner personenbezogenen Daten ist Diu lebendec Histôrje e. V. ein besonderes Anliegen. Wir verwenden die in diesem Aufnahmeantrag enthaltenen Angaben einschließlich eventueller Änderungen und Ergänzungen zu Deiner Person ausschließlich zur Erledigung aller im Zusammenhang mit der Mitgliedschaft stehenden Aufgaben im erforderlichen Umfang. Dies betrifft insbesondere die computergestützte Mitgliederbestandsverwaltung, die Mitgliederinformation sowie ggf. den Beitragseinzug. Deine Daten werden nicht an externe Dritte weitergegeben, sondern nur für interne Zwecke verarbeitet und genutzt.",
+    8.5, font, 2,
+  );
   y -= 8;
-  write("SEPA-Lastschriftmandat", { size: 11, bold: true, gap: 16 });
-  writeLabelValue("Kontoinhaber:", app.account_holder ?? "");
-  writeLabelValue("IBAN:", app.iban ?? "");
-  writeLabelValue("BIC:", app.bic ?? "");
 
-  y -= 10;
-  write("Einverständnis", { size: 11, bold: true, gap: 16 });
+  // ── Einverständnis ────────────────────────────────────────────────────────
   const tick = (b: boolean) => (b ? "[x]" : "[ ]");
-  write(`${tick(app.statutes_accepted)} Satzung anerkannt`, { size: 10, gap: 14 });
-  write(`${tick(app.data_processing_accepted)} Datenverarbeitung gemäß Datenschutzerklärung zugestimmt`, { size: 10, gap: 14 });
-  write(`${tick(app.sepa_accepted)} SEPA-Lastschriftmandat erteilt`, { size: 10, gap: 20 });
+  text(`${tick(app.statutes_accepted)} Satzung anerkannt`, { size: 9.5, gap: 13 });
+  text(`${tick(app.data_processing_accepted)} Datenverarbeitung gemäß Datenschutzerklärung zugestimmt`, { size: 9.5, gap: 22 });
 
-  write("Datenschutzhinweis: Die Angaben werden ausschließlich für die Mitgliederverwaltung verwendet", { size: 8, gap: 10 });
-  write("und nicht an externe Dritte weitergegeben.", { size: 8, gap: 24 });
-
-  // Signature
+  // ── Digitale Signatur ─────────────────────────────────────────────────────
+  page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.4, color: rgb(0.85, 0.85, 0.88) });
+  y -= 16;
   const submitted = fmtDate(app.created_at);
-  writeLabelValue("Eingangsdatum:", submitted);
-  write("Digitale Antragstellung über das Mitgliedsformular auf www.dilehi.de.", { size: 8, gap: 10 });
-  write("Das Eintrittsdatum ist das Datum der digitalen Antragstellung.", { size: 8, gap: 10 });
+  labelValue("Eingangsdatum:", submitted, 14);
+  para("Digitale Antragstellung über das Mitgliedsformular auf www.dilehi.de. Das Eintrittsdatum entspricht dem Datum dieses digitalen Antrags.", 8.5, italic, 2);
 
   return await pdf.save();
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
