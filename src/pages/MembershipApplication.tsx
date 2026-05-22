@@ -330,7 +330,8 @@ const MembershipApplication = () => {
 
               <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
                 Jahresbeitrag{" "}
-                <strong className="text-foreground">36,00 €</strong>
+                <strong className="text-foreground">{fmt(rate)}</strong>
+                <span className="text-xs ml-1">(durch den Schatzmeister festgelegt)</span>
               </div>
 
               <div className="space-y-1">
@@ -339,8 +340,8 @@ const MembershipApplication = () => {
                   name="contribution_interval"
                   value={form.contribution_interval}
                   options={[
-                    { value: "jaehrlich", label: "Jährlich (36,00 €)" },
-                    { value: "halbjaehrlich", label: "Halbjährlich (2 × 18,00 €)" },
+                    { value: "jaehrlich", label: `Jährlich (${fmt(rate)})` },
+                    { value: "halbjaehrlich", label: `Halbjährlich (2 × ${halfFmt(rate)})` },
                   ]}
                   onChange={(v) => set("contribution_interval", v)}
                 />
@@ -357,30 +358,39 @@ const MembershipApplication = () => {
                 Einverständnis
               </h2>
 
-              {(
-                [
-                  {
-                    key: "statutes_accepted" as const,
-                    label:
-                      "Ich habe die Satzung von Diu lebendec Histôrje e.V. gelesen und erkenne sie an. *",
-                  },
-                  {
-                    key: "data_processing_accepted" as const,
-                    label:
-                      "Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß Datenschutzerklärung zu. *",
-                  },
-                ] as const
-              ).map(({ key, label }) => (
-                <label key={key} className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form[key]}
-                    onChange={(e) => set(key, e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
-                  />
-                  <span className="text-sm">{label}</span>
-                </label>
-              ))}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.statutes_accepted}
+                  onChange={(e) => set("statutes_accepted", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+                />
+                <span className="text-sm">
+                  Ich habe die{" "}
+                  <a
+                    href={SATZUNG_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FileText size={12} /> Satzung
+                  </a>{" "}
+                  von Diu lebendec Histôrje e.V. gelesen und erkenne sie an. *
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.data_processing_accepted}
+                  onChange={(e) => set("data_processing_accepted", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+                />
+                <span className="text-sm">
+                  Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß Datenschutzerklärung zu. *
+                </span>
+              </label>
 
               <p className="text-xs text-muted-foreground">
                 Mit Absenden bestätigst du die vorstehenden Erklärungen. Die
