@@ -58,12 +58,6 @@ const MembershipApplication = () => {
     city: "",
     membership_type: "aktiv",
     contribution_interval: "jaehrlich",
-    // SEPA – noch nicht aktiv; Felder im State für spätere Aktivierung reserviert
-    iban: "",
-    bic: "",
-    account_holder: "",
-    sepa_accepted: false,
-    // ─────────────────────────────────────────────────────────────────────────
     statutes_accepted: false,
     data_processing_accepted: false,
   });
@@ -74,6 +68,18 @@ const MembershipApplication = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [rate, setRate] = useState<number>(FALLBACK_RATE);
+
+  useEffect(() => {
+    supabase.rpc("get_current_contribution_rate").then(({ data }) => {
+      const n = typeof data === "number" ? data : Number(data);
+      if (Number.isFinite(n) && n > 0) setRate(n);
+    });
+  }, []);
+
+  const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " \u20AC";
+  const halfFmt = (n: number) =>
+    (Math.round((n / 2) * 100) / 100).toFixed(2).replace(".", ",") + " \u20AC";
 
   const isValid =
     form.first_name.trim() &&
@@ -103,7 +109,6 @@ const MembershipApplication = () => {
         city: form.city.trim(),
         membership_type: form.membership_type,
         contribution_interval: form.contribution_interval,
-        // SEPA-Felder bewusst leer – werden nach Aktivierung befüllt
         iban: null,
         bic: null,
         account_holder: null,
