@@ -460,6 +460,8 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
           })}
         </div>
       )}
+      </>
+      )}
     </div>
   );
 };
