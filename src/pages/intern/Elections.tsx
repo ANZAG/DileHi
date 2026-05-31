@@ -429,7 +429,7 @@ const Elections = () => {
                   <h2 className="font-serif text-xl font-bold text-muted-foreground">Sonstige</h2>
                 )}
                 <div className="space-y-3">
-                  {ungroupedElections.map((election) => (
+                  {ungroupedElections.map((election, idx) => (
                     <ElectionCard
                       key={election.id}
                       election={election}
@@ -438,6 +438,7 @@ const Elections = () => {
                       myVoteCount={1}
                       totalMembers={1}
                       totalPossibleVotes={1}
+                      defaultOpen={idx === 0}
                     />
                   ))}
                 </div>
