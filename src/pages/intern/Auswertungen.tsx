@@ -159,10 +159,35 @@ const Auswertungen = () => {
                     : <ChevronDown size={14} className="ml-auto" />}
                 </button>
                 {archiveOpen && (
-                  <div className="space-y-2 mt-2">
-                    {pastEvents.map((event, i) => (
-                      <EventCard key={event.id} event={event} i={i} />
-                    ))}
+                  <div className="mt-3 space-y-3">
+                    {archiveYears.length > 1 && (
+                      <div className="flex flex-wrap gap-2">
+                        {archiveYears.map((year) => (
+                          <button
+                            key={year}
+                            onClick={() => setArchiveYear(year)}
+                            className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                              archiveYear === year
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "hover:bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {year}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {filteredPastEvents.length > 0 ? (
+                      <div className="space-y-2">
+                        {filteredPastEvents.map((event, i) => (
+                          <EventCard key={event.id} event={event} i={i} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-2">
+                        Keine Veranstaltungen aus {archiveYear}.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
