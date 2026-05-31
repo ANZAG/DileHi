@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
     if (action === "update_role") {
       if (!userId || !role) throw new Error("userId und role erforderlich");
-      if (!["mitglied", "vorstand", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
+      if (!["mitglied", "officiatus_1", "officiatus_2", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       const { error } = await adminClient.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
