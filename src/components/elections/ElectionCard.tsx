@@ -255,30 +255,40 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
   return (
     <div className="p-5 rounded-lg border bg-card">
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-serif text-lg font-semibold">{election.title}</h3>
-            <span
-              className={`text-xs px-2 py-0.5 rounded ${
-                election.status === "active"
-                  ? "bg-primary/10 text-primary"
-                  : election.status === "closed"
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-accent/20 text-accent-foreground"
-              }`}
-            >
-              {election.status === "active" ? "Aktiv" : election.status === "closed" ? "Geschlossen" : "Entwurf"}
-              {election.status === "active" && isVorstand && (
-                <span className="ml-1">({totalVotes}/{totalPossibleVotes} Stimmen)</span>
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-start gap-2 text-left min-w-0 flex-1"
+          aria-expanded={expanded}
+        >
+          <span className="mt-1 text-muted-foreground shrink-0">
+            {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-serif text-lg font-semibold">{election.title}</h3>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  election.status === "active"
+                    ? "bg-primary/10 text-primary"
+                    : election.status === "closed"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-accent/20 text-accent-foreground"
+                }`}
+              >
+                {election.status === "active" ? "Aktiv" : election.status === "closed" ? "Geschlossen" : "Entwurf"}
+                {election.status === "active" && isVorstand && (
+                  <span className="ml-1">({totalVotes}/{totalPossibleVotes} Stimmen)</span>
+                )}
+              </span>
+              {election.status === "closed" && election.closed_at && (
+                <span className="text-xs text-muted-foreground">{formatTimestamp(election.closed_at)}</span>
               )}
-            </span>
-            {election.status === "closed" && election.closed_at && (
-              <span className="text-xs text-muted-foreground">{formatTimestamp(election.closed_at)}</span>
-            )}
+            </div>
+            {election.description && <p className="text-sm text-muted-foreground mt-1">{election.description}</p>}
           </div>
-          {election.description && <p className="text-sm text-muted-foreground mt-1">{election.description}</p>}
-        </div>
+        </button>
 
         {isVorstand && (
           <div className="flex gap-1">
