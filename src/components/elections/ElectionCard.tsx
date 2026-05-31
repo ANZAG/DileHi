@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus } from "lucide-react";
+import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import type { Election, ElectionResult } from "./types";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
   myVoteCount: number;
   totalMembers: number;
   totalPossibleVotes: number;
+  defaultOpen?: boolean;
 }
 
 const formatTimestamp = (iso: string) => {
@@ -24,12 +25,13 @@ const formatTimestamp = (iso: string) => {
   );
 };
 
-const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes }: Props) => {
+const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, defaultOpen = true }: Props) => {
   const { user, hasPermission } = useAuth();
   const isVorstand = hasPermission("elections.manage");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [expanded, setExpanded] = useState(defaultOpen);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -253,30 +255,40 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
   return (
     <div className="p-5 rounded-lg border bg-card">
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-serif text-lg font-semibold">{election.title}</h3>
-            <span
-              className={`text-xs px-2 py-0.5 rounded ${
-                election.status === "active"
-                  ? "bg-primary/10 text-primary"
-                  : election.status === "closed"
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-accent/20 text-accent-foreground"
-              }`}
-            >
-              {election.status === "active" ? "Aktiv" : election.status === "closed" ? "Geschlossen" : "Entwurf"}
-              {election.status === "active" && isVorstand && (
-                <span className="ml-1">({totalVotes}/{totalPossibleVotes} Stimmen)</span>
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-start gap-2 text-left min-w-0 flex-1"
+          aria-expanded={expanded}
+        >
+          <span className="mt-1 text-muted-foreground shrink-0">
+            {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-serif text-lg font-semibold">{election.title}</h3>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  election.status === "active"
+                    ? "bg-primary/10 text-primary"
+                    : election.status === "closed"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-accent/20 text-accent-foreground"
+                }`}
+              >
+                {election.status === "active" ? "Aktiv" : election.status === "closed" ? "Geschlossen" : "Entwurf"}
+                {election.status === "active" && isVorstand && (
+                  <span className="ml-1">({totalVotes}/{totalPossibleVotes} Stimmen)</span>
+                )}
+              </span>
+              {election.status === "closed" && election.closed_at && (
+                <span className="text-xs text-muted-foreground">{formatTimestamp(election.closed_at)}</span>
               )}
-            </span>
-            {election.status === "closed" && election.closed_at && (
-              <span className="text-xs text-muted-foreground">{formatTimestamp(election.closed_at)}</span>
-            )}
+            </div>
+            {election.description && <p className="text-sm text-muted-foreground mt-1">{election.description}</p>}
           </div>
-          {election.description && <p className="text-sm text-muted-foreground mt-1">{election.description}</p>}
-        </div>
+        </button>
 
         {isVorstand && (
           <div className="flex gap-1">
@@ -340,6 +352,8 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
         </div>
       )}
 
+      {expanded && (
+      <>
       {/* Hinweis bei bereits abgegebenen Stimmen */}
       {election.status === "active" && hasVoted && (
         <div className="mt-4 p-3 rounded-md bg-muted text-sm text-muted-foreground flex items-center gap-2">
@@ -445,6 +459,8 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
             );
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   );

@@ -231,6 +231,19 @@ export default function EventFormBuilder() {
     },
   });
 
+  // Auto-Schließung: Wenn der Anmeldeschluss überschritten ist, das Formular
+  // automatisch schließen (Schalter "Anmeldung möglich" wird deaktiviert).
+  // Greift, sobald ein Organisator das Formular oder die Auswertung öffnet.
+  useEffect(() => {
+    if (!form?.is_open) return;
+    const closesAt = (form.settings as any)?.closes_at;
+    if (closesAt && new Date(closesAt).getTime() < Date.now()) {
+      updateForm.mutate({ is_open: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.id, form?.is_open, (form?.settings as any)?.closes_at]);
+
+
   const resetFieldForm = () => {
     setNewFieldType("text");
     setNewFieldLabel("");
