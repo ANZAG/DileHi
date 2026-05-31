@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus } from "lucide-react";
+import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import type { Election, ElectionResult } from "./types";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
   myVoteCount: number;
   totalMembers: number;
   totalPossibleVotes: number;
+  defaultOpen?: boolean;
 }
 
 const formatTimestamp = (iso: string) => {
