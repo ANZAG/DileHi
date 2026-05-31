@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { data: existingVorstand } = await adminClient
       .from("user_roles")
       .select("id")
-      .eq("role", "vorstand")
+      .in("role", ["officiatus_1", "officiatus_2"])
       .limit(1);
 
     if (existingVorstand && existingVorstand.length > 0) {
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: userData.user.id,
-      role: "vorstand",
+      role: "officiatus_1",
     });
     if (roleError) throw roleError;
 

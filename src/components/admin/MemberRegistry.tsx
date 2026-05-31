@@ -25,6 +25,8 @@ import {
 const ROLE_ICONS: Record<string, React.ElementType> = {
   mitglied: User,
   vorstand: Shield,
+  officiatus_1: Shield,
+  officiatus_2: Shield,
   herold: Crown,
   schatzmeister: Coins,
 };

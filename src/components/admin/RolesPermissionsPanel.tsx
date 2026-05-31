@@ -41,7 +41,7 @@ const RolesPermissionsPanel = () => {
   const isLoading = rpLoading || rcLoading || pcLoading;
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ role, permission, granted }: { role: "herold" | "mitglied" | "schatzmeister" | "vorstand"; permission: string; granted: boolean }) => {
+    mutationFn: async ({ role, permission, granted }: { role: "herold" | "mitglied" | "schatzmeister" | "officiatus_1" | "officiatus_2"; permission: string; granted: boolean }) => {
       if (granted) {
         const { error } = await supabase
           .from("role_permissions")
@@ -96,7 +96,7 @@ const RolesPermissionsPanel = () => {
           <Eye size={16} /> Ansicht testen als:
         </p>
         <div className="flex flex-wrap gap-2">
-          {roleCatalog.filter((role) => role.key !== "vorstand").map((role) => (
+          {roleCatalog.filter((role) => role.key !== "officiatus_1" && role.key !== "officiatus_2").map((role) => (
             <Button
               key={role.key}
               variant="outline"
@@ -145,7 +145,7 @@ const RolesPermissionsPanel = () => {
                             checked={granted}
                             disabled={isPending}
                             onCheckedChange={(checked) =>
-                              toggleMutation.mutate({ role: role.key as "herold" | "mitglied" | "schatzmeister" | "vorstand", permission: perm.key, granted: checked })
+                              toggleMutation.mutate({ role: role.key as "herold" | "mitglied" | "schatzmeister" | "officiatus_1" | "officiatus_2", permission: perm.key, granted: checked })
                             }
                           />
                         </td>
