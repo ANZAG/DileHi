@@ -378,9 +378,10 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
           {election.candidates?.map((c) => {
             const count = voteAllocation[c.id] || 0;
             return (
-              <div key={c.id} className="flex items-center justify-between px-4 py-2.5 rounded-md border">
-                <span className="text-sm">{c.name}</span>
-                <div className="flex items-center gap-2">
+              <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md border">
+                <span className="text-sm break-words min-w-0">{c.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+
                   <button
                     onClick={() => adjustVote(c.id, -1)}
                     disabled={count === 0}
