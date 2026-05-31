@@ -42,6 +42,15 @@ export default function EventFormEvaluation() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+
+  const copyPublicLink = () => {
+    if (!form?.public_token) return;
+    const url = `${window.location.origin}/anmeldung/${form.public_token}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Link kopiert", description: "Gäste können sich über diesen Link anmelden." });
+  };
+
 
   // Zurück-Navigation: woher kam der Nutzer?
   // Mögliche Quellen: /intern/auswertungen (Liste) oder /intern/veranstaltungen/:id/formular (Formular-Builder)
