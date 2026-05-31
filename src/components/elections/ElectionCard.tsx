@@ -25,12 +25,13 @@ const formatTimestamp = (iso: string) => {
   );
 };
 
-const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes }: Props) => {
+const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, defaultOpen = true }: Props) => {
   const { user, hasPermission } = useAuth();
   const isVorstand = hasPermission("elections.manage");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [expanded, setExpanded] = useState(defaultOpen);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
