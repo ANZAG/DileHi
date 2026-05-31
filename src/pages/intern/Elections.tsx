@@ -383,6 +383,7 @@ const Elections = () => {
                     </div>
                   </div>
 
+                  {open && <>
                   {/* Create election form */}
                   {showElectionForm === group.id && !isClosed && (
                     <div className="p-4 rounded-lg border bg-card space-y-3">
@@ -432,6 +433,7 @@ const Elections = () => {
                       ))}
                     </div>
                   )}
+                  </>}
                 </div>
               );
             })}
