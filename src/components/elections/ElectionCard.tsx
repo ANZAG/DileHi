@@ -378,9 +378,10 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
           {election.candidates?.map((c) => {
             const count = voteAllocation[c.id] || 0;
             return (
-              <div key={c.id} className="flex items-center justify-between px-4 py-2.5 rounded-md border">
-                <span className="text-sm">{c.name}</span>
-                <div className="flex items-center gap-2">
+              <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-md border">
+                <span className="text-sm break-words min-w-0">{c.name}</span>
+                <div className="flex items-center gap-2 shrink-0">
+
                   <button
                     onClick={() => adjustVote(c.id, -1)}
                     disabled={count === 0}
@@ -430,14 +431,16 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
           {electionResults.map((r) => {
             const pct = totalVotes > 0 ? Math.round((r.vote_count / totalVotes) * 100) : 0;
             return (
-              <div key={r.candidate_id} className="flex items-center gap-3">
-                <span className="text-sm w-32 truncate">{r.candidate_name}</span>
-                <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+              <div key={r.candidate_id} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm break-words min-w-0">{r.candidate_name}</span>
+                  <span className="text-sm font-medium whitespace-nowrap shrink-0">
+                    {r.vote_count} ({pct}%)
+                  </span>
+                </div>
+                <div className="h-6 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                 </div>
-                <span className="text-sm font-medium w-16 text-right">
-                  {r.vote_count} ({pct}%)
-                </span>
               </div>
             );
           })}
