@@ -316,24 +316,34 @@ const Elections = () => {
           <div className="text-center text-muted-foreground py-12">Noch keine Abstimmungen.</div>
         ) : (
           <div className="space-y-8">
-            {groups.map((group) => {
+            {groups.map((group, gIdx) => {
               const groupElections = getGroupElections(group.id);
               const isClosed = group.status === "closed";
               if (!isVorstand && groupElections.length === 0) return null;
+              const open = isGroupOpen(group.id, gIdx);
 
               return (
                 <div key={group.id} className="space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-serif text-lg sm:text-xl font-bold">{group.title}</h2>
-                        {isClosed && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground flex items-center gap-1">
-                            <Lock size={12} /> Geschlossen
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => toggleGroup(group.id, gIdx)}
+                      className="flex items-center gap-2 flex-wrap text-left group/btn"
+                    >
+                      {open ? (
+                        <ChevronDown size={20} className="text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight size={20} className="text-muted-foreground shrink-0" />
+                      )}
+                      <h2 className="font-serif text-lg sm:text-xl font-bold group-hover/btn:text-primary transition-colors">{group.title}</h2>
+                      {isClosed && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground flex items-center gap-1">
+                          <Lock size={12} /> Geschlossen
+                        </span>
+                      )}
+                      {!open && groupElections.length > 0 && (
+                        <span className="text-xs text-muted-foreground">({groupElections.length})</span>
+                      )}
+                    </button>
                     <div className="flex gap-2 flex-wrap">
                       {isVorstand && (
                         <>
