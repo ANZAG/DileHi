@@ -55,6 +55,16 @@ const Auswertungen = () => {
     })
     .sort((a, b) => b.start_date.localeCompare(a.start_date));
 
+  const archiveYears = Array.from(
+    new Set(pastEvents.map((e) => parseISO(e.start_date).getFullYear()))
+  ).sort((a, b) => b - a);
+
+  const filteredPastEvents = pastEvents.filter(
+    (e) => parseISO(e.start_date).getFullYear() === archiveYear
+  );
+
+
+
   const formatDate = (dateStr: string) => {
     try {
       return format(parseISO(dateStr), "dd. MMMM yyyy", { locale: de });
