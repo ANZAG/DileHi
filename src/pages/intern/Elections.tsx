@@ -20,6 +20,10 @@ const Elections = () => {
   const [showElectionForm, setShowElectionForm] = useState<string | null>(null);
   const [electionForm, setElectionForm] = useState({ title: "", description: "", candidates: "" });
   const [representationGroupId, setRepresentationGroupId] = useState<string | null>(null);
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
+  const isGroupOpen = (id: string, idx: number) => groupOpen[id] ?? idx === 0;
+  const toggleGroup = (id: string, idx: number) =>
+    setGroupOpen((prev) => ({ ...prev, [id]: !(prev[id] ?? idx === 0) }));
 
   // Realtime subscription
   useEffect(() => {
