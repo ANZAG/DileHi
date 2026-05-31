@@ -126,7 +126,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   page.drawImage(logoImg, { x: R - logoDims.width, y: 740, width: logoDims.width, height: logoDims.height });
   at("Diu lebendec Histôrje e. V.", L, 781, 20, bold, WHITE);
   at("Living History & Lebendige Geschichtsvermittlung", L, 760, 8.5, font, rgb(0.75, 0.75, 0.78));
-  at("An: Eric Treisbach (2. Officiatus)  |  Am Schlosspark 17 - 65203 Wiesbaden",
+  at("Am Schloßpark 17 - 65203 Wiesbaden",
      L, 742, 8, italic, rgb(0.65, 0.65, 0.68));
 
   // ── VORSTANDSLEISTE ───────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   y -= 28;
 
   // ── PERSÖNLICHE ANGABEN ───────────────────────────────────────────────────
-  at("PERSONLICHE ANGABEN", L, y, 7.5, bold, AMBER);
+  at("PERSÖNLICHE ANGABEN", L, y, 7.5, bold, AMBER);
   y -= 4; hline(y); y -= 14;
 
   field("Anrede", safe(app.salutation ?? ""), L, y);
@@ -160,7 +160,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   y -= 16;
   field("Name, Vorname", safe(app.last_name) + ", " + safe(app.first_name), L, y);
   y -= 16;
-  field("Strasse und Hausnr.", safe(app.street ?? ""), L, y);
+  field("Straße und Hausnr.", safe(app.street ?? ""), L, y);
   y -= 16;
   field("PLZ und Wohnort", (safe(app.zip ?? "") + " " + safe(app.city ?? "")).trim(), L, y);
   y -= 16;
@@ -175,7 +175,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
 
   at("Art der Mitgliedschaft:", L, y, 9, bold, GRAY);
   let cx = L + 148;
-  for (const [val, label] of [["aktiv", "Aktives Mitglied"], ["foerder", "Foerdermitglied"]] as const) {
+  for (const [val, label] of [["aktiv", "Aktives Mitglied"], ["foerder", "Fördermitglied"]] as const) {
     checkbox(cx, y, app.membership_type === val);
     at(label, cx + 14, y, 10, font, DARK);
     cx += 14 + font.widthOfTextAtSize(label, 10) + 20;
@@ -187,8 +187,8 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   at("Beitragseinzug:", L, y, 9, bold, GRAY);
   cx = L + 148;
   for (const [val, label, sub] of [
-    ["jaehrlich",     "Jaehrlich",    rateStr + " € / Jahr"],
-    ["halbjaehrlich", "Halbjaehrlich", halfRate + " € / Halbjahr"],
+    ["jaehrlich",     "Jährlich",    rateStr + " € / Jahr"],
+    ["halbjaehrlich", "Halbjährlich", halfRate + " € / Halbjahr"],
   ] as const) {
     checkbox(cx, y, app.contribution_interval === val);
     at(label, cx + 14, y, 10, font, DARK);
@@ -198,7 +198,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   y -= 26;
 
   // ── ERKLARUNG ─────────────────────────────────────────────────────────────
-  at("ERKLARUNG", L, y, 7.5, bold, AMBER);
+  at("ERKLÄRUNG", L, y, 7.5, bold, AMBER);
   y -= 4; hline(y); y -= 4;
 
   page.drawRectangle({ x: L, y: y - 72, width: W, height: 76, color: rgb(0.98, 0.98, 0.98) });
@@ -212,7 +212,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
     L + 8, y, 9, font, DARK, W - 16
   ) - 2;
   y = textBlock(
-    "Derzeit betragt der jahrliche Beitragssatz " + rateStr + " EUR. Die Mitgliedschaft ist nach schriftlicher Bestatigung durch den Vorstand gultig.",
+    "Derzeit beträgt der jährliche Beitragssatz " + rateStr + " EUR. Die Mitgliedschaft ist nach schriftlicher Bestätigung durch den Vorstand gültig.",
     L + 8, y, 9, font, DARK, W - 16
   );
   y -= 18;
@@ -232,7 +232,7 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   at("Satzung anerkannt", L + 14, y, 9.5, font, DARK);
   y -= 16;
   checkbox(L, y, app.data_processing_accepted);
-  at("Datenverarbeitung gemass Datenschutzerklarung zugestimmt", L + 14, y, 9.5, font, DARK);
+  at("Datenverarbeitung gemäß Datenschutzerklärung zugestimmt", L + 14, y, 9.5, font, DARK);
   y -= 26;
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
