@@ -57,7 +57,9 @@ function b64ToUint8(b64: string): Uint8Array {
   return arr;
 }
 
-async function buildApplicationPdf(app: Application, rate: number): Promise<Uint8Array> {
+type Officials = { officiatus_1: string; officiatus_2: string; schatzmeister: string };
+
+async function buildApplicationPdf(app: Application, rate: number, officials: Officials): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]); // A4
   const font   = await pdf.embedFont(StandardFonts.Helvetica);
@@ -132,13 +134,13 @@ async function buildApplicationPdf(app: Application, rate: number): Promise<Uint
   // ── VORSTANDSLEISTE ───────────────────────────────────────────────────────
   page.drawRectangle({ x: L, y: 705, width: W, height: 22, color: rgb(0.97, 0.97, 0.97) });
   const colW = W / 3;
-  const officials: [string, string][] = [
-    ["1. Officiatus", "Max Bachon"],
-    ["2. Officiatus", "Eric Treisbach"],
-    ["Schatzmeister",  "Christian Buhl"],
+  const officialsRow: [string, string][] = [
+    ["1. Officiatus", officials.officiatus_1],
+    ["2. Officiatus", officials.officiatus_2],
+    ["Schatzmeister",  officials.schatzmeister],
   ];
-  for (let i = 0; i < officials.length; i++) {
-    const [title, name] = officials[i];
+  for (let i = 0; i < officialsRow.length; i++) {
+    const [title, name] = officialsRow[i];
     const ox = L + i * colW + 8;
     at(title + ":", ox, 718, 7.5, bold, GRAY);
     at(name, ox + bold.widthOfTextAtSize(title + ": ", 7.5), 718, 7.5, font, DARK);
