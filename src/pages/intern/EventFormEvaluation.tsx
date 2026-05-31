@@ -496,6 +496,11 @@ export default function EventFormEvaluation() {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung` }}>Formular</Link>
             </Button>
+            {form?.public_token && (
+              <Button variant="outline" size="sm" onClick={copyPublicLink}>
+                <LinkIcon size={14} className="mr-1" /> Link kopieren
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download size={14} className="mr-1" /> CSV
             </Button>
