@@ -102,6 +102,8 @@ function buildSignature(sig?: SignatureInfo): string {
 
   const roleLabel: Record<string, string> = {
     vorstand: "Vorstand",
+    officiatus_1: "1. Officiatus",
+    officiatus_2: "2. Officiatus",
     mitglied: "Mitglied",
     herold: "Herold",
     schatzmeister: "Schatzmeister",
