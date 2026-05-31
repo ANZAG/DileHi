@@ -384,7 +384,8 @@ Deno.serve(async (req) => {
 
     const roleLabel: Record<string, string> = {
       mitglied: "Mitglied",
-      vorstand: "Vorstand",
+      officiatus_1: "1. Officiatus",
+      officiatus_2: "2. Officiatus",
       herold: "Herold",
       schatzmeister: "Schatzmeister",
     };
