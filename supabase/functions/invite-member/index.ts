@@ -275,18 +275,17 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is Vorstand
-    const { data: callerRole } = await adminClient
+    // Verify caller is Vorstand (1. / 2. Officiatus)
+    const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "vorstand")
-      .single();
-    if (!callerRole) throw new Error("Nur der Vorstand kann Mitglieder einladen");
+      .in("role", ["officiatus_1", "officiatus_2"]);
+    if (!callerRoles || callerRoles.length === 0) throw new Error("Nur der Vorstand kann Mitglieder einladen");
 
     const { email, role, applicationId } = await req.json();
     if (!email || !role) throw new Error("E-Mail und Rolle erforderlich");
-    if (!["mitglied", "vorstand", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
+    if (!["mitglied", "officiatus_1", "officiatus_2", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
 
     // Optional application context
     let app: Application | null = null;
