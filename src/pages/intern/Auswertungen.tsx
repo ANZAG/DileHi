@@ -13,6 +13,7 @@ const Auswertungen = () => {
   const { user, hasPermission } = useAuth();
   const isVorstand = hasPermission("events.moderate");
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveYear, setArchiveYear] = useState<number>(new Date().getFullYear());
 
   const { data: eventsWithForms = [], isLoading } = useQuery({
     queryKey: ["auswertungen-list", user?.id, isVorstand],
