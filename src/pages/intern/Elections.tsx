@@ -59,7 +59,7 @@ const Elections = () => {
       const { data, error } = await supabase
         .from("elections")
         .select("*, candidates(*)")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Election[];
     },
@@ -404,7 +404,7 @@ const Elections = () => {
                     <p className="text-sm text-muted-foreground italic pl-1">Noch keine Abstimmungen in diesem Thema.</p>
                   ) : (
                     <div className="space-y-3 pl-4 border-l-2 border-primary/20">
-                      {groupElections.map((election) => (
+                      {groupElections.map((election, idx) => (
                         <ElectionCard
                           key={election.id}
                           election={election}
@@ -413,6 +413,7 @@ const Elections = () => {
                           myVoteCount={getMyVoteCount(election)}
                           totalMembers={getTotalMembers(election.group_id)}
                           totalPossibleVotes={getTotalPossibleVotes(election.group_id)}
+                          defaultOpen={idx === 0}
                         />
                       ))}
                     </div>
