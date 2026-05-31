@@ -352,6 +352,8 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
         </div>
       )}
 
+      {expanded && (
+      <>
       {/* Hinweis bei bereits abgegebenen Stimmen */}
       {election.status === "active" && hasVoted && (
         <div className="mt-4 p-3 rounded-md bg-muted text-sm text-muted-foreground flex items-center gap-2">
