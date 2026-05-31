@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, FolderPlus, RefreshCw, Users, Lock } from "lucide-react";
+import { ArrowLeft, Plus, FolderPlus, RefreshCw, Users, Lock, ChevronDown, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import ElectionCard from "@/components/elections/ElectionCard";
@@ -47,7 +47,7 @@ const Elections = () => {
       const { data, error } = await supabase
         .from("election_groups")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as ElectionGroup[];
     },
