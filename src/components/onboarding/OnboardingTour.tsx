@@ -121,7 +121,43 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: Users,
     title: "Mitglieder verwalten",
-    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten. Aufnahmeanträge prüfst du hier ebenfalls.",
+    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: UserPlus,
+    title: "Aufnahmeanträge",
+    body: "Eingegangene Aufnahmeanträge prüfst du hier. Du kannst die Angaben einsehen, den Antrag als PDF öffnen und ihn genehmigen oder ablehnen.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Mail,
+    title: "Kontaktanfragen",
+    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Image,
+    title: "Galerie",
+    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: ImagePlus,
+    title: "Seitenbilder",
+    body: "Tausche die Bilder der öffentlichen Seiten (z.B. Startseite und Epochenseiten) bequem aus.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: BookOpen,
+    title: "Quellen",
+    body: "Pflege die Quellen der Epochenseiten und ergänze Belege für unsere historische Arbeit.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Star,
+    title: "Besucher-Highlights",
+    body: "Verwalte die Besucher-Highlights der Epochenseiten, die Gästen die wichtigsten Punkte hervorheben.",
     route: "/intern/verwaltung",
   },
   {
@@ -144,8 +180,8 @@ const VORSTAND_STEPS: TourStep[] = [
   },
   {
     icon: ScrollText,
-    title: "Protokoll",
-    body: "Im Protokoll siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
+    title: "Audit Log",
+    body: "Im Audit Log siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
     route: "/intern/verwaltung/protokoll",
   },
   {
