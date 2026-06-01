@@ -259,7 +259,7 @@ async function buildApplicationPdf(app: Application, rate: number, officials: Of
   y -= 4; hline(y); y -= 14;
 
   y = textBlock(
-    "Der Schutz Deiner personenbezogenen Daten ist Diu lebendec Histôrje e. V. ein besonderes Anliegen. Wir verwenden die in diesem Aufnahmeantrag enthaltenen Angaben ausschlieslich zur Erledigung aller im Zusammenhang mit der Mitgliedschaft stehenden Aufgaben im erforderlichen Umfang. Dies betrifft insbesondere die computergestutzte Mitgliederbestandsverwaltung, die Mitgliederinformation sowie ggf. den Beitragseinzug. Deine Daten werden nicht an externe Dritte weitergegeben.",
+    "Der Schutz Deiner personenbezogenen Daten ist Diu lebendec Histôrje e. V. ein besonderes Anliegen. Wir verwenden die in diesem Aufnahmeantrag enthaltenen Angaben ausschließlich zur Erledigung aller im Zusammenhang mit der Mitgliedschaft stehenden Aufgaben im erforderlichen Umfang. Dies betrifft insbesondere die computergestützte Mitgliederbestandsverwaltung, die Mitgliederinformation sowie ggf. den Beitragseinzug. Deine Daten werden nicht an externe Dritte weitergegeben.",
     L, y, 8.5, font, rgb(0.35, 0.35, 0.38), W
   );
   y -= 14;
