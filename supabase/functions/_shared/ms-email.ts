@@ -32,9 +32,18 @@ export async function getMsAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-export async function sendEmailViaMsGraph(to: string, subject: string, htmlBody: string): Promise<void> {
+export async function sendEmailViaMsGraph(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  options?: { bcc?: string | string[] }
+): Promise<void> {
   const accessToken = await getMsAccessToken();
   const senderEmail = Deno.env.get("MS_SENDER_EMAIL") || "vorstand@dilehi.de";
+
+  const bccList = options?.bcc
+    ? (Array.isArray(options.bcc) ? options.bcc : [options.bcc])
+    : [];
 
   const message = {
     message: {
@@ -46,6 +55,9 @@ export async function sendEmailViaMsGraph(to: string, subject: string, htmlBody:
       toRecipients: [
         { emailAddress: { address: to } },
       ],
+      ...(bccList.length > 0
+        ? { bccRecipients: bccList.map((address) => ({ emailAddress: { address } })) }
+        : {}),
     },
     saveToSentItems: false,
   };
