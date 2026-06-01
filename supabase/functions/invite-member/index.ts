@@ -452,6 +452,53 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Willkommensmail an das neue Mitglied (BCC an den Vorstand)
+    {
+      const firstName = app?.first_name?.trim() || email.split("@")[0];
+      const officials = await getOfficials(adminClient);
+      const signerName = officials.officiatus_1 || "Der Vorstand";
+
+      const welcomeHtml = buildEmailWrapper(`
+        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Aufnahmebestätigung</p>
+        <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Herzlich willkommen!</p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          Hallo ${escapeHtml(firstName)},
+        </p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          wir freuen uns sehr, dich als neues Mitglied in unserem Verein
+          <strong>Diu lebendec Histôrje e.V.</strong> willkommen zu heißen!
+        </p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          Mit deiner Anmeldung bist du nun Teil unserer lebendigen Gemeinschaft, die sich mit
+          viel Herzblut der Darstellung und Vermittlung historischer Lebenswelten widmet. Wir
+          sind gespannt auf deine Ideen, dein Engagement und die gemeinsamen Erlebnisse, die
+          vor uns liegen.
+        </p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          Alle wichtigen Infos rund um den Verein, Termine und Mitmachmöglichkeiten findest du
+          auf unserer Website <a href="https://www.dilehi.de" style="color: #dd9933;">www.dilehi.de</a>
+          und in unserer WhatsApp-Gruppe, der wir dich in Kürze hinzufügen.
+        </p>
+        <p style="margin: 0 0 16px; line-height: 1.7;">
+          Wenn du Fragen hast oder etwas unklar ist, melde dich jederzeit gern bei uns.
+          Schön, dass du dabei bist – auf eine spannende Zeit mit dir!
+        </p>
+      `, {
+        signature: { senderName: signerName, senderRole: "officiatus_1" },
+      });
+
+      try {
+        await sendEmailViaMsGraph(
+          email,
+          "Herzlich willkommen bei Diu lebendec Histôrje e.V.!",
+          welcomeHtml,
+          { bcc: "vorstand@dilehi.de" },
+        );
+      } catch (welcomeErr) {
+        console.error("Welcome email sending failed:", welcomeErr);
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, userId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
