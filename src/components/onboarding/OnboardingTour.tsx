@@ -244,6 +244,9 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (loading || !user) return;
     if (!location.pathname.startsWith("/intern")) return;
+    // Wait until roles have loaded so role-specific tours aren't missed
+    // (a logged-in member always holds at least one role).
+    if (roles.length === 0) return;
     if (checkedRef.current) return;
     checkedRef.current = true;
 
