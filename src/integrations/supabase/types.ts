@@ -1279,6 +1279,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tours: {
+        Row: {
+          completed_at: string
+          id: string
+          tour_key: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          tour_key: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          tour_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           candidate_id: string
