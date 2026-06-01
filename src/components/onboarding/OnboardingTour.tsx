@@ -1,10 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote, BookOpen, User, Sparkles, Coins } from "lucide-react";
+import {
+  X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote,
+  BookOpen, User, Sparkles, Coins, Bell, ClipboardList, Settings, Users, Shield,
+  ScrollText, Image, Crown, Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TourStep {
   icon: React.ElementType;
@@ -14,7 +19,19 @@ interface TourStep {
   route?: string;
 }
 
-const STEPS: TourStep[] = [
+interface TourDef {
+  key: string;
+  /** Returns true if this tour applies to a user holding the given roles. */
+  applies: (roles: string[]) => boolean;
+  steps: TourStep[];
+}
+
+const VORSTAND_ROLES = ["vorstand", "officiatus_1", "officiatus_2"];
+
+// ---------------------------------------------------------------------------
+// Allgemeine Mitglieder-Tour
+// ---------------------------------------------------------------------------
+const MEMBER_STEPS: TourStep[] = [
   {
     icon: Sparkles,
     title: "Willkommen im Mitgliederbereich!",
@@ -35,6 +52,12 @@ const STEPS: TourStep[] = [
     route: "/intern/veranstaltungen",
   },
   {
+    icon: ClipboardList,
+    title: "Anmeldeformulare",
+    body: "Zu vielen Veranstaltungen gibt es Anmeldeformulare. Deine Profildaten (z.B. Ernährung & Zelte) werden dort automatisch vorausgefüllt. Du kannst deine Anmeldung jederzeit über den Bearbeitungslink ändern.",
+    route: "/intern/veranstaltungen",
+  },
+  {
     icon: Megaphone,
     title: "Versammlungen & Pinnwand",
     body: "Ankündigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beiträge antworten.",
@@ -45,6 +68,12 @@ const STEPS: TourStep[] = [
     title: "Abstimmungen",
     body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
     route: "/intern/abstimmungen",
+  },
+  {
+    icon: Bell,
+    title: "Benachrichtigungen",
+    body: "Über das Glocken-Symbol oben rechts wirst du in Echtzeit über neue Ankündigungen, Antworten, offene Abstimmungen und Termine informiert. Ein roter Punkt zeigt ungelesene Benachrichtigungen an.",
+    hint: "Tipp: Klicke auf eine Benachrichtigung, um direkt zur passenden Stelle zu springen.",
   },
   {
     icon: FileText,
@@ -79,57 +108,218 @@ const STEPS: TourStep[] = [
   },
 ];
 
-const STORAGE_KEY = "dilehi_onboarding_done";
+// ---------------------------------------------------------------------------
+// Rollen-spezifische Touren
+// ---------------------------------------------------------------------------
+const VORSTAND_STEPS: TourStep[] = [
+  {
+    icon: Crown,
+    title: "Willkommen im Vorstand!",
+    body: "Du hast jetzt erweiterte Rechte. Diese kurze Tour zeigt dir, welche zusätzlichen Funktionen dir nun zur Verfügung stehen.",
+  },
+  {
+    icon: Settings,
+    title: "Verwaltung",
+    body: "Über den Bereich „Verwaltung“ verwaltest du den gesamten Verein: Mitglieder, Berechtigungen, Galerie, Inhalte der Website und mehr – gebündelt an einem Ort.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Users,
+    title: "Mitglieder verwalten",
+    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten. Aufnahmeanträge prüfst du hier ebenfalls.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Shield,
+    title: "Rollen & Berechtigungen",
+    body: "Lege fest, welche Rolle welche Funktionen nutzen darf, und weise Mitgliedern Rollen zu. Gehe sorgsam mit diesen Rechten um.",
+    route: "/intern/verwaltung/berechtigungen",
+  },
+  {
+    icon: Vote,
+    title: "Abstimmungen leiten",
+    body: "Als Vorstand kannst du Abstimmungen und Wahlen anlegen, Stellvertretungen verwalten und die Ergebnisse auswerten und abschließen.",
+    route: "/intern/abstimmungen",
+  },
+  {
+    icon: ClipboardList,
+    title: "Auswertungen",
+    body: "Sieh dir die Anmeldungen und die Logistik (z.B. Zeltplanung) aller Veranstaltungen an und behalte den Überblick.",
+    route: "/intern/auswertungen",
+  },
+  {
+    icon: ScrollText,
+    title: "Protokoll",
+    body: "Im Protokoll siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
+    route: "/intern/verwaltung/protokoll",
+  },
+  {
+    icon: Crown,
+    title: "Bereit für den Vorstand!",
+    body: "Du kennst jetzt deine zusätzlichen Werkzeuge. Bei Fragen findest du diese Tour jederzeit erneut in deinem Profil.",
+  },
+];
+
+const SCHATZMEISTER_STEPS: TourStep[] = [
+  {
+    icon: Wallet,
+    title: "Willkommen, Schatzmeister!",
+    body: "Du verwaltest jetzt die Finanzen des Vereins. Diese kurze Tour zeigt dir deine zusätzlichen Funktionen.",
+  },
+  {
+    icon: Coins,
+    title: "Beiträge verwalten",
+    body: "Im Bereich „Beiträge“ siehst du für alle Mitglieder den Zahlungsstatus, kannst Beiträge als bezahlt markieren, Teilzahlungen erfassen und die Beitragssätze pflegen.",
+    route: "/intern/beitraege",
+  },
+  {
+    icon: FileText,
+    title: "Mitgliedsunterlagen",
+    body: "Du hast Zugriff auf relevante Mitgliedsunterlagen (z.B. SEPA-Mandate), die du für den Beitragseinzug benötigst.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Wallet,
+    title: "Bereit für die Kasse!",
+    body: "Du kennst jetzt deine Werkzeuge für die Finanzverwaltung. Diese Tour findest du jederzeit erneut in deinem Profil.",
+  },
+];
+
+const HEROLD_STEPS: TourStep[] = [
+  {
+    icon: Image,
+    title: "Willkommen, Herold!",
+    body: "Du pflegst jetzt die öffentliche Außendarstellung des Vereins. Diese kurze Tour zeigt dir deine zusätzlichen Funktionen.",
+  },
+  {
+    icon: Settings,
+    title: "Verwaltung",
+    body: "Über den Bereich „Verwaltung“ erreichst du alle Werkzeuge für die Öffentlichkeitsarbeit gebündelt an einem Ort.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Image,
+    title: "Galerie & Website-Bilder",
+    body: "Du kannst Galeriebilder hochladen, mit Alt-Texten versehen und Epochen zuordnen sowie die Bilder der öffentlichen Seiten austauschen.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: BookOpen,
+    title: "Inhalte & Quellen",
+    body: "Du pflegst die Besucher-Highlights und Quellen der Epochenseiten und kannst Veranstaltungen für die öffentliche Website freigeben.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Megaphone,
+    title: "Kontaktanfragen",
+    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Image,
+    title: "Bereit als Herold!",
+    body: "Du kennst jetzt deine Werkzeuge für die Außendarstellung. Diese Tour findest du jederzeit erneut in deinem Profil.",
+  },
+];
+
+const TOURS: TourDef[] = [
+  { key: "member", applies: () => true, steps: MEMBER_STEPS },
+  { key: "vorstand", applies: (r) => r.some((x) => VORSTAND_ROLES.includes(x)), steps: VORSTAND_STEPS },
+  { key: "schatzmeister", applies: (r) => r.includes("schatzmeister"), steps: SCHATZMEISTER_STEPS },
+  { key: "herold", applies: (r) => r.includes("herold"), steps: HEROLD_STEPS },
+];
+
+const getTour = (key: string) => TOURS.find((t) => t.key === key);
 
 export default function OnboardingTour() {
   const [step, setStep] = useState(0);
-  const [open, setOpen] = useState(false);
+  const [activeTourKey, setActiveTourKey] = useState<string | null>(null);
+  const [queue, setQueue] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, roles, loading } = useAuth();
+  const checkedRef = useRef(false);
 
-  // Auto-open on first visit to any /intern route (also triggers after login redirect)
+  // Determine pending tours from the database (once per session/login).
   useEffect(() => {
-    if (!user) return;
+    if (loading || !user) return;
     if (!location.pathname.startsWith("/intern")) return;
-    const done = localStorage.getItem(STORAGE_KEY);
-    if (!done && !open) {
-      const timer = setTimeout(() => {
-        setStep(0);
-        setOpen(true);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, user]);
+    if (checkedRef.current) return;
+    checkedRef.current = true;
 
-  // Listen for manual restart from Profile page
+    (async () => {
+      const { data, error } = await supabase
+        .from("user_tours")
+        .select("tour_key")
+        .eq("user_id", user.id);
+      if (error) return;
+      const done = new Set((data ?? []).map((d) => d.tour_key));
+      const pending = TOURS.filter((t) => t.applies(roles) && !done.has(t.key)).map((t) => t.key);
+      if (pending.length > 0) {
+        const first = pending[0];
+        setQueue(pending.slice(1));
+        setStep(0);
+        setActiveTourKey(first);
+        const firstStep = getTour(first)?.steps[0];
+        if (firstStep?.route) navigate(firstStep.route);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, roles, location.pathname]);
+
+  // Listen for manual restart from Profile page (re-runs the member tour).
   useEffect(() => {
     const handler = () => {
+      setQueue([]);
       setStep(0);
-      setOpen(true);
+      setActiveTourKey("member");
       navigate("/intern");
     };
     window.addEventListener("start-onboarding", handler);
     return () => window.removeEventListener("start-onboarding", handler);
   }, [navigate]);
 
-  const close = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, "1");
-    setOpen(false);
-    if (location.pathname !== "/intern") {
-      navigate("/intern");
+  const markComplete = useCallback(async (key: string) => {
+    if (!user) return;
+    await supabase
+      .from("user_tours")
+      .upsert({ user_id: user.id, tour_key: key }, { onConflict: "user_id,tour_key", ignoreDuplicates: true });
+  }, [user]);
+
+  const finishCurrent = useCallback(() => {
+    if (activeTourKey) markComplete(activeTourKey);
+    const [nextKey, ...rest] = queue;
+    if (nextKey) {
+      setQueue(rest);
+      setStep(0);
+      setActiveTourKey(nextKey);
+      const firstStep = getTour(nextKey)?.steps[0];
+      navigate(firstStep?.route ?? "/intern");
+    } else {
+      setActiveTourKey(null);
+      if (location.pathname !== "/intern") navigate("/intern");
     }
-  }, [navigate, location.pathname]);
+  }, [activeTourKey, queue, markComplete, navigate, location.pathname]);
+
+  const tour = activeTourKey ? getTour(activeTourKey) : null;
+  const steps = tour?.steps ?? [];
+
+  const close = useCallback(() => {
+    // Closing counts as completing the current tour (and skips the rest of the queue).
+    if (activeTourKey) markComplete(activeTourKey);
+    queue.forEach((k) => markComplete(k));
+    setQueue([]);
+    setActiveTourKey(null);
+    if (location.pathname !== "/intern") navigate("/intern");
+  }, [activeTourKey, queue, markComplete, navigate, location.pathname]);
 
   const next = () => {
-    if (step < STEPS.length - 1) {
+    if (step < steps.length - 1) {
       const nextStep = step + 1;
       setStep(nextStep);
-      if (STEPS[nextStep].route) {
-        navigate(STEPS[nextStep].route!);
-      }
+      if (steps[nextStep].route) navigate(steps[nextStep].route!);
     } else {
-      close();
+      finishCurrent();
     }
   };
 
@@ -137,21 +327,18 @@ export default function OnboardingTour() {
     if (step > 0) {
       const prevStep = step - 1;
       setStep(prevStep);
-      if (STEPS[prevStep].route) {
-        navigate(STEPS[prevStep].route!);
-      } else {
-        navigate("/intern");
-      }
+      if (steps[prevStep].route) navigate(steps[prevStep].route!);
+      else navigate("/intern");
     }
   };
 
-  const current = STEPS[step];
-  const Icon = current.icon;
-  const progress = ((step + 1) / STEPS.length) * 100;
-  const isLast = step === STEPS.length - 1;
-  const isFirst = step === 0;
+  if (!tour || steps.length === 0) return null;
 
-  if (!open) return null;
+  const current = steps[step];
+  const Icon = current.icon;
+  const progress = ((step + 1) / steps.length) * 100;
+  const isLast = step === steps.length - 1;
+  const isFirst = step === 0;
 
   return (
     <AnimatePresence>
@@ -164,7 +351,7 @@ export default function OnboardingTour() {
         onClick={(e) => { if (e.target === e.currentTarget) close(); }}
       >
         <motion.div
-          key={step}
+          key={`${activeTourKey}-${step}`}
           initial={{ opacity: 0, y: 16, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.97 }}
@@ -188,7 +375,7 @@ export default function OnboardingTour() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">
-                  Schritt {step + 1} von {STEPS.length}
+                  Schritt {step + 1} von {steps.length}
                 </p>
                 <h3 className="font-serif text-base sm:text-lg font-semibold leading-tight">{current.title}</h3>
               </div>
@@ -226,6 +413,11 @@ export default function OnboardingTour() {
   );
 }
 
+/**
+ * Manueller Neustart der Mitglieder-Tour (vom Profil aus).
+ * Der eigentliche Reset passiert über das "start-onboarding"-Event –
+ * die Tour wird angezeigt, ohne den DB-Status zu löschen.
+ */
 export function resetOnboardingTour() {
-  localStorage.removeItem(STORAGE_KEY);
+  // Kept for backwards compatibility; tour state now lives in the database.
 }
