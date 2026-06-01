@@ -531,7 +531,7 @@ const MemberRegistry = () => {
                   >
                     <TableCell className="font-medium">{m.display_name}</TableCell>
                     <TableCell>
-                      <Badge variant={roleCatalog[0]?.key === m.role ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={["officiatus_1", "officiatus_2", "schatzmeister"].includes(m.role) ? "default" : "secondary"} className="text-xs">
                         {roleLabel(m.role)}
                       </Badge>
                     </TableCell>
