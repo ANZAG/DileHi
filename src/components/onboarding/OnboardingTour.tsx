@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote,
   BookOpen, User, Sparkles, Coins, Bell, ClipboardList, Settings, Users, Shield,
-  ScrollText, Image, Crown, Wallet,
+  ScrollText, Image, Crown, Wallet, Mail, Star, UserPlus, ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -40,7 +40,7 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Zelte eintragen – diese werden dann bei Umfragen automatisch vorgeschlagen.",
+    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Ernährung (z.B. vegetarisch/vegan) und deine Zelte eintragen – beides wird dann bei Anmeldeformularen automatisch vorgeschlagen.",
     hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
@@ -53,8 +53,9 @@ const MEMBER_STEPS: TourStep[] = [
   },
   {
     icon: ClipboardList,
-    title: "Anmeldeformulare",
-    body: "Zu vielen Veranstaltungen gibt es Anmeldeformulare. Deine Profildaten (z.B. Ernährung & Zelte) werden dort automatisch vorausgefüllt. Du kannst deine Anmeldung jederzeit über den Bearbeitungslink ändern.",
+    title: "An Veranstaltungen teilnehmen",
+    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus – deine Profildaten (z.B. Ernährung & Zelte) sind dort bereits vorausgefüllt. Über den Bearbeitungslink kannst du deine Anmeldung später jederzeit ändern. Ohne Anmeldeformular meldest du dich mit einem Klick auf „Teilnehmen“ direkt an bzw. wieder ab.",
+    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen – beim Erstellen lässt sich direkt ein Anmeldeformular hinzufügen und die Felder frei gestalten.",
     route: "/intern/veranstaltungen",
   },
   {
@@ -68,12 +69,6 @@ const MEMBER_STEPS: TourStep[] = [
     title: "Abstimmungen",
     body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
     route: "/intern/abstimmungen",
-  },
-  {
-    icon: Bell,
-    title: "Benachrichtigungen",
-    body: "Über das Glocken-Symbol oben rechts wirst du in Echtzeit über neue Ankündigungen, Antworten, offene Abstimmungen und Termine informiert. Ein roter Punkt zeigt ungelesene Benachrichtigungen an.",
-    hint: "Tipp: Klicke auf eine Benachrichtigung, um direkt zur passenden Stelle zu springen.",
   },
   {
     icon: FileText,
@@ -126,7 +121,43 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: Users,
     title: "Mitglieder verwalten",
-    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten. Aufnahmeanträge prüfst du hier ebenfalls.",
+    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: UserPlus,
+    title: "Aufnahmeanträge",
+    body: "Eingegangene Aufnahmeanträge prüfst du hier. Du kannst die Angaben einsehen, den Antrag als PDF öffnen und ihn genehmigen oder ablehnen.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Mail,
+    title: "Kontaktanfragen",
+    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Image,
+    title: "Galerie",
+    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: ImagePlus,
+    title: "Seitenbilder",
+    body: "Tausche die Bilder der öffentlichen Seiten (z.B. Startseite und Epochenseiten) bequem aus.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: BookOpen,
+    title: "Quellen",
+    body: "Pflege die Quellen der Epochenseiten und ergänze Belege für unsere historische Arbeit.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: Star,
+    title: "Besucher-Highlights",
+    body: "Verwalte die Besucher-Highlights der Epochenseiten, die Gästen die wichtigsten Punkte hervorheben.",
     route: "/intern/verwaltung",
   },
   {
@@ -149,8 +180,8 @@ const VORSTAND_STEPS: TourStep[] = [
   },
   {
     icon: ScrollText,
-    title: "Protokoll",
-    body: "Im Protokoll siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
+    title: "Audit Log",
+    body: "Im Audit Log siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
     route: "/intern/verwaltung/protokoll",
   },
   {
@@ -198,21 +229,39 @@ const HEROLD_STEPS: TourStep[] = [
     route: "/intern/verwaltung",
   },
   {
+    icon: Mail,
+    title: "Kontaktanfragen",
+    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
+    route: "/intern/verwaltung",
+  },
+  {
     icon: Image,
-    title: "Galerie & Website-Bilder",
-    body: "Du kannst Galeriebilder hochladen, mit Alt-Texten versehen und Epochen zuordnen sowie die Bilder der öffentlichen Seiten austauschen.",
+    title: "Galerie",
+    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: ImagePlus,
+    title: "Seitenbilder",
+    body: "Tausche die Bilder der öffentlichen Seiten (z.B. Startseite und Epochenseiten) bequem aus.",
     route: "/intern/verwaltung",
   },
   {
     icon: BookOpen,
-    title: "Inhalte & Quellen",
-    body: "Du pflegst die Besucher-Highlights und Quellen der Epochenseiten und kannst Veranstaltungen für die öffentliche Website freigeben.",
+    title: "Quellen",
+    body: "Pflege die Quellen der Epochenseiten und ergänze Belege für unsere historische Arbeit.",
     route: "/intern/verwaltung",
   },
   {
-    icon: Megaphone,
-    title: "Kontaktanfragen",
-    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
+    icon: Star,
+    title: "Besucher-Highlights",
+    body: "Verwalte die Besucher-Highlights der Epochenseiten, die Gästen die wichtigsten Punkte hervorheben.",
+    route: "/intern/verwaltung",
+  },
+  {
+    icon: CalendarDays,
+    title: "Veranstaltungen freigeben",
+    body: "Du kannst Veranstaltungen für die öffentliche Website freigeben, damit Gäste sie sehen.",
     route: "/intern/verwaltung",
   },
   {
