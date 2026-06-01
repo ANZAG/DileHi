@@ -53,8 +53,9 @@ const MEMBER_STEPS: TourStep[] = [
   },
   {
     icon: ClipboardList,
-    title: "Anmeldeformulare",
-    body: "Zu vielen Veranstaltungen gibt es Anmeldeformulare. Deine Profildaten (z.B. Ernährung & Zelte) werden dort automatisch vorausgefüllt. Du kannst deine Anmeldung jederzeit über den Bearbeitungslink ändern.",
+    title: "An Veranstaltungen teilnehmen",
+    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus – deine Profildaten (z.B. Ernährung & Zelte) sind dort bereits vorausgefüllt. Über den Bearbeitungslink kannst du deine Anmeldung später jederzeit ändern. Ohne Anmeldeformular meldest du dich mit einem Klick auf „Teilnehmen“ direkt an bzw. wieder ab.",
+    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen – beim Erstellen lässt sich direkt ein Anmeldeformular hinzufügen und die Felder frei gestalten.",
     route: "/intern/veranstaltungen",
   },
   {
@@ -68,12 +69,6 @@ const MEMBER_STEPS: TourStep[] = [
     title: "Abstimmungen",
     body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
     route: "/intern/abstimmungen",
-  },
-  {
-    icon: Bell,
-    title: "Benachrichtigungen",
-    body: "Über das Glocken-Symbol oben rechts wirst du in Echtzeit über neue Ankündigungen, Antworten, offene Abstimmungen und Termine informiert. Ein roter Punkt zeigt ungelesene Benachrichtigungen an.",
-    hint: "Tipp: Klicke auf eine Benachrichtigung, um direkt zur passenden Stelle zu springen.",
   },
   {
     icon: FileText,
