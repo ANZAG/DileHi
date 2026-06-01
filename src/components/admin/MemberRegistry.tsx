@@ -531,7 +531,7 @@ const MemberRegistry = () => {
                   >
                     <TableCell className="font-medium">{m.display_name}</TableCell>
                     <TableCell>
-                      <Badge variant={roleCatalog[0]?.key === m.role ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={["officiatus_1", "officiatus_2", "schatzmeister"].includes(m.role) ? "default" : "secondary"} className="text-xs">
                         {roleLabel(m.role)}
                       </Badge>
                     </TableCell>
@@ -563,7 +563,7 @@ const MemberRegistry = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{m.display_name}</span>
-                      <Badge variant={roleCatalog[0]?.key === m.role ? "default" : "secondary"} className="text-xs shrink-0">
+                      <Badge variant={["officiatus_1", "officiatus_2", "schatzmeister"].includes(m.role) ? "default" : "secondary"} className="text-xs shrink-0">
                         {roleLabel(m.role)}
                       </Badge>
                     </div>
