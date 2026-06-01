@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote,
   BookOpen, User, Sparkles, Coins, Bell, ClipboardList, Settings, Users, Shield,
-  ScrollText, Image, Crown, Wallet,
+  ScrollText, Image, Crown, Wallet, Mail, Star, UserPlus, ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
