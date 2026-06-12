@@ -389,11 +389,26 @@ const MembershipApplication = () => {
               </p>
             </section>
 
+            {/* Honeypot – visually hidden, ignored by humans, filled by bots */}
+            <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden" tabIndex={-1}>
+              <label htmlFor="website">Website (bitte freilassen)</label>
+              <input
+                id="website"
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
+            </div>
+
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-md">
                 {error}
               </p>
             )}
+
 
             <Button
               onClick={handleSubmit}
