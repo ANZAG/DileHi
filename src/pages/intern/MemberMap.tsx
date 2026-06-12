@@ -156,7 +156,21 @@ const MemberMap = () => {
         const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
         const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
 
-        return [...new Set([countryNormalized, normalized, cityOrZipPart, cityWithCountry].filter(Boolean))];
+        // German postal code + nearest place name (e.g. "56305 Puderbach"),
+        // a very reliable query when the free-text location has extra detail.
+        const zipMatch = countryNormalized.match(/\b(\d{5})\b\s*([A-Za-zÄÖÜäöüß.\- ]+)?/);
+        const zipCandidate = zipMatch
+          ? `${zipMatch[1]} ${(zipMatch[2] || "").split(/[-(,]/)[0].trim()}`.trim()
+          : "";
+
+        return [...new Set([
+          countryNormalized,
+          withoutParens,
+          zipCandidate,
+          normalized,
+          cityWithCountry,
+          cityOrZipPart,
+        ].filter(Boolean))];
       };
 
       const geocode = async (query: string, restrictToGermany: boolean): Promise<{ lat: number; lng: number } | null> => {
