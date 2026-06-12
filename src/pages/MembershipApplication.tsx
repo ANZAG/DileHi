@@ -103,33 +103,34 @@ const MembershipApplication = () => {
     setSubmitting(true);
     setError("");
     try {
-      const { error: err } = await supabase.from("membership_applications").insert({
-        salutation: form.salutation || null,
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim() || null,
-        birthdate: form.birthdate || null,
-        street: form.street.trim(),
-        zip: form.zip.trim(),
-        city: form.city.trim(),
-        membership_type: form.membership_type,
-        contribution_interval: form.contribution_interval,
-        iban: null,
-        bic: null,
-        account_holder: null,
-        statutes_accepted: form.statutes_accepted,
-        data_processing_accepted: form.data_processing_accepted,
-        sepa_accepted: false,
-        status: "pending",
+      const { data, error: err } = await supabase.functions.invoke("submit-application", {
+        body: {
+          website, // honeypot
+          rendered_at: renderedAtRef.current,
+          salutation: form.salutation || null,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim() || null,
+          birthdate: form.birthdate || null,
+          street: form.street.trim(),
+          zip: form.zip.trim(),
+          city: form.city.trim(),
+          membership_type: form.membership_type,
+          contribution_interval: form.contribution_interval,
+          statutes_accepted: form.statutes_accepted,
+          data_processing_accepted: form.data_processing_accepted,
+        },
       });
       if (err) throw err;
+      if (data && (data as any).error) throw new Error((data as any).error);
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message ?? "Unbekannter Fehler. Bitte versuche es erneut.");
     }
     setSubmitting(false);
   };
+
 
   // ─── Erfolgsstatus ──────────────────────────────────────────────────────────
   if (submitted) {
