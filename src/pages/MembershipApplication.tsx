@@ -26,20 +26,33 @@ function RadioGroup({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-4 mt-1">
-      {options.map((opt) => (
-        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name={name}
-            value={opt.value}
-            checked={value === opt.value}
-            onChange={() => onChange(opt.value)}
-            className="h-4 w-4 accent-primary"
-          />
-          <span className="text-sm">{opt.label}</span>
-        </label>
-      ))}
+    <div className="flex flex-wrap gap-2 mt-1.5" role="radiogroup">
+      {options.map((opt) => {
+        const selected = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(opt.value)}
+            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-all ${
+              selected
+                ? "border-primary bg-primary/10 text-foreground shadow-sm ring-1 ring-primary/30"
+                : "border-input bg-background text-muted-foreground hover:border-primary/50 hover:bg-muted/50"
+            }`}
+          >
+            <span
+              className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
+                selected ? "border-primary" : "border-muted-foreground/40"
+              }`}
+            >
+              {selected && <span className="h-2 w-2 rounded-full bg-primary" />}
+            </span>
+            <span className={selected ? "font-medium" : ""}>{opt.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
