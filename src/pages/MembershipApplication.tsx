@@ -62,6 +62,11 @@ const MembershipApplication = () => {
     data_processing_accepted: false,
   });
 
+  // Honeypot field (hidden from real users) – bots tend to fill it in.
+  const [website, setWebsite] = useState("");
+  // Timestamp when the form was rendered, used for a bot timing check server-side.
+  const renderedAtRef = useRef<number>(Date.now());
+
   const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
@@ -69,6 +74,7 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
+
 
   useEffect(() => {
     supabase.rpc("get_current_contribution_rate").then(({ data }) => {
