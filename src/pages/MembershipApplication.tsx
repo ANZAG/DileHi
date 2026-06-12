@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Loader2, ChevronRight, FileText } from "lucide-react";
@@ -62,6 +62,11 @@ const MembershipApplication = () => {
     data_processing_accepted: false,
   });
 
+  // Honeypot field (hidden from real users) – bots tend to fill it in.
+  const [website, setWebsite] = useState("");
+  // Timestamp when the form was rendered, used for a bot timing check server-side.
+  const renderedAtRef = useRef<number>(Date.now());
+
   const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
@@ -69,6 +74,7 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
+
 
   useEffect(() => {
     supabase.rpc("get_current_contribution_rate").then(({ data }) => {
@@ -97,33 +103,34 @@ const MembershipApplication = () => {
     setSubmitting(true);
     setError("");
     try {
-      const { error: err } = await supabase.from("membership_applications").insert({
-        salutation: form.salutation || null,
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim() || null,
-        birthdate: form.birthdate || null,
-        street: form.street.trim(),
-        zip: form.zip.trim(),
-        city: form.city.trim(),
-        membership_type: form.membership_type,
-        contribution_interval: form.contribution_interval,
-        iban: null,
-        bic: null,
-        account_holder: null,
-        statutes_accepted: form.statutes_accepted,
-        data_processing_accepted: form.data_processing_accepted,
-        sepa_accepted: false,
-        status: "pending",
+      const { data, error: err } = await supabase.functions.invoke("submit-application", {
+        body: {
+          website, // honeypot
+          rendered_at: renderedAtRef.current,
+          salutation: form.salutation || null,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim() || null,
+          birthdate: form.birthdate || null,
+          street: form.street.trim(),
+          zip: form.zip.trim(),
+          city: form.city.trim(),
+          membership_type: form.membership_type,
+          contribution_interval: form.contribution_interval,
+          statutes_accepted: form.statutes_accepted,
+          data_processing_accepted: form.data_processing_accepted,
+        },
       });
       if (err) throw err;
+      if (data && (data as any).error) throw new Error((data as any).error);
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message ?? "Unbekannter Fehler. Bitte versuche es erneut.");
     }
     setSubmitting(false);
   };
+
 
   // ─── Erfolgsstatus ──────────────────────────────────────────────────────────
   if (submitted) {
@@ -382,11 +389,26 @@ const MembershipApplication = () => {
               </p>
             </section>
 
+            {/* Honeypot – visually hidden, ignored by humans, filled by bots */}
+            <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden" tabIndex={-1}>
+              <label htmlFor="website">Website (bitte freilassen)</label>
+              <input
+                id="website"
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
+            </div>
+
             {error && (
               <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-md">
                 {error}
               </p>
             )}
+
 
             <Button
               onClick={handleSubmit}

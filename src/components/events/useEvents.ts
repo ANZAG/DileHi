@@ -133,6 +133,7 @@ export function useEvents() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["member-map-events"] });
       setShowCreate(false);
       resetForm();
       toast({ title: "Veranstaltung erstellt" });
@@ -153,6 +154,12 @@ export function useEvents() {
         title, description: description || null, location: location || null,
         start_date: start, end_date: end, all_day: allDay, is_public: isPublic,
       };
+      // Reset cached map coordinates when the location text changes,
+      // so the member map re-geocodes the new location instead of showing the old pin.
+      if ((location || "") !== (editingEvent.location || "")) {
+        updateData.location_lat = null;
+        updateData.location_lng = null;
+      }
       if (organizerId && canModerate) {
         updateData.created_by = organizerId;
       }
@@ -161,6 +168,7 @@ export function useEvents() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["member-map-events"] });
       setShowEdit(false);
       setEditingEvent(null);
       resetForm();
