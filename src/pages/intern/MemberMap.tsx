@@ -92,11 +92,17 @@ const MemberMap = () => {
   const { data: events = [] } = useQuery({
     queryKey: ["member-map-events"],
     queryFn: async () => {
-      const now = new Date().toISOString();
+      // Start of today (local) — events disappear only the day AFTER they end,
+      // so ongoing/multi-day events stay visible until then.
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const cutoff = startOfToday.toISOString();
       const { data } = await supabase
         .from("events")
         .select("id, title, location, start_date, end_date, all_day, location_lat, location_lng")
-        .gte("start_date", now)
+        // Keep events whose end is today or later; for single-day events (no end_date)
+        // fall back to comparing the start date.
+        .or(`end_date.gte.${cutoff},and(end_date.is.null,start_date.gte.${cutoff})`)
         .not("location", "is", null)
         .order("start_date", { ascending: true })
         .limit(20);
