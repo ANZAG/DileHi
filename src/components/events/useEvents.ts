@@ -133,6 +133,7 @@ export function useEvents() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["member-map-events"] });
       setShowCreate(false);
       resetForm();
       toast({ title: "Veranstaltung erstellt" });
