@@ -131,6 +131,8 @@ const MemberMap = () => {
       const uniqueLocations = [...new Set(needsGeocoding.map((e) => e.location!))];
       const geoCache: Record<string, { lat: number; lng: number } | null> = {};
 
+      const FOREIGN_HINTS = /\b(österreich|austria|schweiz|switzerland|frankreich|france|belgien|belgium|niederlande|netherlands|italien|italy|polen|poland|tschechien|czech|luxemburg|luxembourg|dänemark|denmark)\b/i;
+
       const buildLocationCandidates = (raw: string) => {
         const normalized = raw.replace(/\s+/g, " ").trim();
         const withoutParens = normalized
@@ -157,9 +159,12 @@ const MemberMap = () => {
         return [...new Set([countryNormalized, normalized, cityOrZipPart, cityWithCountry].filter(Boolean))];
       };
 
-      const geocode = async (query: string): Promise<{ lat: number; lng: number } | null> => {
+      const geocode = async (query: string, restrictToGermany: boolean): Promise<{ lat: number; lng: number } | null> => {
+        // Bias to German-speaking region to avoid false matches abroad
+        // (e.g. "Burg Reichenstein" exists in both Germany and Austria).
+        const cc = restrictToGermany ? "&countrycodes=de" : "";
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=0`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=0${cc}`
         );
         if (!res.ok) return null;
         const results = (await res.json()) as Array<{ lat: string; lon: string }>;
@@ -170,9 +175,21 @@ const MemberMap = () => {
       await Promise.all(
         uniqueLocations.map(async (loc) => {
           const candidates = buildLocationCandidates(loc);
+          const hasForeignHint = FOREIGN_HINTS.test(loc);
           try {
+            // First pass: restrict to Germany unless the text clearly names a foreign country.
+            if (!hasForeignHint) {
+              for (const candidate of candidates) {
+                const point = await geocode(candidate, true);
+                if (point) {
+                  geoCache[loc] = point;
+                  return;
+                }
+              }
+            }
+            // Fallback: worldwide search (for foreign or unresolved locations).
             for (const candidate of candidates) {
-              const point = await geocode(candidate);
+              const point = await geocode(candidate, false);
               if (point) {
                 geoCache[loc] = point;
                 return;
