@@ -43,15 +43,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="container flex h-16 items-center justify-between">
           <Link
             to="/"
-            className="font-serif text-primary leading-tight"
+            className="font-serif text-primary leading-tight min-w-0 overflow-hidden"
           >
             <span className="block md:hidden">
-              <span className="block text-[10px] uppercase tracking-[0.15em] font-bold">
+              <span className="block text-xs uppercase tracking-[0.12em] font-bold">
                 Diu lebendec
               </span>
-              <span className="block text-lg italic -mt-0.5">Histôrje</span>
+              <span className="block text-xl italic -mt-0.5">Histôrje</span>
             </span>
-            <span className="hidden md:block text-lg font-semibold tracking-wide">
+            <span className="hidden md:block text-lg font-semibold tracking-wide truncate">
               Diu lebendec Histôrje
             </span>
           </Link>
