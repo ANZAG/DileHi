@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Bestehende Dateien und Verzeichnisse direkt ausliefern
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Alle anderen Anfragen an die SPA (index.html) weiterleiten
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Caching: index.html nie cachen, damit neue Deployments sofort greifen
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
