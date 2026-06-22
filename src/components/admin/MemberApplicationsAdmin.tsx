@@ -209,10 +209,10 @@ const MemberApplicationsAdmin = () => {
                   onClick={() => { setSelected(app); setShowReject(false); setRejectNotes(""); }}
                   className="w-full text-left p-3 rounded-lg border bg-card hover:border-primary/50 transition-colors opacity-75"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-sm font-medium">{app.first_name} {app.last_name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{app.email}</span>
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium block truncate">{app.first_name} {app.last_name}</span>
+                      <span className="text-xs text-muted-foreground block truncate">{app.email}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {statusBadge(app.status)}
