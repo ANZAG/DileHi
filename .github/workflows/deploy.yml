@@ -42,5 +42,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: 22
           local_path: ./dist/*
-          remote_path: /kunden/471639_96450/gn2-hosting.de/host260393/host260370/lovable/
+          remote_path: /lovable/
           sftp_only: true
