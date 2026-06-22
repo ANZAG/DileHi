@@ -68,14 +68,14 @@ const Dashboard = () => {
         <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
-            <p className="text-sm text-muted-foreground mt-1 break-all sm:break-normal">
-              Angemeldet als {user?.email}
+            <div className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-x-1 gap-y-1.5">
+              <span className="break-all sm:break-normal">Angemeldet als {user?.email}</span>
               {roles.map((r) => (
-                <span key={r} className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                <span key={r} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                   {roleLabels[r] ?? r}
                 </span>
               ))}
-            </p>
+            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link
