@@ -41,8 +41,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       )}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide">
-            Diu lebendec Histôrje
+          <Link
+            to="/"
+            className="font-serif text-primary leading-tight"
+          >
+            <span className="block md:hidden">
+              <span className="block text-[10px] uppercase tracking-[0.15em] font-bold">
+                Diu lebendec
+              </span>
+              <span className="block text-lg italic -mt-0.5">Histôrje</span>
+            </span>
+            <span className="hidden md:block text-lg font-semibold tracking-wide">
+              Diu lebendec Histôrje
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -70,9 +81,20 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
 
           <div className="flex md:hidden items-center gap-1">
-            
-            <button className="p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="relative flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-muted/30 transition-all active:scale-95 active:bg-muted"
+              aria-label="Menü"
+            >
+              {menuOpen ? (
+                <X size={20} />
+              ) : (
+                <>
+                  <span className="h-0.5 w-5 rounded-full bg-foreground" />
+                  <span className="h-0.5 w-5 rounded-full bg-foreground" />
+                  <span className="h-0.5 w-3 self-end mr-2.5 rounded-full bg-foreground" />
+                </>
+              )}
             </button>
           </div>
         </div>
