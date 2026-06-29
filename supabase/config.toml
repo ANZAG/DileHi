@@ -1,8 +1,11 @@
 project_id = "sstplyhfebexeyqehsvv"
 
 [auth.email]
-# Invitation / OTP / magic link expiry: 7 days
-otp_expiry = 604800
+# Invitation / OTP / magic link expiry.
+# Supabase/GoTrue caps this value at 86400 seconds (24h). Any higher value
+# (e.g. the previous 604800 = 7 days) is rejected and silently falls back to the
+# default (~1h), which caused invite/reset links to expire almost immediately.
+otp_expiry = 86400
 
 [functions.events-ical]
 verify_jwt = false
