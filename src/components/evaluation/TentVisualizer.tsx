@@ -238,7 +238,26 @@ export default function TentVisualizer({
     });
   }, [items]);
 
-  if (items.length === 0) {
+  // Kartenhintergrund laden und natürliche Größe ermitteln
+  useEffect(() => {
+    if (!mapImageUrl || !mapScale) {
+      setImageSize(null);
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      if (!cancelled) setImageSize(null);
+    };
+    img.src = mapImageUrl;
+    return () => { cancelled = true; };
+  }, [mapImageUrl, mapScale]);
+
+  if (items.length === 0 && !mapImageUrl) {
     return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
   }
 
