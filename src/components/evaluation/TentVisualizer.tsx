@@ -423,7 +423,7 @@ export default function TentVisualizer({
 
         {items.map((item) => {
           const pos = positions[item.id] || { x: item.x, y: item.y };
-          const dims = getEffectiveDimensions(item);
+          const dims = getBaseDimensions(item);
           const px = pos.x;
           const py = pos.y;
           const pw = dims.w;
@@ -432,16 +432,21 @@ export default function TentVisualizer({
           const innerH = dims.innerH;
           const guyRope = item.guyRope;
           const spacingVal = spacing;
-          const isDragged = dragging === item.id;
+          const isDragged = dragging?.id === item.id;
           const isClub = item.category !== "member";
           const fillColor = isClub ? "hsl(var(--primary) / 0.15)" : "hsl(var(--accent) / 0.3)";
           const strokeColor = isClub ? "hsl(var(--primary))" : "hsl(var(--accent-foreground) / 0.5)";
-          const canRotate = item.shape === "rect" && item.innerW !== item.innerH;
+          const canRotate = item.shape === "rect";
+          const angle = item.shape === "rect" ? getAngle(pos) : 0;
+          const cx = px + pw / 2;
+          const cy = py + ph / 2;
           const fontSize = Math.max(0.4, Math.min(0.7, Math.min(pw, ph) / 8));
+          const groupTransform = angle !== 0 ? `rotate(${angle} ${cx} ${cy})` : undefined;
 
           return (
             <g
               key={item.id}
+              transform={groupTransform}
               onMouseDown={(e) => handleMouseDown(item.id, e)}
               style={{ cursor: isDragged ? "grabbing" : "grab" }}
             >
@@ -542,20 +547,26 @@ export default function TentVisualizer({
                 </>
               )}
 
-              {canRotate && !isDragged && (
+              {canRotate && (
                 <g
-                  onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleRotation(item.id); }}
-                  style={{ cursor: "pointer" }}
+                  onMouseDown={(e) => handleRotateDown(item.id, e)}
+                  style={{ cursor: "grab" }}
                 >
+                  {/* Griff-Linie von der Mitte nach oben */}
+                  <line
+                    x1={cx} y1={py}
+                    x2={cx} y2={py - 1.2}
+                    stroke="hsl(var(--primary))" strokeWidth={0.12}
+                  />
                   <circle
-                    cx={px + pw - 0.5} cy={py + 0.5}
-                    r={0.5} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.1}
+                    cx={cx} cy={py - 1.4}
+                    r={0.5} fill="hsl(var(--background))" stroke="hsl(var(--primary))" strokeWidth={0.15}
                   />
                   <text
-                    x={px + pw - 0.5} y={py + 0.55}
+                    x={cx} y={py - 1.35}
                     textAnchor="middle" dominantBaseline="central"
-                    fontSize={0.5} fill="hsl(var(--foreground))"
-                    className="select-none"
+                    fontSize={0.55} fill="hsl(var(--primary))"
+                    className="select-none pointer-events-none"
                   >
                     ↻
                   </text>
@@ -564,6 +575,7 @@ export default function TentVisualizer({
             </g>
           );
         })}
+
       </svg>
       <p className="text-xs text-muted-foreground mt-1 text-center">
         Gesamtfläche: ~{totalW}×{totalH}m = ~{(Number(totalW) * Number(totalH)).toFixed(0)} m²
