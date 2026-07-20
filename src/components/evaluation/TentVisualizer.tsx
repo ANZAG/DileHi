@@ -189,6 +189,8 @@ interface TentVisualizerProps {
   onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
   savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
   layoutVersion: number;
+  mapImageUrl?: string;
+  mapScale?: number;
 }
 
 export default function TentVisualizer({
