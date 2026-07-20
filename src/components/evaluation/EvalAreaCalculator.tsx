@@ -257,6 +257,8 @@ export default function EvalAreaCalculator({
             onPositionsChange={onPositionsChange}
             savedPositions={savedPositions}
             layoutVersion={layoutVersion}
+            mapImageUrl={mapImageUrl}
+            mapScale={mapScale ?? undefined}
           />
         </div>
       </div>
