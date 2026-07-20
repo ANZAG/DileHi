@@ -670,6 +670,14 @@ export default function EventFormBuilder() {
                   </div>
                 </div>
 
+                <EventMapSettings
+                  eventId={eventId!}
+                  formId={form.id}
+                  mapImagePath={(form.settings as any)?.map_image_path}
+                  mapScale={(form.settings as any)?.map_scale}
+                  onChange={(patch) => updateForm.mutate({ settings: { ...form.settings, ...patch } })}
+                />
+
                 {/* Delete form - only for Vorstand */}
                 {isVorstand && (
                   <div className="border-t pt-4">
