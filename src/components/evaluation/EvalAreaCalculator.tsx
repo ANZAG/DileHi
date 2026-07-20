@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Tent, RefreshCw, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
