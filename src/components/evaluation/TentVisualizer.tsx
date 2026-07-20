@@ -202,6 +202,7 @@ export default function TentVisualizer({
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotated?: boolean }>>({});
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const lastLayoutVersion = useRef(layoutVersion);
 
