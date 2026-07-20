@@ -186,11 +186,20 @@ interface TentVisualizerProps {
   items: TentItem[];
   spacing: number;
   maxHeight: number;
-  onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
-  savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
+  onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean; angle?: number }>) => void;
+  savedPositions?: Record<string, { x: number; y: number; rotated?: boolean; angle?: number }>;
   layoutVersion: number;
   mapImageUrl?: string;
   mapScale?: number;
+}
+
+type PositionState = { x: number; y: number; rotated?: boolean; angle?: number };
+
+// Normiert den Drehwinkel: legacy `rotated: true` = 90°
+function getAngle(pos?: PositionState): number {
+  if (!pos) return 0;
+  if (typeof pos.angle === "number") return pos.angle;
+  return pos.rotated ? 90 : 0;
 }
 
 export default function TentVisualizer({
@@ -199,9 +208,9 @@ export default function TentVisualizer({
   mapImageUrl, mapScale,
 }: TentVisualizerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<{ id: string; mode: "move" | "rotate" } | null>(null);
   const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotated?: boolean }>>({});
+  const [positions, setPositions] = useState<Record<string, PositionState>>({});
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const lastLayoutVersion = useRef(layoutVersion);
@@ -212,7 +221,7 @@ export default function TentVisualizer({
     const isAutoLayout = layoutVersion !== lastLayoutVersion.current;
     lastLayoutVersion.current = layoutVersion;
 
-    const pos: Record<string, { x: number; y: number; rotated?: boolean }> = {};
+    const pos: Record<string, PositionState> = {};
     for (const item of items) {
       if (!isAutoLayout && savedPositions?.[item.id]) {
         pos[item.id] = savedPositions[item.id];
@@ -261,13 +270,21 @@ export default function TentVisualizer({
     return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
   }
 
-  const getEffectiveDimensions = (item: TentItem) => {
-    const pos = positions[item.id];
-    const rotated = pos?.rotated || false;
-    if (rotated && item.shape === "rect") {
-      return { w: item.h, h: item.w, innerW: item.innerH, innerH: item.innerW };
-    }
-    return { w: item.w, h: item.h, innerW: item.innerW, innerH: item.innerH };
+  // Basismaße (ohne Rotation) – freie Rotation erfolgt per SVG-Transform um die Mitte
+  const getBaseDimensions = (item: TentItem) => ({
+    w: item.w, h: item.h, innerW: item.innerW, innerH: item.innerH,
+  });
+
+  // Achsengerichtete Bounding-Box eines um `angleDeg` um die Mitte gedrehten Rechtecks
+  const rotatedAABB = (x: number, y: number, w: number, h: number, angleDeg: number) => {
+    const rad = (angleDeg * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+    const newW = w * cos + h * sin;
+    const newH = w * sin + h * cos;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    return { minX: cx - newW / 2, minY: cy - newH / 2, maxX: cx + newW / 2, maxY: cy + newH / 2 };
   };
 
   const computeBoundsRotated = () => {
@@ -276,11 +293,13 @@ export default function TentVisualizer({
       minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
       for (const item of items) {
         const pos = positions[item.id] || { x: item.x, y: item.y };
-        const dims = getEffectiveDimensions(item);
-        minX = Math.min(minX, pos.x);
-        minY = Math.min(minY, pos.y);
-        maxX = Math.max(maxX, pos.x + dims.w);
-        maxY = Math.max(maxY, pos.y + dims.h);
+        const dims = getBaseDimensions(item);
+        const angle = item.shape === "rect" ? getAngle(pos) : 0;
+        const box = rotatedAABB(pos.x, pos.y, dims.w, dims.h, angle);
+        minX = Math.min(minX, box.minX);
+        minY = Math.min(minY, box.minY);
+        maxX = Math.max(maxX, box.maxX);
+        maxY = Math.max(maxY, box.maxY);
       }
     }
     // Kartenbild in den Bounds berücksichtigen (echter Maßstab: px / scale = m)
@@ -299,30 +318,51 @@ export default function TentVisualizer({
   const vbW = bounds.maxX - bounds.minX;
   const vbH = bounds.maxY - bounds.minY;
 
-  const getSVGPoint = (e: React.MouseEvent<SVGSVGElement>) => {
+  const getSVGPoint = (e: React.MouseEvent<SVGSVGElement> | React.MouseEvent) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * vbW + bounds.minX;
-    const y = ((e.clientY - rect.top) / rect.height) * vbH + bounds.minY;
+    const x = (((e as React.MouseEvent).clientX - rect.left) / rect.width) * vbW + bounds.minX;
+    const y = (((e as React.MouseEvent).clientY - rect.top) / rect.height) * vbH + bounds.minY;
     return { x, y };
   };
 
   const handleMouseDown = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
-    const pt = getSVGPoint(e as any);
+    const pt = getSVGPoint(e);
     const pos = positions[id] || { x: 0, y: 0 };
     setDragOffset({ dx: pt.x - pos.x, dy: pt.y - pos.y });
-    setDragging(id);
+    setDragging({ id, mode: "move" });
+  };
+
+  const handleRotateDown = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging({ id, mode: "rotate" });
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!dragging) return;
     const pt = getSVGPoint(e);
-    setPositions((prev) => ({
-      ...prev,
-      [dragging]: { ...prev[dragging], x: pt.x - dragOffset.dx, y: pt.y - dragOffset.dy },
-    }));
+    const shiftKey = e.shiftKey;
+    setPositions((prev) => {
+      const cur = prev[dragging.id];
+      if (!cur) return prev;
+      if (dragging.mode === "move") {
+        return { ...prev, [dragging.id]: { ...cur, x: pt.x - dragOffset.dx, y: pt.y - dragOffset.dy } };
+      }
+      const item = items.find((i) => i.id === dragging.id);
+      if (!item) return prev;
+      const dims = getBaseDimensions(item);
+      const cx = cur.x + dims.w / 2;
+      const cy = cur.y + dims.h / 2;
+      // Griff sitzt oberhalb der Mitte -> +90°, damit 0° = nach oben
+      let deg = (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI + 90;
+      const step = shiftKey ? 1 : 5;
+      deg = Math.round(deg / step) * step;
+      deg = ((deg % 360) + 360) % 360;
+      return { ...prev, [dragging.id]: { ...cur, angle: deg, rotated: undefined } };
+    });
   };
 
   const handleMouseUp = () => {
@@ -330,14 +370,6 @@ export default function TentVisualizer({
       onPositionsChange(positions);
     }
     setDragging(null);
-  };
-
-  const toggleRotation = (id: string) => {
-    setPositions((prev) => {
-      const next = { ...prev, [id]: { ...prev[id], rotated: !prev[id]?.rotated } };
-      if (onPositionsChange) onPositionsChange(next);
-      return next;
-    });
   };
 
   const totalW = (bounds.maxX - bounds.minX - 2).toFixed(1);
