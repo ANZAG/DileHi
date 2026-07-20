@@ -358,6 +358,18 @@ export default function TentVisualizer({
           x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
           fill="none" stroke="hsl(var(--border))" strokeWidth={0.2} strokeDasharray="1 1"
         />
+        {mapImageUrl && imageSize && mapScale && (
+          <image
+            href={mapImageUrl}
+            x={0}
+            y={0}
+            width={imageSize.width / mapScale}
+            height={imageSize.height / mapScale}
+            preserveAspectRatio="none"
+            className="pointer-events-none"
+            opacity={0.55}
+          />
+        )}
         <text
           x={bounds.minX + vbW / 2} y={bounds.minY + 0.6}
           textAnchor="middle" fontSize={Math.max(0.4, vbW / 40)}
