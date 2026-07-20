@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle, Link as LinkIcon, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
@@ -506,6 +506,11 @@ export default function EventFormEvaluation() {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung` }}>Formular</Link>
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung`, openSettings: true }}>
+                <Settings size={14} className="mr-1" /> Einstellungen
+              </Link>
+            </Button>
             {form?.public_token && (
               <Button variant="outline" size="sm" onClick={copyPublicLink}>
                 <LinkIcon size={14} className="mr-1" /> Link kopieren
@@ -515,6 +520,7 @@ export default function EventFormEvaluation() {
               <Download size={14} className="mr-1" /> CSV
             </Button>
           </div>
+
         </div>
 
         <EvalSummaryCards
