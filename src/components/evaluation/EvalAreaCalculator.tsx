@@ -23,6 +23,8 @@ interface Props {
   savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
   onPositionsChange: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
   eventTitle?: string;
+  mapImagePath?: string | null;
+  mapScale?: number | null;
 }
 
 // ---------------------------------------------------------------------------
