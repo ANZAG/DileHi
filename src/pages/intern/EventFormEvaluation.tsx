@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle, Link as LinkIcon, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
