@@ -3,6 +3,7 @@ import { Tent, RefreshCw, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 import { CLUB_TENTS, calcClubTentArea } from "@/components/event-forms/types";
 import TentVisualizer, { type TentItem } from "./TentVisualizer";
 
