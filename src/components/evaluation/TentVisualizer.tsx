@@ -196,6 +196,7 @@ interface TentVisualizerProps {
 export default function TentVisualizer({
   items, spacing, maxHeight,
   onPositionsChange, savedPositions, layoutVersion,
+  mapImageUrl, mapScale,
 }: TentVisualizerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
