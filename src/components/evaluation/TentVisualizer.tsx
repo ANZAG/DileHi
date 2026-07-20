@@ -271,15 +271,26 @@ export default function TentVisualizer({
   };
 
   const computeBoundsRotated = () => {
-    if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const item of items) {
-      const pos = positions[item.id] || { x: item.x, y: item.y };
-      const dims = getEffectiveDimensions(item);
-      minX = Math.min(minX, pos.x);
-      minY = Math.min(minY, pos.y);
-      maxX = Math.max(maxX, pos.x + dims.w);
-      maxY = Math.max(maxY, pos.y + dims.h);
+    let minX = 0, minY = 0, maxX = 10, maxY = 10;
+    if (items.length > 0) {
+      minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
+      for (const item of items) {
+        const pos = positions[item.id] || { x: item.x, y: item.y };
+        const dims = getEffectiveDimensions(item);
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + dims.w);
+        maxY = Math.max(maxY, pos.y + dims.h);
+      }
+    }
+    // Kartenbild in den Bounds berücksichtigen (echter Maßstab: px / scale = m)
+    if (imageSize && mapScale) {
+      const imgW = imageSize.width / mapScale;
+      const imgH = imageSize.height / mapScale;
+      minX = Math.min(minX, 0);
+      minY = Math.min(minY, 0);
+      maxX = Math.max(maxX, imgW);
+      maxY = Math.max(maxY, imgH);
     }
     return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
   };
