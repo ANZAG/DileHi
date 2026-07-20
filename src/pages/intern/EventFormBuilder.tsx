@@ -40,7 +40,7 @@ export default function EventFormBuilder() {
   const [newFieldDescription, setNewFieldDescription] = useState("");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(() => location.state?.openSettings === true);
 
   // Conditional logic state for add/edit
   const [newCondOn, setNewCondOn] = useState("");
