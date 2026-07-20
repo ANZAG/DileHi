@@ -39,18 +39,23 @@ const ALL_CATEGORIES = [
   { value: "protokoll", label: "Tätigkeitsberichte" },
   { value: "vorstand", label: "Vorstand" },
   { value: "vorlagen", label: "Vorlagen" },
+  { value: "vereinsshirts", label: "Vereinsshirts" },
   { value: "sonstiges", label: "Sonstiges" },
 ];
 
 const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
+const VORSTAND_ONLY_CATEGORIES = ["vereinsshirts"];
 
 const Documents = () => {
   const { user, hasPermission } = useAuth();
   const canManageDocs = hasPermission("documents.manage");
   const canSeeVorstand = hasPermission("profiles.view_all");
-  const CATEGORIES = canSeeVorstand
-    ? ALL_CATEGORIES
-    : ALL_CATEGORIES.filter((c) => !RESTRICTED_CATEGORIES.includes(c.value));
+  const canSeeVorstandOnly = hasPermission("documents.manage");
+  const CATEGORIES = ALL_CATEGORIES.filter((c) => {
+    if (RESTRICTED_CATEGORIES.includes(c.value)) return canSeeVorstand;
+    if (VORSTAND_ONLY_CATEGORIES.includes(c.value)) return canSeeVorstandOnly;
+    return true;
+  });
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -59,7 +64,7 @@ const Documents = () => {
   const [file, setFile] = useState<File | null>(null);
 
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documents", canSeeVorstand],
+    queryKey: ["documents", canSeeVorstand, canSeeVorstandOnly],
     queryFn: async () => {
       let query = supabase
         .from("documents")
@@ -67,6 +72,9 @@ const Documents = () => {
         .order("created_at", { ascending: false });
       if (!canSeeVorstand) {
         query = query.not("category", "in", '("vorstand","vorlagen")');
+      }
+      if (!canSeeVorstandOnly) {
+        query = query.neq("category", "vereinsshirts");
       }
       const { data, error } = await query;
       if (error) throw error;
