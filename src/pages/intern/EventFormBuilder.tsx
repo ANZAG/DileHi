@@ -18,6 +18,7 @@ import { ArrowLeft, Plus, GripVertical, Trash2, Copy, Link as LinkIcon, FileText
 import { motion } from "framer-motion";
 import { FIELD_TYPES, type FormField } from "@/components/event-forms/types";
 import { DEFAULT_TEMPLATE_FIELDS } from "@/components/event-forms/defaultTemplate";
+import EventMapSettings from "@/components/evaluation/EventMapSettings";
 
 export default function EventFormBuilder() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -668,6 +669,14 @@ export default function EventFormBuilder() {
                     </Button>
                   </div>
                 </div>
+
+                <EventMapSettings
+                  eventId={eventId!}
+                  formId={form.id}
+                  mapImagePath={(form.settings as any)?.map_image_path}
+                  mapScale={(form.settings as any)?.map_scale}
+                  onChange={(patch) => updateForm.mutate({ settings: { ...form.settings, ...patch } })}
+                />
 
                 {/* Delete form - only for Vorstand */}
                 {isVorstand && (

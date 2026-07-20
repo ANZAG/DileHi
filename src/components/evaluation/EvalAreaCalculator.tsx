@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Tent, RefreshCw, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 import { CLUB_TENTS, calcClubTentArea } from "@/components/event-forms/types";
 import TentVisualizer, { type TentItem } from "./TentVisualizer";
 
@@ -22,6 +24,8 @@ interface Props {
   savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
   onPositionsChange: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
   eventTitle?: string;
+  mapImagePath?: string | null;
+  mapScale?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +113,26 @@ export default function EvalAreaCalculator({
   tentItems, vizHeight, setVizHeight,
   resetLayout, layoutVersion, savedPositions, onPositionsChange,
   eventTitle,
+  mapImagePath, mapScale,
 }: Props) {
+  const [mapImageUrl, setMapImageUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!mapImagePath) {
+      setMapImageUrl(undefined);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.storage.from("internal-files").createSignedUrl(mapImagePath, 600);
+      if (error || !data?.signedUrl) {
+        if (!cancelled) setMapImageUrl(undefined);
+        return;
+      }
+      if (!cancelled) setMapImageUrl(data.signedUrl);
+    })();
+    return () => { cancelled = true; };
+  }, [mapImagePath]);
   return (
     <div className="border rounded-lg p-4 mb-6">
       <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm sm:text-base">
@@ -234,6 +257,8 @@ export default function EvalAreaCalculator({
             onPositionsChange={onPositionsChange}
             savedPositions={savedPositions}
             layoutVersion={layoutVersion}
+            mapImageUrl={mapImageUrl}
+            mapScale={mapScale ?? undefined}
           />
         </div>
       </div>

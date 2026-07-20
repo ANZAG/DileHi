@@ -189,16 +189,20 @@ interface TentVisualizerProps {
   onPositionsChange?: (positions: Record<string, { x: number; y: number; rotated?: boolean }>) => void;
   savedPositions?: Record<string, { x: number; y: number; rotated?: boolean }>;
   layoutVersion: number;
+  mapImageUrl?: string;
+  mapScale?: number;
 }
 
 export default function TentVisualizer({
   items, spacing, maxHeight,
   onPositionsChange, savedPositions, layoutVersion,
+  mapImageUrl, mapScale,
 }: TentVisualizerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ dx: 0, dy: 0 });
   const [positions, setPositions] = useState<Record<string, { x: number; y: number; rotated?: boolean }>>({});
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const lastLayoutVersion = useRef(layoutVersion);
 
@@ -234,7 +238,26 @@ export default function TentVisualizer({
     });
   }, [items]);
 
-  if (items.length === 0) {
+  // Kartenhintergrund laden und natürliche Größe ermitteln
+  useEffect(() => {
+    if (!mapImageUrl || !mapScale) {
+      setImageSize(null);
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      if (!cancelled) setImageSize(null);
+    };
+    img.src = mapImageUrl;
+    return () => { cancelled = true; };
+  }, [mapImageUrl, mapScale]);
+
+  if (items.length === 0 && !mapImageUrl) {
     return <div className="border-2 border-dashed rounded flex items-center justify-center text-sm text-muted-foreground" style={{ height: maxHeight }}>Keine Zelte</div>;
   }
 
@@ -248,15 +271,26 @@ export default function TentVisualizer({
   };
 
   const computeBoundsRotated = () => {
-    if (items.length === 0) return { minX: 0, minY: 0, maxX: 10, maxY: 10 };
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const item of items) {
-      const pos = positions[item.id] || { x: item.x, y: item.y };
-      const dims = getEffectiveDimensions(item);
-      minX = Math.min(minX, pos.x);
-      minY = Math.min(minY, pos.y);
-      maxX = Math.max(maxX, pos.x + dims.w);
-      maxY = Math.max(maxY, pos.y + dims.h);
+    let minX = 0, minY = 0, maxX = 10, maxY = 10;
+    if (items.length > 0) {
+      minX = Infinity; minY = Infinity; maxX = -Infinity; maxY = -Infinity;
+      for (const item of items) {
+        const pos = positions[item.id] || { x: item.x, y: item.y };
+        const dims = getEffectiveDimensions(item);
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + dims.w);
+        maxY = Math.max(maxY, pos.y + dims.h);
+      }
+    }
+    // Kartenbild in den Bounds berücksichtigen (echter Maßstab: px / scale = m)
+    if (imageSize && mapScale) {
+      const imgW = imageSize.width / mapScale;
+      const imgH = imageSize.height / mapScale;
+      minX = Math.min(minX, 0);
+      minY = Math.min(minY, 0);
+      maxX = Math.max(maxX, imgW);
+      maxY = Math.max(maxY, imgH);
     }
     return { minX: minX - 1, minY: minY - 1, maxX: maxX + 1, maxY: maxY + 1 };
   };
@@ -324,6 +358,18 @@ export default function TentVisualizer({
           x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
           fill="none" stroke="hsl(var(--border))" strokeWidth={0.2} strokeDasharray="1 1"
         />
+        {mapImageUrl && imageSize && mapScale && (
+          <image
+            href={mapImageUrl}
+            x={0}
+            y={0}
+            width={imageSize.width / mapScale}
+            height={imageSize.height / mapScale}
+            preserveAspectRatio="none"
+            className="pointer-events-none"
+            opacity={0.55}
+          />
+        )}
         <text
           x={bounds.minX + vbW / 2} y={bounds.minY + 0.6}
           textAnchor="middle" fontSize={Math.max(0.4, vbW / 40)}

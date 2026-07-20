@@ -686,6 +686,8 @@ export default function EventFormEvaluation() {
           savedPositions={(form?.settings as any)?.tent_positions}
           onPositionsChange={(positions) => doSaveSettings({ tent_positions: positions })}
           eventTitle={event?.title}
+          mapImagePath={(form?.settings as any)?.map_image_path}
+          mapScale={(form?.settings as any)?.map_scale}
         />
 
         <EvalResponsesTable
