@@ -171,11 +171,13 @@ function AttendanceDaysField({
   onChange,
   startDate,
   endDate,
+  mode = "days",
 }: {
   value: any;
   onChange: (v: any) => void;
   startDate?: string;
   endDate?: string | null;
+  mode?: "days" | "range";
 }) {
   const days = startDate && endDate
     ? eachDayOfInterval({ start: parseISO(startDate), end: parseISO(endDate) })
@@ -223,12 +225,68 @@ function AttendanceDaysField({
     );
   }
 
+  // Zeitraum-Modus: von–bis auswählen, intern werden alle Tage dazwischen gespeichert
+  if (mode === "range") {
+    const dayKeys = days.map((d) => format(d, "yyyy-MM-dd"));
+    const selected: string[] = current.all_days ? dayKeys : (current.days || []);
+    const from = selected.length ? selected.slice().sort()[0] : "";
+    const to = selected.length ? selected.slice().sort()[selected.length - 1] : "";
+
+    const setRange = (newFrom: string, newTo: string) => {
+      if (!newFrom || !newTo) {
+        onChange({ all_days: false, days: newFrom ? [newFrom] : [] });
+        return;
+      }
+      const a = newFrom <= newTo ? newFrom : newTo;
+      const b = newFrom <= newTo ? newTo : newFrom;
+      const range = dayKeys.filter((k) => k >= a && k <= b);
+      onChange({ all_days: range.length === dayKeys.length, days: range });
+    };
+
+    const dayLabel = (key: string) => format(parseISO(key), "EEE, d. MMM", { locale: de });
+
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs text-muted-foreground">Anreise am</Label>
+            <Select value={from} onValueChange={(v) => setRange(v, to || v)}>
+              <SelectTrigger><SelectValue placeholder="Tag wählen" /></SelectTrigger>
+              <SelectContent>
+                {dayKeys.map((k) => (
+                  <SelectItem key={k} value={k}>{dayLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Abreise am</Label>
+            <Select value={to} onValueChange={(v) => setRange(from || v, v)}>
+              <SelectTrigger><SelectValue placeholder="Tag wählen" /></SelectTrigger>
+              <SelectContent>
+                {dayKeys.filter((k) => !from || k >= from).map((k) => (
+                  <SelectItem key={k} value={k}>{dayLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {selected.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {selected.length} {selected.length === 1 ? "Tag" : "Tage"} ausgewählt
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 pb-1 border-b">
         <Checkbox checked={current.all_days} onCheckedChange={toggleAll} />
         <Label className="font-medium cursor-pointer">Alle Tage</Label>
       </div>
+
       {days.map((day) => {
         const key = format(day, "yyyy-MM-dd");
         return (
