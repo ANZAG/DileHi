@@ -698,6 +698,45 @@ export type Database = {
         }
         Relationships: []
       }
+      form_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          fields: Json
+          id: string
+          name: string
+          settings: Json
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          settings?: Json
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          settings?: Json
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       gallery_images: {
         Row: {
           alt_text: string
