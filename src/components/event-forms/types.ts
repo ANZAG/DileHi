@@ -58,16 +58,71 @@ export const CLUB_TENTS = [
 ];
 
 export const FIELD_TYPES = [
-  { value: "section", label: "Sektion (Überschrift)", icon: "Heading" },
-  { value: "text", label: "Textfeld", icon: "Type" },
-  { value: "textarea", label: "Mehrzeiliger Text", icon: "AlignLeft" },
-  { value: "number", label: "Zahl", icon: "Hash" },
-  { value: "select", label: "Auswahl (einzeln)", icon: "List" },
-  { value: "multi_select", label: "Auswahl (mehrfach)", icon: "CheckSquare" },
-  { value: "checkbox", label: "Ja/Nein", icon: "ToggleLeft" },
-  { value: "attendance_days", label: "Anwesenheitstage", icon: "Calendar" },
-  { value: "tent", label: "Zelt-Details", icon: "Tent" },
+  {
+    value: "section",
+    label: "Abschnitt / Überschrift",
+    icon: "Heading",
+    hint: "Gliedert das Formular. Keine Eingabe, nur eine Zwischenüberschrift.",
+    example: "z.B. „Anreise\"",
+  },
+  {
+    value: "text",
+    label: "Kurzes Textfeld",
+    icon: "Type",
+    hint: "Eine Zeile für kurze Antworten.",
+    example: "z.B. Telefonnummer",
+  },
+  {
+    value: "textarea",
+    label: "Langes Textfeld",
+    icon: "AlignLeft",
+    hint: "Mehrere Zeilen für längere Antworten.",
+    example: "z.B. Anmerkungen",
+  },
+  {
+    value: "number",
+    label: "Zahl",
+    icon: "Hash",
+    hint: "Nur Zahlen erlaubt, mit Pfeiltasten änderbar.",
+    example: "z.B. Anzahl freier Sitzplätze",
+  },
+  {
+    value: "select",
+    label: "Auswahl – eine Antwort",
+    icon: "List",
+    hint: "Ausklappliste, genau eine Option wählbar.",
+    example: "z.B. Frühstück: ja / nein / egal",
+  },
+  {
+    value: "multi_select",
+    label: "Auswahl – mehrere Antworten",
+    icon: "CheckSquare",
+    hint: "Kästchen zum Ankreuzen, mehrere Optionen möglich.",
+    example: "z.B. Aufbau / Abbau",
+  },
+  {
+    value: "checkbox",
+    label: "Ja/Nein-Frage",
+    icon: "ToggleLeft",
+    hint: "Ein einzelnes Kästchen. Ideal als Auslöser für Folgefragen.",
+    example: "z.B. „Ich reise mit eigenem PKW an\"",
+  },
+  {
+    value: "attendance_days",
+    label: "Anwesenheitstage",
+    icon: "Calendar",
+    hint: "Zeigt automatisch die Tage der Veranstaltung. Wahlweise einzelne Tage ankreuzen oder Zeitraum von–bis wählen.",
+    example: "z.B. „An welchen Tagen bist du dabei?\"",
+  },
+  {
+    value: "tent",
+    label: "Zelt-Details",
+    icon: "Tent",
+    hint: "Zelte aus dem Profil oder manuell erfassen (Typ, Maße, Schlafplätze) – Grundlage für die Lagerplanung.",
+    example: "z.B. „Welche Zelte bringst du mit?\"",
+  },
 ] as const;
+
 
 export function calcTentArea(
   tentType: string,

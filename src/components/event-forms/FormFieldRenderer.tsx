@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormField, TENT_TYPES } from "./types";
+import { evaluateVisibility } from "./conditions";
+
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Plus, Trash2 } from "lucide-react";
@@ -122,7 +124,15 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
         );
 
       case "attendance_days":
-        return <AttendanceDaysField value={value} onChange={onChange} startDate={eventStartDate} endDate={eventEndDate} />;
+        return (
+          <AttendanceDaysField
+            value={value}
+            onChange={onChange}
+            startDate={eventStartDate}
+            endDate={eventEndDate}
+            mode={field.settings?.mode === "range" ? "range" : "days"}
+          />
+        );
 
       case "tent":
         return <TentListField value={value} onChange={onChange} memberTents={memberTents} />;
@@ -148,36 +158,28 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
   );
 }
 
-/** Check if a field should be visible based on conditional_on settings */
+/** Check if a field should be visible based on its visibility rules */
 export function isFieldVisible(
   field: FormField,
   allFields: FormField[],
   allAnswers: Record<string, any>
 ): boolean {
-  if (!field.settings?.conditional_on) return true;
-  const condLabel = field.settings.conditional_on as string;
-  const condField = allFields.find((f) => f.label === condLabel);
-  if (!condField) return true;
-  const condAnswer = allAnswers[condField.id];
-  const expectedValue = field.settings.conditional_value !== undefined
-    ? field.settings.conditional_value
-    : true;
-  if (expectedValue === false) {
-    return condAnswer !== true;
-  }
-  return condAnswer === expectedValue;
+  return evaluateVisibility(field, allFields, allAnswers);
 }
+
 
 function AttendanceDaysField({
   value,
   onChange,
   startDate,
   endDate,
+  mode = "days",
 }: {
   value: any;
   onChange: (v: any) => void;
   startDate?: string;
   endDate?: string | null;
+  mode?: "days" | "range";
 }) {
   const days = startDate && endDate
     ? eachDayOfInterval({ start: parseISO(startDate), end: parseISO(endDate) })
@@ -225,12 +227,68 @@ function AttendanceDaysField({
     );
   }
 
+  // Zeitraum-Modus: von–bis auswählen, intern werden alle Tage dazwischen gespeichert
+  if (mode === "range") {
+    const dayKeys = days.map((d) => format(d, "yyyy-MM-dd"));
+    const selected: string[] = current.all_days ? dayKeys : (current.days || []);
+    const from = selected.length ? selected.slice().sort()[0] : "";
+    const to = selected.length ? selected.slice().sort()[selected.length - 1] : "";
+
+    const setRange = (newFrom: string, newTo: string) => {
+      if (!newFrom || !newTo) {
+        onChange({ all_days: false, days: newFrom ? [newFrom] : [] });
+        return;
+      }
+      const a = newFrom <= newTo ? newFrom : newTo;
+      const b = newFrom <= newTo ? newTo : newFrom;
+      const range = dayKeys.filter((k) => k >= a && k <= b);
+      onChange({ all_days: range.length === dayKeys.length, days: range });
+    };
+
+    const dayLabel = (key: string) => format(parseISO(key), "EEE, d. MMM", { locale: de });
+
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs text-muted-foreground">Anreise am</Label>
+            <Select value={from} onValueChange={(v) => setRange(v, to || v)}>
+              <SelectTrigger><SelectValue placeholder="Tag wählen" /></SelectTrigger>
+              <SelectContent>
+                {dayKeys.map((k) => (
+                  <SelectItem key={k} value={k}>{dayLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Abreise am</Label>
+            <Select value={to} onValueChange={(v) => setRange(from || v, v)}>
+              <SelectTrigger><SelectValue placeholder="Tag wählen" /></SelectTrigger>
+              <SelectContent>
+                {dayKeys.filter((k) => !from || k >= from).map((k) => (
+                  <SelectItem key={k} value={k}>{dayLabel(k)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {selected.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {selected.length} {selected.length === 1 ? "Tag" : "Tage"} ausgewählt
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 pb-1 border-b">
         <Checkbox checked={current.all_days} onCheckedChange={toggleAll} />
         <Label className="font-medium cursor-pointer">Alle Tage</Label>
       </div>
+
       {days.map((day) => {
         const key = format(day, "yyyy-MM-dd");
         return (
