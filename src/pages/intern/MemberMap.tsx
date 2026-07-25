@@ -33,6 +33,7 @@ const eventIcon = new L.DivIcon({
 
 const MemberMap = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
