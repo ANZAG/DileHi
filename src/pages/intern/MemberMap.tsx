@@ -250,6 +250,15 @@ const MemberMap = () => {
     },
   });
 
+  // Mitglieder mit veröffentlichtem Darstellungssteckbrief – für den Link im Pin
+  const { data: personaOwners = [] } = useQuery({
+    queryKey: ["persona-owners"],
+    queryFn: async () => {
+      const { data } = await supabase.from("member_personas").select("user_id");
+      return [...new Set((data ?? []).map((r) => r.user_id))];
+    },
+  });
+
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
     queryKey: ["member-map-optin", user?.id],
