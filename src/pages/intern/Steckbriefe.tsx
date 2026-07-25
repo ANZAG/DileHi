@@ -44,6 +44,13 @@ const Steckbriefe = () => {
 
   const signed = useSignedImages(personas.flatMap((p) => p.images));
 
+  // Kommt der Nutzer über einen Karten-Pin (#mitglied-<id>), dorthin scrollen
+  useEffect(() => {
+    if (isLoading || !window.location.hash) return;
+    const el = document.getElementById(window.location.hash.slice(1));
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [isLoading, personas]);
+
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = q
