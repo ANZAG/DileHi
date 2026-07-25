@@ -80,6 +80,7 @@ const MemberMap = () => {
       return profiles
         .filter((p) => p.map_lat != null && p.map_lng != null)
         .map((p) => ({
+          id: p.id,
           display_name: p.display_name,
           city: p.city || "–",
           map_lat: p.map_lat as number,
