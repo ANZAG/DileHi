@@ -122,7 +122,15 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
         );
 
       case "attendance_days":
-        return <AttendanceDaysField value={value} onChange={onChange} startDate={eventStartDate} endDate={eventEndDate} />;
+        return (
+          <AttendanceDaysField
+            value={value}
+            onChange={onChange}
+            startDate={eventStartDate}
+            endDate={eventEndDate}
+            mode={field.settings?.mode === "range" ? "range" : "days"}
+          />
+        );
 
       case "tent":
         return <TentListField value={value} onChange={onChange} memberTents={memberTents} />;
@@ -148,25 +156,15 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
   );
 }
 
-/** Check if a field should be visible based on conditional_on settings */
+/** Check if a field should be visible based on its visibility rules */
 export function isFieldVisible(
   field: FormField,
   allFields: FormField[],
   allAnswers: Record<string, any>
 ): boolean {
-  if (!field.settings?.conditional_on) return true;
-  const condLabel = field.settings.conditional_on as string;
-  const condField = allFields.find((f) => f.label === condLabel);
-  if (!condField) return true;
-  const condAnswer = allAnswers[condField.id];
-  const expectedValue = field.settings.conditional_value !== undefined
-    ? field.settings.conditional_value
-    : true;
-  if (expectedValue === false) {
-    return condAnswer !== true;
-  }
-  return condAnswer === expectedValue;
+  return evaluateVisibility(field, allFields, allAnswers);
 }
+
 
 function AttendanceDaysField({
   value,
