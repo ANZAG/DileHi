@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +33,7 @@ const eventIcon = new L.DivIcon({
 
 const MemberMap = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +81,7 @@ const MemberMap = () => {
       return profiles
         .filter((p) => p.map_lat != null && p.map_lng != null)
         .map((p) => ({
+          id: p.id,
           display_name: p.display_name,
           city: p.city || "–",
           map_lat: p.map_lat as number,
@@ -249,6 +251,15 @@ const MemberMap = () => {
     },
   });
 
+  // Mitglieder mit veröffentlichtem Darstellungssteckbrief – für den Link im Pin
+  const { data: personaOwners = [] } = useQuery({
+    queryKey: ["persona-owners"],
+    queryFn: async () => {
+      const { data } = await supabase.from("member_personas").select("user_id");
+      return [...new Set((data ?? []).map((r) => r.user_id))];
+    },
+  });
+
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
     queryKey: ["member-map-optin", user?.id],
@@ -317,13 +328,35 @@ const MemberMap = () => {
 
     // Member markers (default blue)
     members.forEach((m) => {
-      const popupContent = `
-        <div style="font-size:13px;">
-          <strong>${m.display_name}</strong><br/>
-          <span style="color:#666;">${m.city}</span>
-        </div>
-      `;
-      memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupContent));
+      const popupEl = document.createElement("div");
+      popupEl.style.fontSize = "13px";
+
+      const name = document.createElement("strong");
+      name.textContent = m.display_name ?? "Mitglied";
+      popupEl.appendChild(name);
+      popupEl.appendChild(document.createElement("br"));
+
+      const cityEl = document.createElement("span");
+      cityEl.style.color = "#666";
+      cityEl.textContent = m.city;
+      popupEl.appendChild(cityEl);
+
+      if (personaOwners.includes(m.id)) {
+        popupEl.appendChild(document.createElement("br"));
+        const link = document.createElement("a");
+        link.href = `/intern/steckbriefe#mitglied-${m.id}`;
+        link.textContent = "Darstellungssteckbrief ansehen";
+        link.style.display = "inline-block";
+        link.style.marginTop = "4px";
+        link.style.fontWeight = "600";
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          navigate(`/intern/steckbriefe#mitglied-${m.id}`);
+        });
+        popupEl.appendChild(link);
+      }
+
+      memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupEl));
     });
 
     // Event markers (orange calendar icon)
@@ -353,7 +386,7 @@ const MemberMap = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [members, events, isLoading, hasData]);
+  }, [members, events, isLoading, hasData, personaOwners, navigate]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">

@@ -31,6 +31,7 @@ import RolesPermissions from "./pages/intern/RolesPermissions";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
 import MemberMap from "./pages/intern/MemberMap";
+import Steckbriefe from "./pages/intern/Steckbriefe";
 import EventFormBuilder from "./pages/intern/EventFormBuilder";
 import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
 import Auswertungen from "./pages/intern/Auswertungen";
@@ -83,6 +84,7 @@ const App = () => (
               
               <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
               <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
+              <Route path="/intern/steckbriefe" element={<ProtectedRoute><Steckbriefe /></ProtectedRoute>} />
               <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormBuilder /></ProtectedRoute>} />
               <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormEvaluation /></ProtectedRoute>} />
               <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
+import PersonaEditor from "@/components/personas/PersonaEditor";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -448,6 +449,9 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* Darstellungssteckbrief – nur intern sichtbar */}
+          <PersonaEditor />
 
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
