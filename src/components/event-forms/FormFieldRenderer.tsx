@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormField, TENT_TYPES } from "./types";
+import { evaluateVisibility } from "./conditions";
+
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Plus, Trash2 } from "lucide-react";
