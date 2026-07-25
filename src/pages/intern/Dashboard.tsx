@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays,
-  FileText, Coins, MapPin, ClipboardList,
+  FileText, Coins, MapPin, ClipboardList, ScrollText,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 
@@ -15,6 +15,7 @@ const baseCards = [
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente" },
   { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
+  { title: "Steckbriefe", desc: "Darstellungen, Schwerpunkte und Kenntnisse der Mitglieder.", icon: ScrollText, path: "/intern/steckbriefe" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte" },
 ];
 
