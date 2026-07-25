@@ -31,6 +31,7 @@ import RolesPermissions from "./pages/intern/RolesPermissions";
 import Documents from "./pages/intern/Documents";
 import Contributions from "./pages/intern/Contributions";
 import MemberMap from "./pages/intern/MemberMap";
+import Steckbriefe from "./pages/intern/Steckbriefe";
 import EventFormBuilder from "./pages/intern/EventFormBuilder";
 import EventFormEvaluation from "./pages/intern/EventFormEvaluation";
 import Auswertungen from "./pages/intern/Auswertungen";
