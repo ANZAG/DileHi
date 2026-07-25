@@ -450,6 +450,9 @@ const Profile = () => {
             </div>
           </div>
 
+          {/* Darstellungssteckbrief – nur intern sichtbar */}
+          <PersonaEditor />
+
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
