@@ -327,13 +327,35 @@ const MemberMap = () => {
 
     // Member markers (default blue)
     members.forEach((m) => {
-      const popupContent = `
-        <div style="font-size:13px;">
-          <strong>${m.display_name}</strong><br/>
-          <span style="color:#666;">${m.city}</span>
-        </div>
-      `;
-      memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupContent));
+      const popupEl = document.createElement("div");
+      popupEl.style.fontSize = "13px";
+
+      const name = document.createElement("strong");
+      name.textContent = m.display_name ?? "Mitglied";
+      popupEl.appendChild(name);
+      popupEl.appendChild(document.createElement("br"));
+
+      const cityEl = document.createElement("span");
+      cityEl.style.color = "#666";
+      cityEl.textContent = m.city;
+      popupEl.appendChild(cityEl);
+
+      if (personaOwners.includes(m.id)) {
+        popupEl.appendChild(document.createElement("br"));
+        const link = document.createElement("a");
+        link.href = `/intern/steckbriefe#mitglied-${m.id}`;
+        link.textContent = "Darstellungssteckbrief ansehen";
+        link.style.display = "inline-block";
+        link.style.marginTop = "4px";
+        link.style.fontWeight = "600";
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          navigate(`/intern/steckbriefe#mitglied-${m.id}`);
+        });
+        popupEl.appendChild(link);
+      }
+
+      memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupEl));
     });
 
     // Event markers (orange calendar icon)
