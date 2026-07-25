@@ -386,7 +386,7 @@ const MemberMap = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [members, events, isLoading, hasData]);
+  }, [members, events, isLoading, hasData, personaOwners, navigate]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
