@@ -47,6 +47,10 @@ const Admin = () => {
     ...(hasPermission("visitor_highlights.manage") ? [
       { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
     ] : []),
+    ...(hasPermission("events.moderate") ? [
+      { id: "formtemplate" as const, label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" },
+    ] : []),
+
     ...(canRoles ? [
       { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
     ] : []),
