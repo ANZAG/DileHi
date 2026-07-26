@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -12,8 +12,10 @@ import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin";
+import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate";
+
 
 const Admin = () => {
   const { hasPermission } = useAuth();
