@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -12,8 +12,10 @@ import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin";
+import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate";
+
 
 const Admin = () => {
   const { hasPermission } = useAuth();
@@ -45,6 +47,10 @@ const Admin = () => {
     ...(hasPermission("visitor_highlights.manage") ? [
       { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
     ] : []),
+    ...(hasPermission("events.moderate") ? [
+      { id: "formtemplate" as const, label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" },
+    ] : []),
+
     ...(canRoles ? [
       { id: "permissions" as const, label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
     ] : []),
@@ -54,7 +60,7 @@ const Admin = () => {
   ];
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={`container py-8 sm:py-12 px-4 ${activeTab === "formtemplate" ? "max-w-6xl" : "max-w-4xl"}`}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-4 mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -93,6 +99,8 @@ const Admin = () => {
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
+          {activeTab === "formtemplate" && hasPermission("events.moderate") && <FormTemplateAdmin />}
+
         </div>
       </motion.div>
     </div>

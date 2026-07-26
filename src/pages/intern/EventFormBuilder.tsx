@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { ArrowLeft, Plus, GripVertical, Trash2, Copy, Link as LinkIcon, FileText, Settings, Pencil, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, Link as LinkIcon, FileText, Settings, Save, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
-import { FIELD_TYPES, type FormField } from "@/components/event-forms/types";
-import { DEFAULT_TEMPLATE_FIELDS } from "@/components/event-forms/defaultTemplate";
+import type { FormField } from "@/components/event-forms/types";
+import FieldListEditor from "@/components/event-forms/FieldListEditor";
+import FormPreview from "@/components/event-forms/FormPreview";
+import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import EventMapSettings from "@/components/evaluation/EventMapSettings";
 
 export default function EventFormBuilder() {
@@ -29,22 +28,12 @@ export default function EventFormBuilder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleBack = () => {
-    navigate("/intern/veranstaltungen");
-  };
+  const handleBack = () => navigate("/intern/veranstaltungen");
 
-  const [showAddField, setShowAddField] = useState(false);
-  const [editingField, setEditingField] = useState<FormField | null>(null);
-  const [newFieldType, setNewFieldType] = useState("text");
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldDescription, setNewFieldDescription] = useState("");
-  const [newFieldRequired, setNewFieldRequired] = useState(false);
-  const [newFieldOptions, setNewFieldOptions] = useState("");
   const [showSettings, setShowSettings] = useState(() => location.state?.openSettings === true);
-
-  // Conditional logic state for add/edit
-  const [newCondOn, setNewCondOn] = useState("");
-  const [newCondValue, setNewCondValue] = useState("true");
+  const [draft, setDraft] = useState<FormField[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
@@ -84,6 +73,13 @@ export default function EventFormBuilder() {
     enabled: !!form?.id,
   });
 
+  // Serverzustand in den Entwurf übernehmen (nur wenn nichts Ungespeichertes offen ist)
+  useEffect(() => {
+    if (dirty) return;
+    setDraft(fields.map((f) => ({ ...f, options: f.options || [], settings: f.settings || {} })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields]);
+
   const createForm = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -99,38 +95,83 @@ export default function EventFormBuilder() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
 
-  const loadTemplate = useMutation({
+  const loadTemplate = async () => {
+    const template = await fetchDefaultTemplate();
+    setDraft(
+      template.fields.map((f, i) => ({
+        ...f,
+        id: `new-${crypto.randomUUID()}`,
+        sort_order: i,
+      }))
+    );
+    setActiveId(null);
+    setDirty(true);
+    toast({ title: "Vorlage geladen", description: "Prüfe die Fragen und speichere anschließend." });
+  };
+
+  const saveFields = useMutation({
     mutationFn: async () => {
       if (!form) return;
-      await supabase.from("event_form_fields").delete().eq("form_id", form.id);
-      const inserts = DEFAULT_TEMPLATE_FIELDS.map((f, i) => ({
-        form_id: form.id,
-        type: f.type,
-        label: f.label,
-        description: f.description,
-        required: f.required,
-        sort_order: i,
-        options: f.options,
-        settings: f.settings,
-      }));
-      const { error } = await supabase.from("event_form_fields").insert(inserts);
-      if (error) throw error;
+      const keptIds = draft.filter((f) => !f.id.startsWith("new-")).map((f) => f.id);
+      const removed = fields.filter((f) => !keptIds.includes(f.id));
+      if (removed.length > 0) {
+        const { error } = await supabase
+          .from("event_form_fields")
+          .delete()
+          .in("id", removed.map((f) => f.id));
+        if (error) throw error;
+      }
+
+      const inserts = draft
+        .map((f, i) => ({ f, i }))
+        .filter(({ f }) => f.id.startsWith("new-"))
+        .map(({ f, i }) => ({
+          form_id: form.id,
+          type: f.type,
+          label: f.label,
+          description: f.description,
+          required: f.required,
+          sort_order: i,
+          options: f.options || [],
+          settings: f.settings || {},
+        }));
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("event_form_fields").insert(inserts);
+        if (error) throw error;
+      }
+
+      const updates = draft
+        .map((f, i) => ({ f, i }))
+        .filter(({ f }) => !f.id.startsWith("new-"))
+        .map(({ f, i }) =>
+          supabase
+            .from("event_form_fields")
+            .update({
+              label: f.label,
+              description: f.description,
+              required: f.required,
+              options: f.options || [],
+              settings: f.settings || {},
+              sort_order: i,
+            })
+            .eq("id", f.id)
+        );
+      await Promise.all(updates);
     },
     onSuccess: () => {
+      setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
-      toast({ title: "Standardvorlage geladen" });
+      toast({ title: "Formular gespeichert" });
     },
+    onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const deleteForm = useMutation({
     mutationFn: async () => {
       if (!form) return;
-      // Delete fields first, then form
       await supabase.from("event_form_answers").delete().in(
         "response_id",
         (await supabase.from("event_form_responses").select("id").eq("form_id", form.id)).data?.map((r: any) => r.id) || []
@@ -143,81 +184,8 @@ export default function EventFormBuilder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
       setShowSettings(false);
+      setDirty(false);
       toast({ title: "Formular gelöscht" });
-    },
-  });
-
-  const addField = useMutation({
-    mutationFn: async () => {
-      if (!form) return;
-      const options = ["select", "multi_select"].includes(newFieldType)
-        ? newFieldOptions.split("\n").map((s) => s.trim()).filter(Boolean)
-        : [];
-      const settings: Record<string, any> = {};
-      if (newCondOn) {
-        settings.conditional_on = newCondOn;
-        if (newCondValue === "false") settings.conditional_value = false;
-      }
-      const { error } = await supabase.from("event_form_fields").insert({
-        form_id: form.id,
-        type: newFieldType,
-        label: newFieldLabel,
-        description: newFieldDescription || null,
-        required: newFieldRequired,
-        sort_order: fields.length,
-        options,
-        settings,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
-      setShowAddField(false);
-      resetFieldForm();
-      toast({ title: "Feld hinzugefügt" });
-    },
-  });
-
-  const updateField = useMutation({
-    mutationFn: async (field: FormField) => {
-      const { error } = await supabase
-        .from("event_form_fields")
-        .update({
-          label: field.label,
-          description: field.description,
-          required: field.required,
-          options: field.options,
-          settings: field.settings,
-        })
-        .eq("id", field.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
-      setEditingField(null);
-      toast({ title: "Feld aktualisiert" });
-    },
-  });
-
-  const deleteField = useMutation({
-    mutationFn: async (fieldId: string) => {
-      const { error } = await supabase.from("event_form_fields").delete().eq("id", fieldId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
-    },
-  });
-
-  const reorderFields = useMutation({
-    mutationFn: async (reordered: FormField[]) => {
-      const updates = reordered.map((f, i) =>
-        supabase.from("event_form_fields").update({ sort_order: i }).eq("id", f.id)
-      );
-      await Promise.all(updates);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
     },
   });
 
@@ -227,14 +195,10 @@ export default function EventFormBuilder() {
       const { error } = await supabase.from("event_forms").update(updates).eq("id", form.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
 
-  // Auto-Schließung: Wenn der Anmeldeschluss überschritten ist, das Formular
-  // automatisch schließen (Schalter "Anmeldung möglich" wird deaktiviert).
-  // Greift, sobald ein Organisator das Formular oder die Auswertung öffnet.
+  // Auto-Schließung: Anmeldeschluss überschritten → Formular schließen
   useEffect(() => {
     if (!form?.is_open) return;
     const closesAt = (form.settings as any)?.closes_at;
@@ -244,25 +208,6 @@ export default function EventFormBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.id, form?.is_open, (form?.settings as any)?.closes_at]);
 
-
-  const resetFieldForm = () => {
-    setNewFieldType("text");
-    setNewFieldLabel("");
-    setNewFieldDescription("");
-    setNewFieldRequired(false);
-    setNewFieldOptions("");
-    setNewCondOn("");
-    setNewCondValue("true");
-  };
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const reordered = [...fields];
-    const [moved] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, moved);
-    reorderFields.mutate(reordered);
-  };
-
   const copyPublicLink = () => {
     if (form?.public_token) {
       const url = `${window.location.origin}/anmeldung/${form.public_token}`;
@@ -271,22 +216,31 @@ export default function EventFormBuilder() {
     }
   };
 
-  const fieldTypeLabel = (type: string) => FIELD_TYPES.find((f) => f.value === type)?.label || type;
+  const discard = () => {
+    setDraft(fields.map((f) => ({ ...f, options: f.options || [], settings: f.settings || {} })));
+    setDirty(false);
+    setActiveId(null);
+  };
 
-  // Get labels of checkbox/select fields for conditional logic dropdown
-  const conditionalCandidates = fields.filter((f) => f.type === "checkbox" || f.type === "select");
+  const eventDates = useMemo(
+    () => ({
+      start: (event as any)?.start_date || (event as any)?.event_date || undefined,
+      end: (event as any)?.end_date || null,
+    }),
+    [event]
+  );
 
   if (!eventId) return null;
 
   return (
-    <div className="container py-8 max-w-3xl px-4">
+    <div className="container py-8 max-w-6xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
-            {event && <p className="text-sm text-muted-foreground">{event.title}</p>}
+            {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
           </div>
         </div>
 
@@ -295,22 +249,20 @@ export default function EventFormBuilder() {
             <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg mb-2">Noch kein Formular vorhanden</h3>
             <p className="text-sm text-muted-foreground mb-4">Erstelle ein Anmeldeformular für diese Veranstaltung.</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={() => createForm.mutate()} disabled={createForm.isPending}>
-                <Plus size={16} className="mr-1" /> Leeres Formular
-              </Button>
-            </div>
+            <Button onClick={() => createForm.mutate()} disabled={createForm.isPending}>
+              <Plus size={16} className="mr-1" /> Formular anlegen
+            </Button>
           </div>
         )}
 
         {form && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Actions bar */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={copyPublicLink}>
                 <LinkIcon size={14} className="mr-1" /> Link kopieren
               </Button>
-              <Button variant="outline" size="sm" onClick={() => loadTemplate.mutate()} disabled={loadTemplate.isPending}>
+              <Button variant="outline" size="sm" onClick={loadTemplate}>
                 <Copy size={14} className="mr-1" /> Vorlage laden
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
@@ -321,7 +273,7 @@ export default function EventFormBuilder() {
                   Auswertung →
                 </Link>
               </Button>
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 sm:ml-auto">
                 <Label className="text-sm">Anmeldung möglich</Label>
                 <Switch
                   checked={form.is_open}
@@ -330,260 +282,48 @@ export default function EventFormBuilder() {
               </div>
             </div>
 
-            {/* Fields list */}
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="fields">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                    {fields.length === 0 && (
-                      <div className="text-center py-8 border-2 border-dashed rounded-lg text-muted-foreground">
-                        <p>Noch keine Felder. Füge Felder hinzu oder lade die Standardvorlage.</p>
-                      </div>
-                    )}
-                    {fields.map((field, index) => (
-                      <Draggable key={field.id} draggableId={field.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`flex items-center gap-2 p-3 border rounded-lg bg-card transition-shadow ${
-                              snapshot.isDragging ? "shadow-lg" : ""
-                            } ${field.type === "section" ? "bg-muted border-primary/20" : ""}`}
-                          >
-                            <div {...provided.dragHandleProps} className="cursor-grab text-muted-foreground">
-                              <GripVertical size={16} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm truncate ${field.type === "section" ? "font-serif font-bold text-base" : "font-medium"}`}>{field.label}</span>
-                                {field.required && field.type !== "section" && <Badge variant="destructive" className="text-[10px] px-1 py-0">Pflicht</Badge>}
-                                {field.settings?.conditional_on && (
-                                  <Badge variant="outline" className="text-[10px] px-1 py-0" title={`Sichtbar wenn: ${field.settings.conditional_on} = ${field.settings.conditional_value ?? "Ja"}`}>
-                                    Bedingt
-                                  </Badge>
-                                )}
-                              </div>
-                              <span className="text-xs text-muted-foreground">{fieldTypeLabel(field.type)}</span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => {
-                                setEditingField({ ...field });
-                                setNewFieldOptions((field.options || []).join("\n"));
-                                setNewCondOn(field.settings?.conditional_on || "");
-                                setNewCondValue(field.settings?.conditional_value === false ? "false" : "true");
-                              }}
-                            >
-                              <Pencil size={14} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => deleteField.mutate(field.id)}
-                            >
-                              <Trash2 size={14} className="text-destructive" />
-                            </Button>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-
-            <Button variant="outline" className="w-full" onClick={() => { resetFieldForm(); setShowAddField(true); }}>
-              <Plus size={16} className="mr-1" /> Feld hinzufügen
-            </Button>
-          </div>
-        )}
-
-        {/* Add Field Dialog */}
-        <Dialog open={showAddField} onOpenChange={setShowAddField}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Neues Feld</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Feldtyp</Label>
-                <Select value={newFieldType} onValueChange={setNewFieldType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {FIELD_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Bezeichnung</Label>
-                <Input value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} placeholder="z.B. Allergien" />
-              </div>
-              <div>
-                <Label>Beschreibung (optional)</Label>
-                <Input value={newFieldDescription} onChange={(e) => setNewFieldDescription(e.target.value)} />
-              </div>
-              {["select", "multi_select"].includes(newFieldType) && (
-                <div>
-                  <Label>Optionen (eine pro Zeile)</Label>
-                  <Textarea value={newFieldOptions} onChange={(e) => setNewFieldOptions(e.target.value)} rows={4} placeholder={"Option 1\nOption 2\nOption 3"} />
-                </div>
+            {/* Speicherleiste */}
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+              <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
+                {dirty
+                  ? "Du hast ungespeicherte Änderungen."
+                  : "Alle Änderungen sind gespeichert."}
+              </p>
+              {dirty && (
+                <Button variant="ghost" size="sm" onClick={discard}>
+                  <RotateCcw size={14} className="mr-1" /> Verwerfen
+                </Button>
               )}
-              <div className="flex items-center gap-2">
-                <Switch checked={newFieldRequired} onCheckedChange={setNewFieldRequired} />
-                <Label>Pflichtfeld</Label>
-              </div>
-              {/* Conditional logic */}
-              <div className="border-t pt-3 space-y-3">
-                <Label className="text-sm font-semibold">Bedingte Anzeige (optional)</Label>
-                <p className="text-xs text-muted-foreground">Feld nur anzeigen, wenn ein anderes Feld einen bestimmten Wert hat.</p>
-                <div>
-                  <Label className="text-xs">Abhängig von Feld</Label>
-                  <Select value={newCondOn} onValueChange={setNewCondOn}>
-                    <SelectTrigger><SelectValue placeholder="Kein (immer sichtbar)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value=" ">Kein (immer sichtbar)</SelectItem>
-                      {conditionalCandidates.map((f) => (
-                        <SelectItem key={f.id} value={f.label}>{f.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {newCondOn && newCondOn.trim() && (
-                  <div>
-                    <Label className="text-xs">Erwarteter Wert</Label>
-                    <Select value={newCondValue} onValueChange={setNewCondValue}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Ja / aktiviert</SelectItem>
-                        <SelectItem value="false">Nein / nicht aktiviert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+              <Button size="sm" onClick={() => saveFields.mutate()} disabled={!dirty || saveFields.isPending}>
+                <Save size={14} className="mr-1" /> Speichern
+              </Button>
+            </div>
+
+            {/* Split-View: Bearbeiten | Vorschau */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+              <FieldListEditor
+                fields={draft}
+                onChange={(next) => {
+                  setDraft(next);
+                  setDirty(true);
+                }}
+                activeId={activeId}
+                onActiveChange={setActiveId}
+              />
+
+              <div className="lg:sticky lg:top-20 self-start w-full">
+                <FormPreview
+                  title={form.title}
+                  description={form.description}
+                  fields={draft}
+                  eventStartDate={eventDates.start}
+                  eventEndDate={eventDates.end}
+                  highlightFieldId={activeId}
+                />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddField(false)}>Abbrechen</Button>
-              <Button onClick={() => addField.mutate()} disabled={!newFieldLabel || addField.isPending}>Hinzufügen</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Field Dialog */}
-        <Dialog open={!!editingField} onOpenChange={(open) => { if (!open) setEditingField(null); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Feld bearbeiten</DialogTitle>
-            </DialogHeader>
-            {editingField && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Bezeichnung</Label>
-                  <Input
-                    value={editingField.label}
-                    onChange={(e) => setEditingField({ ...editingField, label: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Beschreibung</Label>
-                  <Input
-                    value={editingField.description || ""}
-                    onChange={(e) => setEditingField({ ...editingField, description: e.target.value || null })}
-                  />
-                </div>
-                {["select", "multi_select"].includes(editingField.type) && (
-                  <div>
-                    <Label>Optionen (eine pro Zeile)</Label>
-                    <Textarea
-                      value={newFieldOptions}
-                      onChange={(e) => setNewFieldOptions(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={editingField.required}
-                    onCheckedChange={(checked) => setEditingField({ ...editingField, required: checked })}
-                  />
-                  <Label>Pflichtfeld</Label>
-                </div>
-                {/* Conditional logic editing */}
-                <div className="border-t pt-3 space-y-3">
-                  <Label className="text-sm font-semibold">Bedingte Anzeige</Label>
-                  <div>
-                    <Label className="text-xs">Abhängig von Feld</Label>
-                    <Select
-                      value={newCondOn || " "}
-                      onValueChange={(v) => {
-                        setNewCondOn(v.trim());
-                        if (!v.trim()) {
-                          const { conditional_on, conditional_value, ...rest } = editingField.settings || {};
-                          setEditingField({ ...editingField, settings: rest });
-                        }
-                      }}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Kein (immer sichtbar)" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value=" ">Kein (immer sichtbar)</SelectItem>
-                        {conditionalCandidates.filter((f) => f.id !== editingField.id).map((f) => (
-                          <SelectItem key={f.id} value={f.label}>{f.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {newCondOn && newCondOn.trim() && (
-                    <div>
-                      <Label className="text-xs">Erwarteter Wert</Label>
-                      <Select value={newCondValue} onValueChange={setNewCondValue}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">Ja / aktiviert</SelectItem>
-                          <SelectItem value="false">Nein / nicht aktiviert</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingField(null)}>Abbrechen</Button>
-              <Button
-                onClick={() => {
-                  if (!editingField) return;
-                  const updated = { ...editingField };
-                  if (["select", "multi_select"].includes(updated.type)) {
-                    updated.options = newFieldOptions.split("\n").map((s) => s.trim()).filter(Boolean);
-                  }
-                  // Update conditional logic
-                  const settings = { ...(updated.settings || {}) };
-                  if (newCondOn && newCondOn.trim()) {
-                    settings.conditional_on = newCondOn.trim();
-                    if (newCondValue === "false") {
-                      settings.conditional_value = false;
-                    } else {
-                      delete settings.conditional_value;
-                    }
-                  } else {
-                    delete settings.conditional_on;
-                    delete settings.conditional_value;
-                  }
-                  updated.settings = settings;
-                  updateField.mutate(updated);
-                }}
-              >
-                Speichern
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
 
         {/* Settings Dialog */}
         <Dialog open={showSettings} onOpenChange={setShowSettings}>
@@ -678,7 +418,7 @@ export default function EventFormBuilder() {
                   onChange={(patch) => updateForm.mutate({ settings: { ...form.settings, ...patch } })}
                 />
 
-                {/* Delete form - only for Vorstand */}
+                {/* Formular löschen – nur Vorstand */}
                 {isVorstand && (
                   <div className="border-t pt-4">
                     <AlertDialog>
