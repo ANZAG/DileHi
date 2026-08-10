@@ -72,7 +72,7 @@ const Elections = () => {
   const { data: results = [] } = useQuery({
     queryKey: ["election_results"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("election_results").select("*");
+      const { data, error } = await supabase.rpc("get_election_results");
       if (error) throw error;
       return data as unknown as ElectionResult[];
     },

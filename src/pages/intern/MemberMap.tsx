@@ -43,11 +43,8 @@ const MemberMap = () => {
       // Fetch all opted-in active members, including those with missing coords.
       // We attempt on-the-fly geocoding for members whose coordinates were lost
       // due to a previous bug (Profile.tsx overwrote coords with null on failed save).
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, city, zip, map_lat, map_lng")
-        .eq("show_on_map", true)
-        .eq("is_active", true);
+      // Only map-relevant columns are exposed (RPC, no full profile row)
+      const { data: profiles } = await supabase.rpc("get_map_members");
 
       if (!profiles || profiles.length === 0) return [];
 
