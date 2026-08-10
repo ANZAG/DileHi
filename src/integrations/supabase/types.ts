@@ -880,13 +880,6 @@ export type Database = {
             foreignKeyName: "member_tents_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "map_missing_coords"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "member_tents_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1406,13 +1399,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "votes_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "election_results"
-            referencedColumns: ["candidate_id"]
-          },
-          {
             foreignKeyName: "votes_election_id_fkey"
             columns: ["election_id"]
             isOneToOne: false
@@ -1423,53 +1409,7 @@ export type Database = {
       }
     }
     Views: {
-      election_results: {
-        Row: {
-          candidate_id: string | null
-          candidate_name: string | null
-          election_id: string | null
-          vote_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "candidates_election_id_fkey"
-            columns: ["election_id"]
-            isOneToOne: false
-            referencedRelation: "elections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      map_missing_coords: {
-        Row: {
-          city: string | null
-          display_name: string | null
-          id: string | null
-          map_lat: number | null
-          map_lng: number | null
-          show_on_map: boolean | null
-          zip: string | null
-        }
-        Insert: {
-          city?: string | null
-          display_name?: string | null
-          id?: string | null
-          map_lat?: number | null
-          map_lng?: number | null
-          show_on_map?: boolean | null
-          zip?: string | null
-        }
-        Update: {
-          city?: string | null
-          display_name?: string | null
-          id?: string | null
-          map_lat?: number | null
-          map_lng?: number | null
-          show_on_map?: boolean | null
-          zip?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       assign_response_to_member: {
@@ -1487,7 +1427,27 @@ export type Database = {
       count_members: { Args: never; Returns: number }
       get_current_contribution_rate: { Args: never; Returns: number }
       get_current_satzung_path: { Args: never; Returns: string }
+      get_election_results: {
+        Args: never
+        Returns: {
+          candidate_id: string
+          candidate_name: string
+          election_id: string
+          vote_count: number
+        }[]
+      }
       get_form_by_token: { Args: { _token: string }; Returns: Json }
+      get_map_members: {
+        Args: never
+        Returns: {
+          city: string
+          display_name: string
+          id: string
+          map_lat: number
+          map_lng: number
+          zip: string
+        }[]
+      }
       get_member_directory: {
         Args: never
         Returns: {
