@@ -39,7 +39,7 @@ const Epoch1815 = () => {
 
   return (
     <div>
-      <SEO title="Napoleonik - Grenadiere des 1. Nassauischen Linien-Regiments 1815" description="Nassauer bei Waterloo: Unsere Darstellung der Grenadiere des 1. Nassauischen Linien-Regiments zeigt die nassauischen Soldaten in den Befreiungskriegen 1815." url="/epochen/1815" image="/epoch-1815.webp" jsonLd={{ "@context": "https://schema.org", "@type": "Article", headline: "Napoleonik – Grenadiere des 1. Nassauischen Linien-Regiments 1815", description: "Darstellung der nassauischen Grenadiere in den Befreiungskriegen 1815.", image: "https://www.dilehi.de/epoch-1815.webp", author: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." }, publisher: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." } }} />
+      <SEO title="Napoleonik – Nassauer Grenadiere 1815" description="Nassauer bei Waterloo: Unsere Darstellung der Grenadiere des 1. Nassauischen Linien-Regiments zeigt die nassauischen Soldaten in den Befreiungskriegen 1815." url="/epochen/1815" type="article" image="https://www.dilehi.de/epoch-1815.webp" jsonLd={{ "@context": "https://schema.org", "@type": "Article", headline: "Napoleonik – Grenadiere des 1. Nassauischen Linien-Regiments 1815", description: "Darstellung der nassauischen Grenadiere in den Befreiungskriegen 1815.", image: "https://www.dilehi.de/epoch-1815.webp", author: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." }, publisher: { "@type": "Organization", name: "Diu lebendec Histôrje e.V." } }} />
       <section className="relative h-[40vh] min-h-[300px] flex items-end overflow-hidden">
         <img src={heroImg.src} alt={heroImg.alt} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -54,7 +54,7 @@ const Epoch1815 = () => {
       <section className="container py-12 md:py-20 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mb-12">
           <div className="p-8 rounded-xl bg-primary/5 border border-primary/20">
-            <h3 className="font-serif text-lg font-semibold mb-3 text-primary">Ein Wort zur Vollständigkeit</h3>
+            <h2 className="font-serif text-lg font-semibold mb-3 text-primary">Ein Wort zur Vollständigkeit</h2>
             <p className="text-sm text-foreground/80 leading-relaxed">Diese Darstellung wächst noch. Die Waterloo-Kampagne ist quellenreich, aber die nassauische Perspektive ist in der deutschsprachigen Forschung lange vernachlässigt worden – wir arbeiten daran, sie sorgfältig aufzuarbeiten. Wer Interesse hat, an dieser Darstellung mitzuwirken oder eigene Recherchen beizusteuern, ist herzlich eingeladen, uns zu kontaktieren.</p>
           </div>
         </motion.div>
