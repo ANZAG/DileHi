@@ -1,3 +1,4 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
 
 const corsHeaders = {
@@ -5,22 +6,94 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function formatDateDe(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Europe/Berlin",
+    });
+  } catch {
+    return "";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, name, eventTitle, eventDate, eventLocation, whatsappLink, editUrl } = await req.json();
+    const body = await req.json();
+    const editToken: string | undefined = body?.editToken;
+    const siteUrl: string = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
 
-    if (!email || !name || !eventTitle) {
-      throw new Error("E-Mail, Name und Veranstaltungstitel erforderlich");
+    if (!editToken || typeof editToken !== "string" || editToken.length < 16) {
+      return new Response(JSON.stringify({ success: false, error: "Ungültige Anfrage" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Proof of a genuine registration: the edit token must exist.
+    // All email content is derived server-side from the database.
+    const { data: response, error: respErr } = await admin
+      .from("event_form_responses")
+      .select("id, respondent_name, respondent_email, form_id")
+      .eq("edit_token", editToken)
+      .maybeSingle();
+
+    if (respErr) throw respErr;
+    if (!response || !response.respondent_email) {
+      return new Response(JSON.stringify({ success: false, error: "Anmeldung nicht gefunden" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: form } = await admin
+      .from("event_forms")
+      .select("id, public_token, settings, event_id")
+      .eq("id", response.form_id)
+      .maybeSingle();
+
+    const { data: event } = await admin
+      .from("events")
+      .select("title, start_date, end_date, location")
+      .eq("id", form?.event_id)
+      .maybeSingle();
+
+    if (!form || !event) {
+      return new Response(JSON.stringify({ success: false, error: "Veranstaltung nicht gefunden" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const email = response.respondent_email;
+    const name = response.respondent_name || "";
+    const eventTitle = event.title as string;
+    const eventDate =
+      formatDateDe(event.start_date) +
+      (event.end_date ? ` – ${formatDateDe(event.end_date)}` : "");
+    const eventLocation = (event.location as string) || "";
+    const whatsappLinkRaw = (form.settings as Record<string, unknown> | null)?.["whatsapp_link"];
+    const whatsappLink = typeof whatsappLinkRaw === "string" ? whatsappLinkRaw : "";
+    const editUrl = form.public_token
+      ? `${siteUrl.replace(/\/$/, "")}/anmeldung/${form.public_token}?edit=${editToken}`
+      : "";
 
     const subject = `Anmeldung bestätigt: ${eventTitle}`;
 
     let whatsappSection = "";
-    if (whatsappLink) {
+    if (whatsappLink && /^https:\/\/(chat\.whatsapp\.com|wa\.me)\//.test(whatsappLink)) {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(whatsappLink)}`;
       whatsappSection = `
         <div style="margin-top: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center;">
@@ -79,9 +152,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unbekannter Fehler";
-    console.error("confirm-registration error:", msg);
-    return new Response(JSON.stringify({ success: false, error: msg }), {
+    console.error("confirm-registration error:", error);
+    return new Response(JSON.stringify({ success: false, error: "E-Mail konnte nicht gesendet werden" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
