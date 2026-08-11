@@ -190,7 +190,7 @@ export default function EventFormBuilder() {
   });
 
   const updateForm = useMutation({
-    mutationFn: async (updates: Record<string, any>) => {
+    mutationFn: async (updates: { title?: string; description?: string; is_open?: boolean; settings?: any }) => {
       if (!form) return;
       const { error } = await supabase.from("event_forms").update(updates).eq("id", form.id);
       if (error) throw error;
