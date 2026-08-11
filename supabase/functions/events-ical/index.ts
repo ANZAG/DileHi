@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
   const { data: events, error } = await supabase
     .from("events")
     .select("*")
+    .eq("is_public", true)
     .order("start_date", { ascending: true });
 
   if (error) {
