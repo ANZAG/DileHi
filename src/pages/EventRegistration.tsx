@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import FormFieldRenderer, { isFieldVisible } from "@/components/event-forms/FormFieldRenderer";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
