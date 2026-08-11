@@ -11,8 +11,8 @@ interface SEOProps {
 }
 
 const SEO = ({ 
-  title = "Diu lebendec Histôrje - Nassauische Geschichte lebendig", 
-  description = "Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben.",
+  title = "Diu lebendec Histôrje – Wiesbadener Living History Verein", 
+  description = "Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen.",
   image = "/hero-medieval.webp",
   url,
   type = "website",

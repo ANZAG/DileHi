@@ -26,8 +26,8 @@ const Index = () => {
   return (
     <div>
       <SEO 
-        title="Diu lebendec Histôrje - Nassauische Geschichte lebendig"
-        description="Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg quellenbasiert und authentisch erleben."
+        title="Diu lebendec Histôrje – Wiesbadener Living History Verein"
+        description="Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen."
         url="/"
         image="/hero-medieval.webp"
         jsonLd={{
@@ -36,7 +36,7 @@ const Index = () => {
           "name": "Diu lebendec Histôrje e.V.",
           "alternateName": "DiLeHi",
           "url": "https://www.dilehi.de",
-          "description": "Wiesbadener Verein für Living History – nassauische Geschichte vom Mittelalter bis zum Ersten Weltkrieg.",
+          "description": "Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen.",
           "foundingDate": "2013",
           "address": {
             "@type": "PostalAddress",
