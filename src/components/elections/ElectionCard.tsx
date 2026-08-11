@@ -96,7 +96,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
 
   const updateStatus = useMutation({
     mutationFn: async (status: string) => {
-      const updates: Record<string, unknown> = { status };
+      const updates: { status: string; closed_at?: string } = { status };
       if (status === "closed") updates.closed_at = new Date().toISOString();
       const { error } = await supabase.from("elections").update(updates).eq("id", election.id);
       if (error) throw error;
