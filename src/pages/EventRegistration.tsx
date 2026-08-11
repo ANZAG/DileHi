@@ -365,7 +365,9 @@ export default function EventRegistration() {
         {/* Event info */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="font-serif">{formData.event.title}</CardTitle>
+            <h1 className="text-2xl font-serif font-semibold leading-none tracking-tight">
+              Anmeldung: {formData.event.title}
+            </h1>
             {formData.form.description && (
               <CardDescription>{formData.form.description}</CardDescription>
             )}
