@@ -298,7 +298,7 @@ export default function EventRegistration() {
   if (!formData) {
     return (
       <div className="container py-20 text-center">
-        <h2 className="text-xl font-bold mb-2">Formular nicht gefunden</h2>
+        <h1 className="text-xl font-bold mb-2">Formular nicht gefunden</h1>
         <p className="text-muted-foreground">Dieses Formular existiert nicht oder ist geschlossen.</p>
       </div>
     );
@@ -313,7 +313,7 @@ export default function EventRegistration() {
   if (formData && !submitted && isOutsideWindow) {
     return (
       <div className="container py-20 text-center">
-        <h2 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h2>
+        <h1 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h1>
         <p className="text-muted-foreground">
           {opensAt && now < opensAt
             ? `Die Anmeldung öffnet am ${format(opensAt, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })}.`
@@ -329,9 +329,9 @@ export default function EventRegistration() {
         <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
-          <h2 className="text-2xl font-serif font-bold mb-2">
+          <h1 className="text-2xl font-serif font-bold mb-2">
             {isEditMode ? "Änderungen gespeichert!" : "Vielen Dank!"}
-          </h2>
+          </h1>
           <p className="text-muted-foreground">
             {isEditMode
               ? `Deine Anmeldung für „${formData.event.title}" wurde aktualisiert.`
