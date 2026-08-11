@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import FormFieldRenderer, { isFieldVisible } from "@/components/event-forms/FormFieldRenderer";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
@@ -298,7 +298,7 @@ export default function EventRegistration() {
   if (!formData) {
     return (
       <div className="container py-20 text-center">
-        <h2 className="text-xl font-bold mb-2">Formular nicht gefunden</h2>
+        <h1 className="text-xl font-bold mb-2">Formular nicht gefunden</h1>
         <p className="text-muted-foreground">Dieses Formular existiert nicht oder ist geschlossen.</p>
       </div>
     );
@@ -313,7 +313,7 @@ export default function EventRegistration() {
   if (formData && !submitted && isOutsideWindow) {
     return (
       <div className="container py-20 text-center">
-        <h2 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h2>
+        <h1 className="text-xl font-bold mb-2">Anmeldung nicht möglich</h1>
         <p className="text-muted-foreground">
           {opensAt && now < opensAt
             ? `Die Anmeldung öffnet am ${format(opensAt, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de })}.`
@@ -329,9 +329,9 @@ export default function EventRegistration() {
         <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
-          <h2 className="text-2xl font-serif font-bold mb-2">
+          <h1 className="text-2xl font-serif font-bold mb-2">
             {isEditMode ? "Änderungen gespeichert!" : "Vielen Dank!"}
-          </h2>
+          </h1>
           <p className="text-muted-foreground">
             {isEditMode
               ? `Deine Anmeldung für „${formData.event.title}" wurde aktualisiert.`
@@ -365,7 +365,9 @@ export default function EventRegistration() {
         {/* Event info */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="font-serif">{formData.event.title}</CardTitle>
+            <h1 className="text-2xl font-serif font-semibold leading-none tracking-tight">
+              Anmeldung: {formData.event.title}
+            </h1>
             {formData.form.description && (
               <CardDescription>{formData.form.description}</CardDescription>
             )}
@@ -395,12 +397,12 @@ export default function EventRegistration() {
           {/* Name & Email */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Name *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
+              <Label htmlFor="registration-name">Name *</Label>
+              <Input id="registration-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
             </div>
             <div>
-              <Label>E-Mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Bestätigungsmail" />
+              <Label htmlFor="registration-email">E-Mail</Label>
+              <Input id="registration-email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Bestätigungsmail" />
             </div>
           </div>
 
