@@ -270,27 +270,10 @@ export default function EventRegistration() {
           ).then(() => {});
         }
 
-        // Send confirmation email
-        if (email.trim()) {
-          const eventDateStr = formData.event.start_date
-            ? format(parseISO(formData.event.start_date), "d. MMMM yyyy", { locale: de }) +
-              (formData.event.end_date ? ` – ${format(parseISO(formData.event.end_date), "d. MMMM yyyy", { locale: de })}` : "")
-            : "";
-
-          const editUrl = returnedEditToken
-            ? `${window.location.origin}/anmeldung/${token}?edit=${returnedEditToken}`
-            : "";
-
+        // Send confirmation email (content is derived server-side from the edit token)
+        if (email.trim() && returnedEditToken) {
           supabase.functions.invoke("confirm-registration", {
-            body: {
-              email: email.trim(),
-              name: name.trim(),
-              eventTitle: formData.event.title,
-              eventDate: eventDateStr,
-              eventLocation: formData.event.location || "",
-              whatsappLink: formData.form.settings?.whatsapp_link || "",
-              editUrl,
-            },
+            body: { editToken: returnedEditToken },
           }).catch(() => {});
         }
 
