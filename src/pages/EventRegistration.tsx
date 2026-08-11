@@ -397,12 +397,12 @@ export default function EventRegistration() {
           {/* Name & Email */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Name *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
+              <Label htmlFor="registration-name">Name *</Label>
+              <Input id="registration-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" />
             </div>
             <div>
-              <Label>E-Mail</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Bestätigungsmail" />
+              <Label htmlFor="registration-email">E-Mail</Label>
+              <Input id="registration-email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Für Bestätigungsmail" />
             </div>
           </div>
 
