@@ -91,7 +91,7 @@ AS $$
     ORDER BY ur.created_at, ur.user_id
     LIMIT 1
   ) held ON true
-  LEFT JOIN public.profiles p ON p.id = held.user_id AND p.is_active
+  LEFT JOIN public.profiles p ON p.id = held.user_id AND p.is_active IS DISTINCT FROM false
   WHERE rc.public_listed
   ORDER BY rc.sort_order, rc.key
 $$;

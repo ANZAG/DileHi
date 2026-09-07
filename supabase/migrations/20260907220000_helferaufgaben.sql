@@ -29,13 +29,14 @@ SET
                )
                ORDER BY ord
              )
-      FROM jsonb_array_elements_text(to_jsonb(f.options)) WITH ORDINALITY AS o(opt, ord)
+      FROM jsonb_array_elements_text(f.options) WITH ORDINALITY AS o(opt, ord)
     )
   ),
-  options = '{}'::text[]
+  options = '[]'::jsonb
 WHERE f.settings ->> 'role' = 'helper.tasks'
   AND f.type = 'multi_select'
-  AND COALESCE(array_length(f.options, 1), 0) > 0;
+  AND jsonb_typeof(f.options) = 'array'
+  AND jsonb_array_length(f.options) > 0;
 
 -- ── Standardvorlage umstellen ───────────────────────────────────────────────
 -- Die Mehrfachauswahl wird zur Aufgabenfrage; die beiden Einzelkästchen für
@@ -46,7 +47,7 @@ SET fields = sub.new_fields
 FROM (
   SELECT
     t2.id,
-    jsonb_agg(elem ORDER BY ord) FILTER (WHERE elem IS NOT NULL) AS new_fields
+    COALESCE(jsonb_agg(elem ORDER BY ord) FILTER (WHERE elem IS NOT NULL), '[]'::jsonb) AS new_fields
   FROM public.form_templates t2
   CROSS JOIN LATERAL jsonb_array_elements(t2.fields) WITH ORDINALITY AS a(orig, ord)
   CROSS JOIN LATERAL (
