@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { Calendar, MapPin, CheckCircle2 } from "lucide-react";
 import SEO from "@/components/SEO";
 import type { FormField } from "@/components/event-forms/types";
+import { findFieldByRole } from "@/components/event-forms/fieldRoles";
 
 interface FormData {
   form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { whatsapp_link?: string; opens_at?: string; closes_at?: string } };
@@ -84,9 +85,9 @@ export default function EventRegistration() {
     });
   }, [token, editToken]);
 
-  // Pre-fill name, email, and dietary preferences for logged-in members.
-  // Diet and allergies are matched against field labels so they work with
-  // any form that uses the standard template labels.
+  // Vorbefuellung fuer angemeldete Mitglieder. Ernaehrung und Allergien werden
+  // ueber die Feldrolle zugeordnet, nicht mehr ueber den Beschriftungstext –
+  // sonst bleibt die Vorbefuellung aus, sobald ein Feld anders heisst.
   useEffect(() => {
     if (user && !editToken) {
       supabase
@@ -101,15 +102,15 @@ export default function EventRegistration() {
           if (data.diet || data.allergies) {
             setAnswers((prev) => {
               const updated = { ...prev };
-              formData?.fields?.forEach((field: any) => {
-                const lbl = field.label?.toLowerCase() || "";
-                if (data.diet && lbl.includes("ernährung") && !updated[field.id]) {
-                  updated[field.id] = data.diet;
-                }
-                if (data.allergies && lbl.includes("allergi") && !updated[field.id]) {
-                  updated[field.id] = data.allergies;
-                }
-              });
+              const all = (formData?.fields ?? []) as FormField[];
+              const dietField = findFieldByRole(all, "catering.diet");
+              const allergyField = findFieldByRole(all, "catering.allergies");
+              if (data.diet && dietField && !updated[dietField.id]) {
+                updated[dietField.id] = data.diet;
+              }
+              if (data.allergies && allergyField && !updated[allergyField.id]) {
+                updated[allergyField.id] = data.allergies;
+              }
               return updated;
             });
           }

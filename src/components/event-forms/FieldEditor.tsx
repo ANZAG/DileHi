@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FIELD_TYPES, type FormField } from "./types";
+import { getRole, roleOf, rolesForFieldType } from "./fieldRoles";
 import ConditionEditor from "./ConditionEditor";
 
 interface Props {
@@ -17,6 +18,18 @@ export default function FieldEditor({ field, allFields, onChange }: Props) {
   const meta = FIELD_TYPES.find((t) => t.value === field.type);
   const patchSettings = (patch: Record<string, any>) =>
     onChange({ ...field, settings: { ...(field.settings || {}), ...patch } });
+
+  // Die Rolle sagt, wofür die Antwort steht. Ohne sie landet die Antwort nur in
+  // der Anmeldeliste – die Kennzahlen der Auswertung speisen sich aus Rollen,
+  // nicht mehr aus dem Beschriftungstext.
+  const currentRole = roleOf(field);
+  const activeRole = getRole(currentRole);
+  const availableRoles = rolesForFieldType(field.type);
+  // Eine Rolle darf je Formular nur einmal vergeben werden, sonst wäre die
+  // Zuordnung mehrdeutig.
+  const usedRoles = new Set(
+    allFields.filter((f) => f.id !== field.id).map((f) => roleOf(f)).filter(Boolean) as string[]
+  );
 
   return (
     <div className="space-y-4 pt-3">
@@ -41,6 +54,31 @@ export default function FieldEditor({ field, allFields, onChange }: Props) {
           placeholder="Kurze Erklärung für die Teilnehmer"
         />
       </div>
+
+      {availableRoles.length > 0 && (
+        <div>
+          <Label className="text-sm">Wofür steht die Antwort?</Label>
+          <Select
+            value={currentRole ?? "none"}
+            onValueChange={(v) => patchSettings({ role: v === "none" ? undefined : v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nur sammeln, nicht auswerten</SelectItem>
+              {availableRoles.map((r) => (
+                <SelectItem key={r.key} value={r.key} disabled={usedRoles.has(r.key) && r.key !== currentRole}>
+                  {r.label}{usedRoles.has(r.key) && r.key !== currentRole ? " – schon vergeben" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {activeRole
+              ? `Speist: ${activeRole.feeds}`
+              : "Die Antwort erscheint in der Anmeldeliste, fließt aber in keine Kennzahl ein. Das ist für Freitextfragen völlig in Ordnung."}
+          </p>
+        </div>
+      )}
 
       {["select", "multi_select"].includes(field.type) && (
         <div>

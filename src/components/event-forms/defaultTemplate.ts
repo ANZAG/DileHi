@@ -13,7 +13,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "An welchen Tagen bist du dabei?",
     required: true,
     options: [] as string[],
-    settings: {},
+    settings: { role: "attendance.days" },
     description: null,
   },
   {
@@ -21,7 +21,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Auf-/Abbau",
     required: false,
     options: ["Aufbau/Packen", "Abbau/Aufräumen"],
-    settings: {},
+    settings: { role: "helper.tasks" },
     description: null,
   },
 
@@ -39,7 +39,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Reise mit eigenem PKW an",
     required: false,
     options: [] as string[],
-    settings: {},
+    settings: { role: "transport.own_car" },
     description: null,
   },
   {
@@ -47,7 +47,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Kann Personen mitnehmen (inkl. sich selbst)",
     required: false,
     options: [] as string[],
-    settings: { conditional_on: "Reise mit eigenem PKW an", placeholder: "z.B. 4" },
+    settings: { role: "transport.seats", conditional_on: "Reise mit eigenem PKW an", placeholder: "z.B. 4" },
     description: "Anzahl freier Sitzplätze im PKW",
   },
   {
@@ -55,7 +55,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Kann einen Anhänger mit dem PKW ziehen",
     required: false,
     options: [] as string[],
-    settings: { conditional_on: "Reise mit eigenem PKW an" },
+    settings: { role: "transport.can_tow", conditional_on: "Reise mit eigenem PKW an" },
     description: null,
   },
   {
@@ -63,7 +63,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Kann einen Anhänger zur Verfügung stellen",
     required: false,
     options: [] as string[],
-    settings: {},
+    settings: { role: "transport.trailer" },
     description: null,
   },
 
@@ -81,7 +81,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Bereit einzukaufen",
     required: false,
     options: [] as string[],
-    settings: {},
+    settings: { role: "helper.shopping" },
     description: null,
   },
   {
@@ -89,7 +89,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Helfe im Orgateam Küche mit",
     required: false,
     options: [] as string[],
-    settings: {},
+    settings: { role: "helper.kitchen" },
     description: null,
   },
 
@@ -107,7 +107,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Ernährungspräferenz",
     required: false,
     options: ["Keine Einschränkung", "Vegetarisch", "Vegan"],
-    settings: {},
+    settings: { role: "catering.diet" },
     description: null,
   },
   {
@@ -115,7 +115,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Allergien / Unverträglichkeiten",
     required: false,
     options: [] as string[],
-    settings: { placeholder: "Bitte angeben, falls vorhanden" },
+    settings: { role: "catering.allergies", placeholder: "Bitte angeben, falls vorhanden" },
     description: null,
   },
 
@@ -133,7 +133,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     label: "Zelt-Details",
     required: false,
     options: [] as string[],
-    settings: {},
+    settings: { role: "lodging.tent" },
     description: "Angaben zu deinem Zelt für die Lagerplanung",
   },
 
