@@ -20,6 +20,8 @@ jobs:
         run: npm run lint
       - name: SEO check (meta, JSON-LD, sitemap, robots)
         run: npm run seo:check
+      - name: Unit tests (Kalender-Export, Formular-Bedingungen)
+        run: npm test
   deploy:
     needs: seo-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
