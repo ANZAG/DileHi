@@ -4,13 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays,
+  BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
   FileText, Coins, MapPin, ClipboardList, ScrollText,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 
 const baseCards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
+  { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum" },
   { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente" },
