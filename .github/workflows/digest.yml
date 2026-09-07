@@ -4,12 +4,20 @@ name: Tageszusammenfassung
 # verschickt. Ein Zeitplandienst in der Datenbank (pg_cron) wäre naheliegender,
 # lässt sich in der Lovable-Cloud aber nicht einrichten – deshalb hier.
 #
-# Einmalig einzurichten – Repository → Settings → Secrets and variables → Actions:
+# Einzurichten sind ZWEI Stellen, und das wird leicht verwechselt:
 #
-#   SUPABASE_FUNCTIONS_URL   https://<projekt>.supabase.co/functions/v1
-#   DIGEST_SECRET            frei gewaehltes langes Passwort; muss identisch
-#                            auch als Secret der Edge Function hinterlegt sein
-#                            (in Lovable unter den Backend-Einstellungen)
+#   1. GitHub (Repository → Settings → Secrets and variables → Actions)
+#        DIGEST_SECRET     frei gewaehltes langes Passwort
+#        FUNCTIONS_URL     optional – nur noetig, wenn das Backend woanders
+#                          liegt als unten voreingestellt. Die Adresse ist
+#                          oeffentlich und damit kein Geheimnis; sie darf auch
+#                          als "Variable" statt als "Secret" angelegt werden.
+#
+#   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
+#        DIGEST_SECRET     derselbe Wert wie oben
+#
+# Namen mit dem Praefix SUPABASE_ sind in Lovable reserviert – deshalb heisst
+# die Adresse hier FUNCTIONS_URL.
 
 on:
   schedule:
@@ -27,12 +35,13 @@ jobs:
     steps:
       - name: Zusammenfassung ausloesen
         env:
-          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          # Voreinstellung, damit die Aktion ohne zusaetzliche Einrichtung laeuft.
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
           DIGEST_SECRET: ${{ secrets.DIGEST_SECRET }}
         run: |
           set -euo pipefail
-          if [ -z "${FUNCTIONS_URL}" ] || [ -z "${DIGEST_SECRET}" ]; then
-            echo "::error::Secrets SUPABASE_FUNCTIONS_URL oder DIGEST_SECRET fehlen – siehe Kommentar in dieser Datei."
+          if [ -z "${DIGEST_SECRET}" ]; then
+            echo "::error::Secret DIGEST_SECRET fehlt – siehe Kommentar in dieser Datei."
             exit 1
           fi
           response=$(mktemp)
