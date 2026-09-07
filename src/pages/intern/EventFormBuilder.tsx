@@ -17,10 +17,9 @@ import type { FormField } from "@/components/event-forms/types";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
-import EventMapSettings from "@/components/evaluation/EventMapSettings";
 import { useFormSettings } from "@/components/event-forms/formSettings";
 
-export default function EventFormBuilder() {
+export default function EventFormBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -237,17 +236,28 @@ export default function EventFormBuilder() {
 
   if (!eventId) return null;
 
-  return (
-    <div className="container py-8 max-w-6xl px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
-            {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
+  // Eingebettet laeuft die Seite als Reiter innerhalb von EventFormPage – dann
+  // kommen Rahmen und Kopfzeile von dort, damit sie nicht doppelt erscheinen.
+  const Shell = ({ children }: { children: React.ReactNode }) =>
+    embedded ? (
+      <>{children}</>
+    ) : (
+      <div className="container py-8 max-w-6xl px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
+              {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
+            </div>
           </div>
-        </div>
+          {children}
+        </motion.div>
+      </div>
+    );
+
+  return (
+    <Shell>
 
         {!formLoading && !form && (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
@@ -272,11 +282,6 @@ export default function EventFormBuilder() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
                 <Settings size={14} className="mr-1" /> Einstellungen
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/intern/veranstaltungen/${eventId}/auswertung`} state={{ from: `/intern/veranstaltungen/${eventId}/formular` }}>
-                  Auswertung →
-                </Link>
               </Button>
               <div className="flex items-center gap-2 sm:ml-auto">
                 <Label className="text-sm">Anmeldung möglich</Label>
@@ -377,20 +382,6 @@ export default function EventFormBuilder() {
                   <p className="text-xs text-muted-foreground col-span-2">Leer lassen = unbegrenzt. Wird zusätzlich zum Schalter „Anmeldung möglich" geprüft.</p>
                 </div>
                 <div>
-                  <Label>Zelt-Abstand / Laufweg (m)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    defaultValue={form.settings?.spacing_m ?? 0}
-                    onBlur={(e) => {
-                      const spacing = Number(e.target.value) || 0;
-                      saveSettings.mutate({ spacing_m: spacing });
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Zusätzlicher Radius/Rand pro Zelt für Laufwege</p>
-                </div>
-                <div>
                   <Label>WhatsApp-Gruppenlink</Label>
                   <Input
                     defaultValue={form.settings?.whatsapp_link || ""}
@@ -415,13 +406,10 @@ export default function EventFormBuilder() {
                   </div>
                 </div>
 
-                <EventMapSettings
-                  eventId={eventId!}
-                  formId={form.id}
-                  mapImagePath={(form.settings as any)?.map_image_path}
-                  mapScale={(form.settings as any)?.map_scale}
-                  onChange={(patch) => saveSettings.mutate(patch)}
-                />
+                <p className="text-xs text-muted-foreground border-t pt-3">
+                  Zelt-Abstand und Geländeplan stehen unter „Anmeldungen“ – dort,
+                  wo man ihre Wirkung sieht.
+                </p>
 
                 {/* Formular löschen – nur Vorstand */}
                 {isVorstand && (
@@ -459,7 +447,6 @@ export default function EventFormBuilder() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </motion.div>
-    </div>
+    </Shell>
   );
 }

@@ -19,6 +19,7 @@ import { findFieldByRole, findFieldsByRole } from "@/components/event-forms/fiel
 import EvalHelperTasks, { type HelperTaskResult } from "@/components/evaluation/EvalHelperTasks";
 import EvalCatering from "@/components/evaluation/EvalCatering";
 import { aggregateCatering } from "@/components/evaluation/aggregateCatering";
+import EvalCoverage, { type CoverageItem } from "@/components/evaluation/EvalCoverage";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -41,7 +42,7 @@ interface ProgramItem {
   person: string;
 }
 
-export default function EventFormEvaluation() {
+export default function EventFormEvaluation({ embedded = false }: { embedded?: boolean } = {}) {
   const { eventId } = useParams<{ eventId: string }>();
   const { user, hasPermission } = useAuth();
   // Vorher wurde hier direkt auf officiatus_1/2 geprüft. Wer die Berechtigung
@@ -416,7 +417,40 @@ export default function EventFormEvaluation() {
 
     const catering = aggregateCatering(responses, attendanceField, dietField, allergyField);
 
+    // Bedarfsabgleich: die Planungsfragen sind "reicht X fuer Y", nicht "wie
+    // viele X". Beide Zahlen lagen bisher an verschiedenen Stellen der Seite.
+    const peakDay = Math.max(0, ...Object.values(dayCount));
+    // Ohne Anwesenheitstage ist der Bedarf die Zahl der Anmeldungen.
+    const peopleAtPeak = attendanceField ? peakDay : responses.length;
+    // Fahrer zaehlen sich selbst mit ("inkl. sich selbst"), sind also schon
+    // versorgt - fuer andere bleiben die uebrigen Plaetze.
+    const freeSeats = Math.max(0, totalSeats - carsCount);
+    const needRide = Math.max(0, responses.length - carsCount);
+
+    const coverage: CoverageItem[] = [];
+    if (tentField && attendanceField && totalCapacity > 0) {
+      coverage.push({
+        key: "beds",
+        label: "Schlafplätze",
+        have: totalCapacity,
+        need: peopleAtPeak,
+        unit: "Plätze in den angemeldeten Zelten",
+        hint: `Bedarf am stärksten Tag (${peopleAtPeak} Personen)`,
+      });
+    }
+    if (carField.length > 0 && seatsField.length > 0) {
+      coverage.push({
+        key: "seats",
+        label: "Mitfahrgelegenheiten",
+        have: freeSeats,
+        need: needRide,
+        unit: "freie Plätze in angebotenen Fahrzeugen",
+        hint: `${carsCount} Person(en) reisen selbst an, ${needRide} brauchen eine Mitfahrgelegenheit`,
+      });
+    }
+
     return {
+      coverage,
       cateringDays: catering.days,
       allergyNotes: catering.allergies,
       dietOptions: dietField?.options ?? [],
@@ -537,27 +571,29 @@ export default function EventFormEvaluation() {
     ? members.find((m: any) => m.id === event.created_by)?.display_name
     : null;
 
-  return (
-    <div className="container py-8 max-w-6xl px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-          <div className="flex items-center gap-3 flex-1">
+  // Eingebettet als Reiter in EventFormPage: Rahmen und Kopfzeile kommen von dort.
+  const Shell = ({ children }: { children: React.ReactNode }) =>
+    embedded ? (
+      <>{children}</>
+    ) : (
+      <div className="container py-8 max-w-6xl px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-xl sm:text-2xl font-bold">Auswertung</h1>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold">Anmeldungen</h1>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
             </div>
           </div>
+          {children}
+        </motion.div>
+      </div>
+    );
+
+  return (
+    <Shell>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung` }}>Formular</Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/intern/veranstaltungen/${eventId}/formular`} state={{ from: `/intern/veranstaltungen/${eventId}/auswertung`, openSettings: true }}>
-                <Settings size={14} className="mr-1" /> Einstellungen
-              </Link>
-            </Button>
             {form?.public_token && (
               <Button variant="outline" size="sm" onClick={copyPublicLink}>
                 <LinkIcon size={14} className="mr-1" /> Link kopieren
@@ -652,6 +688,8 @@ export default function EventFormEvaluation() {
 
         </div>
 
+        <EvalCoverage items={summary.coverage} />
+
         <EvalCatering
           days={summary.cateringDays}
           dietOptions={summary.dietOptions}
@@ -745,7 +783,6 @@ export default function EventFormEvaluation() {
           formId={form?.id}
           canAssign={canModerate || event?.created_by === user?.id}
         />
-      </motion.div>
-    </div>
+    </Shell>
   );
 }

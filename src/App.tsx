@@ -44,8 +44,9 @@ const Documents            = lazy(() => import("./pages/intern/Documents"));
 const Contributions        = lazy(() => import("./pages/intern/Contributions"));
 const MemberMap            = lazy(() => import("./pages/intern/MemberMap"));
 const Steckbriefe          = lazy(() => import("./pages/intern/Steckbriefe"));
-const EventFormBuilder     = lazy(() => import("./pages/intern/EventFormBuilder"));
-const EventFormEvaluation  = lazy(() => import("./pages/intern/EventFormEvaluation"));
+// Formular und Anmeldungen liegen auf einer Seite mit zwei Reitern. Beide
+// Adressen bleiben gueltig und waehlen nur den Reiter vor.
+const EventFormPage        = lazy(() => import("./pages/intern/EventFormPage"));
 const Auswertungen         = lazy(() => import("./pages/intern/Auswertungen"));
 
 const queryClient = new QueryClient({
@@ -103,8 +104,8 @@ const App = () => (
                 <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
                 <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
                 <Route path="/intern/steckbriefe" element={<ProtectedRoute><Steckbriefe /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormBuilder /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormEvaluation /></ProtectedRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute>} />
                 <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
 
                 <Route path="/anmeldung/:token" element={<EventRegistration />} />
