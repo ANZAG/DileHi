@@ -49,7 +49,14 @@ Deno.serve(async (req) => {
       .single();
 
     const senderName = profile?.display_name || user.email?.split("@")[0] || "Vorstand";
-    const senderRole = roleData?.role || undefined;
+
+    // Anzeigename des Amts aus dem Rollenkatalog, nicht der Rollenschluessel.
+    const { data: roleRow } = roleData?.role
+      ? await supabase.from("role_catalog").select("label").eq("key", roleData.role).maybeSingle()
+      : { data: null };
+    const senderRole = (roleRow as { label?: string } | null)?.label
+      || roleData?.role
+      || undefined;
 
     const subject = `Ihre Anfrage – Diu lebendec Histôrje e.V.`;
     const htmlBody = buildEmailWrapper(`

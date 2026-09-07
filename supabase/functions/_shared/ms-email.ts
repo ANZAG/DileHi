@@ -106,23 +106,15 @@ const FONT_SANS = "'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
  */
 export interface SignatureInfo {
   senderName: string;
+  /** Fertige Beschriftung des Amts, z. B. 1. Officiatus - kein Rollenschluessel. */
   senderRole?: string;
 }
 
 function buildSignature(sig?: SignatureInfo): string {
   if (!sig) return "";
 
-  const roleLabel: Record<string, string> = {
-    vorstand: "Vorstand",
-    officiatus_1: "1. Officiatus",
-    officiatus_2: "2. Officiatus",
-    mitglied: "Mitglied",
-    herold: "Herold",
-    schatzmeister: "Schatzmeister",
-  };
-
   const roleLine = sig.senderRole
-    ? `<p style="margin: 0; font-size: 13px; color: ${TEXT_MUTED};">${escapeHtml(roleLabel[sig.senderRole] || sig.senderRole)}</p>`
+    ? `<p style="margin: 0; font-size: 13px; color: ${TEXT_MUTED};">${escapeHtml(sig.senderRole)}</p>`
     : "";
 
   return `
