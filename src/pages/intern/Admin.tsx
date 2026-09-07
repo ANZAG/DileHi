@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -13,8 +13,9 @@ import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin";
 import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
+import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas";
 
 
 const Admin = () => {
@@ -46,6 +47,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("visitor_highlights.manage") ? [
       { id: "visitor" as const, label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
+    ] : []),
+    ...(hasPermission("personas.publish") ? [
+      { id: "personas" as const, label: "Darstellungen", icon: ScrollText, desc: "Für die Website freigeben" },
     ] : []),
     ...(hasPermission("events.moderate") ? [
       { id: "formtemplate" as const, label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" },
@@ -97,6 +101,7 @@ const Admin = () => {
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
+          {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
           {activeTab === "formtemplate" && hasPermission("events.moderate") && <FormTemplateAdmin />}

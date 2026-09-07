@@ -248,15 +248,6 @@ const MemberMap = () => {
     },
   });
 
-  // Mitglieder mit veröffentlichtem Darstellungssteckbrief – für den Link im Pin
-  const { data: personaOwners = [] } = useQuery({
-    queryKey: ["persona-owners"],
-    queryFn: async () => {
-      const { data } = await supabase.from("member_personas").select("user_id");
-      return [...new Set((data ?? []).map((r) => r.user_id))];
-    },
-  });
-
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
     queryKey: ["member-map-optin", user?.id],
@@ -338,21 +329,6 @@ const MemberMap = () => {
       cityEl.textContent = m.city;
       popupEl.appendChild(cityEl);
 
-      if (personaOwners.includes(m.id)) {
-        popupEl.appendChild(document.createElement("br"));
-        const link = document.createElement("a");
-        link.href = `/intern/steckbriefe#mitglied-${m.id}`;
-        link.textContent = "Darstellungssteckbrief ansehen";
-        link.style.display = "inline-block";
-        link.style.marginTop = "4px";
-        link.style.fontWeight = "600";
-        link.addEventListener("click", (e) => {
-          e.preventDefault();
-          navigate(`/intern/steckbriefe#mitglied-${m.id}`);
-        });
-        popupEl.appendChild(link);
-      }
-
       memberCluster.addLayer(L.marker([m.map_lat, m.map_lng]).bindPopup(popupEl));
     });
 
@@ -383,7 +359,7 @@ const MemberMap = () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [members, events, isLoading, hasData, personaOwners, navigate]);
+  }, [members, events, isLoading, hasData, navigate]);
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
