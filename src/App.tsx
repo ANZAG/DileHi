@@ -8,6 +8,25 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+/**
+ * Seiten werden erst beim Aufruf nachgeladen. Schlägt das fehl – typischerweise
+ * weil die Website in der Zwischenzeit aktualisiert und die alten Programmteile
+ * gelöscht wurden –, wird genau einmal neu geladen. Ohne diese Behandlung
+ * bleibt die Seite weiß, und ein Neuladen von Hand ist die einzige Rettung.
+ */
+const lazyPage = <P extends object>(load: () => Promise<{ default: React.ComponentType<P> }>) =>
+  lazy(() =>
+    load().catch((err) => {
+      const alreadyRetried = sessionStorage.getItem("chunk-retry");
+      if (!alreadyRetried) {
+        sessionStorage.setItem("chunk-retry", "1");
+        window.location.reload();
+      }
+      throw err;
+    })
+  );
 
 // Startseite und Fehlerseite bleiben im Haupt-Bundle: Die eine ist der
 // häufigste Einstieg, die andere muss immer sofort verfügbar sein.
@@ -18,39 +37,39 @@ import NotFound from "./pages/NotFound";
 // den Mitgliederbereich aus dem ersten Laden heraus – dort hängen Leaflet
 // (Mitgliederkarte), Drag-and-drop (Formular-Baukasten, Verwaltung) und der
 // Markdown-Renderer (Pinnwand) dran, die ein Gast nie braucht.
-const EpochMedieval        = lazy(() => import("./pages/EpochMedieval"));
-const EpochWW1             = lazy(() => import("./pages/EpochWW1"));
-const Epoch1815            = lazy(() => import("./pages/Epoch1815"));
-const About                = lazy(() => import("./pages/About"));
-const Kontakt              = lazy(() => import("./pages/Kontakt"));
-const FuerVeranstalter     = lazy(() => import("./pages/FuerVeranstalter"));
-const Impressum            = lazy(() => import("./pages/Impressum"));
-const Datenschutz          = lazy(() => import("./pages/Datenschutz"));
-const Login                = lazy(() => import("./pages/Login"));
-const ResetPassword        = lazy(() => import("./pages/ResetPassword"));
-const EventRegistration    = lazy(() => import("./pages/EventRegistration"));
-const MembershipApplication = lazy(() => import("./pages/MembershipApplication"));
+const EpochMedieval        = lazyPage(() => import("./pages/EpochMedieval"));
+const EpochWW1             = lazyPage(() => import("./pages/EpochWW1"));
+const Epoch1815            = lazyPage(() => import("./pages/Epoch1815"));
+const About                = lazyPage(() => import("./pages/About"));
+const Kontakt              = lazyPage(() => import("./pages/Kontakt"));
+const FuerVeranstalter     = lazyPage(() => import("./pages/FuerVeranstalter"));
+const Impressum            = lazyPage(() => import("./pages/Impressum"));
+const Datenschutz          = lazyPage(() => import("./pages/Datenschutz"));
+const Login                = lazyPage(() => import("./pages/Login"));
+const ResetPassword        = lazyPage(() => import("./pages/ResetPassword"));
+const EventRegistration    = lazyPage(() => import("./pages/EventRegistration"));
+const MembershipApplication = lazyPage(() => import("./pages/MembershipApplication"));
 
-const Dashboard            = lazy(() => import("./pages/intern/Dashboard"));
-const Profile              = lazy(() => import("./pages/intern/Profile"));
-const Sources              = lazy(() => import("./pages/intern/Sources"));
-const Announcements        = lazy(() => import("./pages/intern/Announcements"));
-const Elections            = lazy(() => import("./pages/intern/Elections"));
-const EventsPage           = lazy(() => import("./pages/intern/Events"));
-const Admin                = lazy(() => import("./pages/intern/Admin"));
-const AuditLog             = lazy(() => import("./pages/intern/AuditLog"));
-const RolesPermissions     = lazy(() => import("./pages/intern/RolesPermissions"));
-const Documents            = lazy(() => import("./pages/intern/Documents"));
-const Contributions        = lazy(() => import("./pages/intern/Contributions"));
-const MemberMap            = lazy(() => import("./pages/intern/MemberMap"));
-const Steckbriefe          = lazy(() => import("./pages/intern/Steckbriefe"));
+const Dashboard            = lazyPage(() => import("./pages/intern/Dashboard"));
+const Profile              = lazyPage(() => import("./pages/intern/Profile"));
+const Sources              = lazyPage(() => import("./pages/intern/Sources"));
+const Announcements        = lazyPage(() => import("./pages/intern/Announcements"));
+const Elections            = lazyPage(() => import("./pages/intern/Elections"));
+const EventsPage           = lazyPage(() => import("./pages/intern/Events"));
+const Admin                = lazyPage(() => import("./pages/intern/Admin"));
+const AuditLog             = lazyPage(() => import("./pages/intern/AuditLog"));
+const RolesPermissions     = lazyPage(() => import("./pages/intern/RolesPermissions"));
+const Documents            = lazyPage(() => import("./pages/intern/Documents"));
+const Contributions        = lazyPage(() => import("./pages/intern/Contributions"));
+const MemberMap            = lazyPage(() => import("./pages/intern/MemberMap"));
+const Steckbriefe          = lazyPage(() => import("./pages/intern/Steckbriefe"));
 // Formular und Anmeldungen liegen auf einer Seite mit zwei Reitern. Beide
 // Adressen bleiben gueltig und waehlen nur den Reiter vor.
-const EventFormPage        = lazy(() => import("./pages/intern/EventFormPage"));
+const EventFormPage        = lazyPage(() => import("./pages/intern/EventFormPage"));
 // Anmeldung fuer Mitglieder – gleiches Formular, aber im Mitgliederbereich
 // statt auf der oeffentlichen Seite.
-const EventRegistrationInternal = lazy(() => import("./pages/intern/EventRegistrationInternal"));
-const Auswertungen         = lazy(() => import("./pages/intern/Auswertungen"));
+const EventRegistrationInternal = lazyPage(() => import("./pages/intern/EventRegistrationInternal"));
+const Auswertungen         = lazyPage(() => import("./pages/intern/Auswertungen"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +89,12 @@ const PageLoader = () => (
   </div>
 );
 
+// Nach einem erfolgreichen Start darf der naechste Fehlschlag wieder einmal
+// neu laden – sonst bleibt es beim einmaligen Versuch fuer die ganze Sitzung.
+if (typeof window !== "undefined") {
+  window.addEventListener("load", () => sessionStorage.removeItem("chunk-retry"));
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -79,6 +104,7 @@ const App = () => (
         <AuthProvider>
           <ScrollToTop />
           <Layout>
+            <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -117,6 +143,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            </ErrorBoundary>
           </Layout>
         </AuthProvider>
       </BrowserRouter>
