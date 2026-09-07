@@ -379,7 +379,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
         }
         const catMap: Record<string, string> = {
           kuechenzelt: "kitchen", versorgung_klein: "supply",
-          versorgung_gross: "supply", scheune: "scheune",
+          versorgung_gross: "supply", scheune: "group_tent",
         };
         tentItems.push({
           id: `club-${ctId}`, label: ct.label, typeName: "",

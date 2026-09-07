@@ -79,7 +79,7 @@ export default function LinkWithQr({
       <div className="flex gap-1.5 mt-1">
         <Input
           value={value}
-          readOnly={readOnly}
+          readOnly={readOnly || !onChange}
           placeholder={placeholder}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           className="h-8 text-xs font-mono"
