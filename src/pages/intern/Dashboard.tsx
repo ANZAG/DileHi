@@ -53,8 +53,8 @@ const Dashboard = () => {
     ? [
         ...baseCards.slice(0, 1),
         {
-          title: "Auswertungen",
-          desc: "Anmeldungen & Logistik deiner Veranstaltungen.",
+          title: "Anmeldungen",
+          desc: "Wer kommt, und was dafür gebraucht wird.",
           icon: ClipboardList,
           path: "/intern/auswertungen",
         },

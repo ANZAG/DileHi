@@ -15,26 +15,27 @@ const Auswertungen = () => {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveYear, setArchiveYear] = useState<number>(new Date().getFullYear());
 
+  // Auch Termine OHNE Formular gehoeren hierher. Vorher fehlten sie schlicht -
+  // wer sich fragte "wo sehe ich, wer kommt?", fand den Termin nicht und
+  // erfuhr auch nicht, warum.
   const { data: eventsWithForms = [], isLoading } = useQuery({
     queryKey: ["auswertungen-list", user?.id, isVorstand],
     queryFn: async () => {
       if (!user) return [];
 
-      const { data: forms, error: formError } = await supabase
-        .from("event_forms")
-        .select("event_id");
-      if (formError || !forms) return [];
+      const [{ data: events, error }, { data: forms }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, start_date, end_date, created_by")
+          .order("start_date", { ascending: false }),
+        supabase.from("event_forms").select("event_id"),
+      ]);
+      if (error || !events) return [];
 
-      const eventIds = forms.map((f) => f.event_id);
-      if (eventIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, start_date, end_date, created_by")
-        .in("id", eventIds)
-        .order("start_date", { ascending: false });
-      if (error) return [];
-      return data || [];
+      const withForm = new Set((forms ?? []).map((f) => f.event_id));
+      return events
+        .filter((e) => isVorstand || e.created_by === user.id || withForm.has(e.id))
+        .map((e) => ({ ...e, hasForm: withForm.has(e.id) }));
     },
     enabled: !!user,
   });
@@ -80,7 +81,7 @@ const Auswertungen = () => {
       transition={{ delay: i * 0.05 }}
     >
       <Link
-        to={`/intern/veranstaltungen/${event.id}/auswertung`}
+        to={`/intern/veranstaltungen/${event.id}/${event.hasForm ? "auswertung" : "formular"}`}
         state={{ from: "/intern/auswertungen" }}
         className="flex items-center justify-between gap-4 p-4 rounded-lg border bg-card hover:shadow-sm hover:border-primary/40 transition-all group"
       >
@@ -98,8 +99,8 @@ const Auswertungen = () => {
             </p>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground shrink-0 group-hover:text-primary transition-colors">
-          Zur Auswertung →
+        <span className="text-xs shrink-0 text-muted-foreground group-hover:text-primary transition-colors">
+          {event.hasForm ? "Anmeldungen ansehen →" : "Formular anlegen →"}
         </span>
       </Link>
     </motion.div>
@@ -113,8 +114,8 @@ const Auswertungen = () => {
             <Link to="/intern"><ArrowLeft size={20} /></Link>
           </Button>
           <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Auswertungen</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Anmeldungen & Logistik deiner Veranstaltungen</p>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Anmeldungen</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Wer kommt, und was dafür gebraucht wird</p>
           </div>
         </div>
 
@@ -124,7 +125,7 @@ const Auswertungen = () => {
           <div className="text-center py-16 border rounded-lg bg-card">
             <ClipboardList className="mx-auto mb-3 text-muted-foreground" size={32} />
             <p className="text-sm text-muted-foreground">
-              Für deine Veranstaltungen wurden noch keine Umfrageformulare erstellt.
+              Es gibt noch keine Veranstaltungen, für die du Anmeldungen einsehen kannst.
             </p>
           </div>
         ) : (
