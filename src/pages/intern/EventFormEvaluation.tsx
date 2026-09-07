@@ -17,6 +17,8 @@ import { de } from "date-fns/locale";
 import { useFormSettings } from "@/components/event-forms/formSettings";
 import { findFieldByRole, findFieldsByRole } from "@/components/event-forms/fieldRoles";
 import EvalHelperTasks, { type HelperTaskResult } from "@/components/evaluation/EvalHelperTasks";
+import EvalCatering from "@/components/evaluation/EvalCatering";
+import { aggregateCatering } from "@/components/evaluation/aggregateCatering";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -213,10 +215,13 @@ export default function EventFormEvaluation() {
     const kitchenField = findFieldsByRole(fields, "helper.kitchen");
     const shoppingField = findFieldsByRole(fields, "helper.shopping");
     const seatsField = findFieldsByRole(fields, "transport.seats");
+    const dietField = findFieldByRole(fields, "catering.diet");
+    const allergyField = findFieldByRole(fields, "catering.allergies");
     const helperField = findFieldByRole(fields, "helper.tasks");
     const helperTasks: HelperTask[] =
       helperField && Array.isArray(helperField.settings?.tasks) ? helperField.settings.tasks : [];
     const helperCounts = new Map<string, string[]>(helperTasks.map((t) => [t.key, []]));
+
 
     const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string; member_tent_id?: string }[] = [];
     const dayCount: Record<string, number> = {};
@@ -267,6 +272,7 @@ export default function EventFormEvaluation() {
           }
         }
       }
+
 
       const countChecked = (list: FormField[]) =>
         list.filter((f) => getAnswer(resp, f.id) === true).length;
@@ -408,7 +414,14 @@ export default function EventFormEvaluation() {
       carField.length + trailerField.length + canTowField.length + seatsField.length > 0;
     const hasKitchenFields = kitchenField.length + shoppingField.length > 0;
 
-    return { hasTransportFields, hasKitchenFields, tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems, helperResults };
+    const catering = aggregateCatering(responses, attendanceField, dietField, allergyField);
+
+    return {
+      cateringDays: catering.days,
+      allergyNotes: catering.allergies,
+      dietOptions: dietField?.options ?? [],
+      hasDiet: !!dietField,
+      hasTransportFields, hasKitchenFields, tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems, helperResults };
   }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents, layoutVersion]);
 
   const exportCSV = () => {
@@ -637,25 +650,14 @@ export default function EventFormEvaluation() {
             )}
           </div>
 
-          {/* Day attendance */}
-          {eventDays.length > 1 && (
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-sm mb-2">Teilnehmer/Tag</h3>
-              <div className="space-y-1">
-                {eventDays.map((day) => {
-                  const key = format(day, "yyyy-MM-dd");
-                  const count = summary.dayCount[key] || 0;
-                  return (
-                    <div key={key} className="flex items-center justify-between text-sm">
-                      <span>{format(day, "EE, d. MMM", { locale: de })}</span>
-                      <Badge variant="secondary" className="text-xs">{count}</Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
+
+        <EvalCatering
+          days={summary.cateringDays}
+          dietOptions={summary.dietOptions}
+          allergies={summary.allergyNotes}
+          hasDiet={summary.hasDiet}
+        />
 
         <EvalHelperTasks tasks={summary.helperResults} />
 
