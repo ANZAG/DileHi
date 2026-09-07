@@ -20,6 +20,10 @@ jobs:
         run: npm run lint
       - name: SEO check (meta, JSON-LD, sitemap, robots)
         run: npm run seo:check
+      # Der Build laeuft ueber SWC und prueft keine Typen. Ohne diesen Schritt
+      # koennen Typfehler unbemerkt bis in die Produktion durchlaufen.
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.app.json
       - name: Unit tests (Kalender-Export, Formular-Bedingungen)
         run: npm test
   deploy:
