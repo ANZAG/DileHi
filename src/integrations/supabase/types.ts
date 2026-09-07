@@ -1578,6 +1578,7 @@ export type Database = {
           contribution_interval: string | null
           created_at: string
           diet: string | null
+          digest_sent_at: string | null
           display_name: string
           entry_date: string | null
           exit_date: string | null
@@ -1590,6 +1591,7 @@ export type Database = {
           map_lat: number | null
           map_lng: number | null
           membership_type: string | null
+          notify_digest: boolean
           phone: string | null
           salutation: string | null
           show_on_map: boolean
@@ -1605,6 +1607,7 @@ export type Database = {
           contribution_interval?: string | null
           created_at?: string
           diet?: string | null
+          digest_sent_at?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1617,6 +1620,7 @@ export type Database = {
           map_lat?: number | null
           map_lng?: number | null
           membership_type?: string | null
+          notify_digest?: boolean
           phone?: string | null
           salutation?: string | null
           show_on_map?: boolean
@@ -1632,6 +1636,7 @@ export type Database = {
           contribution_interval?: string | null
           created_at?: string
           diet?: string | null
+          digest_sent_at?: string | null
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
@@ -1644,6 +1649,7 @@ export type Database = {
           map_lat?: number | null
           map_lng?: number | null
           membership_type?: string | null
+          notify_digest?: boolean
           phone?: string | null
           salutation?: string | null
           show_on_map?: boolean
@@ -1963,6 +1969,12 @@ export type Database = {
         Args: { _category_id: string; _what: string }
         Returns: boolean
       }
+      forum_thread_audience: {
+        Args: { _exclude: string; _thread_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       get_board_members: {
         Args: never
         Returns: {
@@ -2067,7 +2079,16 @@ export type Database = {
       is_member: { Args: { _user_id: string }; Returns: boolean }
       is_schatzmeister: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
+      mark_notifications_read: { Args: { _ids?: string[] }; Returns: number }
       module_enabled: { Args: { _key: string }; Returns: boolean }
+      pending_digests: {
+        Args: never
+        Returns: {
+          display_name: string
+          items: Json
+          user_id: string
+        }[]
+      }
       set_persona_public: {
         Args: {
           _is_public: boolean
