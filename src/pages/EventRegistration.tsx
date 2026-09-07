@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import FormFieldRenderer, { isFieldVisible } from "@/components/event-forms/Form
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, CheckCircle2, ArrowLeft } from "lucide-react";
 import SEO from "@/components/SEO";
 import type { FormField } from "@/components/event-forms/types";
 import { findFieldByRole } from "@/components/event-forms/fieldRoles";
@@ -23,8 +23,16 @@ interface FormData {
   fields: FormField[];
 }
 
-export default function EventRegistration() {
-  const { token } = useParams<{ token: string }>();
+interface Props {
+  /** Wird intern gesetzt, wenn die Anmeldung im Mitgliederbereich laeuft. */
+  tokenOverride?: string;
+  /** Innerhalb des Mitgliederbereichs: ohne Suchmaschinen-Angaben, mit Rueckweg. */
+  internal?: boolean;
+}
+
+export default function EventRegistration({ tokenOverride, internal = false }: Props = {}) {
+  const { token: tokenFromUrl } = useParams<{ token: string }>();
+  const token = tokenOverride ?? tokenFromUrl;
   const [searchParams] = useSearchParams();
   const editToken = searchParams.get("edit");
   const { user } = useAuth();
@@ -327,7 +335,7 @@ export default function EventRegistration() {
   if (submitted) {
     return (
       <div className="container py-20 max-w-lg text-center">
-        <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />
+        {!internal && <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
           <h1 className="text-2xl font-serif font-bold mb-2">
@@ -358,10 +366,20 @@ export default function EventRegistration() {
 
   return (
     <div className="container py-8 max-w-2xl px-4">
-      <SEO
-        title={`Anmeldung – ${formData.event.title}`}
-        description={formData.form.description || `Anmeldeformular für ${formData.event.title}`}
-      />
+      {!internal && (
+        <SEO
+          title={`Anmeldung – ${formData.event.title}`}
+          description={formData.form.description || `Anmeldeformular für ${formData.event.title}`}
+        />
+      )}
+      {internal && (
+        <Link
+          to="/intern/veranstaltungen"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
+          <ArrowLeft size={16} /> Zurück zu den Veranstaltungen
+        </Link>
+      )}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Event info */}
         <Card className="mb-6">

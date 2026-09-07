@@ -47,6 +47,9 @@ const Steckbriefe          = lazy(() => import("./pages/intern/Steckbriefe"));
 // Formular und Anmeldungen liegen auf einer Seite mit zwei Reitern. Beide
 // Adressen bleiben gueltig und waehlen nur den Reiter vor.
 const EventFormPage        = lazy(() => import("./pages/intern/EventFormPage"));
+// Anmeldung fuer Mitglieder – gleiches Formular, aber im Mitgliederbereich
+// statt auf der oeffentlichen Seite.
+const EventRegistrationInternal = lazy(() => import("./pages/intern/EventRegistrationInternal"));
 const Auswertungen         = lazy(() => import("./pages/intern/Auswertungen"));
 
 const queryClient = new QueryClient({
@@ -106,6 +109,7 @@ const App = () => (
                 <Route path="/intern/steckbriefe" element={<ProtectedRoute><Steckbriefe /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/anmeldung" element={<ProtectedRoute><EventRegistrationInternal /></ProtectedRoute>} />
                 <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
 
                 <Route path="/anmeldung/:token" element={<EventRegistration />} />

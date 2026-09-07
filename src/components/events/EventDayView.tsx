@@ -123,7 +123,7 @@ export default function EventDayView({
                           <>
                             {!declined && (
                               <Button size="sm" variant="outline" asChild>
-                                <Link to={`/anmeldung/${evForm.public_token}`}>
+                                <Link to={`/intern/veranstaltungen/${ev.id}/anmeldung`}>
                                   <FileText size={14} className="mr-1" /> {alreadySubmitted ? "Bearbeiten" : "Anmelden"}
                                 </Link>
                               </Button>
