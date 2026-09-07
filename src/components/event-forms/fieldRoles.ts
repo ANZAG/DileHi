@@ -144,6 +144,26 @@ export const FIELD_ROLES: FieldRole[] = [
     legacyMatch: (l) =>
       l.includes("einkauf") || l.includes("einkaufen") || l.includes("einzukaufen"),
   },
+
+  // ── Displays ─────────────────────────────────────────────────────────────
+  // Bewusst schlank: Anzahl plus Beschreibung. Platzbedarf und Aufstellung
+  // klärt die Orga im Gespräch, nicht das Formular.
+  {
+    key: "display.brings",
+    label: "Bringt ein Display mit",
+    feeds: "Displays: Anzahl und Namen",
+    returns: "boolean",
+    fieldTypes: ["checkbox"],
+    legacyMatch: (l) => l.includes("display") && !l.includes("was für"),
+  },
+  {
+    key: "display.description",
+    label: "Beschreibung des Displays",
+    feeds: "Displays: Liste für die Orga",
+    returns: "text",
+    fieldTypes: ["textarea", "text"],
+    legacyMatch: (l) => l.includes("was für ein display"),
+  },
 ];
 
 const BY_KEY = new Map(FIELD_ROLES.map((r) => [r.key, r]));

@@ -124,6 +124,7 @@ describe("Standardvorlage", () => {
       "transport.own_car", "transport.seats", "transport.can_tow", "transport.trailer",
       "catering.diet", "catering.allergies",
       "helper.kitchen", "helper.shopping", "helper.tasks",
+      "display.brings", "display.description",
     ]) {
       expect(findFieldByRole(fields, key), `Vorlage hat kein Feld für ${key}`).toBeDefined();
     }

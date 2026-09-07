@@ -137,6 +137,36 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     description: "Angaben zu deinem Zelt für die Lagerplanung",
   },
 
+  // --- Sektion: Display ---
+  {
+    type: "section",
+    label: "Display",
+    required: false,
+    options: [] as string[],
+    settings: {},
+    description: null,
+  },
+  {
+    type: "checkbox",
+    label: "Ich stelle ein Display aus",
+    required: false,
+    options: [] as string[],
+    settings: { role: "display.brings" },
+    description: null,
+  },
+  {
+    type: "textarea",
+    label: "Was für ein Display möchtest du ausstellen?",
+    required: false,
+    options: [] as string[],
+    settings: {
+      role: "display.description",
+      conditional_on: "Ich stelle ein Display aus",
+      placeholder: "Kurze Beschreibung – Details klärt die Orga mit dir",
+    },
+    description: null,
+  },
+
   // --- Sektion: Sonstiges ---
   {
     type: "section",
