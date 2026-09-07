@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
 import { useFormSettings } from "@/components/event-forms/formSettings";
+import { findFieldByRole, findFieldsByRole } from "@/components/event-forms/fieldRoles";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -199,8 +200,17 @@ export default function EventFormEvaluation() {
   };
 
   const summary = useMemo(() => {
-    const tentField = fields.find((f) => f.type === "tent");
-    const attendanceField = fields.find((f) => f.type === "attendance_days");
+    // Felder werden ueber ihre Rolle gefunden, nicht ueber den Beschriftungstext.
+    // findFieldByRole faellt bei Formularen ohne Rollen auf die alte Erkennung
+    // zurueck, damit sich vor der Migration nichts aendert.
+    const tentField = findFieldByRole(fields, "lodging.tent");
+    const attendanceField = findFieldByRole(fields, "attendance.days");
+    const carField = findFieldsByRole(fields, "transport.own_car");
+    const trailerField = findFieldsByRole(fields, "transport.trailer");
+    const canTowField = findFieldsByRole(fields, "transport.can_tow");
+    const kitchenField = findFieldsByRole(fields, "helper.kitchen");
+    const shoppingField = findFieldsByRole(fields, "helper.shopping");
+    const seatsField = findFieldsByRole(fields, "transport.seats");
 
     const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string; member_tent_id?: string }[] = [];
     const dayCount: Record<string, number> = {};
@@ -252,21 +262,18 @@ export default function EventFormEvaluation() {
         }
       }
 
-      for (const field of fields) {
-        const val = getAnswer(resp, field.id);
-        const lbl = field.label.toLowerCase();
+      const countChecked = (list: FormField[]) =>
+        list.filter((f) => getAnswer(resp, f.id) === true).length;
 
-        if (field.type === "checkbox" && val === true) {
-          if (lbl.includes("pkw") && !lbl.includes("anhänger")) carsCount++;
-          if (lbl.includes("anhänger zur verfügung")) trailerCount++;
-          if (lbl.includes("anhänger") && lbl.includes("ziehen")) canTowCount++;
-          if (lbl.includes("küche")) kitchenHelpers++;
-          if (lbl.includes("einkauf") || lbl.includes("einkaufen") || lbl.includes("einzukaufen")) shoppers++;
-        }
+      carsCount     += countChecked(carField);
+      trailerCount  += countChecked(trailerField);
+      canTowCount   += countChecked(canTowField);
+      kitchenHelpers += countChecked(kitchenField);
+      shoppers      += countChecked(shoppingField);
 
-        if (field.type === "number" && (lbl.includes("mitnehmen") || lbl.includes("sitzplätze")) && typeof val === "number") {
-          totalSeats += val;
-        }
+      for (const f of seatsField) {
+        const val = getAnswer(resp, f.id);
+        if (typeof val === "number") totalSeats += val;
       }
     }
 
@@ -641,7 +648,7 @@ export default function EventFormEvaluation() {
                 ? `Ø${mt.diameter}m`
                 : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
               const selectedByRespondent = responses.some((r: any) => {
-                const tentField = fields.find((f) => f.type === "tent");
+                const tentField = findFieldByRole(fields, "lodging.tent");
                 if (!tentField) return false;
                 const tv = r.answers?.find((a: any) => a.field_id === tentField.id)?.value;
                 if (!tv?.tents) return false;
