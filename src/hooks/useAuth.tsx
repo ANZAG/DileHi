@@ -132,27 +132,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Realtime: if the current user is deactivated, log them out immediately
+  // Echtzeit: Wird das Konto deaktiviert, sofort abmelden.
+  //
+  // Kanalname mit Zufallsanteil, Abhaengigkeit auf die Nutzerkennung statt auf
+  // das Objekt, und alles in try/catch. Ohne das reichte eine Token-Erneuerung:
+  // Der Effekt lief erneut, supabase.channel() lieferte bei gleichem Namen den
+  // bereits abonnierten Kanal, und .on() darauf wirft. Weil das hier im
+  // AuthProvider passiert, der die gesamte Anwendung umschliesst, wurde daraus
+  // eine weisse Seite.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`profile-active-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-        async (payload) => {
-          const next = payload.new as { is_active?: boolean };
-          if (next?.is_active === false) {
-            await supabase.auth.signOut();
-            window.location.href = "/login?deactivated=1";
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`profile-active-${userId}-${Math.random().toString(36).slice(2)}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+          async (payload) => {
+            const next = payload.new as { is_active?: boolean };
+            if (next?.is_active === false) {
+              await supabase.auth.signOut();
+              window.location.href = "/login?deactivated=1";
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    } catch (err) {
+      // Eine gestoerte Echtzeitverbindung darf die Anmeldung nicht verhindern.
+      console.warn("Echtzeitverbindung zum Profil nicht möglich:", err);
+    }
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [userId]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

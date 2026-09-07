@@ -47,18 +47,36 @@ export default function NotificationBell() {
   });
 
   // Neue Benachrichtigungen sofort zeigen, statt eine Minute zu warten.
+  //
+  // Drei Vorsichtsmassnahmen, die zusammen einen harten Absturz verhindert
+  // haben: Der Kanalname bekommt einen Zufallsanteil, weil supabase.channel()
+  // bei gleichem Namen den BESTEHENDEN Kanal zurueckgibt - und .on() auf einem
+  // bereits abonnierten Kanal wirft ("cannot add postgres_changes callbacks
+  // after subscribe()"). Die Abhaengigkeit ist die Nutzerkennung statt des
+  // Objekts, damit eine Token-Erneuerung den Effekt nicht erneut ausloest. Und
+  // der ganze Block liegt in try/catch, damit eine Stoerung der
+  // Echtzeitverbindung nie die Seite zerlegt - die Glocke fragt ohnehin jede
+  // Minute nach.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`notifications-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["notifications", user.id] })
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`notifications-${userId}-${Math.random().toString(36).slice(2)}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          () => queryClient.invalidateQueries({ queryKey: ["notifications", userId] })
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Echtzeitverbindung für Benachrichtigungen nicht möglich:", err);
+    }
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
 
   // Klick daneben schließt die Liste – auf dem Handy der übliche Weg.
   useEffect(() => {
