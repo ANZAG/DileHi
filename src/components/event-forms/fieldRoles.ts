@@ -122,9 +122,10 @@ export const FIELD_ROLES: FieldRole[] = [
   {
     key: "helper.tasks",
     label: "Hilft bei diesen Aufgaben",
-    feeds: "Helferzahlen je Aufgabe",
+    feeds: "Helferzahlen je Aufgabe, Abgleich gegen die Mindestanzahl",
     returns: "multi_choice",
-    fieldTypes: ["multi_select"],
+    // multi_select bleibt zugelassen, damit Altformulare ihre Rolle behalten.
+    fieldTypes: ["helper_tasks", "multi_select"],
     legacyMatch: (l) => l.includes("aufbau") || l.includes("abbau"),
   },
   {

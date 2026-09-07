@@ -6,12 +6,25 @@ interface Props {
   trailerCount: number;
   shoppers: number;
   kitchenHelpers: number;
+  /** Erfasst das Formular ueberhaupt Transportangaben? */
+  hasTransport?: boolean;
+  /** Erfasst das Formular Kueche/Einkauf als einzelne Ja/Nein-Fragen? */
+  hasKitchen?: boolean;
 }
 
-export default function EvalLogistics({ carsCount, canTowCount, trailerCount, shoppers, kitchenHelpers }: Props) {
+/**
+ * Ein Block mit lauter Nullen sagt nicht, ob niemand mitfaehrt oder ob die
+ * Frage gar nicht gestellt wurde. Deshalb wird nur angezeigt, was das Formular
+ * auch erhebt.
+ */
+export default function EvalLogistics({
+  carsCount, canTowCount, trailerCount, shoppers, kitchenHelpers,
+  hasTransport = true, hasKitchen = true,
+}: Props) {
+  if (!hasTransport && !hasKitchen) return null;
   return (
     <div className="grid sm:grid-cols-2 gap-6 mb-6">
-      <div className="border rounded-lg p-4">
+      {hasTransport && (<div className="border rounded-lg p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <Truck size={16} /> Logistik
         </h3>
@@ -29,9 +42,9 @@ export default function EvalLogistics({ carsCount, canTowCount, trailerCount, sh
             <span className="font-medium">{trailerCount}</span>
           </div>
         </div>
-      </div>
+      </div>)}
 
-      <div className="border rounded-lg p-4">
+      {hasKitchen && (<div className="border rounded-lg p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <UtensilsCrossed size={16} /> Küche
         </h3>
@@ -45,7 +58,7 @@ export default function EvalLogistics({ carsCount, canTowCount, trailerCount, sh
             <span className="font-medium">{kitchenHelpers}</span>
           </div>
         </div>
-      </div>
+      </div>)}
     </div>
   );
 }

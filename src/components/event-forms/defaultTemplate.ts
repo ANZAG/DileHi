@@ -17,12 +17,26 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     description: null,
   },
   {
-    type: "multi_select",
-    label: "Auf-/Abbau",
+    // Eine Frage statt dreier verstreuter Felder. Der Termin gehoert an die
+    // Aufgabe, damit beim Ankreuzen klar ist, worauf man sich einlaesst –
+    // Aufbau am Freitagnachmittag ist etwas anderes als Aufbau am Samstag.
+    // Die Termine traegt die Orga beim Anlegen des Formulars ein.
+    type: "helper_tasks",
+    label: "Wobei kannst du helfen?",
     required: false,
-    options: ["Aufbau/Packen", "Abbau/Aufräumen"],
-    settings: { role: "helper.tasks" },
-    description: null,
+    options: [] as string[],
+    settings: {
+      role: "helper.tasks",
+      tasks: [
+        { key: "lager-beladen", label: "Beladen im Vereinslager", when: null, min: null },
+        { key: "aufbau", label: "Aufbau vor Ort", when: null, min: null },
+        { key: "abbau", label: "Abbau vor Ort", when: null, min: null },
+        { key: "lager-entladen", label: "Auspacken im Vereinslager", when: null, min: null },
+        { key: "einkauf", label: "Einkaufen", when: null, min: null },
+        { key: "kochen", label: "Kochen", when: null, min: null },
+      ],
+    },
+    description: "Die Zeiten stehen hinter der jeweiligen Aufgabe.",
   },
 
   // --- Sektion: Transport ---
@@ -64,32 +78,6 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     required: false,
     options: [] as string[],
     settings: { role: "transport.trailer" },
-    description: null,
-  },
-
-  // --- Sektion: Organisation ---
-  {
-    type: "section",
-    label: "Organisation",
-    required: false,
-    options: [] as string[],
-    settings: {},
-    description: null,
-  },
-  {
-    type: "checkbox",
-    label: "Bereit einzukaufen",
-    required: false,
-    options: [] as string[],
-    settings: { role: "helper.shopping" },
-    description: null,
-  },
-  {
-    type: "checkbox",
-    label: "Helfe im Orgateam Küche mit",
-    required: false,
-    options: [] as string[],
-    settings: { role: "helper.kitchen" },
     description: null,
   },
 

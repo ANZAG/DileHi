@@ -16,6 +16,7 @@ import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
 import { useFormSettings } from "@/components/event-forms/formSettings";
 import { findFieldByRole, findFieldsByRole } from "@/components/event-forms/fieldRoles";
+import EvalHelperTasks, { type HelperTaskResult } from "@/components/evaluation/EvalHelperTasks";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -25,6 +26,7 @@ import {
   type FormField,
   type FormResponse,
   type FormAnswer,
+  type HelperTask,
 } from "@/components/event-forms/types";
 import { autoLayout, type TentItem } from "@/components/evaluation/TentVisualizer";
 import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
@@ -211,6 +213,10 @@ export default function EventFormEvaluation() {
     const kitchenField = findFieldsByRole(fields, "helper.kitchen");
     const shoppingField = findFieldsByRole(fields, "helper.shopping");
     const seatsField = findFieldsByRole(fields, "transport.seats");
+    const helperField = findFieldByRole(fields, "helper.tasks");
+    const helperTasks: HelperTask[] =
+      helperField && Array.isArray(helperField.settings?.tasks) ? helperField.settings.tasks : [];
+    const helperCounts = new Map<string, string[]>(helperTasks.map((t) => [t.key, []]));
 
     const tents: { type: string; diameter?: number; length?: number; width?: number; capacity: number; respondent: string; member_tent_id?: string }[] = [];
     const dayCount: Record<string, number> = {};
@@ -274,6 +280,15 @@ export default function EventFormEvaluation() {
       for (const f of seatsField) {
         const val = getAnswer(resp, f.id);
         if (typeof val === "number") totalSeats += val;
+      }
+
+      if (helperField) {
+        const picked = getAnswer(resp, helperField.id);
+        if (Array.isArray(picked)) {
+          for (const key of picked) {
+            helperCounts.get(key)?.push(resp.respondent_name);
+          }
+        }
       }
     }
 
@@ -379,7 +394,21 @@ export default function EventFormEvaluation() {
 
     const totalArea = boundingArea;
 
-    return { tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems };
+    const helperResults: HelperTaskResult[] = helperTasks
+      .filter((t) => t.label?.trim())
+      .map((t) => {
+        const names = helperCounts.get(t.key) ?? [];
+        return { ...t, count: names.length, names };
+      });
+
+    // Blöcke, deren Felder das Formular gar nicht erhebt, werden nicht als
+    // Reihe von Nullen angezeigt – sonst weiß niemand, ob niemand mitfährt oder
+    // ob die Frage fehlt.
+    const hasTransportFields =
+      carField.length + trailerField.length + canTowField.length + seatsField.length > 0;
+    const hasKitchenFields = kitchenField.length + shoppingField.length > 0;
+
+    return { hasTransportFields, hasKitchenFields, tents, totalCapacity, dayCount, carsCount, totalSeats, trailerCount, canTowCount, kitchenHelpers, shoppers, memberTentArea: memberTentArea + poolTentArea, clubTentArea, totalArea, tentItems, helperResults };
   }, [responses, fields, selectedClubTents, spacing, poolTentIds, allMemberTents, layoutVersion]);
 
   const exportCSV = () => {
@@ -628,12 +657,16 @@ export default function EventFormEvaluation() {
           )}
         </div>
 
+        <EvalHelperTasks tasks={summary.helperResults} />
+
         <EvalLogistics
           carsCount={summary.carsCount}
           canTowCount={summary.canTowCount}
           trailerCount={summary.trailerCount}
           shoppers={summary.shoppers}
           kitchenHelpers={summary.kitchenHelpers}
+          hasTransport={summary.hasTransportFields}
+          hasKitchen={summary.hasKitchenFields}
         />
 
         {/* Member tent pool */}

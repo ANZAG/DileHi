@@ -18,7 +18,7 @@ import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { FormField, FormResponse, FormAnswer } from "@/components/event-forms/types";
+import type { FormField, FormResponse, FormAnswer, HelperTask } from "@/components/event-forms/types";
 import { TENT_TYPES } from "@/components/event-forms/types";
 
 interface Member { id: string; display_name: string; is_active: boolean | null }
@@ -43,6 +43,15 @@ function formatAnswer(field: FormField, value: any): string {
   switch (field.type) {
     case "checkbox": return value === true ? "Ja" : "Nein";
     case "multi_select": return Array.isArray(value) ? value.join(", ") : String(value);
+    case "helper_tasks": {
+      // Gespeichert werden stabile Schluessel, angezeigt die Beschriftungen –
+      // sonst steht in der Tabelle "t-9f3a..." statt "Aufbau".
+      if (!Array.isArray(value) || value.length === 0) return "–";
+      const tasks: HelperTask[] = Array.isArray(field.settings?.tasks) ? field.settings.tasks : [];
+      return value
+        .map((k: string) => tasks.find((t) => t.key === k)?.label ?? k)
+        .join(", ");
+    }
     case "attendance_days":
       if (value?.all_days) return "Alle Tage";
       if (value?.days?.length) {

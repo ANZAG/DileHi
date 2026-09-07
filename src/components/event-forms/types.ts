@@ -36,6 +36,27 @@ export interface FormResponse {
   answers?: FormAnswer[];
 }
 
+/**
+ * Eine Helferaufgabe innerhalb eines helper_tasks-Feldes.
+ *
+ * Der Termin steht bewusst an der Aufgabe und wird beim Erstellen der Frage
+ * gesetzt: Wer ankreuzt, muss sehen, worauf er sich einlässt – Aufbau am
+ * Freitagnachmittag ist etwas anderes als Aufbau am Samstagmorgen.
+ *
+ * `min` ist die Zahl der Personen, die gleichzeitig gebraucht werden. Manche
+ * Zelte brauchen sechs Leute auf einmal; ohne diese Zahl sieht man in der
+ * Auswertung zwar "4 Helfer", aber nicht, dass das nicht reicht.
+ */
+export interface HelperTask {
+  /** Stabil – bleibt beim Umbenennen erhalten, damit Altantworten passen. */
+  key: string;
+  label: string;
+  /** ISO-Zeitpunkt oder Datum, optional. */
+  when?: string | null;
+  /** Mindestanzahl gleichzeitig benötigter Personen, optional. */
+  min?: number | null;
+}
+
 export interface FormAnswer {
   id: string;
   response_id: string;
@@ -99,6 +120,13 @@ export const FIELD_TYPES = [
     icon: "CheckSquare",
     hint: "Kästchen zum Ankreuzen, mehrere Optionen möglich.",
     example: "z.B. Aufbau / Abbau",
+  },
+  {
+    value: "helper_tasks",
+    label: "Helferaufgaben",
+    icon: "HandHelping",
+    hint: "Aufgaben zum Ankreuzen – jede mit Termin und, wenn nötig, einer Mindestanzahl. Die Auswertung zeigt, ob genug Leute zusammenkommen.",
+    example: "z.B. Aufbau (Fr, ab 14 Uhr) – mindestens 6",
   },
   {
     value: "checkbox",
