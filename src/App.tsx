@@ -18,16 +18,28 @@ import InstallHint from "./components/InstallHint";
  * gelöscht wurden –, wird genau einmal neu geladen. Ohne diese Behandlung
  * bleibt die Seite weiß, und ein Neuladen von Hand ist die einzige Rettung.
  */
+const RETRY_KEY = "chunk-retry";
+
 const lazyPage = <P extends object>(load: () => Promise<{ default: React.ComponentType<P> }>) =>
   lazy(() =>
-    load().catch((err) => {
-      const alreadyRetried = sessionStorage.getItem("chunk-retry");
-      if (!alreadyRetried) {
-        sessionStorage.setItem("chunk-retry", "1");
-        window.location.reload();
-      }
-      throw err;
-    })
+    load()
+      .then((mod) => {
+        // Erst der ERFOLG hebt die Sperre auf. Vorher stand hier ein
+        // load-Ereignis, das sie bei jedem Seitenaufbau geloescht hat – damit
+        // griff sie nie, und ein einziger fehlgeschlagener Programmteil
+        // erzeugte eine Endlosschleife aus Neuladen.
+        try { sessionStorage.removeItem(RETRY_KEY); } catch { /* Speicher gesperrt */ }
+        return mod;
+      })
+      .catch((err) => {
+        let retried = "1";
+        try { retried = sessionStorage.getItem(RETRY_KEY) ?? ""; } catch { /* Speicher gesperrt */ }
+        if (!retried) {
+          try { sessionStorage.setItem(RETRY_KEY, "1"); } catch { /* Speicher gesperrt */ }
+          window.location.reload();
+        }
+        throw err;
+      })
   );
 
 // Startseite und Fehlerseite bleiben im Haupt-Bundle: Die eine ist der
@@ -93,12 +105,6 @@ const PageLoader = () => (
   </div>
 );
 
-// Nach einem erfolgreichen Start darf der naechste Fehlschlag wieder einmal
-// neu laden – sonst bleibt es beim einmaligen Versuch fuer die ganze Sitzung.
-if (typeof window !== "undefined") {
-  window.addEventListener("load", () => sessionStorage.removeItem("chunk-retry"));
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -107,8 +113,8 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ScrollToTop />
+          <ErrorBoundary>
           <Layout>
-            <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -149,10 +155,10 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-            </ErrorBoundary>
             <AppUpdatePrompt />
             <InstallHint />
           </Layout>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
