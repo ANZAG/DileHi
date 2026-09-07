@@ -29,3 +29,8 @@ verify_jwt = false
 [functions.embed]
 # Einbindung fuer fremde Websites – muss ohne Anmeldung erreichbar sein.
 verify_jwt = false
+
+[functions.notify-digest]
+# Wird von einem Zeitplandienst aufgerufen, der keine Sitzung hat.
+# Abgesichert ueber das gemeinsame Geheimnis DIGEST_SECRET.
+verify_jwt = false

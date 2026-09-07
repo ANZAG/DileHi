@@ -1,0 +1,50 @@
+name: Tageszusammenfassung
+
+# Ruft die Edge Function auf, die ungelesene Benachrichtigungen als eine Mail
+# verschickt. Ein Zeitplandienst in der Datenbank (pg_cron) wäre naheliegender,
+# lässt sich in der Lovable-Cloud aber nicht einrichten – deshalb hier.
+#
+# Einmalig einzurichten – Repository → Settings → Secrets and variables → Actions:
+#
+#   SUPABASE_FUNCTIONS_URL   https://<projekt>.supabase.co/functions/v1
+#   DIGEST_SECRET            frei gewaehltes langes Passwort; muss identisch
+#                            auch als Secret der Edge Function hinterlegt sein
+#                            (in Lovable unter den Backend-Einstellungen)
+
+on:
+  schedule:
+    # 18:40 UTC – am Abend, wenn die Leute zu Hause sind. Krumme Minute, weil
+    # zur vollen Stunde bei GitHub sehr viele Jobs gleichzeitig starten.
+    - cron: "40 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zusammenfassung ausloesen
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          DIGEST_SECRET: ${{ secrets.DIGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FUNCTIONS_URL}" ] || [ -z "${DIGEST_SECRET}" ]; then
+            echo "::error::Secrets SUPABASE_FUNCTIONS_URL oder DIGEST_SECRET fehlen – siehe Kommentar in dieser Datei."
+            exit 1
+          fi
+          response=$(mktemp)
+          code=$(curl -s -o "$response" -w "%{http_code}" --max-time 120 \
+            -X POST "${FUNCTIONS_URL}/notify-digest" \
+            -H "x-digest-secret: ${DIGEST_SECRET}" \
+            -H "Content-Type: application/json")
+          echo "HTTP $code"
+          cat "$response"
+          echo
+          # Ein Fehlschlag soll auffallen, nicht still bleiben.
+          if [ "$code" != "200" ]; then
+            echo "::error::Zusammenfassung fehlgeschlagen (HTTP $code)"
+            exit 1
+          fi

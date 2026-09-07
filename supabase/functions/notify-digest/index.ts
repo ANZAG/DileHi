@@ -1,0 +1,112 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+
+/**
+ * Tägliche Zusammenfassung ungelesener Benachrichtigungen.
+ *
+ * Die Glocke erreicht nur, wer die Seite ohnehin offen hat. Für alle anderen
+ * ist die Mail am Abend der Grund, überhaupt vorbeizuschauen – und damit der
+ * eigentliche Hebel gegen WhatsApp.
+ *
+ * Bewusst eine Sammelmail statt einer Mail je Ereignis: Zehn Einzelmails an
+ * einem Abend führen dazu, dass Leute alles abbestellen.
+ *
+ * Wird von einer geplanten GitHub-Action aufgerufen und mit einem gemeinsamen
+ * Geheimnis abgesichert – die Funktion ist ohne Anmeldung erreichbar, weil ein
+ * Zeitplandienst keine Sitzung hat.
+ */
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface DigestItem {
+  title: string;
+  body: string | null;
+  link: string | null;
+  created_at: string;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const expected = Deno.env.get("DIGEST_SECRET");
+  const provided = req.headers.get("x-digest-secret");
+  if (!expected || provided !== expected) {
+    return new Response(JSON.stringify({ error: "Nicht berechtigt" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const { data: digests, error } = await admin.rpc("pending_digests");
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const siteUrl = (Deno.env.get("SITE_URL") || "https://www.dilehi.de").replace(/\/$/, "");
+  const rows = (digests ?? []) as { user_id: string; display_name: string; items: DigestItem[] }[];
+
+  let sent = 0;
+  const failed: string[] = [];
+
+  for (const row of rows) {
+    // Die Adresse steht in auth.users, nicht im Profil.
+    const { data: authUser } = await admin.auth.admin.getUserById(row.user_id);
+    const email = authUser?.user?.email;
+    if (!email) continue;
+
+    const list = row.items
+      .map(
+        (i) => `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e7e5e4;">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #292524;">${escapeHtml(i.title)}</p>
+            ${i.body ? `<p style="margin: 2px 0 0; font-size: 13px; color: #57534e;">${escapeHtml(i.body)}</p>` : ""}
+          </td>
+        </tr>`
+      )
+      .join("");
+
+    const count = row.items.length;
+    const html = buildEmailWrapper(`
+      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Neu für dich</p>
+      <p style="margin: 0 0 16px; font-size: 15px;">
+        Hallo ${escapeHtml(row.display_name || "")}, seit deinem letzten Besuch
+        ${count === 1 ? "gibt es eine Neuigkeit" : `gibt es ${count} Neuigkeiten`}:
+      </p>
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>
+      ${buildButton(`${siteUrl}/intern/forum`, "Im Forum ansehen")}
+      <p style="margin: 20px 0 0; font-size: 12px; color: #a8a29e;">
+        Diese Zusammenfassung lässt sich in deinem Profil abstellen.
+      </p>
+    `, { showImpressum: true });
+
+    try {
+      await sendEmailViaMsGraph(
+        email,
+        count === 1 ? "Eine Neuigkeit für dich" : `${count} Neuigkeiten für dich`,
+        html
+      );
+      // Zeitstempel erst nach erfolgreichem Versand – sonst gehen Meldungen
+      // verloren, wenn der Mailversand ausfällt.
+      await admin.from("profiles").update({ digest_sent_at: new Date().toISOString() }).eq("id", row.user_id);
+      sent++;
+    } catch (err) {
+      failed.push(`${row.user_id}: ${(err as Error).message}`);
+    }
+  }
+
+  return new Response(JSON.stringify({ empfaenger: rows.length, versendet: sent, fehler: failed }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+});

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { path: "/", label: "Startseite" },
@@ -57,6 +58,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {item.label}
               </Link>
             ))}
+            {user && <NotificationBell />}
             <Link
               to={user ? "/intern" : "/login"}
               className={`ml-2 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
@@ -70,7 +72,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
 
           <div className="flex md:hidden items-center gap-1">
-            
+            {user && <NotificationBell />}
             <button className="p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>

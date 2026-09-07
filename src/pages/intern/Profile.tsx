@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle } from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,6 +54,7 @@ const Profile = () => {
     exitDate: "",
     isActive: true,
     showOnMap: false,
+    notifyDigest: true,
     // Dietary preferences – used to pre-fill event registration forms automatically
     diet: "",
     allergies: "",
@@ -109,6 +110,7 @@ const Profile = () => {
         exitDate: profileData.exit_date || "",
         isActive: profileData.is_active ?? true,
         showOnMap: profileData.show_on_map ?? false,
+        notifyDigest: (profileData as { notify_digest?: boolean }).notify_digest ?? true,
         diet: profileData.diet || "",
         allergies: profileData.allergies || "",
       });
@@ -211,11 +213,15 @@ const Profile = () => {
           membership_type: form.membershipType,
           contribution_interval: form.contributionInterval,
           show_on_map: form.showOnMap,
+          notify_digest: form.notifyDigest,
           map_lat: form.showOnMap ? mapLat : null,
           map_lng: form.showOnMap ? mapLng : null,
           diet: form.diet || null,
           allergies: form.allergies || null,
-        })
+          // notify_digest steht noch nicht in der erzeugten types.ts – die
+          // entsteht erst bei der naechsten Neugenerierung. Danach kann die
+          // Zusicherung weg.
+        } as never)
         .eq("id", user.id);
       if (profileError) throw profileError;
 
@@ -595,6 +601,28 @@ const Profile = () => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Benachrichtigungen */}
+          <div className="p-6 rounded-lg border bg-card space-y-3">
+            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <Bell size={18} /> Benachrichtigungen
+            </h2>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.notifyDigest}
+                onChange={(e) => setField("notifyDigest", e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input"
+              />
+              <div>
+                <span className="text-sm font-medium">Tägliche Zusammenfassung per E-Mail</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Eine Mail am Abend, wenn es Neues gibt – gesammelt, nicht einzeln.
+                  Die Glocke oben in der Leiste bleibt davon unberührt.
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Map opt-in */}
