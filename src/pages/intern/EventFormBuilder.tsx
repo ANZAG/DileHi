@@ -19,6 +19,9 @@ import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import { useFormSettings } from "@/components/event-forms/formSettings";
 
+/** Stabile Referenz – siehe Kommentar am Entwurfs-Effekt. */
+const EMPTY_FIELDS: FormField[] = [];
+
 export default function EventFormBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
@@ -58,7 +61,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
     enabled: !!eventId,
   });
 
-  const { data: fields = [] } = useQuery({
+  const { data: fields = EMPTY_FIELDS } = useQuery({
     queryKey: ["event_form_fields", form?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -72,12 +75,18 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
     enabled: !!form?.id,
   });
 
-  // Serverzustand in den Entwurf übernehmen (nur wenn nichts Ungespeichertes offen ist)
+  // Serverzustand in den Entwurf übernehmen (nur wenn nichts Ungespeichertes offen ist).
+  //
+  // Achtung: Die Abhängigkeit muss stabil sein. Stand hier `data: fields = []`,
+  // entstand bei jedem Render ein neues leeres Array, der Effekt lief erneut,
+  // setDraft erzeugte wieder ein neues Array – eine Endlosschleife, die die
+  // Seite unbedienbar machte, solange noch kein Formular existierte. Deshalb
+  // die Konstante EMPTY_FIELDS und der Ausstieg ohne Formular.
   useEffect(() => {
-    if (dirty) return;
+    if (dirty || !form?.id) return;
     setDraft(fields.map((f) => ({ ...f, options: f.options || [], settings: f.settings || {} })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields]);
+  }, [fields, form?.id]);
 
   const createForm = useMutation({
     mutationFn: async () => {
@@ -95,6 +104,8 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
+    onError: (err: Error) =>
+      toast({ title: "Formular konnte nicht angelegt werden", description: err.message, variant: "destructive" }),
   });
 
   // Einstellungen laufen ueber denselben Weg wie auf der Auswertungsseite:

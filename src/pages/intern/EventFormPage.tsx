@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -27,17 +27,28 @@ export default function EventFormPage({ initialTab }: { initialTab: Tab }) {
   const location = useLocation();
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  // Adresszeile mitführen, ohne die Seite neu aufzubauen – sonst zeigt ein
-  // kopierter Link auf den falschen Reiter.
+  // Der Zustand wird beim Wechsel mitgegeben, soll den Effekt aber nicht auslösen.
+  const locationRef = useRef(location);
+  locationRef.current = location;
+
+  // Adresszeile beim Reiterwechsel mitführen, damit ein kopierter Link auf den
+  // richtigen Reiter zeigt.
+  //
+  // Ausschlaggebend ist allein der Reiter, nicht der aktuelle Pfad: Hing
+  // location.pathname mit in den Abhängigkeiten, wurde beim Verlassen der Seite
+  // – etwa über den Zurück-Pfeil – sofort wieder hierher zurücknavigiert. Die
+  // Adresszeile änderte sich, die Seite blieb stehen.
+  const syncedTab = useRef(initialTab);
   useEffect(() => {
-    const target =
+    if (syncedTab.current === tab) return;
+    syncedTab.current = tab;
+    navigate(
       tab === "formular"
         ? `/intern/veranstaltungen/${eventId}/formular`
-        : `/intern/veranstaltungen/${eventId}/auswertung`;
-    if (location.pathname !== target) {
-      navigate(target, { replace: true, state: location.state });
-    }
-  }, [tab, eventId, location.pathname, location.state, navigate]);
+        : `/intern/veranstaltungen/${eventId}/auswertung`,
+      { replace: true, state: locationRef.current.state }
+    );
+  }, [tab, eventId, navigate]);
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
