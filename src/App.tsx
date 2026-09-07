@@ -62,7 +62,6 @@ const RolesPermissions     = lazyPage(() => import("./pages/intern/RolesPermissi
 const Documents            = lazyPage(() => import("./pages/intern/Documents"));
 const Contributions        = lazyPage(() => import("./pages/intern/Contributions"));
 const MemberMap            = lazyPage(() => import("./pages/intern/MemberMap"));
-const Steckbriefe          = lazyPage(() => import("./pages/intern/Steckbriefe"));
 // Formular und Anmeldungen liegen auf einer Seite mit zwei Reitern. Beide
 // Adressen bleiben gueltig und waehlen nur den Reiter vor.
 const EventFormPage        = lazyPage(() => import("./pages/intern/EventFormPage"));
@@ -132,7 +131,6 @@ const App = () => (
 
                 <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
                 <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
-                <Route path="/intern/steckbriefe" element={<ProtectedRoute><Steckbriefe /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/anmeldung" element={<ProtectedRoute><EventRegistrationInternal /></ProtectedRoute>} />

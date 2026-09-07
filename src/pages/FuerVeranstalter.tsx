@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PublicPersonasSection from "@/components/PublicPersonasSection";
 
 const FuerVeranstalter = () => {
   const { toast } = useToast();
@@ -122,6 +123,8 @@ const FuerVeranstalter = () => {
           </form>
         </motion.section>
       </div>
+
+      <PublicPersonasSection />
     </div>
   );
 };
