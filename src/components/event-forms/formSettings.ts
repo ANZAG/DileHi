@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -66,13 +67,29 @@ export async function saveFormSettings(
 export function useFormSettings(formId: string | undefined, eventId: string | undefined) {
   const queryClient = useQueryClient();
 
+  // Beim Speichern springt die Seite sonst an den Anfang – etwa beim Ankreuzen
+  // eines Zelts aus dem Pool. Auslöser ist das Neuladen des Formulars, das die
+  // Auswertung samt Lageplan neu aufbaut. Die Position wird deshalb vor dem
+  // Speichern gemerkt und danach wiederhergestellt.
+  const scrollY = useRef(0);
+
   return useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
       if (!formId) return;
       await saveFormSettings(formId, patch);
     },
+    onMutate: () => {
+      scrollY.current = window.scrollY;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
+      // Nach dem Neuaufbau, nicht davor – sonst wird die alte Position gesetzt
+      // und der Sprung passiert danach trotzdem.
+      requestAnimationFrame(() => {
+        if (Math.abs(window.scrollY - scrollY.current) > 8) {
+          window.scrollTo({ top: scrollY.current, behavior: "instant" });
+        }
+      });
     },
     onError: (err: Error) => {
       toast({
