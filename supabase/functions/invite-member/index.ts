@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import { requirePermission, requireValidRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -312,17 +313,16 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is Vorstand (1. / 2. Officiatus)
-    const { data: callerRoles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["officiatus_1", "officiatus_2"]);
-    if (!callerRoles || callerRoles.length === 0) throw new Error("Nur der Vorstand kann Mitglieder einladen");
+    await requirePermission(
+      adminClient,
+      user.id,
+      "members.manage",
+      "Keine Berechtigung, Mitglieder einzuladen"
+    );
 
     const { email, role, applicationId } = await req.json();
     if (!email || !role) throw new Error("E-Mail und Rolle erforderlich");
-    if (!["mitglied", "officiatus_1", "officiatus_2", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
+    await requireValidRole(adminClient, role);
 
     // Optional application context
     let app: Application | null = null;

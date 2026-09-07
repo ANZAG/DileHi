@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmailViaMsGraph, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import { requirePermission, requireValidRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,13 +27,12 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is Vorstand (1. / 2. Officiatus)
-    const { data: callerRoles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["officiatus_1", "officiatus_2"]);
-    if (!callerRoles || callerRoles.length === 0) throw new Error("Nur der Vorstand kann Mitglieder verwalten");
+    await requirePermission(
+      adminClient,
+      user.id,
+      "members.manage",
+      "Keine Berechtigung, Mitglieder zu verwalten"
+    );
 
     const body = await req.json();
     const { action, userId, displayName, role, email, entryDate, exitDate, isActive } = body;
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
     if (action === "update_role") {
       if (!userId || !role) throw new Error("userId und role erforderlich");
-      if (!["mitglied", "officiatus_1", "officiatus_2", "herold", "schatzmeister"].includes(role)) throw new Error("Ungültige Rolle");
+      await requireValidRole(adminClient, role);
       await adminClient.from("user_roles").delete().eq("user_id", userId);
       const { error } = await adminClient.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
