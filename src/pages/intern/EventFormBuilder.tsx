@@ -30,7 +30,6 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
 
   const handleBack = () => navigate("/intern/veranstaltungen");
 
-  const [showSettings, setShowSettings] = useState(() => location.state?.openSettings === true);
   const [draft, setDraft] = useState<FormField[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -88,7 +87,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
           event_id: eventId!,
           title: event?.title || "Anmeldeformular",
           created_by: user!.id,
-          settings: { spacing_m: 0, club_tents: [], whatsapp_link: "" },
+          settings: { spacing_m: 0, club_tents: [], group_link: "" },
         })
         .select()
         .single();
@@ -187,7 +186,6 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
-      setShowSettings(false);
       setDirty(false);
       toast({ title: "Formular gelöscht" });
     },
@@ -272,24 +270,86 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
 
         {form && (
           <div className="space-y-4">
-            {/* Actions bar */}
+            {/* Titel und Beschreibung – gehoeren zum Formular, nicht in einen Dialog */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div>
+                <Label htmlFor="form-title" className="text-sm">
+                  Titel des Formulars <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="form-title"
+                  defaultValue={form.title}
+                  required
+                  aria-invalid={!form.title?.trim()}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (!v) {
+                      e.target.value = form.title;
+                      toast({ title: "Titel darf nicht leer sein", variant: "destructive" });
+                      return;
+                    }
+                    if (v !== form.title) updateForm.mutate({ title: v });
+                  }}
+                />
+                {!form.title?.trim() && (
+                  <p className="text-xs text-destructive mt-1">Bitte einen Titel vergeben.</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="form-desc" className="text-sm">Beschreibung (optional)</Label>
+                <Textarea
+                  id="form-desc"
+                  rows={2}
+                  defaultValue={form.description || ""}
+                  placeholder="Kurzer Hinweis, der über dem Formular steht"
+                  onBlur={(e) => updateForm.mutate({ description: e.target.value.trim() || null })}
+                />
+              </div>
+            </div>
+
+            {/* Anmeldezeitraum – Schalter und Fristen gehoeren zusammen */}
+            <div className="border rounded-lg p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="font-semibold text-sm">Anmeldezeitraum</h3>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="form-open" className="text-sm">Anmeldung möglich</Label>
+                  <Switch
+                    id="form-open"
+                    checked={form.is_open}
+                    onCheckedChange={(checked) => updateForm.mutate({ is_open: checked })}
+                  />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="form-opens" className="text-xs text-muted-foreground">Öffnet am</Label>
+                  <Input
+                    id="form-opens"
+                    type="datetime-local"
+                    defaultValue={form.settings?.opens_at || ""}
+                    onBlur={(e) => saveSettings.mutate({ opens_at: e.target.value || null })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="form-closes" className="text-xs text-muted-foreground">Schließt am</Label>
+                  <Input
+                    id="form-closes"
+                    type="datetime-local"
+                    defaultValue={form.settings?.closes_at || ""}
+                    onBlur={(e) => saveSettings.mutate({ closes_at: e.target.value || null })}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Leer lassen heißt unbegrenzt. Der Zeitraum gilt zusätzlich zum Schalter –
+                ist er abgelaufen, schließt sich das Formular von selbst.
+              </p>
+            </div>
+
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={copyPublicLink}>
-                <LinkIcon size={14} className="mr-1" /> Link kopieren
-              </Button>
               <Button variant="outline" size="sm" onClick={loadTemplate}>
                 <Copy size={14} className="mr-1" /> Vorlage laden
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
-                <Settings size={14} className="mr-1" /> Einstellungen
-              </Button>
-              <div className="flex items-center gap-2 sm:ml-auto">
-                <Label className="text-sm">Anmeldung möglich</Label>
-                <Switch
-                  checked={form.is_open}
-                  onCheckedChange={(checked) => updateForm.mutate({ is_open: checked })}
-                />
-              </div>
             </div>
 
             {/* Speicherleiste */}
@@ -335,118 +395,37 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
           </div>
         )}
 
-        {/* Settings Dialog */}
-        <Dialog open={showSettings} onOpenChange={setShowSettings}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Formular-Einstellungen</DialogTitle>
-            </DialogHeader>
-            {form && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Formular-Titel</Label>
-                  <Input
-                    defaultValue={form.title}
-                    onBlur={(e) => updateForm.mutate({ title: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Beschreibung</Label>
-                  <Textarea
-                    defaultValue={form.description || ""}
-                    onBlur={(e) => updateForm.mutate({ description: e.target.value || null })}
-                    rows={2}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Öffnet am</Label>
-                    <Input
-                      type="datetime-local"
-                      defaultValue={form.settings?.opens_at || ""}
-                      onBlur={(e) => {
-                        saveSettings.mutate({ opens_at: e.target.value || null });
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label>Schließt am</Label>
-                    <Input
-                      type="datetime-local"
-                      defaultValue={form.settings?.closes_at || ""}
-                      onBlur={(e) => {
-                        saveSettings.mutate({ closes_at: e.target.value || null });
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground col-span-2">Leer lassen = unbegrenzt. Wird zusätzlich zum Schalter „Anmeldung möglich" geprüft.</p>
-                </div>
-                <div>
-                  <Label>WhatsApp-Gruppenlink</Label>
-                  <Input
-                    defaultValue={form.settings?.whatsapp_link || ""}
-                    onBlur={(e) => {
-                      saveSettings.mutate({ whatsapp_link: e.target.value.trim() });
-                    }}
-                    placeholder="https://chat.whatsapp.com/..."
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Wird in der Bestätigungsmail mit QR-Code angezeigt</p>
-                </div>
-                <div>
-                  <Label className="mb-2 block">Öffentlicher Link</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      readOnly
-                      value={`${window.location.origin}/anmeldung/${form.public_token}`}
-                      className="text-xs"
-                    />
-                    <Button variant="outline" size="sm" onClick={copyPublicLink}>
-                      <Copy size={14} />
-                    </Button>
-                  </div>
-                </div>
+        {/* Formular löschen – abgesetzt am Seitenende, nur Vorstand */}
+        {form && isVorstand && (
+          <div className="mt-8 border-t pt-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 size={14} className="mr-1" /> Formular löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Formular löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Alle Felder und alle bereits eingegangenen Anmeldungen werden
+                    unwiderruflich gelöscht. Das lässt sich nicht rückgängig machen.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteForm.mutate()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Endgültig löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
 
-                <p className="text-xs text-muted-foreground border-t pt-3">
-                  Zelt-Abstand und Geländeplan stehen unter „Anmeldungen“ – dort,
-                  wo man ihre Wirkung sieht.
-                </p>
-
-                {/* Formular löschen – nur Vorstand */}
-                {isVorstand && (
-                  <div className="border-t pt-4">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" className="w-full">
-                          <Trash2 size={14} className="mr-1" /> Formular unwiderruflich löschen
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Formular löschen?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Alle Felder und Anmeldungen werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteForm.mutate()}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Endgültig löschen
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button onClick={() => setShowSettings(false)}>Schließen</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
     </Shell>
   );
 }

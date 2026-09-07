@@ -20,6 +20,7 @@ import EvalHelperTasks, { type HelperTaskResult } from "@/components/evaluation/
 import EvalCatering from "@/components/evaluation/EvalCatering";
 import { aggregateCatering } from "@/components/evaluation/aggregateCatering";
 import EvalCoverage, { type CoverageItem } from "@/components/evaluation/EvalCoverage";
+import LinkWithQr from "@/components/evaluation/LinkWithQr";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -85,6 +86,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
   const [poolTentIds, setPoolTentIds] = useState<string[]>([]);
   const [vizHeight, setVizHeight] = useState(450);
   const [eventLeadId, setEventLeadId] = useState<string>("");
+  const [groupLink, setGroupLink] = useState("");
   const [layoutVersion, setLayoutVersion] = useState(0);
 
   const { data: event } = useQuery({
@@ -124,6 +126,9 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     setProgramItems(s.program_items ?? []);
     setPoolTentIds(s.pool_tent_ids ?? []);
     setEventLeadId(s.event_lead_id ?? "");
+    // whatsapp_link ist der alte Schluessel – weiterlesen, damit bestehende
+    // Links nicht verschwinden. Geschrieben wird nur noch group_link.
+    setGroupLink(s.group_link ?? s.whatsapp_link ?? "");
   }, [formSettingsKey, form]);
 
   const { data: fields = [] } = useQuery({
@@ -563,7 +568,8 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     setLayoutVersion((v) => v + 1);
   };
 
-  const whatsappLink = (form?.settings as any)?.whatsapp_link || "";
+  const savedGroupLink =
+    (form?.settings as any)?.group_link ?? (form?.settings as any)?.whatsapp_link ?? "";
   const eventLeadName = eventLeadId
     ? members.find((m: any) => m.id === eventLeadId)?.display_name
     : null;
@@ -594,11 +600,6 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     <Shell>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
           <div className="flex gap-2 flex-wrap">
-            {form?.public_token && (
-              <Button variant="outline" size="sm" onClick={copyPublicLink}>
-                <LinkIcon size={14} className="mr-1" /> Link kopieren
-              </Button>
-            )}
             <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download size={14} className="mr-1" /> CSV
             </Button>
@@ -615,7 +616,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
         />
 
         {/* Event info row */}
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid lg:grid-cols-2 gap-4 mb-6">
           {/* Verantwortliche */}
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-sm">Verantwortliche</h3>
@@ -672,17 +673,36 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             </div>
           </div>
 
-          {/* WhatsApp */}
-          <div className="border rounded-lg p-4 space-y-2">
+          {/* Links zum Weitergeben */}
+          <div className="border rounded-lg p-4 space-y-4">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
-              <MessageCircle size={14} /> WhatsApp-Gruppe
+              <LinkIcon size={14} /> Links
             </h3>
-            {whatsappLink ? (
-              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline break-all">
-                {whatsappLink.length > 40 ? whatsappLink.slice(0, 40) + "…" : whatsappLink}
-              </a>
-            ) : (
-              <p className="text-xs text-muted-foreground">Kein Link hinterlegt (Einstellungen im Formular-Baukasten)</p>
+
+            {form?.public_token && (
+              <LinkWithQr
+                label="Anmeldelink für Gäste"
+                hint="Wird beim Anlegen des Formulars vergeben und lässt sich nicht ändern."
+                value={`${window.location.origin}/anmeldung/${form.public_token}`}
+                readOnly
+              />
+            )}
+
+            <LinkWithQr
+              icon={<MessageCircle size={13} />}
+              label="Gruppenlink zur Absprache"
+              hint="WhatsApp, Signal, Matrix – was ihr nutzt. Steht in der Bestätigungsmail."
+              placeholder="https://…"
+              value={groupLink}
+              onChange={setGroupLink}
+            />
+            {groupLink !== savedGroupLink && (
+              <Button
+                size="sm"
+                onClick={() => doSaveSettings({ group_link: groupLink.trim() })}
+              >
+                Gruppenlink speichern
+              </Button>
             )}
           </div>
 

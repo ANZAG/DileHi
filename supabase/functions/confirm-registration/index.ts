@@ -84,23 +84,26 @@ Deno.serve(async (req) => {
       formatDateDe(event.start_date) +
       (event.end_date ? ` – ${formatDateDe(event.end_date)}` : "");
     const eventLocation = (event.location as string) || "";
-    const whatsappLinkRaw = (form.settings as Record<string, unknown> | null)?.["whatsapp_link"];
-    const whatsappLink = typeof whatsappLinkRaw === "string" ? whatsappLinkRaw : "";
+    // group_link ist der aktuelle Schluessel; whatsapp_link bleibt lesbar, damit
+    // bestehende Formulare ihren Link behalten. Der Verein entscheidet selbst,
+    // welchen Messenger er nutzt - die Adresse wird nicht mehr auf WhatsApp
+    // eingeschraenkt.
+    const settings = (form.settings as Record<string, unknown> | null) ?? {};
+    const rawGroupLink = settings["group_link"] ?? settings["whatsapp_link"];
+    const groupLink = typeof rawGroupLink === "string" ? rawGroupLink.trim() : "";
     const editUrl = form.public_token
       ? `${siteUrl.replace(/\/$/, "")}/anmeldung/${form.public_token}?edit=${editToken}`
       : "";
 
     const subject = `Anmeldung bestätigt: ${eventTitle}`;
 
-    let whatsappSection = "";
-    if (whatsappLink && /^https:\/\/(chat\.whatsapp\.com|wa\.me)\//.test(whatsappLink)) {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(whatsappLink)}`;
-      whatsappSection = `
+    let groupSection = "";
+    if (/^https:\/\//.test(groupLink)) {
+      groupSection = `
         <div style="margin-top: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center;">
-          <p style="margin: 0 0 8px; font-weight: 600; color: #166534; font-size: 14px;">📱 WhatsApp-Gruppe beitreten</p>
-          <p style="margin: 0 0 12px; font-size: 13px; color: #15803d;">Tritt der Veranstaltungsgruppe bei, um auf dem Laufenden zu bleiben.</p>
-          <img src="${qrUrl}" alt="WhatsApp QR-Code" width="160" height="160" style="display: block; margin: 0 auto 12px;" />
-          <a href="${escapeHtml(whatsappLink)}" style="color: #166534; font-size: 13px; text-decoration: underline;">Direkt beitreten →</a>
+          <p style="margin: 0 0 8px; font-weight: 600; color: #166534; font-size: 14px;">Gruppe zur Absprache</p>
+          <p style="margin: 0 0 12px; font-size: 13px; color: #15803d;">Tritt der Gruppe zu dieser Veranstaltung bei, um auf dem Laufenden zu bleiben.</p>
+          <a href="${escapeHtml(groupLink)}" style="color: #166534; font-size: 13px; text-decoration: underline;">Gruppe öffnen →</a>
         </div>
       `;
     }
@@ -139,7 +142,7 @@ Deno.serve(async (req) => {
       </table>
 
       ${editSection}
-      ${whatsappSection}
+      ${groupSection}
 
       <p style="margin: 20px 0 0; font-size: 13px; color: #57534e;">
         Bei Fragen kannst du dich jederzeit an <a href="mailto:vorstand@dilehi.de" style="color: #dd9933;">vorstand@dilehi.de</a> wenden.
