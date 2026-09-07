@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { FormField, TENT_TYPES } from "./types";
+import { FormField, TENT_TYPES, type HelperTask } from "./types";
 import { evaluateVisibility } from "./conditions";
 
 import { format, eachDayOfInterval, parseISO } from "date-fns";
@@ -111,6 +111,9 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
             })}
           </div>
         );
+
+      case "helper_tasks":
+        return <HelperTasksField field={field} value={value} onChange={onChange} />;
 
       case "checkbox":
         return (
@@ -512,6 +515,75 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
           }
         </p>
       )}
+    </div>
+  );
+}
+
+
+/** Formatiert den Termin einer Helferaufgabe fuer die Anzeige. */
+export function formatTaskWhen(when?: string | null): string | null {
+  if (!when) return null;
+  try {
+    const hasTime = when.includes("T");
+    const d = parseISO(when);
+    return hasTime
+      ? format(d, "EE d.MM., HH:mm 'Uhr'", { locale: de })
+      : format(d, "EE d.MM.", { locale: de });
+  } catch {
+    return when;
+  }
+}
+
+/**
+ * Helferaufgaben zum Ankreuzen. Der Termin steht hinter der Aufgabe, damit man
+ * beim Zusagen weiss, wann sie stattfindet - Aufbau Freitagnachmittag ist etwas
+ * anderes als Aufbau Samstagfrueh.
+ */
+function HelperTasksField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: any;
+  onChange: (v: any) => void;
+}) {
+  const tasks: HelperTask[] = Array.isArray(field.settings?.tasks) ? field.settings.tasks : [];
+  const selected: string[] = Array.isArray(value) ? value : [];
+
+  if (tasks.length === 0) {
+    return <p className="text-sm text-muted-foreground">Für diese Frage sind noch keine Aufgaben hinterlegt.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {tasks.map((task) => {
+        const when = formatTaskWhen(task.when);
+        const checked = selected.includes(task.key);
+        return (
+          <label
+            key={task.key}
+            className="flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+          >
+            <Checkbox
+              className="mt-0.5"
+              checked={checked}
+              onCheckedChange={(c) =>
+                onChange(c ? [...selected, task.key] : selected.filter((k) => k !== task.key))
+              }
+            />
+            <span className="min-w-0">
+              <span className="text-sm font-medium">{task.label}</span>
+              {when && <span className="text-sm text-muted-foreground"> ({when})</span>}
+              {task.min ? (
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  {task.min} Personen gleichzeitig nötig
+                </span>
+              ) : null}
+            </span>
+          </label>
+        );
+      })}
     </div>
   );
 }

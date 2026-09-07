@@ -116,6 +116,20 @@ describe("Standardvorlage", () => {
     }
   });
 
+  it("bündelt die Helferaufgaben in einem Feld statt in drei", () => {
+    // Frueher: Mehrfachauswahl "Auf-/Abbau" plus zwei einzelne Kaestchen fuer
+    // Kueche und Einkauf. Jetzt eine Frage mit Terminen je Aufgabe.
+    const helper = findFieldByRole(fields, "helper.tasks");
+    expect(helper?.type).toBe("helper_tasks");
+    const tasks = (helper?.settings as { tasks?: { key: string; label: string }[] })?.tasks ?? [];
+    expect(tasks.map((t) => t.key)).toEqual([
+      "lager-beladen", "aufbau", "abbau", "lager-entladen", "einkauf", "kochen",
+    ]);
+    expect(new Set(tasks.map((t) => t.key)).size).toBe(tasks.length);
+    expect(findFieldByRole(fields, "helper.kitchen")).toBeUndefined();
+    expect(findFieldByRole(fields, "helper.shopping")).toBeUndefined();
+  });
+
   it("deckt alle Kennzahlen der Auswertung ab", () => {
     // Wer die Vorlage nimmt, bekommt eine vollstaendige Auswertung - ohne
     // diesen Test faellt eine fehlende Rolle erst dem Verein auf.
@@ -123,7 +137,7 @@ describe("Standardvorlage", () => {
       "attendance.days", "lodging.tent",
       "transport.own_car", "transport.seats", "transport.can_tow", "transport.trailer",
       "catering.diet", "catering.allergies",
-      "helper.kitchen", "helper.shopping", "helper.tasks",
+      "helper.tasks",
       "display.brings", "display.description",
     ]) {
       expect(findFieldByRole(fields, key), `Vorlage hat kein Feld für ${key}`).toBeDefined();
