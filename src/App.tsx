@@ -9,6 +9,8 @@ import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AppUpdatePrompt from "./components/AppUpdatePrompt";
+import InstallHint from "./components/InstallHint";
 
 /**
  * Seiten werden erst beim Aufruf nachgeladen. Schlägt das fehl – typischerweise
@@ -148,6 +150,8 @@ const App = () => (
               </Routes>
             </Suspense>
             </ErrorBoundary>
+            <AppUpdatePrompt />
+            <InstallHint />
           </Layout>
         </AuthProvider>
       </BrowserRouter>
