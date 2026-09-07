@@ -54,7 +54,7 @@ const EventsPage = () => {
                   <span className="text-sm">{event!.title}</span>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
-                      <Link to={`/anmeldung/${form.public_token}`}>
+                      <Link to={`/intern/veranstaltungen/${event!.id}/anmeldung`}>
                         Jetzt anmelden
                       </Link>
                     </Button>
