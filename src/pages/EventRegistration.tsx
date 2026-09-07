@@ -18,7 +18,7 @@ import type { FormField } from "@/components/event-forms/types";
 import { findFieldByRole } from "@/components/event-forms/fieldRoles";
 
 interface FormData {
-  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { whatsapp_link?: string; opens_at?: string; closes_at?: string } };
+  form: { id: string; title: string; description: string | null; is_open: boolean; event_id: string; settings?: { group_link?: string; whatsapp_link?: string; opens_at?: string; closes_at?: string } };
   event: { title: string; start_date: string; end_date: string | null; location: string | null; all_day: boolean };
   fields: FormField[];
 }
