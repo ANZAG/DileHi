@@ -85,3 +85,52 @@ self.addEventListener("fetch", (event) => {
     })()
   );
 });
+
+/* ── Push-Meldungen ────────────────────────────────────────────────────────
+ * Der Inhalt kommt verschlüsselt vom Push-Dienst; entschlüsselt wird er vom
+ * Browser, hier liegt er im Klartext vor.
+ */
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let payload = {};
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Neues im Forum", body: event.data.text() };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "Neues im Forum", {
+      body: payload.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      // Gleiche tag heisst: Eine zweite Meldung zum selben Thema ersetzt die
+      // erste, statt den Sperrbildschirm zuzupflastern.
+      tag: payload.tag || "forum",
+      data: { url: payload.url || "/intern/forum" },
+      lang: "de",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/intern/forum";
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Ist die Seite schon offen, dorthin wechseln statt ein zweites Fenster
+      // zu oeffnen.
+      for (const client of clientList) {
+        if (new URL(client.url).origin === self.location.origin) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url);
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
+});

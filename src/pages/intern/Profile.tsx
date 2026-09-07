@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import PushToggle from "@/components/PushToggle";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -623,6 +624,8 @@ const Profile = () => {
                 </p>
               </div>
             </label>
+
+            <PushToggle />
           </div>
 
           {/* Map opt-in */}

@@ -150,12 +150,20 @@ export async function createThread(input: {
 }
 
 export async function createPost(input: { threadId: string; body: string; userId: string }) {
-  const { error } = await db.from("forum_posts").insert({
+  const { data, error } = await db.from("forum_posts").insert({
     thread_id: input.threadId,
     body: input.body,
     created_by: input.userId,
-  });
+  }).select("id").single();
   if (error) throw new Error(error.message);
+
+  // Push anstossen. Bewusst ohne await und ohne Fehlerbehandlung: Die
+  // Benachrichtigung steht bereits in der Datenbank, die Glocke zeigt sie und
+  // die Abendmail nimmt sie mit. Push ist die Zugabe - schlaegt sie fehl, darf
+  // der Beitrag trotzdem als gespeichert gelten.
+  void supabase.functions
+    .invoke("push-notify", { body: { postId: data.id } })
+    .catch(() => undefined);
 }
 
 /** Lesestand setzen – ohne den bringt die Zählung ungelesener Themen nichts. */
