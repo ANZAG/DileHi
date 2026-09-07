@@ -105,6 +105,113 @@ export type Database = {
         }
         Relationships: []
       }
+      app_modules: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          key: string
+          label: string
+          requires: string | null
+          sort_order: number
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          key: string
+          label: string
+          requires?: string | null
+          sort_order?: number
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          label?: string
+          requires?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_modules_requires_fkey"
+            columns: ["requires"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      app_settings: {
+        Row: {
+          calendar_timezone: string
+          color_dark: string
+          color_primary: string
+          id: boolean
+          logo_path: string | null
+          mail_from_address: string | null
+          mail_from_name: string | null
+          mail_reply_to: string | null
+          mail_transport: string
+          org_city: string | null
+          org_country: string
+          org_email: string | null
+          org_name: string
+          org_phone: string | null
+          org_short_name: string
+          org_street: string | null
+          org_tagline: string | null
+          org_zip: string | null
+          updated_at: string
+          updated_by: string | null
+          website_url: string | null
+        }
+        Insert: {
+          calendar_timezone?: string
+          color_dark?: string
+          color_primary?: string
+          id?: boolean
+          logo_path?: string | null
+          mail_from_address?: string | null
+          mail_from_name?: string | null
+          mail_reply_to?: string | null
+          mail_transport?: string
+          org_city?: string | null
+          org_country?: string
+          org_email?: string | null
+          org_name?: string
+          org_phone?: string | null
+          org_short_name?: string
+          org_street?: string | null
+          org_tagline?: string | null
+          org_zip?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          calendar_timezone?: string
+          color_dark?: string
+          color_primary?: string
+          id?: boolean
+          logo_path?: string | null
+          mail_from_address?: string | null
+          mail_from_name?: string | null
+          mail_reply_to?: string | null
+          mail_transport?: string
+          org_city?: string | null
+          org_country?: string
+          org_email?: string | null
+          org_name?: string
+          org_phone?: string | null
+          org_short_name?: string
+          org_street?: string | null
+          org_tagline?: string | null
+          org_zip?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       candidates: {
         Row: {
           created_at: string
@@ -1171,18 +1278,33 @@ export type Database = {
       }
       role_catalog: {
         Row: {
+          description: string | null
+          is_board: boolean
+          is_system: boolean
           key: string
           label: string
+          max_holders: number | null
+          public_listed: boolean
           sort_order: number
         }
         Insert: {
+          description?: string | null
+          is_board?: boolean
+          is_system?: boolean
           key: string
           label: string
+          max_holders?: number | null
+          public_listed?: boolean
           sort_order?: number
         }
         Update: {
+          description?: string | null
+          is_board?: boolean
+          is_system?: boolean
           key?: string
           label?: string
+          max_holders?: number | null
+          public_listed?: boolean
           sort_order?: number
         }
         Relationships: []
@@ -1425,6 +1547,15 @@ export type Database = {
         Returns: undefined
       }
       count_members: { Args: never; Returns: number }
+      get_board_members: {
+        Args: never
+        Returns: {
+          display_name: string
+          role_key: string
+          role_label: string
+          sort_order: number
+        }[]
+      }
       get_current_contribution_rate: { Args: never; Returns: number }
       get_current_satzung_path: { Args: never; Returns: string }
       get_election_results: {
@@ -1471,6 +1602,18 @@ export type Database = {
           label: string
         }[]
       }
+      get_public_settings: {
+        Args: never
+        Returns: {
+          color_dark: string
+          color_primary: string
+          logo_path: string
+          org_name: string
+          org_short_name: string
+          org_tagline: string
+          website_url: string
+        }[]
+      }
       get_response_by_edit_token: {
         Args: { _edit_token: string }
         Returns: Json
@@ -1499,9 +1642,14 @@ export type Database = {
       is_member: { Args: { _user_id: string }; Returns: boolean }
       is_schatzmeister: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
+      module_enabled: { Args: { _key: string }; Returns: boolean }
       submit_form_response: {
         Args: { _answers: Json; _email: string; _name: string; _token: string }
         Returns: string
+      }
+      update_form_settings: {
+        Args: { _form_id: string; _patch: Json }
+        Returns: Json
       }
       update_response_by_edit_token: {
         Args: {
