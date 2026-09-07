@@ -34,3 +34,8 @@ verify_jwt = false
 # Wird von einem Zeitplandienst aufgerufen, der keine Sitzung hat.
 # Abgesichert ueber das gemeinsame Geheimnis DIGEST_SECRET.
 verify_jwt = false
+
+[functions.push-notify]
+# GET liefert den oeffentlichen VAPID-Schluessel und muss ohne Anmeldung
+# erreichbar sein; POST prueft die Anmeldung selbst im Code.
+verify_jwt = false
