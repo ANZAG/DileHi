@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2 } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -15,8 +15,9 @@ import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin"
 import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
 import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
 import EmbedAdmin from "@/components/admin/EmbedAdmin";
+import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum";
 
 
 const Admin = () => {
@@ -51,6 +52,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("personas.publish") ? [
       { id: "personas" as const, label: "Darstellungen", icon: ScrollText, desc: "Für die Website freigeben" },
+    ] : []),
+    ...(hasPermission("forum.categories_manage") ? [
+      { id: "forum" as const, label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" },
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" },
@@ -107,6 +111,7 @@ const Admin = () => {
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
+          {activeTab === "forum" && hasPermission("forum.categories_manage") && <ForumCategoriesAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
           {activeTab === "formtemplate" && hasPermission("events.moderate") && <FormTemplateAdmin />}

@@ -51,6 +51,9 @@ const EventRegistration    = lazyPage(() => import("./pages/EventRegistration"))
 const MembershipApplication = lazyPage(() => import("./pages/MembershipApplication"));
 
 const Dashboard            = lazyPage(() => import("./pages/intern/Dashboard"));
+const Forum                = lazyPage(() => import("./pages/intern/Forum"));
+const ForumCategory        = lazyPage(() => import("./pages/intern/ForumCategory"));
+const ForumThread          = lazyPage(() => import("./pages/intern/ForumThread"));
 const Profile              = lazyPage(() => import("./pages/intern/Profile"));
 const Sources              = lazyPage(() => import("./pages/intern/Sources"));
 const Announcements        = lazyPage(() => import("./pages/intern/Announcements"));
@@ -121,6 +124,9 @@ const App = () => (
                 <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/intern/quellen" element={<ProtectedRoute><Sources /></ProtectedRoute>} />
+                <Route path="/intern/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
+                <Route path="/intern/forum/thema/:threadId" element={<ProtectedRoute><ForumThread /></ProtectedRoute>} />
+                <Route path="/intern/forum/:slug" element={<ProtectedRoute><ForumCategory /></ProtectedRoute>} />
                 <Route path="/intern/pinnwand" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
                 <Route path="/intern/veranstaltungen" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
                 <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
