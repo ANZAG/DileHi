@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "seo:check": "node scripts/seo-check.mjs",
-    "ci": "npm run lint && npm run seo:check && npm test && npm run build",
+    "ci": "npm run lint && npm run seo:check && npx tsc --noEmit -p tsconfig.app.json && npm test && npm run build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

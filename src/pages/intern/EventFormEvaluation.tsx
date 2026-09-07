@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
+import { useFormSettings } from "@/components/event-forms/formSettings";
 import {
   CLUB_TENTS,
   TENT_TYPES,
@@ -37,8 +38,11 @@ interface ProgramItem {
 
 export default function EventFormEvaluation() {
   const { eventId } = useParams<{ eventId: string }>();
-  const { user, roles } = useAuth();
-  const isVorstand = roles.includes("officiatus_1") || roles.includes("officiatus_2");
+  const { user, hasPermission } = useAuth();
+  // Vorher wurde hier direkt auf officiatus_1/2 geprüft. Wer die Berechtigung
+  // über eine andere Rolle hat, bekam die erweiterte Ansicht nicht – und eine
+  // neue Rolle hätte hier grundsätzlich nie funktioniert.
+  const canModerate = hasPermission("events.moderate");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -176,15 +180,9 @@ export default function EventFormEvaluation() {
     },
   });
 
-  const saveSettings = useMutation({
-    mutationFn: async (patch: Record<string, any>) => {
-      if (!form) return;
-      await supabase.from("event_forms").update({
-        settings: { ...(form.settings || {}), ...patch },
-      }).eq("id", form.id);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
-  });
+  // Gemeinsamer Schreibweg mit dem Formular-Baukasten: Es wird nur die
+  // Änderung gesendet, nicht der ganze settings-Blob aus dem Browser-Cache.
+  const saveSettings = useFormSettings(form?.id, eventId);
 
   const doSaveSettings = (patch: Record<string, any>) => saveSettings.mutate(patch);
 
@@ -538,7 +536,7 @@ export default function EventFormEvaluation() {
             <h3 className="font-semibold text-sm">Verantwortliche</h3>
             <div>
               <Label className="text-xs text-muted-foreground">Event-Verantwortlicher</Label>
-              {isVorstand ? (
+              {canModerate ? (
                 <Select
                   value={eventLeadId || event?.created_by || ""}
                   onValueChange={(v) => {
@@ -699,11 +697,11 @@ export default function EventFormEvaluation() {
         <EvalResponsesTable
           fields={fields}
           responses={responses}
-          canDelete={isVorstand || event?.created_by === user?.id}
+          canDelete={canModerate || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
           members={members as any}
           formId={form?.id}
-          canAssign={isVorstand || event?.created_by === user?.id}
+          canAssign={canModerate || event?.created_by === user?.id}
         />
       </motion.div>
     </div>

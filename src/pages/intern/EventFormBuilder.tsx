@@ -18,6 +18,7 @@ import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import EventMapSettings from "@/components/evaluation/EventMapSettings";
+import { useFormSettings } from "@/components/event-forms/formSettings";
 
 export default function EventFormBuilder() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -97,6 +98,10 @@ export default function EventFormBuilder() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
   });
+
+  // Einstellungen laufen ueber denselben Weg wie auf der Auswertungsseite:
+  // nur die Aenderung senden, Zusammenfuehren passiert in der Datenbank.
+  const saveSettings = useFormSettings(form?.id, eventId);
 
   const loadTemplate = async () => {
     const template = await fetchDefaultTemplate();
@@ -355,7 +360,7 @@ export default function EventFormBuilder() {
                       type="datetime-local"
                       defaultValue={form.settings?.opens_at || ""}
                       onBlur={(e) => {
-                        updateForm.mutate({ settings: { ...form.settings, opens_at: e.target.value || null } });
+                        saveSettings.mutate({ opens_at: e.target.value || null });
                       }}
                     />
                   </div>
@@ -365,7 +370,7 @@ export default function EventFormBuilder() {
                       type="datetime-local"
                       defaultValue={form.settings?.closes_at || ""}
                       onBlur={(e) => {
-                        updateForm.mutate({ settings: { ...form.settings, closes_at: e.target.value || null } });
+                        saveSettings.mutate({ closes_at: e.target.value || null });
                       }}
                     />
                   </div>
@@ -380,7 +385,7 @@ export default function EventFormBuilder() {
                     defaultValue={form.settings?.spacing_m ?? 0}
                     onBlur={(e) => {
                       const spacing = Number(e.target.value) || 0;
-                      updateForm.mutate({ settings: { ...form.settings, spacing_m: spacing } });
+                      saveSettings.mutate({ spacing_m: spacing });
                     }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">Zusätzlicher Radius/Rand pro Zelt für Laufwege</p>
@@ -390,7 +395,7 @@ export default function EventFormBuilder() {
                   <Input
                     defaultValue={form.settings?.whatsapp_link || ""}
                     onBlur={(e) => {
-                      updateForm.mutate({ settings: { ...form.settings, whatsapp_link: e.target.value.trim() } });
+                      saveSettings.mutate({ whatsapp_link: e.target.value.trim() });
                     }}
                     placeholder="https://chat.whatsapp.com/..."
                   />
@@ -415,7 +420,7 @@ export default function EventFormBuilder() {
                   formId={form.id}
                   mapImagePath={(form.settings as any)?.map_image_path}
                   mapScale={(form.settings as any)?.map_scale}
-                  onChange={(patch) => updateForm.mutate({ settings: { ...form.settings, ...patch } })}
+                  onChange={(patch) => saveSettings.mutate(patch)}
                 />
 
                 {/* Formular löschen – nur Vorstand */}
