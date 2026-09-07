@@ -111,11 +111,22 @@ export function useEvents() {
     enabled: !!user,
   });
 
-  const personalIcalUrl = calendarToken
-    ? `${import.meta.env.VITE_SUPABASE_URL?.replace(/^https?:\/\//, 'webcal://')}/functions/v1/events-personal-ical?token=${calendarToken}`
-    : null;
+  // Abo- und Download-URL müssen getrennt bleiben:
+  // webcal:// öffnet das Kalenderprogramm, taugt aber nicht als Download-Link.
+  // Das .ics-Suffix im Pfad ist Pflicht – Outlook lehnt Abonnement-URLs ohne
+  // .ics-Endung ab. Supabase leitet Unterpfade an dieselbe Funktion weiter.
+  const fnBase = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+  const webcalBase = fnBase.replace(/^https?:\/\//, "webcal://");
 
-  const icalUrl = `${import.meta.env.VITE_SUPABASE_URL?.replace(/^https?:\/\//, 'webcal://')}/functions/v1/events-ical`;
+  const personalIcalPath = calendarToken
+    ? `/events-personal-ical/meine-termine.ics?token=${calendarToken}`
+    : null;
+  const icalPath = "/events-ical/veranstaltungen.ics";
+
+  const personalIcalUrl = personalIcalPath ? `${webcalBase}${personalIcalPath}` : null;
+  const personalIcalDownloadUrl = personalIcalPath ? `${fnBase}${personalIcalPath}` : null;
+  const icalUrl = `${webcalBase}${icalPath}`;
+  const icalDownloadUrl = `${fnBase}${icalPath}`;
 
   const createEvent = useMutation({
     mutationFn: async () => {
@@ -404,7 +415,7 @@ export function useEvents() {
     organizerId, setOrganizerId,
     events, filteredEvents, attendees,
     calendarDays, holidays, rowSpanSegments,
-    personalIcalUrl, icalUrl, calendarToken,
+    personalIcalUrl, personalIcalDownloadUrl, icalUrl, icalDownloadUrl, calendarToken,
     createEvent, updateEvent, deleteEvent, toggleRSVP,
     openCreate, openEdit, resetForm,
     eventsForDay, isMultiDay, toDateOnly,

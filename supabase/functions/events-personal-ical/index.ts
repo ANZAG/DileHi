@@ -1,57 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildIcal, icalResponseHeaders, type IcalEvent } from "../_shared/ical.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function escapeIcal(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-}
-
-function formatIcalDate(iso: string, allDay: boolean): string {
-  if (allDay) {
-    return iso.slice(0, 10).replace(/-/g, "");
-  }
-  const d = new Date(iso);
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
-}
-
-function foldLine(line: string): string {
-  const encoder = new TextEncoder();
-  if (encoder.encode(line).length <= 75) return line;
-
-  const chunks: string[] = [];
-  let current = "";
-  let currentBytes = 0;
-
-  for (const char of line) {
-    const charBytes = encoder.encode(char).length;
-    const byteLimit = chunks.length === 0 ? 75 : 74;
-
-    if (currentBytes + charBytes > byteLimit && current.length > 0) {
-      chunks.push(current);
-      current = char;
-      currentBytes = charBytes;
-    } else {
-      current += char;
-      currentBytes += charBytes;
-    }
-  }
-
-  if (current) chunks.push(current);
-  return chunks.join("\r\n ");
-}
-
+// Persönlicher Kalender: enthält nur Termine, denen das Mitglied zugesagt hat.
+// Zugriff über den geheimen calendar_token, damit Kalenderprogramme ohne Login
+// abonnieren können. Der Pfad darf ein .ics-Suffix tragen (siehe events-ical).
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const token = url.searchParams.get("token");
-
+  const token = new URL(req.url).searchParams.get("token");
   if (!token) {
     return new Response(JSON.stringify({ error: "Token required" }), {
       status: 400,
@@ -59,15 +22,16 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id")
     .eq("calendar_token", token)
-    .single();
+    .maybeSingle();
 
   if (profileError || !profile) {
     return new Response(JSON.stringify({ error: "Invalid token" }), {
@@ -76,12 +40,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  const userId = profile.id;
-
   const { data: rsvps, error: rsvpError } = await supabase
     .from("event_attendees")
     .select("event_id")
-    .eq("user_id", userId);
+    .eq("user_id", profile.id);
 
   if (rsvpError) {
     return new Response(JSON.stringify({ error: rsvpError.message }), {
@@ -90,13 +52,13 @@ Deno.serve(async (req) => {
     });
   }
 
-  const eventIds = (rsvps || []).map((r) => r.event_id);
+  const eventIds = (rsvps ?? []).map((r) => r.event_id);
+  let events: IcalEvent[] = [];
 
-  let events: any[] = [];
   if (eventIds.length > 0) {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select("id, title, description, location, start_date, end_date, all_day, created_at, updated_at")
       .in("id", eventIds)
       .order("start_date", { ascending: true });
 
@@ -106,80 +68,17 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    events = data || [];
+    events = (data ?? []) as IcalEvent[];
   }
 
-  const lines: string[] = [];
-  const push = (line: string) => lines.push(foldLine(line));
+  const org = Deno.env.get("ORG_NAME") || "Verein";
+  const body = buildIcal(events, {
+    name: Deno.env.get("CALENDAR_NAME_PERSONAL") || `${org} – Meine Termine`,
+    description: "Veranstaltungen, denen du zugesagt hast",
+    filename: "meine-termine.ics",
+  });
 
-  push("BEGIN:VCALENDAR");
-  push("VERSION:2.0");
-  push("PRODID:-//Diu lebendec Historje e.V.//Meine Veranstaltungen//DE");
-  push("CALSCALE:GREGORIAN");
-  push("METHOD:PUBLISH");
-  push("X-WR-CALNAME:Diu lebendec Historje – Meine Termine");
-  push("X-WR-CALDESC:Veranstaltungen denen du zugesagt hast");
-  push("X-WR-TIMEZONE:Europe/Berlin");
-  push("REFRESH-INTERVAL;VALUE=DURATION:PT1H");
-  push("BEGIN:VTIMEZONE");
-  push("TZID:Europe/Berlin");
-  push("BEGIN:STANDARD");
-  push("DTSTART:19701025T030000");
-  push("RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10");
-  push("TZOFFSETFROM:+0200");
-  push("TZOFFSETTO:+0100");
-  push("TZNAME:CET");
-  push("END:STANDARD");
-  push("BEGIN:DAYLIGHT");
-  push("DTSTART:19700329T020000");
-  push("RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3");
-  push("TZOFFSETFROM:+0100");
-  push("TZOFFSETTO:+0200");
-  push("TZNAME:CEST");
-  push("END:DAYLIGHT");
-  push("END:VTIMEZONE");
-
-  for (const ev of events) {
-    const allDay = ev.all_day ?? false;
-
-    push("BEGIN:VEVENT");
-    push(`UID:${ev.id}@dilehi.de`);
-    push(`SEQUENCE:0`);
-
-    if (allDay) {
-      push(`DTSTART;VALUE=DATE:${formatIcalDate(ev.start_date, true)}`);
-      if (ev.end_date) {
-        const endDate = new Date(ev.end_date);
-        endDate.setDate(endDate.getDate() + 1);
-        const pad = (n: number) => n.toString().padStart(2, "0");
-        push(`DTEND;VALUE=DATE:${endDate.getUTCFullYear()}${pad(endDate.getUTCMonth() + 1)}${pad(endDate.getUTCDate())}`);
-      }
-    } else {
-      push(`DTSTART:${formatIcalDate(ev.start_date, false)}`);
-      if (ev.end_date) {
-        push(`DTEND:${formatIcalDate(ev.end_date, false)}`);
-      }
-    }
-
-    push(`SUMMARY:${escapeIcal(ev.title)}`);
-    if (ev.description) {
-      push(`DESCRIPTION:${escapeIcal(ev.description)}`);
-    }
-    if (ev.location) {
-      push(`LOCATION:${escapeIcal(ev.location)}`);
-    }
-    push(`DTSTAMP:${formatIcalDate(ev.created_at, false)}`);
-    push("END:VEVENT");
-  }
-
-  push("END:VCALENDAR");
-
-  return new Response(lines.join("\r\n") + "\r\n", {
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="dilehi-meine-termine.ics"',
-      "Cache-Control": "no-cache",
-    },
+  return new Response(body, {
+    headers: icalResponseHeaders("meine-termine.ics", corsHeaders),
   });
 });

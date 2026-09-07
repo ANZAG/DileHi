@@ -31,7 +31,7 @@ const EventsPage = () => {
               <LinkIcon size={16} className="mr-1" /> <span className="hidden sm:inline">Kalender </span>Abo
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <a href={ev.icalUrl} target="_blank" rel="noopener noreferrer">
+              <a href={ev.icalDownloadUrl} download="veranstaltungen.ics">
                 <Download size={16} className="mr-1" /> iCal
               </a>
             </Button>
