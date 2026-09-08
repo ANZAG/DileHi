@@ -4,8 +4,16 @@ import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import NotificationBell from "@/components/NotificationBell";
+import { useBrandingAnwenden } from "@/hooks/useBranding";
+import { useSiteMenu } from "@/hooks/useSiteMenu";
 
-const navItems = [
+/**
+ * Nur noch der Notnagel. Das Menü kommt aus der Datenbank (site_menu); diese
+ * Liste greift, solange sie leer ist – etwa direkt nach der Installation oder
+ * wenn die Abfrage scheitert. Eine Website ohne Menü wäre schlimmer als eine
+ * mit dem falschen.
+ */
+const navFallback = [
   { path: "/", label: "Startseite" },
   { path: "/epochen/mittelalter", label: "Spätmittelalter" },
   { path: "/epochen/1815", label: "Napoleonik" },
@@ -23,6 +31,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, impersonatingRole, stopImpersonation, roleLabels } = useAuth();
+  const { org_name, org_short_name, logoUrl } = useBrandingAnwenden();
+  const menu = useSiteMenu();
+  const navItems = menu.length > 0 ? menu : navFallback;
 
   // roleLabels comes from useAuth (loaded from role_catalog in DB)
   // → no frontend change needed when a new role is added
@@ -42,8 +53,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       )}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide">
-            Diu lebendec Histôrje
+          <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
+            {logoUrl && <img src={logoUrl} alt="" className="h-7 w-auto" />}
+            {org_short_name}
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -114,7 +126,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="container py-8 md:py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="font-serif text-lg font-semibold text-primary mb-3">Diu lebendec Histôrje e.V.</h3>
+              <h3 className="font-serif text-lg font-semibold text-primary mb-3">{org_name}</h3>
               <p className="text-sm text-muted-foreground">Living History aus Wiesbaden – Geschichte erleben.</p>
             </div>
             <div>
@@ -146,7 +158,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Diu lebendec Histôrje e.V. Alle Rechte vorbehalten.
+            © {new Date().getFullYear()} {org_name}. Alle Rechte vorbehalten.
           </div>
         </div>
       </footer>
