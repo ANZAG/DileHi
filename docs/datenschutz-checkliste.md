@@ -34,6 +34,7 @@ ist.
 | Kontaktformular | Name, E-Mail, Nachricht | Kontakt- und Anfrageverwaltung |
 | Veranstalteranfrage | zusätzlich Organisation, Termin, Ort, Besucherzahl | dito |
 | **E-Mail-Versand** | **über Microsoft 365 — Drittland USA** | dito, „E-Mail-Versand" |
+| Versandweg umstellbar | Microsoft 365 **oder** SMTP | dito — Abschnitt gilt nur für Microsoft |
 | **Datensicherung** | **alle Mitgliederdaten, verschlüsselt zu GitHub — USA** | Bereitstellung, „Datensicherung" |
 | Schriftarten | keine Übermittlung — liegen auf eigenem Server | Eingebundene Funktionen |
 | Bilder im Forum | nicht öffentlicher Speicher, befristete Adressen | Forum, „Bilder in Beiträgen" |
@@ -53,6 +54,23 @@ Funktion live geht:
   Seiten (OpenStreetMap läuft nur im Mitgliederbereich)
 - keine Newsletter an Nichtmitglieder
 - keine automatisierte Entscheidungsfindung oder Profilbildung
+
+## Was sich beim Umstellen ändert
+
+Der E-Mail-Versand lässt sich in der Verwaltung zwischen Microsoft 365 und
+einem gewöhnlichen Mailserver (SMTP) umschalten. Der Abschnitt „E-Mail-Versand"
+in der Erklärung beschreibt Microsoft 365 samt Drittlandübermittlung in die
+USA. **Wer auf SMTP umstellt, muss diesen Abschnitt ändern** — und zwar in beide
+Richtungen:
+
+- Bei einem Anbieter mit Servern in der EU entfällt die Drittlandübermittlung
+  in diesem Punkt; der Satz über den Angemessenheitsbeschluss steht dann zu
+  Unrecht da.
+- Der neue Anbieter gehört mit Namen und Sitz genannt, und es braucht einen
+  Auftragsverarbeitungsvertrag mit ihm.
+
+Die Erklärung kann das nicht selbst wissen: Sie ist eine Seite im Editor, keine
+Abfrage auf die Einstellungen.
 
 ## Offene Punkte
 

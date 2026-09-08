@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import {
+  mitMailversand, escapeHtml, buildEmailWrapper, buildButton, seitenAdresse,
+} from "../_shared/mail.ts";
 
 /**
  * Tägliche Zusammenfassung ungelesener Benachrichtigungen.
@@ -53,58 +55,64 @@ Deno.serve(async (req) => {
     });
   }
 
-  const siteUrl = (Deno.env.get("SITE_URL") || "https://www.dilehi.de").replace(/\/$/, "");
+  const siteUrl = await seitenAdresse();
   const rows = (digests ?? []) as { user_id: string; display_name: string; items: DigestItem[] }[];
 
   let sent = 0;
   const failed: string[] = [];
 
-  for (const row of rows) {
-    // Die Adresse steht in auth.users, nicht im Profil.
-    const { data: authUser } = await admin.auth.admin.getUserById(row.user_id);
-    const email = authUser?.user?.email;
-    if (!email) continue;
+  // Eine Verbindung fuer alle Empfaenger. Ueber `sendeMail` waere es bei SMTP
+  // ein Verbindungsaufbau samt TLS-Handschlag je Mitglied – und viele Anbieter
+  // begrenzen die Zahl der Verbindungen je Stunde schaerfer als die Zahl der
+  // Nachrichten.
+  await mitMailversand(async (sende) => {
+    for (const row of rows) {
+      // Die Adresse steht in auth.users, nicht im Profil.
+      const { data: authUser } = await admin.auth.admin.getUserById(row.user_id);
+      const email = authUser?.user?.email;
+      if (!email) continue;
 
-    const list = row.items
-      .map(
-        (i) => `
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #e7e5e4;">
-            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #292524;">${escapeHtml(i.title)}</p>
-            ${i.body ? `<p style="margin: 2px 0 0; font-size: 13px; color: #57534e;">${escapeHtml(i.body)}</p>` : ""}
-          </td>
-        </tr>`
-      )
-      .join("");
+      const list = row.items
+        .map(
+          (i) => `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e7e5e4;">
+              <p style="margin: 0; font-size: 14px; font-weight: 600; color: #292524;">${escapeHtml(i.title)}</p>
+              ${i.body ? `<p style="margin: 2px 0 0; font-size: 13px; color: #57534e;">${escapeHtml(i.body)}</p>` : ""}
+            </td>
+          </tr>`
+        )
+        .join("");
 
-    const count = row.items.length;
-    const html = buildEmailWrapper(`
-      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Neu für dich</p>
-      <p style="margin: 0 0 16px; font-size: 15px;">
-        Hallo ${escapeHtml(row.display_name || "")}, seit deinem letzten Besuch
-        ${count === 1 ? "gibt es eine Neuigkeit" : `gibt es ${count} Neuigkeiten`}:
-      </p>
-      <table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>
-      ${buildButton(`${siteUrl}/intern/forum`, "Im Forum ansehen")}
-      <p style="margin: 20px 0 0; font-size: 12px; color: #a8a29e;">
-        Diese Zusammenfassung lässt sich in deinem Profil abstellen.
-      </p>
-    `, { showImpressum: true });
+      const count = row.items.length;
+      const html = buildEmailWrapper(`
+        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Neu für dich</p>
+        <p style="margin: 0 0 16px; font-size: 15px;">
+          Hallo ${escapeHtml(row.display_name || "")}, seit deinem letzten Besuch
+          ${count === 1 ? "gibt es eine Neuigkeit" : `gibt es ${count} Neuigkeiten`}:
+        </p>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>
+        ${buildButton(`${siteUrl}/intern/forum`, "Im Forum ansehen")}
+        <p style="margin: 20px 0 0; font-size: 12px; color: #a8a29e;">
+          Diese Zusammenfassung lässt sich in deinem Profil abstellen.
+        </p>
+      `, { showImpressum: true });
 
-    try {
-      await sendEmailViaMsGraph(
-        email,
-        count === 1 ? "Eine Neuigkeit für dich" : `${count} Neuigkeiten für dich`,
-        html
-      );
-      // Zeitstempel erst nach erfolgreichem Versand – sonst gehen Meldungen
-      // verloren, wenn der Mailversand ausfällt.
-      await admin.from("profiles").update({ digest_sent_at: new Date().toISOString() }).eq("id", row.user_id);
-      sent++;
-    } catch (err) {
-      failed.push(`${row.user_id}: ${(err as Error).message}`);
+      try {
+        await sende(
+          email,
+          count === 1 ? "Eine Neuigkeit für dich" : `${count} Neuigkeiten für dich`,
+          html
+        );
+        // Zeitstempel erst nach erfolgreichem Versand – sonst gehen Meldungen
+        // verloren, wenn der Mailversand ausfällt.
+        await admin.from("profiles").update({ digest_sent_at: new Date().toISOString() }).eq("id", row.user_id);
+        sent++;
+      } catch (err) {
+        failed.push(`${row.user_id}: ${(err as Error).message}`);
+      }
     }
-  }
+  });
 
   return new Response(JSON.stringify({ empfaenger: rows.length, versendet: sent, fehler: failed }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },

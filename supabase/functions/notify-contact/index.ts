@@ -1,4 +1,4 @@
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper } from "../_shared/ms-email.ts";
+import { sendeMail, escapeHtml, buildEmailWrapper, vereinsAdresse } from "../_shared/mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +17,9 @@ Deno.serve(async (req) => {
       throw new Error("Name, E-Mail und Nachricht erforderlich");
     }
 
-    const recipientEmail = Deno.env.get("MS_SENDER_EMAIL") || "vorstand@dilehi.de";
+    // Wohin die Anfrage geht: aus den Vereinsangaben, nicht aus einer
+    // Microsoft-Variablen – die ist bei SMTP gar nicht gesetzt.
+    const recipientEmail = await vereinsAdresse();
 
     const subject = `Neue Kontaktanfrage von ${name}`;
     const htmlBody = buildEmailWrapper(`
@@ -36,7 +38,7 @@ Deno.serve(async (req) => {
       </div>
     `, { showImpressum: false });
 
-    await sendEmailViaMsGraph(recipientEmail, subject, htmlBody);
+    await sendeMail(recipientEmail, subject, htmlBody);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

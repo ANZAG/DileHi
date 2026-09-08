@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper } from "../_shared/ms-email.ts";
+import { sendeMail, escapeHtml, buildEmailWrapper } from "../_shared/mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       signature: { senderName, senderRole },
     });
 
-    await sendEmailViaMsGraph(to, subject, htmlBody);
+    await sendeMail(to, subject, htmlBody);
 
     // Save reply to database
     if (contact_message_id) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Save } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, Save, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,6 +109,10 @@ export default function ErscheinungsbildAdmin() {
   }
 
   const setze = (patch: Partial<Einstellungen>) => setEntwurf({ ...entwurf, ...patch });
+  // Der Probeversand liest die Einstellungen aus der Datenbank, nicht aus
+  // diesem Formular. Ohne den Hinweis testet man den alten Stand und wundert
+  // sich, dass die Aenderung nichts bewirkt.
+  const ungespeichert = JSON.stringify(entwurf) !== JSON.stringify(data);
   const bildAdresse = (pfad: string | null) =>
     pfad ? supabase.storage.from("gallery").getPublicUrl(pfad).data.publicUrl : null;
 
@@ -241,6 +245,9 @@ export default function ErscheinungsbildAdmin() {
           <Feld label="Absenderadresse" wert={entwurf.mail_from_address ?? ""} setze={(v) => setze({ mail_from_address: v })} />
           <Feld label="Absendername" wert={entwurf.mail_from_name ?? ""} setze={(v) => setze({ mail_from_name: v })} />
           <Feld label="Antwort an" wert={entwurf.mail_reply_to ?? ""} setze={(v) => setze({ mail_reply_to: v })} />
+          <div className="sm:col-span-2">
+            <Probeversand ungespeichert={ungespeichert} />
+          </div>
         </div>
       </Abschnitt>
 
@@ -382,6 +389,78 @@ function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, onD
  * ersten Mal hier sitzt, und ohne die Namen der Secrets sucht man sich dumm.
  * Deshalb stehen sie hier, samt der Reihenfolge, in der man vorgeht.
  */
+/**
+ * Probeversand an die eigene Adresse.
+ *
+ * Die Meldung des Mailservers steht danach im Klartext da. Genau daran
+ * scheitert die Einrichtung sonst: „Es kommt nichts an" ist keine Auskunft,
+ * „535 Authentication credentials invalid" schon.
+ */
+function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
+  const [laeuft, setLaeuft] = useState(false);
+  const [ergebnis, setErgebnis] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const senden = async () => {
+    setLaeuft(true);
+    setErgebnis(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("mail-test");
+      // Bei einem Fehlerstatus steckt die eigentliche Meldung im Rumpf der
+      // Antwort, nicht in `error` – sonst stuende hier nur „non-2xx status".
+      const rumpf = (data ?? {}) as { ok?: boolean; weg?: string; an?: string; fehler?: string };
+      if (rumpf.ok) {
+        setErgebnis({ ok: true, text: `Über ${rumpf.weg} an ${rumpf.an} verschickt.` });
+      } else {
+        const ausRumpf = rumpf.fehler ?? (await leseFehler(error));
+        setErgebnis({ ok: false, text: ausRumpf || "Unbekannter Fehler" });
+      }
+    } catch (err) {
+      setErgebnis({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setLaeuft(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" size="sm" onClick={senden} disabled={laeuft}>
+          {laeuft ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}
+          Probeversand an mich
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Geht an die Adresse, mit der du angemeldet bist.
+          {ungespeichert && " Erst speichern – geprüft wird der gespeicherte Stand."}
+        </p>
+      </div>
+      {ergebnis && (
+        <p
+          className={`mt-2 flex items-start gap-1.5 text-sm ${
+            ergebnis.ok ? "text-foreground" : "text-destructive"
+          }`}
+        >
+          {ergebnis.ok
+            ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
+            : <XCircle size={15} className="mt-0.5 shrink-0" />}
+          <span className="break-words">{ergebnis.text}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Die Fehlermeldung aus der Antwort der Edge Function, falls vorhanden. */
+async function leseFehler(error: unknown): Promise<string> {
+  const antwort = (error as { context?: Response } | null)?.context;
+  if (!antwort) return error instanceof Error ? error.message : "";
+  try {
+    const rumpf = await antwort.json();
+    return rumpf?.fehler ?? "";
+  } catch {
+    return error instanceof Error ? error.message : "";
+  }
+}
+
 function MailAnleitung({ weg }: { weg: string }) {
   const graph = weg === "microsoft_graph";
   return (
@@ -413,6 +492,12 @@ function MailAnleitung({ weg }: { weg: string }) {
           </ul>
           <p>
             Die Absenderadresse muss ein echtes Postfach in derselben Organisation sein.
+            Ist <code>MS_SENDER_EMAIL</code> gesetzt, gilt dieser Wert; sonst wird die
+            Absenderadresse aus diesem Formular verwendet.
+          </p>
+          <p>
+            Der Absendername ändert nur die Anzeige – verschickt wird immer aus dem Postfach
+            oben. Eine fremde Absenderadresse verlangt in Microsoft 365 gesonderte Rechte.
           </p>
         </div>
       ) : (
@@ -428,13 +513,22 @@ function MailAnleitung({ weg }: { weg: string }) {
           </ol>
           <ul className="ml-5 space-y-0.5 font-mono text-xs">
             <li>SMTP_HOST</li>
-            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL)</li>
+            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL – ohne Angabe 587)</li>
             <li>SMTP_USER</li>
             <li>SMTP_PASSWORD</li>
           </ul>
-          <p className="text-destructive">
-            Noch nicht einsatzbereit: Die Umschaltung steht hier, der Versand über SMTP wird im
-            Backend gerade erst gebaut. Bis dahin bleibt Microsoft 365 der funktionierende Weg.
+          <ol className="list-decimal ml-5 space-y-1" start={3}>
+            <li>Oben „SMTP" wählen, Absenderadresse eintragen und speichern.</li>
+            <li>Mit dem Probeversand prüfen, ob es klappt.</li>
+          </ol>
+          <p>
+            Das Passwort gehört zu den Secrets und nicht in dieses Formular: Die tägliche
+            Sicherung schreibt alle Tabellen nach GitHub – ein hier eingetragenes Passwort läge
+            in jeder Sicherungsdatei.
+          </p>
+          <p>
+            Bleibt die Absenderadresse leer, wird <code>SMTP_USER</code> als Absender genommen.
+            Viele Anbieter lassen ohnehin nur Adressen des eigenen Postfachs zu.
           </p>
         </div>
       )}
