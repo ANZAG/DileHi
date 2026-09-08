@@ -5,7 +5,7 @@ import {
   Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
-import { Hinweiskasten, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
+import { Hinweiskasten, KASTEN_STILE, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
 import { Vereinsangaben } from "./Vereinsangaben";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
@@ -101,7 +101,11 @@ export type Bausteine = {
     bildSeite: "links" | "rechts";
   } & typeof gemeinsameVorgaben;
   Kennzahlen: { eintraege: { titel: string; wert: string }[] } & typeof gemeinsameVorgaben;
-  Einzelbild: { bildSchluessel: string; bildunterschrift?: string } & typeof layoutVorgaben;
+  Einzelbild: {
+    bildSchluessel: string;
+    bildunterschrift?: string;
+    bildbreite: "voll" | "mittel" | "schmal";
+  } & typeof layoutVorgaben;
   Karten: {
     karten: { titel: string; text: string; bildSchluessel?: string; ziel?: string }[];
     spalten: "zwei" | "drei";
@@ -165,6 +169,7 @@ export type Bausteine = {
   };
   Hinweiskasten: {
     symbol: KastenSymbol;
+    stil: "hinweis" | "notiz";
     ueberschrift?: string;
     inhalt: unknown;
     knopf?: string;
@@ -323,9 +328,20 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       fields: {
         bildSchluessel: bildFeld,
         bildunterschrift: { type: "text", label: "Bildunterschrift" },
+        bildbreite: {
+          type: "radio", label: "Breite des Bildes",
+          options: [
+            { label: "Volle Spalte", value: "voll" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Schmal", value: "schmal" },
+          ],
+        },
         ...layoutFelder,
       },
-      defaultProps: { ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", abstandOben: "eng", abstandUnten: "eng" },
+      defaultProps: {
+        ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", bildbreite: "voll",
+        abstandOben: "klein", abstandUnten: "klein",
+      },
       render: Einzelbild,
     },
 
@@ -716,6 +732,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     Hinweiskasten: {
       label: "Hinweiskasten",
       resolveFields: async () => ({
+        stil: { type: "radio", label: "Aussehen", options: KASTEN_STILE },
         symbol: { type: "select", label: "Symbol", options: KASTEN_SYMBOLE },
         ueberschrift: { type: "text", label: "Überschrift" },
         inhalt: textFeld,
@@ -735,7 +752,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       }),
       defaultProps: {
         ...layoutVorgaben,
-        symbol: "info", ueberschrift: "", inhalt: "", knopf: "", ziel: "", betont: false,
+        stil: "hinweis", symbol: "info", ueberschrift: "", inhalt: "", knopf: "", ziel: "", betont: false,
         abstandOben: "klein", abstandUnten: "klein",
       },
       render: Hinweiskasten,

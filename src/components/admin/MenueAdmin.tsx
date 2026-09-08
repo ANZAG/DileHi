@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Plus, Trash2, Eye, EyeOff, CornerDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { fetchPages, type SitePage } from "@/components/sitebuilder/api";
+import type { MenuBereich } from "@/hooks/useSiteMenu";
 
 interface Eintrag {
   id: string;
@@ -18,9 +19,43 @@ interface Eintrag {
   sort_order: number;
   is_visible: boolean;
   opens_new: boolean;
+  bereich: MenuBereich | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
+
+/**
+ * Die beiden Listen, die eine Vereinsseite braucht. Mehr Bereiche wären
+ * schnell hinzugefügt, aber jeder weitere ist eine Entscheidung, die der
+ * Siteadmin treffen muss – und der Fußbereich hat nun einmal zwei Spalten.
+ */
+const BEREICHE: {
+  id: MenuBereich;
+  reiter: string;
+  hinweis: string;
+  /** Spalte in app_settings, in der die Überschrift im Fußbereich steht. */
+  spalte: "footer_navigation_label" | "footer_legal_label";
+  ueberschriftHinweis: string;
+  /** Untermenüs ergeben nur oben Sinn – der Fußbereich stellt alles flach dar. */
+  untermenues: boolean;
+}[] = [
+  {
+    id: "kopf",
+    reiter: "Kopfzeile",
+    hinweis: "Die Punkte oben auf der Seite. Eine Ebene Untermenü ist möglich. Dieselben Punkte stehen im Fußbereich noch einmal als Spalte.",
+    spalte: "footer_navigation_label",
+    ueberschriftHinweis: "Überschrift dieser Spalte im Fußbereich",
+    untermenues: true,
+  },
+  {
+    id: "fuss_rechtliches",
+    reiter: "Fußbereich: Rechtliches",
+    hinweis: "Die rechte Spalte unten. Impressum und Datenschutz gehören hierhin; eine Satzung oder eine Barrierefreiheitserklärung kann dazukommen.",
+    spalte: "footer_legal_label",
+    ueberschriftHinweis: "Überschrift dieser Spalte im Fußbereich",
+    untermenues: false,
+  },
+];
 
 /**
  * Das Menü der öffentlichen Seite.
@@ -36,12 +71,15 @@ const db = supabase as unknown as { from: (t: string) => any };
 export default function MenueAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [bereich, setBereich] = useState<MenuBereich>("kopf");
   const [neuOffen, setNeuOffen] = useState(false);
   const [neuLabel, setNeuLabel] = useState("");
   const [neuZiel, setNeuZiel] = useState("");
   const [neuUnter, setNeuUnter] = useState("");
 
-  const { data: eintraege = [], isLoading } = useQuery({
+  const aktiv = BEREICHE.find((b) => b.id === bereich) ?? BEREICHE[0];
+
+  const { data: alle = [], isLoading } = useQuery({
     queryKey: ["site-menu-admin"],
     queryFn: async () => {
       const { data, error } = await db.from("site_menu").select("*").order("sort_order");
@@ -51,6 +89,10 @@ export default function MenueAdmin() {
   });
 
   const { data: seiten = [] } = useQuery({ queryKey: ["site-pages"], queryFn: fetchPages });
+
+  // Nur die Einträge des offenen Reiters. Fehlt die Spalte noch (Migration
+  // nicht eingespielt), zählt alles zur Kopfzeile – wie vorher.
+  const eintraege = alle.filter((e) => (e.bereich ?? "kopf") === bereich);
 
   const frisch = () => {
     queryClient.invalidateQueries({ queryKey: ["site-menu-admin"] });
@@ -76,7 +118,8 @@ export default function MenueAdmin() {
         label: neuLabel.trim(),
         page_id: istSeite ? neuZiel.slice(6) : null,
         href: istSeite ? null : neuZiel.trim(),
-        parent_id: neuUnter || null,
+        parent_id: aktiv.untermenues ? neuUnter || null : null,
+        bereich,
         sort_order: (oben[oben.length - 1]?.sort_order ?? 0) + 10,
       });
       if (error) throw new Error(error.message);
@@ -120,15 +163,47 @@ export default function MenueAdmin() {
 
   const oben = eintraege.filter((e) => !e.parent_id).sort((a, b) => a.sort_order - b.sort_order);
 
+  const reiterWechseln = (id: MenuBereich) => {
+    setBereich(id);
+    // Ein halb ausgefülltes Formular für die andere Liste stehen zu lassen,
+    // legt den Eintrag am Ende im falschen Bereich an.
+    setNeuOffen(false);
+    setNeuUnter("");
+  };
+
   return (
     <div>
+      <div className="mb-4">
+        <h2 className="font-serif text-lg font-semibold">Menü</h2>
+        <p className="text-sm text-muted-foreground">
+          Was in der Kopfzeile und unten im Fußbereich steht.
+        </p>
+      </div>
+
+      {/* Gleiche Reiter wie in der Verwaltung darüber – zwei Listen, eine
+          Bedienung. */}
+      <div className="mb-4 flex flex-wrap gap-1 border-b">
+        {BEREICHE.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => reiterWechseln(b.id)}
+            aria-current={b.id === bereich ? "true" : undefined}
+            className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+              b.id === bereich
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {b.reiter}
+          </button>
+        ))}
+      </div>
+
+      <FussUeberschrift spalte={aktiv.spalte} hinweis={aktiv.ueberschriftHinweis} />
+
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
-          <h2 className="font-serif text-lg font-semibold">Menü</h2>
-          <p className="text-sm text-muted-foreground">
-            Die Punkte in der Kopfzeile. Eine Ebene Untermenü ist möglich.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground max-w-prose">{aktiv.hinweis}</p>
         {!neuOffen && (
           <Button size="sm" onClick={() => setNeuOffen(true)}>
             <Plus size={15} className="mr-1" /> Punkt hinzufügen
@@ -165,17 +240,19 @@ export default function MenueAdmin() {
               />
             </div>
           </div>
-          <div>
-            <Label className="text-sm">Untermenü von (optional)</Label>
-            <Select value={neuUnter} onValueChange={setNeuUnter}>
-              <SelectTrigger><SelectValue placeholder="Nichts – eigener Punkt" /></SelectTrigger>
-              <SelectContent>
-                {oben.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {aktiv.untermenues && (
+            <div>
+              <Label className="text-sm">Untermenü von (optional)</Label>
+              <Select value={neuUnter} onValueChange={setNeuUnter}>
+                <SelectTrigger><SelectValue placeholder="Nichts – eigener Punkt" /></SelectTrigger>
+                <SelectContent>
+                  {oben.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setNeuOffen(false)}>Abbrechen</Button>
             <Button
@@ -192,7 +269,7 @@ export default function MenueAdmin() {
         <p className="py-8 text-center text-sm text-muted-foreground">Lade Menü …</p>
       ) : oben.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          Noch kein Menüpunkt. Solange keiner da ist, zeigt die Seite das mitgelieferte Menü.
+          Noch kein Eintrag. Solange keiner da ist, zeigt die Seite die mitgelieferte Liste.
         </p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card overflow-hidden">
@@ -223,6 +300,70 @@ export default function MenueAdmin() {
           ])}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * Die Überschrift der Fußspalte.
+ *
+ * Sie steht in app_settings und nicht in site_menu – die Spalte gibt es auch
+ * dann, wenn kein Eintrag darin liegt. Trotzdem gehört das Feld hierher und
+ * nicht ins Erscheinungsbild: Wer die Liste umbenennt, sucht sie dort, wo er
+ * ihre Einträge pflegt.
+ */
+function FussUeberschrift({ spalte, hinweis }: {
+  spalte: "footer_navigation_label" | "footer_legal_label";
+  hinweis: string;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [wert, setWert] = useState("");
+
+  const { data } = useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => {
+      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as Record<string, string | null>;
+    },
+  });
+
+  const gespeichert = (data?.[spalte] as string | null) ?? "";
+  useEffect(() => setWert(gespeichert), [gespeichert, spalte]);
+
+  const speichern = useMutation({
+    mutationFn: async () => {
+      const { error } = await db.from("app_settings").update({ [spalte]: wert.trim() }).eq("id", true);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast({ title: "Gespeichert" });
+      queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["branding"] });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
+  });
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 mb-4 flex flex-wrap items-end gap-3">
+      <div className="min-w-[14rem] flex-1">
+        <Label htmlFor={`fuss-${spalte}`} className="text-sm">{hinweis}</Label>
+        <Input
+          id={`fuss-${spalte}`}
+          value={wert}
+          onChange={(e) => setWert(e.target.value)}
+          placeholder="z. B. Navigation"
+        />
+      </div>
+      <Button
+        variant="outline" size="sm"
+        disabled={!wert.trim() || wert.trim() === gespeichert || speichern.isPending}
+        onClick={() => speichern.mutate()}
+      >
+        Übernehmen
+      </Button>
     </div>
   );
 }

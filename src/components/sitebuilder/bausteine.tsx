@@ -204,16 +204,29 @@ export function Kennzahlen({
 // ── Einzelbild ──────────────────────────────────────────────────────────────
 
 export function Einzelbild({
-  bildSchluessel, bildunterschrift, breite, abstandOben, abstandUnten, abstand,
-}: Gemeinsam & { bildSchluessel: string; bildunterschrift?: string }) {
+  bildSchluessel, bildunterschrift, bildbreite, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & {
+  bildSchluessel: string;
+  bildunterschrift?: string;
+  /** Breite des Bildes INNERHALB der Spalte – nicht jede Abbildung verträgt
+   *  volle Breite. Hochformate und Tafeln wirken schmaler gesetzt besser, und
+   *  im Original ist genau das an einzelnen Stellen so gemacht. */
+  bildbreite?: "voll" | "mittel" | "schmal";
+}) {
   const bild = useSiteImage(bildSchluessel);
+  const grenze =
+    bildbreite === "mittel" ? "max-w-lg mx-auto"
+    : bildbreite === "schmal" ? "max-w-sm mx-auto"
+    : "";
   return (
     <figure className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
-      <div className="rounded-lg overflow-hidden">
+      <div className={`rounded-lg overflow-hidden ${grenze}`}>
         <img src={bild.src} alt={bild.alt} className="w-full h-auto object-cover" loading="lazy" />
       </div>
       {bildunterschrift && (
-        <figcaption className="text-xs text-muted-foreground mt-2">{bildunterschrift}</figcaption>
+        <figcaption className={`text-xs text-muted-foreground mt-2 italic ${grenze}`}>
+          {bildunterschrift}
+        </figcaption>
       )}
     </figure>
   );

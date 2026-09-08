@@ -142,6 +142,8 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          footer_legal_label: string
+          footer_navigation_label: string
           board_members: string | null
           calendar_timezone: string
           color_dark: string
@@ -179,6 +181,8 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          footer_legal_label?: string
+          footer_navigation_label?: string
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
@@ -216,6 +220,8 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          footer_legal_label?: string
+          footer_navigation_label?: string
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
@@ -1894,6 +1900,7 @@ export type Database = {
       }
       site_menu: {
         Row: {
+          bereich: string
           created_at: string
           href: string | null
           id: string
@@ -1905,6 +1912,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          bereich?: string
           created_at?: string
           href?: string | null
           id?: string
@@ -1916,6 +1924,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          bereich?: string
           created_at?: string
           href?: string | null
           id?: string
@@ -2326,6 +2335,8 @@ export type Database = {
       public_branding: {
         Args: never
         Returns: {
+          footer_legal_label: string
+          footer_navigation_label: string
           board_members: string
           color_dark: string
           color_primary: string

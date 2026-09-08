@@ -99,6 +99,12 @@ const impressum = [
       "Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet und " +
       "als solche gekennzeichnet. Die Bildnachweise finden sich bei den jeweiligen Darstellungen.",
       'Fragen zum Datenschutz beantwortet die <a href="/datenschutz">Datenschutzerklärung</a>.'
+    ) +
+    // Die Formulierungen zu Haftung und Urheberrecht stammen aus der Vorlage
+    // von eRecht24 – die Quellenangabe stand auch bisher unter dem Impressum
+    // und bleibt.
+    p(
+      '<small>Quelle: <a href="https://www.e-recht24.de" target="_blank" rel="noreferrer">eRecht24</a></small>'
     ),
     { unten: "weit" }
   ),
@@ -112,6 +118,39 @@ const datenschutz = [
     breite: "schmal", abstandOben: "weit", abstandUnten: "keiner",
     textfarbe: "standard", hintergrund: "keine",
   }),
+
+  text(
+    h2("Datenschutz auf einen Blick") +
+    p(
+      "Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn " +
+      "Sie diese Website besuchen. Ausführliche Informationen finden Sie in den Abschnitten darunter."
+    ) +
+    h3("Wer ist verantwortlich?") +
+    p("Der Verein selbst. Die Kontaktdaten stehen im Abschnitt „Verantwortlicher“.") +
+    h3("Wie erfassen wir Ihre Daten?") +
+    p(
+      "Zum einen dadurch, dass Sie sie uns mitteilen – etwa in einem Formular. Zum anderen automatisch beim Besuch der " +
+      "Website durch unsere Systeme; das sind vor allem technische Daten wie Browser, Betriebssystem und Uhrzeit des " +
+      "Seitenaufrufs."
+    ) +
+    h3("Wofür nutzen wir Ihre Daten?") +
+    p(
+      "Ein Teil dient dazu, die Website fehlerfrei bereitzustellen. Der grössere Teil betrifft die Vereinsarbeit: " +
+      "Mitgliederverwaltung, Beiträge, Veranstaltungen, Abstimmungen und die Zusammenarbeit im Mitgliederbereich. " +
+      "Eine Analyse Ihres Nutzerverhaltens findet nicht statt."
+    ) +
+    h3("Welche Rechte haben Sie?") +
+    p(
+      "Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Herkunft, Empfänger und Zweck Ihrer gespeicherten " +
+      "Daten, auf Berichtigung und auf Löschung. Erteilte Einwilligungen können Sie jederzeit widerrufen. Ausserdem steht " +
+      "Ihnen ein Beschwerderecht bei der Aufsichtsbehörde zu. Wenden Sie sich dazu jederzeit an uns."
+    ) +
+    h3("Ein Hinweis vorab") +
+    p(
+      "Die Datenübertragung im Internet – etwa bei der Kommunikation per E-Mail – kann Sicherheitslücken aufweisen. Ein " +
+      "lückenloser Schutz der Daten vor dem Zugriff durch Dritte ist nicht möglich."
+    )
+  ),
 
   text(
     h2("Präambel") +
@@ -290,16 +329,21 @@ const datenschutz = [
     zwecke: "Bereitstellung des Onlineangebotes; informationstechnische Infrastruktur; Sicherheitsmaßnahmen.",
     grundlagen: "Berechtigte Interessen (Art. 6 Abs. 1 S. 1 lit. f) DSGVO).",
     weiteres: [
-      "<strong>Anwendung und Datenbank:</strong> Die Anwendung, die Datenbank und die hochgeladenen Dateien liegen bei " +
-      "unserem Anbieter für die Anwendungsplattform, der dafür Infrastruktur innerhalb der Europäischen Union nutzt. Es " +
-      "besteht ein Vertrag zur Auftragsverarbeitung.",
+      "<strong>Anwendungsplattform:</strong> Die Anwendung wird über die Plattform <strong>Lovable</strong> " +
+      "(GPT Engineer, Inc.) bereitgestellt. Die Server stehen in der Europäischen Union.",
 
-      "<strong>Webserver für die Website:</strong> Die ausgelieferten Dateien der Website liegen bei unserem Webhoster. " +
-      "Es besteht ein Vertrag zur Auftragsverarbeitung.",
+      "<strong>Datenbank, Anmeldung und Dateien:</strong> Für die Speicherung der Daten – Mitgliederdaten, " +
+      "Kontaktanfragen, Forenbeiträge, hochgeladene Dateien – und für die Anmeldung setzen wir " +
+      "<strong>Supabase</strong> (Supabase, Inc.) ein. Die Daten liegen auf Servern in der Europäischen Union " +
+      "(Frankfurt am Main).",
 
-      "<strong>Server-Logfiles:</strong> Der Zugriff wird protokolliert. Zu den Logfiles können die abgerufene Adresse, " +
-      "Datum und Uhrzeit, übertragene Datenmenge, Browsertyp, Betriebssystem, Referrer und die IP-Adresse gehören. " +
-      "<strong>Löschung:</strong> spätestens nach 30 Tagen, sofern nicht zu Beweiszwecken erforderlich.",
+      "<strong>Webserver für die ausgelieferten Dateien:</strong> Die Dateien der Website liegen bei unserem Webhoster " +
+      "mit Standort in Deutschland.",
+
+      "<strong>Server-Logfiles:</strong> Der Zugriff wird protokolliert. Erfasst werden Browsertyp und -version, " +
+      "verwendetes Betriebssystem, Referrer-Adresse, Hostname des zugreifenden Rechners, Uhrzeit der Serveranfrage, " +
+      "übertragene Datenmenge und die IP-Adresse. Eine Zusammenführung dieser Daten mit anderen Quellen findet nicht " +
+      "statt. <strong>Löschung:</strong> spätestens nach 30 Tagen, sofern nicht zu Beweiszwecken erforderlich.",
 
       "<strong>Datensicherung:</strong> Von der Datenbank wird täglich eine vollständige Sicherung erstellt, " +
       "verschlüsselt und als Artefakt bei GitHub abgelegt (GitHub Inc., ein Unternehmen der Microsoft Corporation, USA). " +
@@ -328,6 +372,11 @@ const datenschutz = [
       "Mitgliederbereichs sichtbar.",
       "<strong>Löschung nach Austritt:</strong> Nach dem Austritt werden die Daten des Nutzerkontos gelöscht, soweit " +
       "keine gesetzliche Aufbewahrungspflicht entgegensteht.",
+
+      "<strong>Was mit erstellten Inhalten geschieht:</strong> Wird ein Konto gelöscht, bleiben von diesem Mitglied " +
+      "angelegte Veranstaltungen, Ankündigungen und Formulare erhalten und werden einem anderen Mitglied zugeordnet. " +
+      "Andernfalls fielen mit einem Austritt Teile der Vereinsdokumentation weg – etwa die Anmeldungen zu einem Termin, " +
+      "der noch bevorsteht. Der Personenbezug zum ausgetretenen Mitglied entfällt dabei.",
     ],
   })),
 
@@ -362,6 +411,17 @@ const datenschutz = [
 
       "<strong>Absprachen zu Veranstaltungen:</strong> Zu jedem Termin kann eine Absprache angelegt werden. Wird der " +
       "Termin gelöscht, wandert die Absprache in ein Archiv und bleibt für Mitglieder lesbar.",
+
+      "<strong>Pinnwand (Ankündigungen):</strong> Der Vorstand veröffentlicht dort Einladungen, Protokolle und " +
+      "Mitteilungen. Mitglieder können darauf antworten. Verarbeitet werden der Beitragstext, der Name des Verfassers, " +
+      "der Zeitpunkt sowie angehängte Dateien.",
+
+      "<strong>Dokumente und Mitgliedsunterlagen:</strong> Satzung, Ordnungen und Berichte stehen im Mitgliederbereich " +
+      "zum Abruf. Zu einzelnen Mitgliedern können ausserdem Unterlagen hinterlegt sein – etwa der unterschriebene " +
+      "Aufnahmeantrag. Diese sind nur für die dafür berechtigten Ämter einsehbar.",
+
+      "<strong>Quellensammlung:</strong> Mitglieder können Literaturangaben und Fundstellen einstellen. Dabei werden " +
+      "der Eintrag und der Name des Einstellenden gespeichert.",
     ],
   })),
 
@@ -406,6 +466,10 @@ const datenschutz = [
     zwecke: "Kommunikation; Organisations- und Verwaltungsverfahren.",
     grundlagen: "Berechtigte Interessen (Art. 6 Abs. 1 S. 1 lit. f) DSGVO); Vertragserfüllung und vorvertragliche Anfragen (Art. 6 Abs. 1 S. 1 lit. b) DSGVO).",
     weiteres: [
+      "<strong>Anfrage per E-Mail oder Telefon:</strong> Kontaktieren Sie uns unmittelbar, wird Ihre Anfrage samt aller " +
+      "daraus hervorgehenden personenbezogenen Daten zum Zweck der Bearbeitung gespeichert. Diese Daten geben wir nicht " +
+      "ohne Ihre Einwilligung weiter. Sie verbleiben bei uns, bis Sie zur Löschung auffordern oder der Zweck entfällt.",
+
       "<strong>Schutz vor automatisierten Einsendungen:</strong> Die Formulare enthalten eine einfache Rechenaufgabe und " +
       "ein für Menschen unsichtbares Feld. Beides dient allein der Abwehr automatisierter Einsendungen; eine Auswertung " +
       "des Nutzerverhaltens findet nicht statt und es werden keine Daten an Dritte übermittelt.",

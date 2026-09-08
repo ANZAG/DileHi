@@ -8,6 +8,12 @@ export interface MenuEintrag {
   children?: MenuEintrag[];
 }
 
+/**
+ * Wo ein Eintrag erscheint. Die Kopfzeile wird im Fußbereich als Spalte
+ * „Navigation" gespiegelt – deshalb gibt es dafür keinen eigenen Bereich.
+ */
+export type MenuBereich = "kopf" | "fuss_rechtliches";
+
 interface Zeile {
   id: string;
   label: string;
@@ -17,7 +23,29 @@ interface Zeile {
   sort_order: number;
   is_visible: boolean;
   opens_new: boolean;
+  bereich: MenuBereich | null;
 }
+
+/** Solange die Datenbank leer ist oder die Abfrage scheitert. */
+const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
+  // Eine Website ohne Menü wäre schlimmer als eine mit dem falschen.
+  kopf: [
+    { path: "/", label: "Startseite" },
+    { path: "/epochen/mittelalter", label: "Spätmittelalter" },
+    { path: "/epochen/1815", label: "Napoleonik" },
+    { path: "/epochen/wk1", label: "Erster Weltkrieg" },
+    { path: "/fuer-veranstalter", label: "Für Veranstalter" },
+    { path: "/verein", label: "Über uns" },
+    { path: "/kontakt", label: "Kontakt" },
+  ],
+  // Hier ist der Notnagel nicht nur Bequemlichkeit: Ohne erreichbares
+  // Impressum ist die Seite abmahnfähig. Wer die Einträge bewusst löscht,
+  // bekommt sie deshalb zurück.
+  fuss_rechtliches: [
+    { path: "/impressum", label: "Impressum" },
+    { path: "/datenschutz", label: "Datenschutz" },
+  ],
+};
 
 /**
  * Das Menü aus der Datenbank.
@@ -29,11 +57,15 @@ interface Zeile {
  * Einträge zeigen entweder auf eine Seite aus site_pages oder auf eine feste
  * Adresse. Solange die alten Seiten noch im Code liegen, ist es die Adresse;
  * beim Umstellen einer Seite auf den Editor wandert der Eintrag auf page_id.
+ *
+ * Alle Bereiche kommen aus einer Abfrage. Das Layout ruft den Hook zweimal
+ * auf – react-query fasst das über den gleichen Schlüssel zusammen, es bleibt
+ * bei einer Anfrage.
  */
-export function useSiteMenu(): MenuEintrag[] {
+export function useSiteMenu(bereich: MenuBereich = "kopf"): MenuEintrag[] {
   const { data } = useQuery({
     queryKey: ["site-menu"],
-    queryFn: async (): Promise<MenuEintrag[]> => {
+    queryFn: async (): Promise<Record<MenuBereich, MenuEintrag[]>> => {
       const { data, error } = await (supabase as unknown as {
         from: (t: string) => {
           select: (c: string) => {
@@ -72,22 +104,30 @@ export function useSiteMenu(): MenuEintrag[] {
         return { path, label: z.label, opensNew: z.opens_new };
       };
 
-      const oben = zeilen.filter((z) => !z.parent_id);
-      return oben
-        .map((z) => {
-          const eintrag = zuEintrag(z);
-          if (!eintrag) return null;
-          const kinder = zeilen
-            .filter((k) => k.parent_id === z.id)
-            .map(zuEintrag)
-            .filter((k): k is MenuEintrag => k !== null);
-          return kinder.length > 0 ? { ...eintrag, children: kinder } : eintrag;
-        })
-        .filter((e): e is MenuEintrag => e !== null);
+      const bauen = (fuer: MenuBereich): MenuEintrag[] => {
+        // Steht die Spalte noch nicht in der Datenbank (Migration nicht
+        // eingespielt), gilt alles als Kopfzeile – wie vorher.
+        const eigene = zeilen.filter((z) => (z.bereich ?? "kopf") === fuer);
+        return eigene
+          .filter((z) => !z.parent_id)
+          .map((z) => {
+            const eintrag = zuEintrag(z);
+            if (!eintrag) return null;
+            const kinder = eigene
+              .filter((k) => k.parent_id === z.id)
+              .map(zuEintrag)
+              .filter((k): k is MenuEintrag => k !== null);
+            return kinder.length > 0 ? { ...eintrag, children: kinder } : eintrag;
+          })
+          .filter((e): e is MenuEintrag => e !== null);
+      };
+
+      return { kopf: bauen("kopf"), fuss_rechtliches: bauen("fuss_rechtliches") };
     },
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });
 
-  return data ?? [];
+  const eintraege = data?.[bereich] ?? [];
+  return eintraege.length > 0 ? eintraege : FALLBACK[bereich];
 }
