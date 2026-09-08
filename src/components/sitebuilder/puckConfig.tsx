@@ -4,6 +4,7 @@ import {
   Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
   Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
+import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
@@ -88,7 +89,7 @@ export type Bausteine = {
     groesse: "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
   } & typeof gemeinsameVorgaben;
-  Textabschnitt: { inhalt: unknown } & typeof gemeinsameVorgaben;
+  Textabschnitt: { inhalt: unknown; ausrichtung: "links" | "mitte" } & typeof gemeinsameVorgaben;
   ZweiSpalten: {
     inhalt: unknown;
     bildSchluessel: string;
@@ -131,11 +132,36 @@ export type Bausteine = {
   } & typeof layoutVorgaben;
   Termine: { ueberschrift?: string; anzahl: number } & typeof layoutVorgaben;
   Kontaktformular: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
+  Willkommen: {
+    bildSchluessel: string;
+    ueberschrift: string;
+    text?: string;
+    knopf1?: string; ziel1?: string;
+    knopf2?: string; ziel2?: string;
+    hoehe: "klein" | "mittel" | "gross";
+  };
+  Eckdaten: {
+    eintraege: { symbol: "kalender" | "leute" | "ort" | "stern"; text: string; hervorgehoben?: string }[];
+    hintergrund: Hintergrund;
+    abstand: Abstand;
+  };
+  Zeitstrahl: {
+    ueberschrift?: string;
+    punkte: { titel: string; jahre: string; untertitel: string; bildSchluessel: string; ziel?: string }[];
+    hintergrund: Hintergrund;
+    abstand: Abstand;
+  };
+  Aktionskaesten: {
+    kaesten: { titel: string; text: string; knopf: string; ziel: string; betont?: boolean }[];
+    hintergrund: Hintergrund;
+    abstand: Abstand;
+  };
   EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
 
 export const puckConfig: Config<{ components: Bausteine }> = {
   categories: {
+    startseite: { title: "Große Abschnitte", components: ["Willkommen", "Eckdaten", "Zeitstrahl", "Aktionskaesten"] },
     text: { title: "Text", components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen"] },
     bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
     navigation: { title: "Verweise", components: ["Karten", "Knopf", "Logos"] },
@@ -206,8 +232,18 @@ export const puckConfig: Config<{ components: Bausteine }> = {
 
     Textabschnitt: {
       label: "Text",
-      fields: { inhalt: textFeld, ...gemeinsameFelder },
-      defaultProps: { inhalt: "", ...gemeinsameVorgaben },
+      fields: {
+        inhalt: textFeld,
+        ausrichtung: {
+          type: "radio", label: "Ausrichtung",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Mittig", value: "mitte" },
+          ],
+        },
+        ...gemeinsameFelder,
+      },
+      defaultProps: { inhalt: "", ausrichtung: "links", ...gemeinsameVorgaben },
       render: Textabschnitt,
     },
 
@@ -520,6 +556,127 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         hinweis: "Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns.",
       },
       render: Kontaktformular,
+    },
+
+    Willkommen: {
+      label: "Willkommensbereich",
+      fields: {
+        bildSchluessel: bildFeld,
+        ueberschrift: { type: "text", label: "Überschrift" },
+        text: textFeld,
+        knopf1: { type: "text", label: "Erster Knopf" },
+        ziel1: { type: "text", label: "…führt zu" },
+        knopf2: { type: "text", label: "Zweiter Knopf" },
+        ziel2: { type: "text", label: "…führt zu" },
+        hoehe: {
+          type: "select", label: "Höhe",
+          options: [
+            { label: "Klein", value: "klein" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Groß", value: "gross" },
+          ],
+        },
+      },
+      defaultProps: {
+        bildSchluessel: "", ueberschrift: "Willkommen", text: "",
+        knopf1: "", ziel1: "", knopf2: "", ziel2: "", hoehe: "mittel",
+      },
+      render: Willkommen,
+    },
+
+    Eckdaten: {
+      label: "Eckdaten-Leiste",
+      fields: {
+        eintraege: {
+          type: "array", label: "Einträge",
+          arrayFields: {
+            symbol: {
+              type: "select", label: "Symbol",
+              options: [
+                { label: "Kalender", value: "kalender" },
+                { label: "Personen", value: "leute" },
+                { label: "Ort", value: "ort" },
+                { label: "Stern", value: "stern" },
+              ],
+            },
+            text: { type: "text", label: "Text" },
+            hervorgehoben: { type: "text", label: "Hervorgehoben (fett dahinter)" },
+          },
+          getItemSummary: (item: { text?: string }) => item?.text || "Eintrag",
+        },
+        hintergrund: gemeinsameFelder.hintergrund,
+        abstand: gemeinsameFelder.abstand,
+      },
+      defaultProps: {
+        eintraege: [{ symbol: "kalender", text: "Seit", hervorgehoben: "2011 aktiv" }],
+        hintergrund: "gedaempft",
+        abstand: "eng",
+      },
+      render: Eckdaten,
+    },
+
+    Zeitstrahl: {
+      label: "Zeitstrahl",
+      resolveFields: async () => {
+        const [bilder, seiten] = await Promise.all([bildAuswahl(), seitenAuswahl()]);
+        return {
+          ueberschrift: { type: "text", label: "Überschrift" },
+          punkte: {
+            type: "array", label: "Punkte",
+            arrayFields: {
+              titel: { type: "text", label: "Titel" },
+              jahre: { type: "text", label: "Zeitraum" },
+              untertitel: { type: "text", label: "Untertitel" },
+              bildSchluessel: {
+                type: "select", label: "Bild",
+                options: [{ label: "— wählen —", value: "" }, ...bilder],
+              },
+              ziel: {
+                type: "select", label: "Verweist auf",
+                options: [{ label: "Nirgendwohin", value: "" }, ...seiten],
+              },
+            },
+            getItemSummary: (item: { titel?: string }) => item?.titel || "Punkt",
+          },
+          hintergrund: gemeinsameFelder.hintergrund,
+          abstand: gemeinsameFelder.abstand,
+        };
+      },
+      defaultProps: { ueberschrift: "Unsere Darstellungen", punkte: [], hintergrund: "karte", abstand: "weit" },
+      render: Zeitstrahl,
+    },
+
+    Aktionskaesten: {
+      label: "Aktionskästen",
+      resolveFields: async () => {
+        const seiten = await seitenAuswahl();
+        return {
+          kaesten: {
+            type: "array", label: "Kästen",
+            arrayFields: {
+              titel: { type: "text", label: "Titel" },
+              text: { type: "textarea", label: "Text" },
+              knopf: { type: "text", label: "Beschriftung des Knopfes" },
+              ziel: {
+                type: "select", label: "…führt zu",
+                options: [{ label: "— eigene Adresse —", value: "" }, ...seiten],
+              },
+              betont: {
+                type: "radio", label: "Aussehen",
+                options: [
+                  { label: "Gefüllt", value: true },
+                  { label: "Umrandet", value: false },
+                ],
+              },
+            },
+            getItemSummary: (item: { titel?: string }) => item?.titel || "Kasten",
+          },
+          hintergrund: gemeinsameFelder.hintergrund,
+          abstand: gemeinsameFelder.abstand,
+        };
+      },
+      defaultProps: { kaesten: [], hintergrund: "karte", abstand: "weit" },
+      render: Aktionskaesten,
     },
 
     EigenesHtml: {
