@@ -38,12 +38,33 @@ Deno.serve(async (req) => {
     const { action, userId, displayName, role, email, entryDate, exitDate, isActive } = body;
 
     if (action === "get_emails") {
+      // Vorher stand hier eine Schleife mit getUserById je Mitglied – also eine
+      // eigene HTTP-Anfrage pro Person, nacheinander. Bei 40 Mitgliedern sind
+      // das 40 Runden, und die Mitgliederverwaltung wartete jedes Mal darauf.
+      // listUsers holt bis zu 1000 auf einmal; für einen Verein ist das eine
+      // einzige Anfrage.
       const userIds: string[] = body.userIds || [];
+      const gesucht = new Set(userIds);
       const result: Record<string, string> = {};
-      for (const uid of userIds) {
-        const { data: u } = await adminClient.auth.admin.getUserById(uid);
-        if (u?.user?.email) result[uid] = u.user.email;
+
+      const PRO_SEITE = 1000;
+      // Obergrenze nur als Reissleine gegen eine Endlosschleife.
+      for (let seite = 1; seite <= 20; seite++) {
+        const { data, error } = await adminClient.auth.admin.listUsers({
+          page: seite,
+          perPage: PRO_SEITE,
+        });
+        if (error) throw error;
+
+        const users = data?.users ?? [];
+        for (const u of users) {
+          // Leere Liste heisst „alle" – so ruft es bisher niemand auf, aber
+          // dann wäre das Ergebnis wenigstens nicht stillschweigend leer.
+          if (u.email && (gesucht.size === 0 || gesucht.has(u.id))) result[u.id] = u.email;
+        }
+        if (users.length < PRO_SEITE) break;
       }
+
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

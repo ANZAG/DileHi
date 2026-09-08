@@ -11,6 +11,41 @@ import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Plus, Trash2 } from "lucide-react";
 
+/**
+ * Eine Zeile zum Ankreuzen.
+ *
+ * Überall dieselbe, weil sie überall dasselbe tut. Vorher gab es zwei Sorten:
+ * Die Helferaufgaben hatten einen Rahmen und waren als Ganzes anklickbar, alle
+ * anderen hatten keinen Rahmen – und ihre Beschriftung war gar nicht
+ * anklickbar, weil das <Label> ohne Bezug zum Häkchen dastand. Man musste also
+ * das kleine Kästchen treffen. Auf dem Handy ist das der Unterschied zwischen
+ * „geht" und „geht nicht".
+ *
+ * Das <label> umschliesst das Häkchen; ein Button ist ein beschriftbares
+ * Element, der Klick auf den Text landet also dort.
+ */
+function AuswahlZeile({
+  checked,
+  onCheckedChange,
+  children,
+  className = "",
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label
+      className={`flex items-start gap-2.5 py-1 cursor-pointer rounded-md
+        hover:bg-muted/40 transition-colors ${className}`}
+    >
+      <Checkbox className="mt-0.5 shrink-0" checked={checked} onCheckedChange={(c) => onCheckedChange(c === true)} />
+      <span className="min-w-0 text-sm">{children}</span>
+    </label>
+  );
+}
+
 interface MemberTent {
   id: string;
   name: string;
@@ -97,16 +132,16 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
             {(field.options || []).map((opt) => {
               const selected = Array.isArray(value) ? value : [];
               return (
-                <div key={opt} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selected.includes(opt)}
-                    onCheckedChange={(checked) => {
-                      if (checked) onChange([...selected, opt]);
-                      else onChange(selected.filter((v: string) => v !== opt));
-                    }}
-                  />
-                  <Label className="cursor-pointer font-normal">{opt}</Label>
-                </div>
+                <AuswahlZeile
+                  key={opt}
+                  checked={selected.includes(opt)}
+                  onCheckedChange={(checked) => {
+                    if (checked) onChange([...selected, opt]);
+                    else onChange(selected.filter((v: string) => v !== opt));
+                  }}
+                >
+                  {opt}
+                </AuswahlZeile>
               );
             })}
           </div>
@@ -117,13 +152,9 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
 
       case "checkbox":
         return (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={value === true}
-              onCheckedChange={(checked) => onChange(checked === true)}
-            />
-            <Label className="cursor-pointer font-normal">{field.label}</Label>
-          </div>
+          <AuswahlZeile checked={value === true} onCheckedChange={onChange}>
+            {field.label}
+          </AuswahlZeile>
         );
 
       case "attendance_days":
@@ -212,21 +243,18 @@ function AttendanceDaysField({
 
   if (days.length <= 1) {
     return (
-      <div className="flex items-center gap-2">
-        <Checkbox
-          checked={current.all_days || (current.days?.length > 0)}
-          onCheckedChange={(checked) => {
-            if (checked && days[0]) {
-              onChange({ all_days: true, days: [format(days[0], "yyyy-MM-dd")] });
-            } else {
-              onChange({ all_days: false, days: [] });
-            }
-          }}
-        />
-        <Label className="font-normal cursor-pointer">
-          {days[0] ? format(days[0], "EEEE, d. MMMM yyyy", { locale: de }) : "Gesamte Veranstaltung"}
-        </Label>
-      </div>
+      <AuswahlZeile
+        checked={current.all_days || (current.days?.length ?? 0) > 0}
+        onCheckedChange={(checked) => {
+          if (checked && days[0]) {
+            onChange({ all_days: true, days: [format(days[0], "yyyy-MM-dd")] });
+          } else {
+            onChange({ all_days: false, days: [] });
+          }
+        }}
+      >
+        {days[0] ? format(days[0], "EEEE, d. MMMM yyyy", { locale: de }) : "Gesamte Veranstaltung"}
+      </AuswahlZeile>
     );
   }
 
@@ -287,23 +315,22 @@ function AttendanceDaysField({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 pb-1 border-b">
-        <Checkbox checked={current.all_days} onCheckedChange={toggleAll} />
-        <Label className="font-medium cursor-pointer">Alle Tage</Label>
+      <div className="pb-1 border-b">
+        <AuswahlZeile checked={current.all_days} onCheckedChange={toggleAll}>
+          <span className="font-medium">Alle Tage</span>
+        </AuswahlZeile>
       </div>
 
       {days.map((day) => {
         const key = format(day, "yyyy-MM-dd");
         return (
-          <div key={key} className="flex items-center gap-2">
-            <Checkbox
-              checked={current.days?.includes(key) || current.all_days}
-              onCheckedChange={() => toggleDay(key)}
-            />
-            <Label className="font-normal cursor-pointer">
-              {format(day, "EEEE, d. MMMM", { locale: de })}
-            </Label>
-          </div>
+          <AuswahlZeile
+            key={key}
+            checked={current.days?.includes(key) || current.all_days}
+            onCheckedChange={() => toggleDay(key)}
+          >
+            {format(day, "EEEE, d. MMMM", { locale: de })}
+          </AuswahlZeile>
         );
       })}
     </div>
@@ -561,27 +588,21 @@ function HelperTasksField({
         const when = formatTaskWhen(task.when);
         const checked = selected.includes(task.key);
         return (
-          <label
+          <AuswahlZeile
             key={task.key}
-            className="flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+            checked={checked}
+            onCheckedChange={(c) =>
+              onChange(c ? [...selected, task.key] : selected.filter((k) => k !== task.key))
+            }
           >
-            <Checkbox
-              className="mt-0.5"
-              checked={checked}
-              onCheckedChange={(c) =>
-                onChange(c ? [...selected, task.key] : selected.filter((k) => k !== task.key))
-              }
-            />
-            <span className="min-w-0">
-              <span className="text-sm font-medium">{task.label}</span>
-              {when && <span className="text-sm text-muted-foreground"> ({when})</span>}
-              {task.min ? (
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  {task.min} Personen gleichzeitig nötig
-                </span>
-              ) : null}
-            </span>
-          </label>
+            {task.label}
+            {when && <span className="text-muted-foreground"> ({when})</span>}
+            {task.min ? (
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                {task.min} Personen gleichzeitig nötig
+              </span>
+            ) : null}
+          </AuswahlZeile>
         );
       })}
     </div>
