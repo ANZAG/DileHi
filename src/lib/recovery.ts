@@ -70,6 +70,27 @@ export function watchForReloadLoop() {
   })();
 }
 
+/**
+ * Alle Zwischenspeicher des Service Workers leeren.
+ *
+ * Nötig, wenn ein Programmteil nicht mehr nachgeladen werden kann: Eine
+ * frühere Fassung des Workers hat in diesem Fall die Startseite unter der
+ * Adresse des Programmteils abgelegt (Status 200, Inhalt HTML). Danach half
+ * auch Neuladen nicht, weil die Anfrage aus dem Zwischenspeicher beantwortet
+ * und nie wieder ans Netz gestellt wurde.
+ *
+ * Der Worker wird bewusst NICHT abgemeldet – daran hängen die Push-Meldungen.
+ */
+export async function zwischenspeicherLeeren(): Promise<void> {
+  try {
+    if (!("caches" in window)) return;
+    const namen = await caches.keys();
+    await Promise.all(namen.map((n) => caches.delete(n)));
+  } catch {
+    /* Ohne Aufräumen hilft das Neuladen vielleicht trotzdem. */
+  }
+}
+
 /** Nach einem erfolgreichen Start ist die Zählung hinfällig. */
 export function clearReloadWatch() {
   try {
