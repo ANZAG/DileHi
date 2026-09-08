@@ -5,6 +5,7 @@ import {
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten } from "./Hinweiskasten";
+import { Vereinsangaben } from "./Vereinsangaben";
 
 /**
  * Zeigt eine gespeicherte Seite an – ohne Puck.
@@ -50,6 +51,7 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Zeitstrahl,
   Aktionskaesten,
   Hinweiskasten,
+  Vereinsangaben,
   Abstandhalter,
   Trennlinie,
   EigenesHtml,

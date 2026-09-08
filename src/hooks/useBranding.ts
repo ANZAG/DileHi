@@ -17,6 +17,22 @@ export interface Branding {
   website_url: string | null;
   font_headings: string;
   font_body: string;
+  // Pflichtangaben fuer Impressum und Datenschutzerklaerung. Sie stehen hier
+  // und nicht in app_settings, weil beide Seiten oeffentlich sind.
+  org_street: string | null;
+  org_zip: string | null;
+  org_city: string | null;
+  org_country: string | null;
+  org_email: string | null;
+  org_phone: string | null;
+  board_members: string | null;
+  register_court: string | null;
+  register_number: string | null;
+  vat_id: string | null;
+  privacy_contact: string | null;
+  privacy_officer: string | null;
+  hosting_provider: string | null;
+  hosting_address: string | null;
 }
 
 /** Fällt der Aufruf aus, sieht die Seite aus wie bisher – nicht kaputt. */
@@ -33,6 +49,20 @@ const VORGABE: Branding = {
   website_url: null,
   font_headings: "DM Serif Display",
   font_body: "Inter",
+  org_street: null,
+  org_zip: null,
+  org_city: null,
+  org_country: null,
+  org_email: null,
+  org_phone: null,
+  board_members: null,
+  register_court: null,
+  register_number: null,
+  vat_id: null,
+  privacy_contact: null,
+  privacy_officer: null,
+  hosting_provider: null,
+  hosting_address: null,
 };
 
 function oeffentlicheAdresse(pfad: string | null): string | null {
