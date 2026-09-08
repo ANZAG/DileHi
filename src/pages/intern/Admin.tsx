@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare, MailPlus } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -18,10 +18,11 @@ import EmbedAdmin from "@/components/admin/EmbedAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
+import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen";
 
 
 const Admin = () => {
@@ -89,6 +90,7 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
+      { id: "vorlagen" as const, gruppe: "system", label: "Textvorlagen", icon: MailPlus, desc: "E-Mails und Aufnahmeantrag" },
     ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
@@ -197,6 +199,7 @@ const Admin = () => {
           {activeTab === "menue" && hasPermission("site.layout_edit") && <MenueAdmin />}
           {activeTab === "kategorien" && (hasPermission("site.content_edit") || hasPermission("gallery.manage")) && <KategorienAdmin />}
           {activeTab === "erscheinungsbild" && hasPermission("system.settings") && <ErscheinungsbildAdmin />}
+          {activeTab === "vorlagen" && hasPermission("system.settings") && <VorlagenAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}

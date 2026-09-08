@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendeMail, buildEmailWrapper, buildButton, seitenAdresse } from "../_shared/mail.ts";
+import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
+import { baueMail } from "../_shared/vorlagen.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,27 +42,9 @@ Deno.serve(async (req) => {
     const tokenHash = linkData.properties?.hashed_token;
     const resetUrl = `${origin}/passwort-zuruecksetzen?token_hash=${tokenHash}&type=recovery`;
 
-    const htmlBody = buildEmailWrapper(`
-      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Sicherheit</p>
-      <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Passwort zurücksetzen</p>
-      <p style="margin: 0 0 16px; line-height: 1.7;">
-        Du hast angefordert, dein Passwort für den Mitgliederbereich von
-        Diu lebendec Histôrje e.V. zurückzusetzen.
-      </p>
-      <p style="margin: 0 0 8px; line-height: 1.7;">
-        Klicke auf den folgenden Button, um ein neues Passwort zu setzen:
-      </p>
-      ${buildButton(resetUrl, "Neues Passwort setzen")}
-      <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
-        Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren.
-      </p>
-      <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
-        Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-        <a href="${resetUrl}" style="color: #dd9933; word-break: break-all;">${resetUrl}</a>
-      </p>
-    `);
+    const { betreff, html } = await baueMail("passwort_vergessen", {}, { knopfZiel: resetUrl });
 
-    await sendeMail(email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
+    await sendeMail(email, betreff, html);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

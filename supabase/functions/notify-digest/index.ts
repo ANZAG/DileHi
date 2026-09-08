@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  mitMailversand, escapeHtml, buildEmailWrapper, buildButton, seitenAdresse,
-} from "../_shared/mail.ts";
+import { mitMailversand, seitenAdresse } from "../_shared/mail.ts";
+import { baueMail, escapeHtml } from "../_shared/vorlagen.ts";
 
 /**
  * Tägliche Zusammenfassung ungelesener Benachrichtigungen.
@@ -85,25 +84,17 @@ Deno.serve(async (req) => {
         .join("");
 
       const count = row.items.length;
-      const html = buildEmailWrapper(`
-        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Neu für dich</p>
-        <p style="margin: 0 0 16px; font-size: 15px;">
-          Hallo ${escapeHtml(row.display_name || "")}, seit deinem letzten Besuch
-          ${count === 1 ? "gibt es eine Neuigkeit" : `gibt es ${count} Neuigkeiten`}:
-        </p>
-        <table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>
-        ${buildButton(`${siteUrl}/intern/forum`, "Im Forum ansehen")}
-        <p style="margin: 20px 0 0; font-size: 12px; color: #a8a29e;">
-          Diese Zusammenfassung lässt sich in deinem Profil abstellen.
-        </p>
-      `, { showImpressum: true });
+      const neuigkeiten = count === 1 ? "Eine Neuigkeit" : `${count} Neuigkeiten`;
+      const block = `<table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>`;
+
+      const { betreff, html } = await baueMail(
+        "zusammenfassung",
+        { name: row.display_name || "", neuigkeiten, anzahl: String(count) },
+        { block, knopfZiel: `${siteUrl}/intern/forum` }
+      );
 
       try {
-        await sende(
-          email,
-          count === 1 ? "Eine Neuigkeit für dich" : `${count} Neuigkeiten für dich`,
-          html
-        );
+        await sende(email, betreff, html);
         // Zeitstempel erst nach erfolgreichem Versand – sonst gehen Meldungen
         // verloren, wenn der Mailversand ausfällt.
         await admin.from("profiles").update({ digest_sent_at: new Date().toISOString() }).eq("id", row.user_id);

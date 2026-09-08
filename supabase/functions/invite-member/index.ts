@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import {
-  sendeMail, escapeHtml, buildEmailWrapper, buildButton, vereinsAdresse, seitenAdresse,
-} from "../_shared/mail.ts";
+import { sendeMail, vereinsAdresse, seitenAdresse } from "../_shared/mail.ts";
+import { baueMail, pdfText } from "../_shared/vorlagen.ts";
+import { marke, type Marke } from "../_shared/einstellungen.ts";
 import { requirePermission, requireValidRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
@@ -100,20 +100,75 @@ function b64ToUint8(b64: string): Uint8Array {
   return arr;
 }
 
-async function buildApplicationPdf(app: Application, rate: number, officials: Official[]): Promise<Uint8Array> {
+/** Hex aus den Vereinsangaben in die Farbdarstellung von pdf-lib. */
+function hexFarbe(hex: string, ersatz: [number, number, number]) {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex ?? "").trim());
+  if (!m) return rgb(...ersatz);
+  const z = parseInt(m[1], 16);
+  return rgb(((z >> 16) & 255) / 255, ((z >> 8) & 255) / 255, (z & 255) / 255);
+}
+
+interface AntragsTexte {
+  titel: string;
+  erklaerung: { titel: string; zeilen: string[] };
+  datenschutz: { titel: string; text: string };
+  zustimmungen: string[];
+  fussnote: string[];
+}
+
+/**
+ * Die Textbausteine des Antrags aus der Verwaltung.
+ *
+ * Beitragssatz und Vereinsname werden hier eingesetzt, damit in der Vorlage
+ * `{{beitrag}}` und `{{verein}}` stehen kann statt einer Zahl, die jemand
+ * jaehrlich von Hand nachziehen muesste.
+ */
+async function antragsTexte(rate: number): Promise<AntragsTexte> {
+  const werte = { beitrag: rate.toFixed(2).replace(".", ",") };
+  const [titel, erklaerung, datenschutz, zustimmungen, fussnote] = await Promise.all([
+    pdfText("titel", werte),
+    pdfText("erklaerung", werte),
+    pdfText("datenschutz", werte),
+    pdfText("zustimmungen", werte),
+    pdfText("fussnote", werte),
+  ]);
+  const zeilen = (t: string) => t.split("
+").map((z) => z.trim()).filter(Boolean);
+  return {
+    titel: titel.inhalt,
+    erklaerung: { titel: erklaerung.titel, zeilen: zeilen(erklaerung.inhalt) },
+    datenschutz: { titel: datenschutz.titel, text: datenschutz.inhalt },
+    zustimmungen: zeilen(zustimmungen.inhalt),
+    fussnote: zeilen(fussnote.inhalt),
+  };
+}
+
+async function buildApplicationPdf(
+  app: Application,
+  rate: number,
+  officials: Official[],
+  m: Marke,
+  texte: AntragsTexte
+): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]); // A4
   const font   = await pdf.embedFont(StandardFonts.Helvetica);
   const bold   = await pdf.embedFont(StandardFonts.HelveticaBold);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
 
-  // Logo einbetten (PNG mit transparentem Schwarz)
-  const logoImg  = await pdf.embedPng(b64ToUint8(LOGO_B64));
-  const logoDims = logoImg.scale(0.14);
+  // Das mitgelieferte Logo gehoert zu dem Namen, unter dem es ausgeliefert
+  // wurde. Traegt die Installation einen anderen Vereinsnamen, bleibt die
+  // Stelle leer – lieber kein Logo als ein fremdes auf dem Aufnahmeantrag.
+  //
+  // Ein eigenes Logo laesst sich hier noch nicht einsetzen: Die Bilderablage
+  // wandelt Logos in WebP um, und pdf-lib kann nur PNG und JPEG einbetten.
+  const eigenerName = m.name !== "Diu lebendec Histôrje e. V.";
+  const logoImg  = eigenerName ? null : await pdf.embedPng(b64ToUint8(LOGO_B64));
+  const logoDims = logoImg ? logoImg.scale(0.14) : null;
 
   // ── Farben ────────────────────────────────────────────────────────────────
-  const AMBER = rgb(0.851, 0.467, 0.024);
-  const DARK  = rgb(0.11,  0.11,  0.13);
+  const AMBER = hexFarbe(m.farbe, [0.851, 0.467, 0.024]);
+  const DARK  = hexFarbe(m.dunkel, [0.11, 0.11, 0.13]);
   const GRAY  = rgb(0.45,  0.45,  0.48);
   const LGRAY = rgb(0.93,  0.93,  0.94);
   const WHITE = rgb(1,     1,     1);
@@ -166,11 +221,13 @@ async function buildApplicationPdf(app: Application, rate: number, officials: Of
   // ── HEADER ────────────────────────────────────────────────────────────────
   page.drawRectangle({ x: 0, y: 807, width: 595.28, height: 5, color: AMBER });
   page.drawRectangle({ x: 0, y: 735, width: 595.28, height: 72, color: rgb(0.13, 0.13, 0.15) });
-  page.drawImage(logoImg, { x: R - logoDims.width, y: 740, width: logoDims.width, height: logoDims.height });
-  at("Diu lebendec Histôrje e. V.", L, 781, 20, bold, WHITE);
-  at("Living History & Lebendige Geschichtsvermittlung", L, 760, 8.5, font, rgb(0.75, 0.75, 0.78));
-  at("Am Schloßpark 17 - 65203 Wiesbaden",
-     L, 742, 8, italic, rgb(0.65, 0.65, 0.68));
+  if (logoImg && logoDims) {
+    page.drawImage(logoImg, { x: R - logoDims.width, y: 740, width: logoDims.width, height: logoDims.height });
+  }
+  at(m.name, L, 781, 20, bold, WHITE);
+  if (m.tagline) at(m.tagline, L, 760, 8.5, font, rgb(0.75, 0.75, 0.78));
+  const anschriftZeile = [m.strasse, m.ort].filter(Boolean).join(" - ");
+  if (anschriftZeile) at(anschriftZeile, L, 742, 8, italic, rgb(0.65, 0.65, 0.68));
 
   // ── VORSTANDSLEISTE ───────────────────────────────────────────────────────
   page.drawRectangle({ x: L, y: 705, width: W, height: 22, color: rgb(0.97, 0.97, 0.97) });
@@ -188,7 +245,7 @@ async function buildApplicationPdf(app: Application, rate: number, officials: Of
   // ── TITEL ─────────────────────────────────────────────────────────────────
   let y = 681;
   page.drawRectangle({ x: L, y: y - 2, width: 3.5, height: 16, color: AMBER });
-  at("Antrag auf Mitgliedschaft", L + 10, y, 14, bold, DARK);
+  at(texte.titel, L + 10, y, 14, bold, DARK);
   y -= 28;
 
   // ── PERSÖNLICHE ANGABEN ───────────────────────────────────────────────────
@@ -238,41 +295,31 @@ async function buildApplicationPdf(app: Application, rate: number, officials: Of
   y -= 26;
 
   // ── ERKLARUNG ─────────────────────────────────────────────────────────────
-  at("ERKLÄRUNG", L, y, 7.5, bold, AMBER);
+  at(texte.erklaerung.titel, L, y, 7.5, bold, AMBER);
   y -= 4; hline(y); y -= 4;
 
   page.drawRectangle({ x: L, y: y - 72, width: W, height: 76, color: rgb(0.98, 0.98, 0.98) });
   y -= 10;
-  y = textBlock(
-    "Ja, ich will Mitglied bei Diu lebendec Histôrje e. V. werden und beantrage hiermit meine Aufnahme!",
-    L + 8, y, 9.5, bold, DARK, W - 16
-  ) - 2;
-  y = textBlock(
-    "Mit dem Antrag auf Mitgliedschaft erkenne ich die Satzung des Vereins Diu lebendec Histôrje e. V. an. Mir ist bekannt, dass die Mitgliedschaft beitragspflichtig ist.",
-    L + 8, y, 9, font, DARK, W - 16
-  ) - 2;
-  y = textBlock(
-    "Derzeit beträgt der jährliche Beitragssatz " + rateStr + " EUR. Die Mitgliedschaft ist nach schriftlicher Bestätigung durch den Vorstand gültig.",
-    L + 8, y, 9, font, DARK, W - 16
-  );
-  y -= 18;
+  // Die erste Zeile steht fett – sie ist die eigentliche Erklaerung, der Rest
+  // sind die Bedingungen dazu.
+  texte.erklaerung.zeilen.forEach((zeile, i) => {
+    y = textBlock(zeile, L + 8, y, i === 0 ? 9.5 : 9, i === 0 ? bold : font, DARK, W - 16) - 2;
+  });
+  y -= 16;
 
   // ── DATENSCHUTZ ───────────────────────────────────────────────────────────
-  at("DATENSCHUTZ", L, y, 7.5, bold, AMBER);
+  at(texte.datenschutz.titel, L, y, 7.5, bold, AMBER);
   y -= 4; hline(y); y -= 14;
 
-  y = textBlock(
-    "Der Schutz Deiner personenbezogenen Daten ist Diu lebendec Histôrje e. V. ein besonderes Anliegen. Wir verwenden die in diesem Aufnahmeantrag enthaltenen Angaben ausschließlich zur Erledigung aller im Zusammenhang mit der Mitgliedschaft stehenden Aufgaben im erforderlichen Umfang. Dies betrifft insbesondere die computergestützte Mitgliederbestandsverwaltung, die Mitgliederinformation sowie ggf. den Beitragseinzug. Deine Daten werden nicht an externe Dritte weitergegeben.",
-    L, y, 8.5, font, rgb(0.35, 0.35, 0.38), W
-  );
+  y = textBlock(texte.datenschutz.text, L, y, 8.5, font, rgb(0.35, 0.35, 0.38), W);
   y -= 14;
 
   // ── EINVERSTANDNIS ────────────────────────────────────────────────────────
   checkbox(L, y, app.statutes_accepted);
-  at("Satzung anerkannt", L + 14, y, 9.5, font, DARK);
+  at(texte.zustimmungen[0] ?? "", L + 14, y, 9.5, font, DARK);
   y -= 16;
   checkbox(L, y, app.data_processing_accepted);
-  at("Datenverarbeitung gemäß Datenschutzerklärung zugestimmt", L + 14, y, 9.5, font, DARK);
+  at(texte.zustimmungen[1] ?? "", L + 14, y, 9.5, font, DARK);
   y -= 26;
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
@@ -285,8 +332,8 @@ async function buildApplicationPdf(app: Application, rate: number, officials: Of
 
   page.drawRectangle({ x: L + W / 2, y: y - 12, width: W / 2, height: 28,
     borderColor: AMBER, borderWidth: 0.8, color: rgb(1, 0.98, 0.96) });
-  at("Digitale Antragstellung via www.dilehi.de", L + W / 2 + 8, y + 8, 7.5, italic, GRAY);
-  at("Eintrittsdatum = Datum dieses digitalen Antrags", L + W / 2 + 8, y - 3, 7.5, italic, GRAY);
+  at(texte.fussnote[0] ?? "", L + W / 2 + 8, y + 8, 7.5, italic, GRAY);
+  at(texte.fussnote[1] ?? "", L + W / 2 + 8, y - 3, 7.5, italic, GRAY);
 
   // Amber-Balken unten
   page.drawRectangle({ x: 0, y: 0, width: 595.28, height: 5, color: AMBER });
@@ -395,7 +442,9 @@ Deno.serve(async (req) => {
       try {
         const rate = await getCurrentRate(adminClient);
         const officials = await getOfficials(adminClient);
-        const pdfBytes = await buildApplicationPdf(app, rate, officials);
+        const pdfBytes = await buildApplicationPdf(
+          app, rate, officials, await marke(), await antragsTexte(rate)
+        );
         const fileName = `Mitgliedsantrag_${app.last_name}_${app.first_name}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
         const storagePath = `membership/${userId}/${Date.now()}_${fileName}`;
         const { error: upErr } = await adminClient.storage
@@ -429,24 +478,13 @@ Deno.serve(async (req) => {
     const assignedRoleLabel = (catalogRow as { label?: string } | null)?.label || role;
 
     if (isNewUser && confirmUrl) {
-      const htmlBody = buildEmailWrapper(`
-        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Einladung</p>
-        <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Willkommen im Mitgliederbereich</p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          Du wurdest als <strong>${escapeHtml(assignedRoleLabel)}</strong> zum internen Bereich von
-          Diu lebendec Histôrje e.V. eingeladen.
-        </p>
-        <p style="margin: 0 0 8px; line-height: 1.7;">
-          Klicke auf den folgenden Button, um dein Konto zu aktivieren und ein Passwort zu setzen:
-        </p>
-        ${buildButton(confirmUrl, "Konto aktivieren")}
-        <p style="font-size: 12px; color: #a8a29e; line-height: 1.6;">
-          Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
-          <a href="${confirmUrl}" style="color: #dd9933; word-break: break-all;">${escapeHtml(confirmUrl)}</a>
-        </p>
-      `);
       try {
-        await sendeMail(email, "Einladung – Diu lebendec Histôrje e.V.", htmlBody);
+        const { betreff, html } = await baueMail(
+          "einladung",
+          { rolle: assignedRoleLabel },
+          { knopfZiel: confirmUrl }
+        );
+        await sendeMail(email, betreff, html);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
       }
@@ -459,42 +497,14 @@ Deno.serve(async (req) => {
       const signer = officials.find((o) => o.name);
       const signerName = signer?.name || "Der Vorstand";
 
-      const welcomeHtml = buildEmailWrapper(`
-        <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Aufnahmebestätigung</p>
-        <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">Herzlich willkommen!</p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          Hallo ${escapeHtml(firstName)},
-        </p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          wir freuen uns sehr, dich als neues Mitglied in unserem Verein
-          <strong>Diu lebendec Histôrje e.V.</strong> willkommen zu heißen!
-        </p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          Mit deiner Anmeldung bist du nun Teil unserer lebendigen Gemeinschaft, die sich mit
-          viel Herzblut der Darstellung und Vermittlung historischer Lebenswelten widmet. Wir
-          sind gespannt auf deine Ideen, dein Engagement und die gemeinsamen Erlebnisse, die
-          vor uns liegen.
-        </p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          Alle wichtigen Infos rund um den Verein, Termine und Mitmachmöglichkeiten findest du
-          auf unserer Website <a href="https://www.dilehi.de" style="color: #dd9933;">www.dilehi.de</a>
-          und in unserer WhatsApp-Gruppe, der wir dich in Kürze hinzufügen.
-        </p>
-        <p style="margin: 0 0 16px; line-height: 1.7;">
-          Wenn du Fragen hast oder etwas unklar ist, melde dich jederzeit gern bei uns.
-          Schön, dass du dabei bist – auf eine spannende Zeit mit dir!
-        </p>
-      `, {
-        signature: { senderName: signerName, senderRole: signer?.label },
-      });
+      const { betreff: willkommenBetreff, html: willkommenHtml } = await baueMail(
+        "willkommen",
+        { vorname: firstName },
+        { unterschrift: { name: signerName, amt: signer?.label } }
+      );
 
       try {
-        await sendeMail(
-          email,
-          "Herzlich willkommen bei Diu lebendec Histôrje e.V.!",
-          welcomeHtml,
-          { bcc: await vereinsAdresse() },
-        );
+        await sendeMail(email, willkommenBetreff, willkommenHtml, { bcc: await vereinsAdresse() });
       } catch (welcomeErr) {
         console.error("Welcome email sending failed:", welcomeErr);
       }

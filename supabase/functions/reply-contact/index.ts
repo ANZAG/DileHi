@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendeMail, escapeHtml, buildEmailWrapper } from "../_shared/mail.ts";
+import { sendeMail } from "../_shared/mail.ts";
+import { baueMail, escapeHtml } from "../_shared/vorlagen.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,17 +59,16 @@ Deno.serve(async (req) => {
       || roleData?.role
       || undefined;
 
-    const subject = `Ihre Anfrage – Diu lebendec Histôrje e.V.`;
-    const htmlBody = buildEmailWrapper(`
-      <p style="margin: 0 0 20px; font-size: 16px; color: #292524;">
-        Guten Tag${name ? ` ${escapeHtml(name)}` : ""},
-      </p>
-      <p style="margin: 0 0 20px; white-space: pre-wrap; line-height: 1.7;">${escapeHtml(message)}</p>
-    `, {
-      signature: { senderName, senderRole },
-    });
+    const block =
+      `<p style="margin: 0 0 20px; white-space: pre-wrap; line-height: 1.7;">${escapeHtml(message)}</p>`;
 
-    await sendeMail(to, subject, htmlBody);
+    const { betreff, html } = await baueMail(
+      "kontakt_antwort",
+      { name: name ?? "" },
+      { block, unterschrift: { name: senderName, amt: senderRole } }
+    );
+
+    await sendeMail(to, betreff, html);
 
     // Save reply to database
     if (contact_message_id) {

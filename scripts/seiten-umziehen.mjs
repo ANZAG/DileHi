@@ -335,6 +335,11 @@ function elemente(rest, teile, bilder, { alleAbsaetze = false } = {}) {
   const muster = new RegExp(
     [
       /(?<platzhalter><!--x:(?<nummer>\d+)-->)/.source,
+      // Jedes <section> im Original ist ein Abschnitt mit `mb-12` bzw. ein
+      // Kind eines Containers mit `space-y-12` – in beiden Faellen 48 px
+      // Abstand. Vorher wurde das an den <h2> festgemacht; ein Abschnitt, der
+      // mit einem Kasten statt einer Ueberschrift beginnt, fiel damit durch.
+      /(?<abschnitt><(?:motion\.)?section[^>]*>)/.source,
       /(?<hEins><h1[^>]*>(?<hEinsText>[\s\S]*?)<\/h1>)/.source,
       /(?<hZwei><h2[^>]*>(?<hZweiText>[\s\S]*?)<\/h2>)/.source,
       /(?<hDrei><h3[^>]*>(?<hDreiText>[\s\S]*?)<\/h3>)/.source,
@@ -371,6 +376,7 @@ function elemente(rest, teile, bilder, { alleAbsaetze = false } = {}) {
   for (const m of rest.matchAll(muster)) {
     const g = m.groups;
     if (g.platzhalter) raus.push(teile[Number(g.nummer)]);
+    else if (g.abschnitt) raus.push({ art: "abschnitt" });
     else if (g.hEins) raus.push({ art: "h1", text: saeubern(g.hEinsText) });
     else if (g.hZwei) raus.push({ art: "h2", text: saeubern(g.hZweiText) });
     else if (g.hDrei) raus.push({ art: "h3", text: saeubern(g.hDreiText) });
@@ -398,6 +404,11 @@ function elemente(rest, teile, bilder, { alleAbsaetze = false } = {}) {
         bildbreite: rahmen.includes("max-w-md") ? "schmal"
           : rahmen.includes("max-w-lg") ? "mittel"
           : "voll",
+        // Ein Bild INNERHALB eines Abschnitts traegt `mt-6` (24 px). Steht
+        // keins da, ist es ein eigenes Kind des Containers und hat wie jeder
+        // Abschnitt 48 px Luft – so steht die Epochenuebersicht auf „Fuer
+        // Veranstalter".
+        eigenerAbschnitt: !rahmen.includes("mt-"),
       });
     }
   }
@@ -437,16 +448,18 @@ function zuBausteinen(liste) {
   // nur, was im Quelltext steht, und der Inhalt liegt in der Datenbank.
   let mitPunkten = true;
 
-  const pufferLeeren = (unten = "keiner") => {
+  const pufferLeeren = (unten) => {
     if (!puffer) return;
     bausteine.push(baustein("Textabschnitt", {
       inhalt: puffer, breite: "schmal", ausrichtung: "links",
       aufzaehlung: mitPunkten ? "punkte" : "schlicht",
-      abstandOben: "klein", abstandUnten: unten,
+      abstandOben: "klein",
+      abstandUnten: unten ?? (abschnittEndet ? "klein" : "keiner"),
       textfarbe: "standard", hintergrund: "keine", flaeche: "inhalt",
     }));
     puffer = "";
     mitPunkten = true;
+    abschnittEndet = false;
   };
 
   /**
@@ -462,8 +475,14 @@ function zuBausteinen(liste) {
    * greift die Regel nur an der Abschnittsgrenze, nicht zwischen Text und
    * Bild.
    */
+  // Wartet der Puffer noch, schliesst erst der Block ab, der daraus entsteht.
+  let abschnittEndet = false;
+
   const abschnittsgrenze = () => {
-    if (puffer) return; // Mitten im Textblock; dort setzt prose die Abstände.
+    if (puffer) {
+      abschnittEndet = true;
+      return;
+    }
     const letztes = bausteine[bausteine.length - 1];
     if (letztes && letztes.props.abstandUnten === "keiner") {
       letztes.props.abstandUnten = "klein";
@@ -474,8 +493,10 @@ function zuBausteinen(liste) {
     switch (e.art) {
       case "h1":
         break; // Der Titel steht im Titelbild.
-      case "h2":
+      case "abschnitt":
         abschnittsgrenze();
+        break;
+      case "h2":
         puffer += `<h2>${e.text}</h2>`;
         zeichen += e.text.length;
         break;
@@ -516,6 +537,7 @@ function zuBausteinen(liste) {
         // Ohne Schluessel gibt es keinen Bildplatz – das ist ein Bild aus einer
         // Schleife und gehoert nicht hierher.
         if (!e.schluessel) break;
+        if (e.eigenerAbschnitt) abschnittsgrenze();
         pufferLeeren();
         bausteine.push(baustein("Einzelbild", {
           bildSchluessel: e.schluessel, bildunterschrift: "",
@@ -602,6 +624,19 @@ function zuBausteinen(liste) {
     }
   }
   pufferLeeren("weit");
+
+  // Der letzte Baustein bekommt Abstand nach unten – egal welcher Art. Auf
+  // „Ueber uns" endet die Seite mit einem Kasten, und der klebte ohne das
+  // unmittelbar an der Fusszeile. „riesig" ist genau das, was das Original
+  // dort hat: Abschnittsabstand plus Innenabstand des Containers.
+  //
+  // Nur wo gar kein Abstand steht: Ein Baustein, der seinen richtigen Wert
+  // schon aus der Quelle mitgebracht hat (die Darstellungen mit py-16 md:py-24),
+  // behaelt ihn.
+  const letztes = bausteine[bausteine.length - 1];
+  if (letztes && letztes.props.abstandUnten === "keiner") {
+    letztes.props.abstandUnten = "riesig";
+  }
 
   return { bausteine, zeichen };
 }

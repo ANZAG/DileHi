@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendeMail, versandweg, smtpZugang, buildEmailWrapper } from "../_shared/mail.ts";
+import { sendeMail, versandweg, smtpZugang } from "../_shared/mail.ts";
+import { baueMail } from "../_shared/vorlagen.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,19 +51,16 @@ Deno.serve(async (req) => {
     if (weg.weg === "smtp") smtpZugang();
 
     const wegName = weg.weg === "smtp" ? "SMTP" : "Microsoft 365 (Graph)";
-    const html = buildEmailWrapper(`
-      <h2 style="margin: 0 0 16px; font-size: 20px;">Der Probeversand hat geklappt</h2>
-      <p style="margin: 0 0 12px;">
-        Diese Nachricht wurde über <strong>${wegName}</strong> verschickt.
-        Damit funktionieren Einladungen, das Zurücksetzen von Passwörtern,
-        Kontaktanfragen und die Abendzusammenfassung.
-      </p>
-      <p style="margin: 0; font-size: 13px; color: #57534e;">
-        Angefordert am ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}.
-      </p>
-    `, { showImpressum: false });
+    const { betreff, html } = await baueMail(
+      "probeversand",
+      {
+        versandweg: wegName,
+        zeitpunkt: new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
+      },
+      { impressum: false }
+    );
 
-    await sendeMail(user.email, "Probeversand", html);
+    await sendeMail(user.email, betreff, html);
 
     return json({ ok: true, weg: wegName, an: user.email });
   } catch (err) {

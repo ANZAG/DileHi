@@ -100,7 +100,7 @@ export function breitenKlasse(breite?: Breite): string {
   return `container mx-auto ${breite === "breit" ? "max-w-5xl" : "max-w-3xl"}`;
 }
 
-export type Abstand = "keiner" | "eng" | "klein" | "normal" | "gross" | "weit";
+export type Abstand = "keiner" | "eng" | "klein" | "normal" | "gross" | "weit" | "riesig";
 
 export const ABSTAENDE: { label: string; value: Abstand }[] = [
   { label: "Kein Abstand", value: "keiner" },
@@ -109,6 +109,7 @@ export const ABSTAENDE: { label: string; value: Abstand }[] = [
   { label: "Normal", value: "normal" },
   { label: "Groß", value: "gross" },
   { label: "Sehr groß", value: "weit" },
+  { label: "Riesig", value: "riesig" },
 ];
 
 /**
@@ -132,6 +133,9 @@ const OBEN: Record<Abstand, string> = {
   normal: "pt-8 md:pt-12",
   gross: "pt-12 md:pt-20",
   weit: "pt-16 md:pt-24",
+  // Der Fuss einer Seite: Abschnittsabstand plus Innenabstand des
+  // Containers, so wie es die Quellseiten machen (mb-12 + py-12 md:py-20).
+  riesig: "pt-24 md:pt-32",
 };
 
 const UNTEN: Record<Abstand, string> = {
@@ -141,6 +145,7 @@ const UNTEN: Record<Abstand, string> = {
   normal: "pb-8 md:pb-12",
   gross: "pb-12 md:pb-20",
   weit: "pb-16 md:pb-24",
+  riesig: "pb-24 md:pb-32",
 };
 
 /**
