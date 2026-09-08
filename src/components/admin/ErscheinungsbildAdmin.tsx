@@ -136,17 +136,26 @@ export default function ErscheinungsbildAdmin() {
       {/* ── Logo und Favicon ─────────────────────────────────────────────── */}
       <Abschnitt titel="Logo und Symbol" hinweis="Das Logo steht in der Kopfzeile, das Symbol im Browsertab.">
         <div className="grid sm:grid-cols-2 gap-6">
+          {/* Beide zeigen, was gerade wirkt – nicht „leer". Das Favicon liegt
+              als Datei im Projekt und ist da, auch wenn in der Datenbank
+              nichts steht; ein Logo gibt es bisher gar nicht, die Kopfzeile
+              zeigt den Vereinsnamen als Text. Ein leerer Kasten hätte den
+              Eindruck erweckt, etwas sei kaputt. */}
           <BildKasten
             titel="Logo"
             adresse={bildAdresse(entwurf.logo_path)}
+            ersatz={null}
+            ersatzHinweis="Ohne Logo steht der Vereinsname als Text in der Kopfzeile."
             laedt={laedtBild === "logo"}
-            hinweis="Am besten breit und mit durchsichtigem Hintergrund."
+            hinweis="Am besten breit und mit durchsichtigem Hintergrund (PNG oder WebP)."
             onDatei={(d) => void bildHochladen("logo", d)}
             onEntfernen={() => setze({ logo_path: null })}
           />
           <BildKasten
             titel="Symbol (Favicon)"
             adresse={bildAdresse(entwurf.favicon_path)}
+            ersatz="/favicon.ico"
+            ersatzHinweis="Zurzeit die mitgelieferte Datei aus dem Projekt."
             laedt={laedtBild === "favicon"}
             hinweis="Quadratisch, mindestens 64 × 64. Wird nicht umgewandelt."
             onDatei={(d) => void bildHochladen("favicon", d)}
@@ -213,7 +222,7 @@ export default function ErscheinungsbildAdmin() {
       {/* ── E-Mail ───────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="E-Mail-Versand"
-        hinweis="Womit die Anwendung Mails verschickt. Die Zugangsdaten selbst stehen nicht hier, sondern in den Secrets des Backends – diese Seite ist für jedes Mitglied lesbar."
+        hinweis="Einladungen, Passwort-Zurücksetzen, Kontaktanfragen und die Abendzusammenfassung gehen über diesen Weg."
       >
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
@@ -225,11 +234,9 @@ export default function ErscheinungsbildAdmin() {
                 <SelectItem value="smtp">SMTP (normaler Mailserver)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              {entwurf.mail_transport === "microsoft_graph"
-                ? "Braucht eine App-Registrierung bei Microsoft. Lohnt sich, wenn der Verein ohnehin Microsoft 365 nutzt."
-                : "Braucht nur Serveradresse, Benutzer und Passwort – das, was jeder Mailanbieter mitgibt."}
-            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <MailAnleitung weg={entwurf.mail_transport} />
           </div>
           <Feld label="Absenderadresse" wert={entwurf.mail_from_address ?? ""} setze={(v) => setze({ mail_from_address: v })} />
           <Feld label="Absendername" wert={entwurf.mail_from_name ?? ""} setze={(v) => setze({ mail_from_name: v })} />
@@ -308,23 +315,27 @@ function Farbwahl({ label, wert, setze, hinweis }: {
   );
 }
 
-function BildKasten({ titel, adresse, laedt, hinweis, onDatei, onEntfernen }: {
+function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, onDatei, onEntfernen }: {
   titel: string;
   adresse: string | null;
+  /** Was ohne eigenes Bild tatsächlich angezeigt wird, falls es so etwas gibt. */
+  ersatz: string | null;
+  ersatzHinweis: string;
   laedt: boolean;
   hinweis: string;
   onDatei: (d: File | undefined) => void;
   onEntfernen: () => void;
 }) {
+  const zeigt = adresse ?? ersatz;
   return (
     <div>
       <Label className="text-sm">{titel}</Label>
       <div className="mt-1 flex items-center gap-3">
         <div className="h-16 w-16 rounded border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
-          {adresse ? (
-            <img src={adresse} alt="" className="max-h-full max-w-full object-contain" />
+          {zeigt ? (
+            <img src={zeigt} alt="" className="max-h-full max-w-full object-contain" />
           ) : (
-            <span className="text-xs text-muted-foreground">leer</span>
+            <span className="text-xs text-muted-foreground text-center px-1">kein Bild</span>
           )}
         </div>
         <div className="min-w-0">
@@ -348,9 +359,79 @@ function BildKasten({ titel, adresse, laedt, hinweis, onDatei, onEntfernen }: {
               Entfernen
             </button>
           )}
-          <p className="text-xs text-muted-foreground mt-1">{hinweis}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {adresse ? hinweis : ersatzHinweis}
+          </p>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Was jemand tun muss, damit der Mailversand läuft.
+ *
+ * Die Zugangsdaten gehören nicht in diese Tabelle – sie ist für jedes Mitglied
+ * lesbar. Sie stehen als Secrets beim Backend. Nur weiss das niemand, der zum
+ * ersten Mal hier sitzt, und ohne die Namen der Secrets sucht man sich dumm.
+ * Deshalb stehen sie hier, samt der Reihenfolge, in der man vorgeht.
+ */
+function MailAnleitung({ weg }: { weg: string }) {
+  const graph = weg === "microsoft_graph";
+  return (
+    <details className="rounded-lg border bg-muted/30 p-3 text-sm">
+      <summary className="cursor-pointer font-medium">
+        {graph ? "Microsoft 365 einrichten" : "SMTP einrichten"}
+      </summary>
+
+      {graph ? (
+        <div className="mt-3 space-y-2 text-muted-foreground">
+          <p>
+            Sinnvoll, wenn der Verein ohnehin Microsoft 365 hat. Mails gehen dann aus dem echten
+            Postfach heraus und landen seltener im Spam.
+          </p>
+          <ol className="list-decimal ml-5 space-y-1">
+            <li>Im Microsoft-Entra-Portal unter „App-Registrierungen" eine neue Anwendung anlegen.</li>
+            <li>
+              Unter „API-Berechtigungen" die Anwendungsberechtigung <code>Mail.Send</code> hinzufügen
+              und als Administrator bestätigen.
+            </li>
+            <li>Unter „Zertifikate &amp; Geheimnisse" ein neues Geheimnis erzeugen und sofort kopieren – es wird nur einmal angezeigt.</li>
+            <li>Die vier Werte beim Backend als Secrets hinterlegen:</li>
+          </ol>
+          <ul className="ml-5 space-y-0.5 font-mono text-xs">
+            <li>MS_TENANT_ID</li>
+            <li>MS_CLIENT_ID</li>
+            <li>MS_CLIENT_SECRET</li>
+            <li>MS_SENDER_EMAIL</li>
+          </ul>
+          <p>
+            Die Absenderadresse muss ein echtes Postfach in derselben Organisation sein.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2 text-muted-foreground">
+          <p>
+            Der einfache Weg: Es reicht, was jeder Mailanbieter mitgibt – Serveradresse, Benutzername
+            und Passwort. Am besten ein eigenes Postfach für die Anwendung, damit ein geändertes
+            Passwort nicht die halbe Website lahmlegt.
+          </p>
+          <ol className="list-decimal ml-5 space-y-1">
+            <li>Beim Mailanbieter ein Postfach anlegen, etwa <code>noreply@verein.de</code>.</li>
+            <li>Die Zugangsdaten beim Backend als Secrets hinterlegen:</li>
+          </ol>
+          <ul className="ml-5 space-y-0.5 font-mono text-xs">
+            <li>SMTP_HOST</li>
+            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL)</li>
+            <li>SMTP_USER</li>
+            <li>SMTP_PASSWORD</li>
+          </ul>
+          <p className="text-destructive">
+            Noch nicht einsatzbereit: Die Umschaltung steht hier, der Versand über SMTP wird im
+            Backend gerade erst gebaut. Bis dahin bleibt Microsoft 365 der funktionierende Weg.
+          </p>
+        </div>
+      )}
+    </details>
   );
 }

@@ -3,6 +3,7 @@ import {
   Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
   Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
+import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 
 /**
  * Zeigt eine gespeicherte Seite an – ohne Puck.
@@ -43,6 +44,10 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Darstellungen,
   Termine,
   Kontaktformular,
+  Willkommen,
+  Eckdaten,
+  Zeitstrahl,
+  Aktionskaesten,
   Abstandhalter,
   Trennlinie,
   EigenesHtml,

@@ -11,8 +11,8 @@ import EpochSources from "@/components/epochs/EpochSources";
 import ImageCredits from "@/components/epochs/ImageCredits";
 import KontaktFelder from "@/components/kontakt/KontaktFelder";
 import {
-  abstandKlasse, breitenKlasse, grundKlasse, polsterung, textKlasse,
-  type Abstand, type Breite, type Hintergrund, type Textfarbe,
+  abstandKlasse, breitenKlasse, flaechenKlasse, grundKlasse, polsterung, textKlasse,
+  type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
 } from "./gestaltung";
 
 /**
@@ -32,12 +32,24 @@ interface Gemeinsam {
   abstand?: Abstand;
   textfarbe?: Textfarbe;
   hintergrund?: Hintergrund;
+  flaeche?: Flaeche;
 }
 
 /** Rahmen um jeden Baustein – Breite, Abstand, Farbe an einer Stelle. */
 function Rahmen({
-  breite, abstand, textfarbe, hintergrund, children, className = "",
+  breite, abstand, textfarbe, hintergrund, flaeche, children, className = "",
 }: Gemeinsam & { children: React.ReactNode; className?: string }) {
+  // Über die ganze Breite: Der Hintergrund liegt am Abschnitt, der Inhalt
+  // bleibt in seiner Breite. So entstehen die farbigen Bänder, aus denen die
+  // Startseite besteht.
+  if (flaeche === "voll" && hintergrund && hintergrund !== "keine") {
+    return (
+      <section className={`${flaechenKlasse(hintergrund)} ${abstandKlasse(abstand)} ${className}`}>
+        <div className={`${breitenKlasse(breite)} ${textKlasse(textfarbe)}`}>{children}</div>
+      </section>
+    );
+  }
+
   return (
     <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)} ${className}`}>
       <div className={`${grundKlasse(hintergrund)} ${polsterung(hintergrund)} ${textKlasse(textfarbe)}`}>
@@ -88,13 +100,18 @@ export function Titelbild({
 
 // ── Fließtext ───────────────────────────────────────────────────────────────
 
-export function Textabschnitt({ inhalt, ...rest }: Gemeinsam & { inhalt: unknown }) {
+export function Textabschnitt({
+  inhalt, ausrichtung, ...rest
+}: Gemeinsam & { inhalt: unknown; ausrichtung?: "links" | "mitte" }) {
   // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
   // wirkte die neue Seite dunkler als die alte.
   const klassen =
     "prose prose-sm sm:prose dark:prose-invert max-w-none " +
     "prose-headings:font-serif prose-headings:text-foreground prose-p:text-muted-foreground " +
-    "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground";
+    "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground" +
+    // Zentriert nur den Text, nicht die Aufzählungspunkte – die sähen sonst
+    // aus, als wären sie verrutscht.
+    (ausrichtung === "mitte" ? " text-center prose-headings:text-center" : "");
 
   // Puck reicht den Text entweder als HTML-Zeichenkette durch (so liegt er in
   // der Datenbank) oder im Editor bereits als React-Baum. Beides muss hier

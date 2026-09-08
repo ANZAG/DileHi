@@ -54,6 +54,34 @@ export function polsterung(grund?: Hintergrund): string {
   return !grund || grund === "keine" ? "" : "p-6";
 }
 
+/**
+ * Derselbe Hintergrund, aber über die ganze Seitenbreite.
+ *
+ * Ein farbiger Streifen quer über die Seite ist etwas anderes als ein Kasten
+ * um den Text – ohne diese Unterscheidung liesse sich die Startseite nicht
+ * nachbauen, auf der sich helle und dunkle Bänder abwechseln. Rahmen und
+ * abgerundete Ecken entfallen dabei: Ein Streifen über die volle Breite hat
+ * keine Ecken.
+ */
+const FLAECHEN_KLASSEN: Record<Hintergrund, string> = {
+  keine: "",
+  karte: "bg-card",
+  gedaempft: "bg-muted",
+  akzent_zart: "bg-primary/10",
+  akzent: "bg-primary text-primary-foreground",
+};
+
+export function flaechenKlasse(grund?: Hintergrund): string {
+  return FLAECHEN_KLASSEN[grund ?? "keine"] ?? "";
+}
+
+export type Flaeche = "inhalt" | "voll";
+
+export const FLAECHEN: { label: string; value: Flaeche }[] = [
+  { label: "Nur um den Inhalt", value: "inhalt" },
+  { label: "Über die ganze Breite", value: "voll" },
+];
+
 export type Breite = "schmal" | "breit" | "voll";
 
 export const BREITEN: { label: string; value: Breite }[] = [
