@@ -9,6 +9,92 @@
 -- Mechanismus - sonst entsteht genau die Verwechslungsgefahr, die den
 -- Mitgliederbereich unübersichtlich macht.
 
+-- ══ Vorab: ein Fehler aus 20260908010000 ════════════════════════════════════
+--
+-- forum_subscriptions hat zwei TEILWEISE Unique-Indizes (einer für Themen,
+-- einer für Rubriken – je nachdem, welche der beiden Spalten gefüllt ist). Ein
+-- `ON CONFLICT (user_id, thread_id)` findet einen solchen Index nur, wenn die
+-- Bedingung des Index mit angegeben wird. Ohne sie bricht jedes Anlegen eines
+-- Themas mit 42P10 ab.
+--
+-- Aufgefallen ist es erst hier, weil dieses Skript das erste ist, das selbst
+-- ein Thema anlegt. Die beiden Funktionen stehen deshalb noch einmal komplett
+-- da – sonst scheitert alles Weitere schon am ersten Einfügen.
+
+CREATE OR REPLACE FUNCTION public.forum_notify_post()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _thread public.forum_threads%ROWTYPE;
+  _actor  text;
+BEGIN
+  SELECT * INTO _thread FROM public.forum_threads WHERE id = NEW.thread_id;
+  IF NOT FOUND THEN RETURN NEW; END IF;
+
+  SELECT COALESCE(NULLIF(TRIM(display_name), ''), 'Ein Mitglied')
+    INTO _actor FROM public.profiles WHERE id = NEW.created_by;
+
+  INSERT INTO public.notifications (user_id, actor_id, type, title, body, link, entity_type, entity_id)
+  SELECT a.user_id,
+         NEW.created_by,
+         'forum_reply',
+         _actor || ' hat geantwortet',
+         _thread.title,
+         '/intern/forum/thema/' || _thread.id,
+         'forum_thread',
+         _thread.id
+  FROM public.forum_thread_audience(NEW.thread_id, NEW.created_by) a;
+
+  INSERT INTO public.forum_subscriptions (user_id, thread_id, level)
+  VALUES (NEW.created_by, NEW.thread_id, 'beobachten')
+  ON CONFLICT (user_id, thread_id) WHERE thread_id IS NOT NULL DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.forum_notify_thread()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _actor text;
+  _category text;
+BEGIN
+  SELECT COALESCE(NULLIF(TRIM(display_name), ''), 'Ein Mitglied')
+    INTO _actor FROM public.profiles WHERE id = NEW.created_by;
+  SELECT name INTO _category FROM public.forum_categories WHERE id = NEW.category_id;
+
+  -- Nur an Leute, die diese Rubrik beobachten – sonst wird die Glocke zur Last.
+  INSERT INTO public.notifications (user_id, actor_id, type, title, body, link, entity_type, entity_id)
+  SELECT s.user_id,
+         NEW.created_by,
+         'forum_thread',
+         _actor || ' hat ein Thema eröffnet',
+         COALESCE(_category || ': ', '') || NEW.title,
+         '/intern/forum/thema/' || NEW.id,
+         'forum_thread',
+         NEW.id
+  FROM public.forum_subscriptions s
+  WHERE s.category_id = NEW.category_id
+    AND s.level <> 'stumm'
+    AND s.user_id IS DISTINCT FROM NEW.created_by;
+
+  INSERT INTO public.forum_subscriptions (user_id, thread_id, level)
+  VALUES (NEW.created_by, NEW.id, 'beobachten')
+  ON CONFLICT (user_id, thread_id) WHERE thread_id IS NOT NULL DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+-- ══ Veranstaltungs-Threads ══════════════════════════════════════════════════
+
 -- Wunsch des Erstellers. Die Voreinstellung kommt aus app_settings; ob das
 -- Häkchen überhaupt erscheint, entscheidet der technische Administrator.
 ALTER TABLE public.events
@@ -91,6 +177,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS events_forum_thread ON public.events;
 CREATE TRIGGER events_forum_thread
 AFTER INSERT ON public.events
 FOR EACH ROW EXECUTE FUNCTION public.events_create_thread();
@@ -113,6 +200,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS events_forum_thread_title ON public.events;
 CREATE TRIGGER events_forum_thread_title
 BEFORE UPDATE ON public.events
 FOR EACH ROW EXECUTE FUNCTION public.events_sync_thread_title();

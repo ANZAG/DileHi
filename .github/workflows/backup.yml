@@ -1,27 +1,45 @@
 name: Datenbank-Sicherung
 
-# Der kostenlose Supabase-Tarif enthält keine Backups. Diese Aktion zieht
-# täglich einen vollständigen Abzug (Schema + Daten), verschlüsselt ihn und legt
-# ihn als Artefakt ab.
+# Der Tarif enthält keine Backups. Diese Aktion holt täglich einen Abzug,
+# verschlüsselt ihn und legt ihn als Artefakt ab.
 #
-# Einmalig einzurichten – Repository → Settings → Secrets and variables → Actions:
+# Warum nicht pg_dump? In der Lovable-Cloud gibt es weder eine
+# Verbindungszeichenfolge noch das Datenbank-Passwort. Der Abzug entsteht
+# deshalb INNEN – in der Edge Function `backup-export`, die den
+# Service-Role-Schlüssel ohnehin in ihrer Umgebung hat. Herausgegeben werden
+# muss er dafür an niemanden.
 #
-#   DB_CONNECTION_URL   Verbindungszeichenfolge zur Datenbank
-#                       (Namen mit Praefix SUPABASE_ sind in Lovable reserviert;
-#                        der alte Name SUPABASE_DB_URL wird weiterhin akzeptiert)
-#                       (Project Settings → Database → Connection string → URI,
-#                       Platzhalter [YOUR-PASSWORD] durch das Passwort ersetzen).
-#                       Falls die Direktverbindung nur über IPv6 erreichbar ist,
-#                       stattdessen die Zeichenfolge des Session Pooler nehmen.
+# Einzurichten sind ZWEI Stellen, und das wird leicht verwechselt:
 #
-#   BACKUP_PASSPHRASE   Frei gewähltes, langes Passwort für die Verschlüsselung.
-#                       Ohne dieses Passwort ist die Sicherung wertlos –
-#                       getrennt vom Repository aufbewahren (Passwortmanager).
+#   1. GitHub (Repository → Settings → Secrets and variables → Actions)
+#        BACKUP_SECRET       frei gewaehltes langes Passwort
+#        BACKUP_PASSPHRASE   Passwort fuer die Verschluesselung des Artefakts.
+#                            Ohne dieses Passwort ist die Sicherung wertlos –
+#                            getrennt vom Repository aufbewahren
+#                            (Passwortmanager).
+#        FUNCTIONS_URL       optional, nur wenn das Backend woanders liegt.
+#
+#   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
+#        BACKUP_SECRET       derselbe Wert wie oben
+#
+# Bewusst ein anderes Geheimnis als DIGEST_SECRET: Diese Funktion gibt den
+# gesamten Datenbestand heraus, die Tageszusammenfassung verschickt nur Mails.
+#
+# Was in der Sicherung steckt:
+#   sicherung.json   alle Tabellen als JSON, dazu der Ist-Zustand des Schemas
+#                    als SQL (schema_ddl)
+#   dateien/         sonntags zusaetzlich die Anhaenge aus dem Speicher
+#
+# Der Aufbau der Datenbank steht ausserdem als Migrationen im Repository. Die
+# beschreiben aber nur den beabsichtigten Zustand – `schema_ddl` beschreibt den
+# tatsaechlichen. Weichen beide voneinander ab, hat jemand von Hand am
+# SQL-Editor gearbeitet.
 #
 # Wiederherstellen:
-#   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" sicherung.sql.gz.gpg \
-#     | gunzip > sicherung.sql
-#   psql "$DB_CONNECTION_URL" -f sicherung.sql
+#   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" \
+#     dilehi-sicherung-JJJJ-MM-TT.tar.gz.gpg | tar -xz
+#   Danach: Schema aus den Migrationen aufbauen, anschliessend die Tabellen aus
+#   sicherung.json einspielen (Reihenfolge wegen der Fremdschluessel beachten).
 
 on:
   schedule:
@@ -29,6 +47,11 @@ on:
     # Millionen Jobs gleichzeitig starten und die Ausführung sich verzögert.
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      dateien:
+        description: "Auch die Dateien aus dem Speicher sichern"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,33 +60,101 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Supabase CLI bereitstellen
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Abzug erstellen
+      - name: Abzug abholen
         env:
-          DB_URL: ${{ secrets.DB_CONNECTION_URL || secrets.SUPABASE_DB_URL }}
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
+          BACKUP_SECRET: ${{ secrets.BACKUP_SECRET }}
+          # Dateien sind gross und aendern sich selten – deshalb nur sonntags,
+          # oder auf ausdruecklichen Wunsch beim Handstart.
+          WITH_FILES: ${{ github.event.inputs.dateien == 'true' && 'true' || '' }}
         run: |
           set -euo pipefail
-          if [ -z "${DB_URL}" ]; then
-            echo "::error::Secret DB_CONNECTION_URL fehlt – siehe Kommentar in dieser Datei."
+          if [ -z "${BACKUP_SECRET}" ]; then
+            echo "::error::Secret BACKUP_SECRET fehlt – siehe Kommentar in dieser Datei."
             exit 1
           fi
+
+          files="false"
+          if [ -n "${WITH_FILES}" ] || [ "$(date -u +%u)" = "7" ]; then
+            files="true"
+          fi
+          echo "Dateien mitsichern: $files"
+
           mkdir -p backup
-          # Schema und Daten getrennt, damit sich im Ernstfall auch nur eines
-          # von beiden einspielen lässt.
-          supabase db dump --db-url "$DB_URL" --schema public          -f backup/01-schema-public.sql
-          supabase db dump --db-url "$DB_URL" --schema storage         -f backup/02-schema-storage.sql
-          supabase db dump --db-url "$DB_URL" --data-only --schema public -f backup/03-daten-public.sql
-          ls -lh backup/
+          code=$(curl -s -o backup/sicherung.json -w "%{http_code}" --max-time 600 \
+            -X POST "${FUNCTIONS_URL}/backup-export" \
+            -H "x-backup-secret: ${BACKUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "{\"files\": ${files}}")
+
+          # 207 heisst: Abzug da, aber mit Warnungen – die sollen auffallen,
+          # ohne die Sicherung wegzuwerfen.
+          if [ "$code" != "200" ] && [ "$code" != "207" ]; then
+            echo "::error::Abzug fehlgeschlagen (HTTP $code)"
+            head -c 2000 backup/sicherung.json || true
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json, sys
+          with open("backup/sicherung.json", encoding="utf-8") as fh:
+              data = json.load(fh)
+          for name, count in sorted(data.get("zeilen", {}).items()):
+              print(f"  {name}: {count}")
+          warn = data.get("warnungen") or []
+          for w in warn:
+              print(f"::warning::{w}")
+          if not data.get("tabellen"):
+              print("::error::Der Abzug enthaelt keine Tabellen.")
+              sys.exit(1)
+          if not data.get("schema_ddl"):
+              print("::warning::Der Aufbau des Schemas fehlt im Abzug.")
+          # Den Aufbau zusaetzlich als lesbare SQL-Datei ablegen.
+          if data.get("schema_ddl"):
+              with open("backup/schema.sql", "w", encoding="utf-8") as fh:
+                  fh.write(data["schema_ddl"])
+          PY
+
+      # Die Adressen im Abzug laufen nach einer Stunde ab – deshalb sofort.
+      - name: Dateien nachladen
+        run: |
+          set -euo pipefail
+          count=$(python3 -c "import json;print(len(json.load(open('backup/sicherung.json',encoding='utf-8')).get('dateien') or []))")
+          if [ "$count" = "0" ]; then
+            echo "Keine Dateien in diesem Lauf."
+            exit 0
+          fi
+          echo "$count Dateien werden geladen."
+          mkdir -p backup/dateien
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          data = json.load(open("backup/sicherung.json", encoding="utf-8"))
+          fehlend = 0
+          for entry in data.get("dateien") or []:
+              url = entry.get("url")
+              if not url:
+                  fehlend += 1
+                  continue
+              ziel = os.path.join("backup", "dateien", entry["bucket"], entry["name"])
+              os.makedirs(os.path.dirname(ziel), exist_ok=True)
+              try:
+                  urllib.request.urlretrieve(url, ziel)
+              except (urllib.error.URLError, OSError) as err:
+                  print(f"::warning::{entry['bucket']}/{entry['name']}: {err}")
+                  fehlend += 1
+          if fehlend:
+              print(f"::warning::{fehlend} Datei(en) konnten nicht geladen werden.")
+          PY
+          # Die Adressen sind zeitlich begrenzt, gehören aber trotzdem nicht in
+          # ein Artefakt, das 90 Tage liegen bleibt.
+          python3 - <<'PY'
+          import json
+          p = "backup/sicherung.json"
+          data = json.load(open(p, encoding="utf-8"))
+          for entry in data.get("dateien") or []:
+              entry.pop("url", None)
+          json.dump(data, open(p, "w", encoding="utf-8"), ensure_ascii=False)
+          PY
 
       - name: Verschlüsseln
         env:
@@ -78,7 +169,7 @@ jobs:
           tar -czf - -C backup . \
             | gpg --batch --yes --symmetric --cipher-algo AES256 \
                   --passphrase "$PASSPHRASE" \
-                  --output "dilehi-sicherung-${STAMP}.sql.tar.gz.gpg"
+                  --output "dilehi-sicherung-${STAMP}.tar.gz.gpg"
           rm -rf backup
           ls -lh dilehi-sicherung-*.gpg
 
