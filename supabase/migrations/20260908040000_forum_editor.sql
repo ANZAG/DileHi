@@ -152,9 +152,11 @@ BEGIN
   WHERE NOT (a.user_id = ANY(_mentioned));
 
   -- Wer antwortet, beobachtet das Thema künftig – abbestellen geht jederzeit.
+  -- Die Bedingung hinter ON CONFLICT muss sein: der Unique-Index ist teilweise
+  -- (siehe 20260908030000), ohne sie findet Postgres ihn nicht.
   INSERT INTO public.forum_subscriptions (user_id, thread_id, level)
   VALUES (NEW.created_by, NEW.thread_id, 'beobachten')
-  ON CONFLICT (user_id, thread_id) DO NOTHING;
+  ON CONFLICT (user_id, thread_id) WHERE thread_id IS NOT NULL DO NOTHING;
 
   RETURN NEW;
 END;

@@ -39,3 +39,8 @@ verify_jwt = false
 # GET liefert den oeffentlichen VAPID-Schluessel und muss ohne Anmeldung
 # erreichbar sein; POST prueft die Anmeldung selbst im Code.
 verify_jwt = false
+
+[functions.backup-export]
+# Wird von einer geplanten GitHub-Action aufgerufen, die keine Sitzung hat.
+# Abgesichert ueber das gemeinsame Geheimnis BACKUP_SECRET.
+verify_jwt = false
