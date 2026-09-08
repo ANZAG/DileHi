@@ -859,6 +859,7 @@ export type Database = {
           id: string
           is_event_room: boolean
           name: string
+          only_auto_threads: boolean
           slug: string
           sort_order: number
           status: Database["public"]["Enums"]["forum_category_status"]
@@ -871,6 +872,7 @@ export type Database = {
           id?: string
           is_event_room?: boolean
           name: string
+          only_auto_threads?: boolean
           slug: string
           sort_order?: number
           status?: Database["public"]["Enums"]["forum_category_status"]
@@ -883,6 +885,7 @@ export type Database = {
           id?: string
           is_event_room?: boolean
           name?: string
+          only_auto_threads?: boolean
           slug?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["forum_category_status"]
@@ -1183,6 +1186,7 @@ export type Database = {
           category_id: string
           created_at: string
           created_by: string
+          event_ends_on: string | null
           event_id: string | null
           id: string
           is_archived: boolean
@@ -1198,6 +1202,7 @@ export type Database = {
           category_id: string
           created_at?: string
           created_by: string
+          event_ends_on?: string | null
           event_id?: string | null
           id?: string
           is_archived?: boolean
@@ -1213,6 +1218,7 @@ export type Database = {
           category_id?: string
           created_at?: string
           created_by?: string
+          event_ends_on?: string | null
           event_id?: string | null
           id?: string
           is_archived?: boolean
