@@ -70,11 +70,11 @@ function saetze(text) {
 function ueberschriften(text, quelle = false) {
   if (quelle) {
     const s = readFileSync(text, "utf-8");
-    return [
-      ...s.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g),
-      ...s.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g),
-    ]
-      .map((m) => m[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim())
+    // In Dokumentreihenfolge, nicht erst alle h2 und dann alle h3 – sonst
+    // sieht jede richtig sortierte Seite falsch aus.
+    return [...s.matchAll(/<h2[^>]*>(?<zwei>[\s\S]*?)<\/h2>|<h3[^>]*>(?<drei>[\s\S]*?)<\/h3>/g)]
+      .map((m) => (m.groups.zwei ?? m.groups.drei ?? "")
+        .replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim())
       .filter((t) => t && !t.includes("{"));
   }
   const sql = readFileSync(text, "utf-8");
@@ -130,17 +130,31 @@ for (const [quelle, migration] of paare) {
   const hNeu = ueberschriften(migration);
   const hFehlend = hQuelle.filter((h) => !hNeu.some((n) => normal(n) === normal(h)));
 
-  const inOrdnung = fehlend.length === 0 && hFehlend.length === 0;
+  // Reihenfolge: Der Prüfer hat bisher nur geprüft, OB etwas da ist. Bei der
+  // Napoleonik-Seite standen die Kennzahlen vor dem Kasten statt dahinter –
+  // vollständig, aber falsch. Deshalb auch die Abfolge vergleichen.
+  const reihenfolgeQuelle = hQuelle.map(normal);
+  const reihenfolgeNeu = hNeu.map(normal).filter((h) => reihenfolgeQuelle.includes(h));
+  const reihenfolgePasst =
+    reihenfolgeNeu.length !== reihenfolgeQuelle.length ||
+    reihenfolgeNeu.every((h, i) => h === reihenfolgeQuelle[i]);
+
+  const inOrdnung = fehlend.length === 0 && hFehlend.length === 0 && reihenfolgePasst;
   console.log(
     `${quelle.padEnd(30)} ${inOrdnung ? "vollstaendig" : ""}` +
     `${fehlend.length ? `${fehlend.length} Satz/Saetze` : ""}` +
     `${hFehlend.length ? ` ${hFehlend.length} Ueberschrift(en)` : ""}` +
+    `${reihenfolgePasst ? "" : " Reihenfolge weicht ab"}` +
     `${inOrdnung ? "" : " fehlen"}` +
     `  (${hQuelle.length} Ueberschriften geprueft)`
   );
   for (const h of hFehlend) console.log(`   – Ueberschrift: ${h}`);
   for (const s of fehlend.slice(0, 4)) console.log(`   – ${s.slice(0, 110)}…`);
-  fehler += fehlend.length + hFehlend.length;
+  if (!reihenfolgePasst) {
+    console.log(`   Quelle:  ${hQuelle.join(" · ")}`);
+    console.log(`   Editor:  ${hNeu.join(" · ")}`);
+  }
+  fehler += fehlend.length + hFehlend.length + (reihenfolgePasst ? 0 : 1);
 }
 
 process.exit(fehler > 0 ? 1 : 0);
