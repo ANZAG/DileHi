@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays } from "lucide-react";
+import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays, BarChart3 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ForumEditor from "@/components/forum/ForumEditor";
 import PostBody from "@/components/forum/PostBody";
-import { createPost, fetchPosts, fetchThread, markRead } from "@/components/forum/api";
+import { createPost, createPollPost, fetchPosts, fetchThread, markRead } from "@/components/forum/api";
+import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
+import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
 
 interface Member { id: string; display_name: string }
 
@@ -21,6 +23,7 @@ export default function ForumThread() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [reply, setReply] = useState("");
+  const [composingPoll, setComposingPoll] = useState(false);
 
   const canModerate = hasPermission("forum.moderate");
 
@@ -64,6 +67,28 @@ export default function ForumThread() {
     },
     onError: (err: Error) =>
       toast({ title: "Beitrag konnte nicht gespeichert werden", description: err.message, variant: "destructive" }),
+  });
+
+  const poll = useMutation({
+    mutationFn: (draft: PollDraft) =>
+      createPollPost({
+        threadId: threadId!,
+        userId: user!.id,
+        kind: draft.kind,
+        payload: {
+          frage: draft.frage,
+          optionen: draft.optionen,
+          mehrfach: draft.mehrfach,
+          frist: draft.frist,
+          anonym: draft.anonym,
+        },
+      }),
+    onSuccess: () => {
+      setComposingPoll(false);
+      queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Konnte nicht angelegt werden", description: err.message, variant: "destructive" }),
   });
 
   const replyIsEmpty = reply.replace(/<[^>]*>/g, "").trim() === "";
@@ -125,6 +150,12 @@ export default function ForumThread() {
                 <p className="text-sm text-muted-foreground italic">
                   Dieser Beitrag wurde entfernt.
                 </p>
+              ) : p.kind === "umfrage" || p.kind === "mitbringliste" ? (
+                <ForumPoll
+                  postId={p.id}
+                  kind={p.kind}
+                  payload={(p.payload ?? {}) as PollPayload}
+                />
               ) : (
                 <PostBody html={p.body} />
               )}
@@ -144,12 +175,25 @@ export default function ForumThread() {
             </p>
           ) : (
             <>
-              <ForumEditor value={reply} onChange={setReply} placeholder="Antworten …" compact />
-              <div className="flex justify-end mt-2">
-                <Button onClick={() => post.mutate()} disabled={replyIsEmpty || post.isPending}>
-                  {post.isPending ? "Wird gesendet …" : "Antworten"}
-                </Button>
-              </div>
+              {composingPoll ? (
+                <PollComposer
+                  pending={poll.isPending}
+                  onCancel={() => setComposingPoll(false)}
+                  onSubmit={(draft) => poll.mutate(draft)}
+                />
+              ) : (
+                <>
+                  <ForumEditor value={reply} onChange={setReply} placeholder="Antworten …" compact />
+                  <div className="flex flex-wrap justify-between gap-2 mt-2">
+                    <Button variant="outline" onClick={() => setComposingPoll(true)}>
+                      <BarChart3 size={15} className="mr-1" /> Umfrage oder Liste
+                    </Button>
+                    <Button onClick={() => post.mutate()} disabled={replyIsEmpty || post.isPending}>
+                      {post.isPending ? "Wird gesendet …" : "Antworten"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

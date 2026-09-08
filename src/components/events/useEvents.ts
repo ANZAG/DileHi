@@ -34,6 +34,7 @@ export function useEvents() {
   const [endTime, setEndTime] = useState("16:00");
   const [allDay, setAllDay] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [wantForumThread, setWantForumThread] = useState(true);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -62,6 +63,21 @@ export function useEvents() {
   });
 
   const getFormForEvent = (eventId: string) => eventForms.find((f) => f.event_id === eventId);
+
+  // Absprache-Threads. Ohne diesen Verweis findet niemand den Thread, und ein
+  // Forum, das man suchen muss, wird nicht benutzt.
+  const { data: eventThreads = [] } = useQuery({
+    queryKey: ["event_threads"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as unknown as (t: string) => {
+        select: (c: string) => { not: (a: string, b: string, c: null) => Promise<{ data: unknown; error: unknown }> };
+      })("forum_threads").select("id, event_id, post_count").not("event_id", "is", null);
+      if (error) return [];
+      return (data ?? []) as { id: string; event_id: string; post_count: number }[];
+    },
+  });
+
+  const getThreadForEvent = (eventId: string) => eventThreads.find((t) => t.event_id === eventId);
 
   const { data: myFormResponses = [] } = useQuery({
     queryKey: ["my_form_responses", user?.id],
@@ -139,7 +155,10 @@ export function useEvents() {
       const { error } = await supabase.from("events").insert({
         title, description: description || null, location: location || null,
         start_date: start, end_date: end, all_day: allDay, is_public: isPublic, created_by: user!.id,
-      });
+        // Der Thread entsteht per Trigger; ob das Haekchen ueberhaupt gilt,
+        // entscheidet app_settings.forum_event_thread.
+        forum_thread_wanted: wantForumThread,
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -412,6 +431,7 @@ export function useEvents() {
     startDate, setStartDate, startTime, setStartTime,
     endDate, setEndDate, endTime, setEndTime,
     allDay, setAllDay, isPublic, setIsPublic,
+    wantForumThread, setWantForumThread,
     organizerId, setOrganizerId,
     events, filteredEvents, attendees,
     calendarDays, holidays, rowSpanSegments,
@@ -422,7 +442,7 @@ export function useEvents() {
     eventAttendees, isAttending, hasDeclined, eventDeclines, canEdit,
     formatTimeDisplay, selectedDayEvents,
     copyCalendarUrl,
-    getFormForEvent, hasSubmittedForm,
+    getFormForEvent, hasSubmittedForm, getThreadForEvent,
     openUnsubmittedForms,
   };
 }

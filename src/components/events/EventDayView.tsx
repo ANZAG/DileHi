@@ -1,6 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
-import { Plus, MapPin, Calendar as CalIcon, Users, Trash2, Check, X, Pencil, Globe, FileText } from "lucide-react";
+import { Plus, MapPin, Calendar as CalIcon, Users, Trash2, Check, X, Pencil, Globe, FileText, MessagesSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
@@ -23,13 +23,15 @@ interface Props {
   declineEvent: (id: string) => void;
   toggleRSVPPending: boolean;
   getFormForEvent: (eventId: string) => any;
+  getThreadForEvent?: (eventId: string) => { id: string; post_count: number } | undefined;
   hasSubmittedForm: (formId: string) => boolean;
 }
 
 export default function EventDayView({
   selectedDate, events, eventAttendees, isAttending, hasDeclined, canEdit,
   formatTimeDisplay, openCreate, openEdit, deleteEvent, toggleRSVP, declineEvent, toggleRSVPPending,
-  getFormForEvent, hasSubmittedForm,
+  getFormForEvent,
+  getThreadForEvent, hasSubmittedForm,
 }: Props) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
@@ -109,7 +111,22 @@ export default function EventDayView({
                       ))
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap justify-end">
+                    {(() => {
+                      const t = getThreadForEvent?.(ev.id);
+                      if (!t) return null;
+                      return (
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to={`/intern/forum/thema/${t.id}`}>
+                            <MessagesSquare size={14} className="mr-1" />
+                            Absprache
+                            {t.post_count > 1 && (
+                              <span className="ml-1 text-muted-foreground">({t.post_count})</span>
+                            )}
+                          </Link>
+                        </Button>
+                      );
+                    })()}
                     {(() => {
                       const evForm = getFormForEvent(ev.id);
                       const formSettings = evForm?.settings as any;

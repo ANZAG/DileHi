@@ -16,6 +16,8 @@ interface Props {
   isPublic: boolean; setIsPublic: (v: boolean) => void;
   canSetPublic: boolean;
   isEdit: boolean;
+  wantForumThread?: boolean;
+  setWantForumThread?: (v: boolean) => void;
   organizerId?: string;
   setOrganizerId?: (v: string) => void;
   canChangeOrganizer?: boolean;
@@ -27,7 +29,7 @@ export default function EventFormDialog({
   startDate, setStartDate, startTime, setStartTime,
   endDate, setEndDate, endTime, setEndTime,
   allDay, setAllDay, isPublic, setIsPublic,
-  canSetPublic, isEdit,
+  canSetPublic, isEdit, wantForumThread, setWantForumThread,
   organizerId, setOrganizerId, canChangeOrganizer,
 }: Props) {
   const { data: members = [] } = useQuery({
@@ -106,6 +108,24 @@ export default function EventFormDialog({
           </div>
         )}
       </div>
+
+      {!isEdit && setWantForumThread && (
+        <label className="flex items-start gap-2 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            id="forum-thread"
+            checked={wantForumThread ?? true}
+            onChange={(e) => setWantForumThread(e.target.checked)}
+            className="mt-0.5 rounded border-input"
+          />
+          <span>
+            <span className="text-sm">Thread für die Absprache anlegen</span>
+            <span className="block text-xs text-muted-foreground">
+              Ein Ort im Forum für Fahrgemeinschaften, Material und Umfragen.
+            </span>
+          </span>
+        </label>
+      )}
     </div>
   );
 }
