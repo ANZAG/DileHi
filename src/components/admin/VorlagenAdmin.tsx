@@ -178,7 +178,15 @@ function Mailvorlagen() {
 
         <Zeile label="Text" hinweis="Absätze, Fettung, Aufzählungen und Links.">
           <div className="rounded-md border">
+            {/* Der Schlüssel ist hier kein Beiwerk: Der Editor übernimmt seinen
+                Inhalt beim Anlegen und hört danach nicht mehr auf `value` –
+                das ist im Forum richtig so, wo ein Beitrag genau ein Dokument
+                ist. Beim Wechsel der Vorlage blieb dadurch der Text der
+                vorigen stehen, während Betreff und Überschrift längst
+                umgesprungen waren. Eine andere Vorlage ist ein anderes
+                Dokument, also ein neuer Editor. */}
             <ForumEditor
+              key={entwurf.key}
               value={entwurf.inhalt}
               onChange={(html) => setEntwurf({ ...entwurf, inhalt: html })}
               umfang="knapp"

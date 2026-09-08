@@ -115,7 +115,10 @@ export default function FieldEditor({ field, allFields, onChange }: Props) {
                     <Trash2 size={16} />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                {/* Auf dem Handy untereinander: Ein Datums- und Zeitfeld
+                    braucht rund 180 px, in zwei Spalten blieben davon 150 –
+                    die Uhrzeit wurde abgeschnitten. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs text-muted-foreground">Wann?</Label>
                     <Input
