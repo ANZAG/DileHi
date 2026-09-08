@@ -33,12 +33,22 @@ COMMENT ON COLUMN public.app_settings.privacy_officer IS
 
 -- Unsere eigenen Angaben eintragen, damit die Seiten nach der Umstellung
 -- dasselbe zeigen wie vorher.
+-- Werte aus dem bestehenden Impressum (src/pages/Impressum.tsx). Beim ersten
+-- Anlauf hatte ich Registernummer und Vorstand geraten - beides falsch. Genau
+-- deshalb gehoeren diese Angaben an EINE Stelle und nicht in jede Seite.
 UPDATE public.app_settings
-SET board_members    = COALESCE(board_members, 'Eric Treisbach'),
+SET org_name         = COALESCE(NULLIF(org_name, 'Mein Verein e. V.'), 'Diu lebendec Histôrje e.V.'),
+    org_short_name   = COALESCE(NULLIF(org_short_name, 'Mein Verein'), 'Diu lebendec Histôrje'),
+    org_street       = COALESCE(org_street, 'Am Schloßpark 17'),
+    org_zip          = COALESCE(org_zip, '65203'),
+    org_city         = COALESCE(org_city, 'Wiesbaden'),
+    org_email        = COALESCE(org_email, 'vorstand@dilehi.de'),
+    board_members    = COALESCE(board_members, E'Maximilian Bachon
+Eric Treisbach'),
     register_court   = COALESCE(register_court, 'Amtsgericht Wiesbaden'),
-    register_number  = COALESCE(register_number, 'VR 5378'),
-    hosting_provider = COALESCE(hosting_provider, 'Lovable Cloud (Supabase)'),
-    privacy_contact  = COALESCE(privacy_contact, org_email)
+    register_number  = COALESCE(register_number, 'VR 6783'),
+    hosting_provider = COALESCE(hosting_provider, 'Lovable Cloud (Supabase-Infrastruktur)'),
+    privacy_contact  = COALESCE(privacy_contact, org_email, 'vorstand@dilehi.de')
 WHERE id;
 
 -- Die öffentliche Fassung mitziehen: Impressum und Datenschutzerklärung sind
