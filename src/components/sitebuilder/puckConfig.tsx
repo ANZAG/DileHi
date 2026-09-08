@@ -6,6 +6,7 @@ import {
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
+import { Vereinsangaben } from "./Vereinsangaben";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
@@ -170,6 +171,10 @@ export type Bausteine = {
     ziel?: string;
     betont?: boolean;
   } & typeof layoutVorgaben;
+  Vereinsangaben: {
+    zweck: "impressum" | "verantwortlich" | "hosting";
+    ueberschrift?: string;
+  } & typeof layoutVorgaben;
   EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
 
@@ -186,7 +191,10 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       title: "Aus dem Mitgliederbereich",
       components: ["Besucherhinweis", "Quellen", "Darstellungen", "Termine", "Kontaktformular"],
     },
-    zwischenraum: { title: "Zwischenraum", components: ["Abstandhalter", "Trennlinie", "EigenesHtml"] },
+    zwischenraum: {
+      title: "Zwischenraum und Rechtliches",
+      components: ["Abstandhalter", "Trennlinie", "Vereinsangaben", "EigenesHtml"],
+    },
   },
 
   components: {
@@ -731,6 +739,27 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         abstandOben: "klein", abstandUnten: "klein",
       },
       render: Hinweiskasten,
+    },
+
+    Vereinsangaben: {
+      label: "Vereinsangaben (Pflichtangaben)",
+      fields: {
+        zweck: {
+          type: "select", label: "Welche Angaben?",
+          options: [
+            { label: "Impressum (§ 5 DDG)", value: "impressum" },
+            { label: "Verantwortliche Stelle (DSGVO)", value: "verantwortlich" },
+            { label: "Hosting", value: "hosting" },
+          ],
+        },
+        ueberschrift: { type: "text", label: "Überschrift" },
+        ...layoutFelder,
+      },
+      defaultProps: {
+        ...layoutVorgaben, zweck: "impressum", ueberschrift: "",
+        abstandOben: "klein", abstandUnten: "klein",
+      },
+      render: Vereinsangaben,
     },
 
     EigenesHtml: {
