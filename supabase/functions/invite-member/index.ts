@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import {
+  sendeMail, escapeHtml, buildEmailWrapper, buildButton, vereinsAdresse, seitenAdresse,
+} from "../_shared/mail.ts";
 import { requirePermission, requireValidRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
@@ -343,7 +345,7 @@ Deno.serve(async (req) => {
     let isNewUser = false;
     let confirmUrl: string | null = null;
 
-    const origin = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
+    const origin = await seitenAdresse();
 
     if (existingUser) {
       userId = existingUser.id;
@@ -444,7 +446,7 @@ Deno.serve(async (req) => {
         </p>
       `);
       try {
-        await sendEmailViaMsGraph(email, "Einladung – Diu lebendec Histôrje e.V.", htmlBody);
+        await sendeMail(email, "Einladung – Diu lebendec Histôrje e.V.", htmlBody);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
       }
@@ -487,11 +489,11 @@ Deno.serve(async (req) => {
       });
 
       try {
-        await sendEmailViaMsGraph(
+        await sendeMail(
           email,
           "Herzlich willkommen bei Diu lebendec Histôrje e.V.!",
           welcomeHtml,
-          { bcc: "vorstand@dilehi.de" },
+          { bcc: await vereinsAdresse() },
         );
       } catch (welcomeErr) {
         console.error("Welcome email sending failed:", welcomeErr);

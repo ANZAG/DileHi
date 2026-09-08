@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, escapeHtml, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import {
+  sendeMail, escapeHtml, buildEmailWrapper, buildButton, seitenAdresse,
+} from "../_shared/mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const editToken: string | undefined = body?.editToken;
-    const siteUrl: string = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
+    const siteUrl: string = await seitenAdresse();
 
     if (!editToken || typeof editToken !== "string" || editToken.length < 16) {
       return new Response(JSON.stringify({ success: false, error: "Ungültige Anfrage" }), {
@@ -149,7 +151,7 @@ Deno.serve(async (req) => {
       </p>
     `);
 
-    await sendEmailViaMsGraph(email, subject, htmlBody);
+    await sendeMail(email, subject, htmlBody);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import { sendeMail, buildEmailWrapper, buildButton, seitenAdresse } from "../_shared/mail.ts";
 import { requirePermission, requireValidRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
       if (userError || !userData?.user?.email) throw new Error("Benutzer nicht gefunden");
 
-      const origin = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
+      const origin = await seitenAdresse();
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email: userData.user.email,
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
       `);
 
       try {
-        await sendEmailViaMsGraph(userData.user.email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
+        await sendeMail(userData.user.email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
       }

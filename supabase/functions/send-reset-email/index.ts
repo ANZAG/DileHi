@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendEmailViaMsGraph, buildEmailWrapper, buildButton } from "../_shared/ms-email.ts";
+import { sendeMail, buildEmailWrapper, buildButton, seitenAdresse } from "../_shared/mail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const origin = Deno.env.get("SITE_URL") || "https://www.dilehi.de";
+    const origin = await seitenAdresse();
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "recovery",
       email,
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       </p>
     `);
 
-    await sendEmailViaMsGraph(email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
+    await sendeMail(email, "Passwort zurücksetzen – Diu lebendec Histôrje e.V.", htmlBody);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

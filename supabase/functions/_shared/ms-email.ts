@@ -36,10 +36,27 @@ export async function sendEmailViaMsGraph(
   to: string,
   subject: string,
   htmlBody: string,
-  options?: { bcc?: string | string[] }
+  options?: {
+    bcc?: string | string[];
+    /** Absenderadresse aus der Verwaltung. Muss ein echtes Postfach der
+     *  Organisation sein – Graph verschickt nur aus eigenen Postfaechern. */
+    absender?: string;
+    absenderName?: string;
+    antwortAn?: string;
+  }
 ): Promise<void> {
   const accessToken = await getMsAccessToken();
-  const senderEmail = Deno.env.get("MS_SENDER_EMAIL") || "vorstand@dilehi.de";
+  // Frueher stand hier "vorstand@dilehi.de" als Rueckfall. Fuer eine
+  // Installation, die ein anderer Verein aufsetzt, hiess das im schlechtesten
+  // Fall: Mails gehen an ein Postfach, das ihm gar nicht gehoert – oder der
+  // Versand scheitert mit einer Meldung, die nichts erklaert.
+  const senderEmail = Deno.env.get("MS_SENDER_EMAIL") || options?.absender;
+  if (!senderEmail) {
+    throw new Error(
+      "Keine Absenderadresse: Weder das Secret MS_SENDER_EMAIL noch die " +
+      "Absenderadresse in der Verwaltung ist gesetzt."
+    );
+  }
 
   const bccList = options?.bcc
     ? (Array.isArray(options.bcc) ? options.bcc : [options.bcc])
@@ -55,6 +72,15 @@ export async function sendEmailViaMsGraph(
       toRecipients: [
         { emailAddress: { address: to } },
       ],
+      // Nur der Anzeigename wird gesetzt, die Adresse bleibt das sendende
+      // Postfach: Eine fremde Absenderadresse verlangt in Microsoft 365
+      // gesonderte Rechte und scheitert sonst.
+      ...(options?.absenderName
+        ? { from: { emailAddress: { address: senderEmail, name: options.absenderName } } }
+        : {}),
+      ...(options?.antwortAn
+        ? { replyTo: [{ emailAddress: { address: options.antwortAn } }] }
+        : {}),
       ...(bccList.length > 0
         ? { bccRecipients: bccList.map((address) => ({ emailAddress: { address } })) }
         : {}),
