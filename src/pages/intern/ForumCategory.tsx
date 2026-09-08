@@ -101,7 +101,12 @@ export default function ForumCategory() {
                 autoFocus
               />
             </div>
-            <ForumEditor value={body} onChange={setBody} placeholder="Beschreibe dein Anliegen …" />
+            <ForumEditor
+              value={body}
+              onChange={setBody}
+              placeholder="Beschreibe dein Anliegen … (@ erwähnt jemanden)"
+              members={Object.entries(names).map(([id, display_name]) => ({ id, display_name }))}
+            />
             <div className="flex flex-wrap gap-2 justify-end">
               <Button variant="ghost" onClick={() => { setComposing(false); setTitle(""); setBody(""); }}>
                 Abbrechen
