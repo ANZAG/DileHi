@@ -17,7 +17,9 @@
  *     Anwendung, und die fragt nach.
  */
 
-const CACHE = "dilehi-v1";
+// v2, weil v1 vergiftete Eintraege enthalten kann – siehe unten. Ein neuer
+// Name heisst: Beim Aktivieren wird der alte Zwischenspeicher geloescht.
+const CACHE = "dilehi-v2";
 const OFFLINE_URL = "/index.html";
 
 self.addEventListener("install", (event) => {
@@ -66,20 +68,46 @@ self.addEventListener("fetch", (event) => {
   // kommen. Alles andere geht ins Netz und wird nebenbei aufgefrischt.
   const isHashedAsset = /\/assets\/.+-[A-Za-z0-9_-]{8,}\.(js|css|woff2?)$/.test(url.pathname);
 
+  /**
+   * Ist die Antwort wirklich die Datei – oder die Startseite?
+   *
+   * Der Kern des Problems: Ein Programmteil, den es nach einem Deploy nicht
+   * mehr gibt, wird vom Server nicht mit 404 beantwortet. Eine Single-Page-App
+   * liefert für JEDE unbekannte Adresse die index.html aus, mit Status 200.
+   *
+   * Vorher wurde genau das hier gespeichert – unter der Adresse des
+   * Programmteils. Von da an bekam der Browser bei jedem Versuch HTML aus dem
+   * Zwischenspeicher, ohne je wieder ins Netz zu gehen, und meldete
+   * „'text/html' is not a valid JavaScript MIME type". Auch Neuladen half
+   * nicht: Der Zwischenspeicher antwortete zuerst.
+   */
+  const istEchteDatei = (antwort) => {
+    const typ = (antwort.headers.get("content-type") || "").toLowerCase();
+    if (!typ) return true; // Keine Angabe: nicht schlauer als der Browser sein.
+    if (url.pathname.endsWith(".js")) return typ.includes("javascript") || typ.includes("ecmascript");
+    if (url.pathname.endsWith(".css")) return typ.includes("css");
+    return !typ.includes("text/html");
+  };
+
   event.respondWith(
     (async () => {
       const cached = await caches.match(request);
-      if (cached && isHashedAsset) return cached;
+      // Auch beim Lesen prüfen: In einem Zwischenspeicher aus einer früheren
+      // Fassung kann bereits HTML unter einer Skriptadresse liegen.
+      if (cached && isHashedAsset && istEchteDatei(cached)) return cached;
+      if (cached && !istEchteDatei(cached)) {
+        caches.open(CACHE).then((cache) => cache.delete(request)).catch(() => undefined);
+      }
 
       try {
         const response = await fetch(request);
-        if (response.ok && (isHashedAsset || url.pathname.startsWith("/assets/"))) {
+        if (response.ok && url.pathname.startsWith("/assets/") && istEchteDatei(response)) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);
         }
         return response;
       } catch (err) {
-        if (cached) return cached;
+        if (cached && istEchteDatei(cached)) return cached;
         throw err;
       }
     })()

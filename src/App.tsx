@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { zwischenspeicherLeeren } from "./lib/recovery";
 import AppUpdatePrompt from "./components/AppUpdatePrompt";
 import InstallHint from "./components/InstallHint";
 
@@ -31,11 +32,22 @@ const lazyPage = <P extends object>(load: () => Promise<{ default: React.Compone
         try { sessionStorage.removeItem(RETRY_KEY); } catch { /* Speicher gesperrt */ }
         return mod;
       })
-      .catch((err) => {
+      .catch(async (err) => {
         let retried = "1";
         try { retried = sessionStorage.getItem(RETRY_KEY) ?? ""; } catch { /* Speicher gesperrt */ }
         if (!retried) {
           try { sessionStorage.setItem(RETRY_KEY, "1"); } catch { /* Speicher gesperrt */ }
+          // Vor dem Neuladen den Zwischenspeicher raeumen.
+          //
+          // Der Service Worker hat frueher die Startseite unter der Adresse des
+          // fehlenden Programmteils abgelegt (Status 200, Inhalt HTML). Danach
+          // half auch Neuladen nicht mehr: Die Anfrage wurde aus dem
+          // Zwischenspeicher beantwortet und nie wieder ans Netz gestellt.
+          //
+          // Der neue Worker legt so etwas nicht mehr ab – aber er uebernimmt
+          // erst, wenn jemand die Aktualisierung bestaetigt. Bis dahin bedient
+          // der alte weiter. Deshalb hier von der Seite aus aufraeumen.
+          await zwischenspeicherLeeren();
           window.location.reload();
         }
         throw err;
