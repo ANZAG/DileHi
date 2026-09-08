@@ -1592,6 +1592,7 @@ export type Database = {
           map_lng: number | null
           membership_type: string | null
           notify_digest: boolean
+          notify_push: boolean
           phone: string | null
           salutation: string | null
           show_on_map: boolean
@@ -1621,6 +1622,7 @@ export type Database = {
           map_lng?: number | null
           membership_type?: string | null
           notify_digest?: boolean
+          notify_push?: boolean
           phone?: string | null
           salutation?: string | null
           show_on_map?: boolean
@@ -1650,12 +1652,46 @@ export type Database = {
           map_lng?: number | null
           membership_type?: string | null
           notify_digest?: boolean
+          notify_push?: boolean
           phone?: string | null
           salutation?: string | null
           show_on_map?: boolean
           street?: string | null
           updated_at?: string
           zip?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failure_count: number
+          last_sent_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failure_count?: number
+          last_sent_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failure_count?: number
+          last_sent_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -2086,6 +2122,19 @@ export type Database = {
         Returns: {
           display_name: string
           items: Json
+          user_id: string
+        }[]
+      }
+      push_mark_failure: {
+        Args: { _endpoint: string; _gone: boolean }
+        Returns: undefined
+      }
+      push_targets_for_thread: {
+        Args: { _exclude: string; _thread_id: string }
+        Returns: {
+          auth: string
+          endpoint: string
+          p256dh: string
           user_id: string
         }[]
       }
