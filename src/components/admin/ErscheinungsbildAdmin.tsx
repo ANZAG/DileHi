@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { convertToWebP } from "@/lib/imageConversion";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { hexToHsl, lesbareSchrift } from "@/lib/farben";
 
@@ -84,15 +83,37 @@ export default function ErscheinungsbildAdmin() {
     if (!datei || !entwurf) return;
     setLaedtBild(art);
     try {
-      // Favicons dürfen nicht umgewandelt werden: Ein .ico oder ein SVG
-      // verliert dabei genau das, was es zum Favicon macht.
-      const hochzuladen = art === "logo" ? await convertToWebP(datei) : datei;
-      const pfad = `branding/${art}-${Date.now()}_${hochzuladen.name}`;
+      // Weder Logo noch Favicon werden umgewandelt.
+      //
+      // Beim Favicon war das immer schon so: Ein .ico oder ein SVG verliert
+      // dabei genau das, was es zum Favicon macht. Beim Logo lag hier ein
+      // convertToWebP – mit zwei Folgen. Erstens braucht ein Logo die
+      // Ersparnis nicht, es ist keine Fotostrecke. Zweitens kann pdf-lib nur
+      // PNG und JPEG einbetten: Ein hochgeladenes PNG landete als WebP im
+      // Speicher und stand damit auf dem Aufnahmeantrag nicht zur Verfügung.
+      const pfad = `branding/${art}-${Date.now()}_${datei.name}`;
       const { error } = await supabase.storage
         .from("gallery")
-        .upload(pfad, hochzuladen, { contentType: hochzuladen.type || undefined });
+        .upload(pfad, datei, { contentType: datei.type || undefined });
       if (error) throw new Error(error.message);
-      setEntwurf({ ...entwurf, [art === "logo" ? "logo_path" : "favicon_path"]: pfad });
+
+      const spalte = art === "logo" ? "logo_path" : "favicon_path";
+      setEntwurf({ ...entwurf, [spalte]: pfad });
+
+      // Sofort sichern und nicht auf „Speichern" warten.
+      //
+      // Ein Hochladen fühlt sich an wie ein abgeschlossener Vorgang – das Bild
+      // steht ja da. Wer die Seite danach verließ, ohne unten zu speichern,
+      // fand die Datei im Speicher, den Verweis darauf aber nirgends. Genau
+      // eine Spalte wird geschrieben, damit andere offene Änderungen im
+      // Formular davon unberührt bleiben.
+      const { error: speicherFehler } = await db
+        .from("app_settings").update({ [spalte]: pfad }).eq("id", true);
+      if (speicherFehler) throw new Error(speicherFehler.message);
+
+      queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["branding"] });
+      toast({ title: art === "logo" ? "Logo gespeichert" : "Symbol gespeichert" });
     } catch (err) {
       toast({
         title: "Hochladen fehlgeschlagen",
@@ -102,6 +123,20 @@ export default function ErscheinungsbildAdmin() {
     } finally {
       setLaedtBild(null);
     }
+  };
+
+  /** Entfernen wirkt sofort – aus demselben Grund wie das Hochladen. */
+  const bildEntfernen = async (art: "logo" | "favicon") => {
+    if (!entwurf) return;
+    const spalte = art === "logo" ? "logo_path" : "favicon_path";
+    setEntwurf({ ...entwurf, [spalte]: null });
+    const { error } = await db.from("app_settings").update({ [spalte]: null }).eq("id", true);
+    if (error) {
+      toast({ title: "Nicht entfernt", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+    queryClient.invalidateQueries({ queryKey: ["branding"] });
   };
 
   if (isLoading || !entwurf) {
@@ -151,9 +186,10 @@ export default function ErscheinungsbildAdmin() {
             ersatz={null}
             ersatzHinweis="Ohne Logo steht der Vereinsname als Text in der Kopfzeile."
             laedt={laedtBild === "logo"}
-            hinweis="Am besten breit und mit durchsichtigem Hintergrund (PNG oder WebP)."
+            hinweis="Am besten breit und mit durchsichtigem Hintergrund. PNG oder JPEG – nur diese erscheinen auch auf dem Aufnahmeantrag."
+            formate="image/png,image/jpeg,image/svg+xml"
             onDatei={(d) => void bildHochladen("logo", d)}
-            onEntfernen={() => setze({ logo_path: null })}
+            onEntfernen={() => void bildEntfernen("logo")}
           />
           <BildKasten
             titel="Symbol (Favicon)"
@@ -163,7 +199,7 @@ export default function ErscheinungsbildAdmin() {
             laedt={laedtBild === "favicon"}
             hinweis="Quadratisch, mindestens 64 × 64. Wird nicht umgewandelt."
             onDatei={(d) => void bildHochladen("favicon", d)}
-            onEntfernen={() => setze({ favicon_path: null })}
+            onEntfernen={() => void bildEntfernen("favicon")}
           />
         </div>
       </Abschnitt>
@@ -328,7 +364,7 @@ function Farbwahl({ label, wert, setze, hinweis }: {
   );
 }
 
-function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, onDatei, onEntfernen }: {
+function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, formate, onDatei, onEntfernen }: {
   titel: string;
   adresse: string | null;
   /** Was ohne eigenes Bild tatsächlich angezeigt wird, falls es so etwas gibt. */
@@ -336,6 +372,8 @@ function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, onD
   ersatzHinweis: string;
   laedt: boolean;
   hinweis: string;
+  /** Welche Dateitypen die Auswahl anbietet. */
+  formate?: string;
   onDatei: (d: File | undefined) => void;
   onEntfernen: () => void;
 }) {
@@ -357,7 +395,7 @@ function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, onD
             {laedt ? "Wird hochgeladen …" : "Datei wählen"}
             <input
               type="file"
-              accept="image/*"
+              accept={formate ?? "image/*"}
               className="sr-only"
               disabled={laedt}
               onChange={(e) => { onDatei(e.target.files?.[0]); e.target.value = ""; }}

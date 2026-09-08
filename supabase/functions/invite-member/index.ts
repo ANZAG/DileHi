@@ -100,6 +100,38 @@ function b64ToUint8(b64: string): Uint8Array {
   return arr;
 }
 
+/**
+ * Das hinterlegte Logo, falls pdf-lib es lesen kann.
+ *
+ * PNG und JPEG – mehr kann pdf-lib nicht einbetten. Ein WebP oder SVG ergibt
+ * hier `null`, und der Antrag wird ohne Logo gedruckt statt mit einer
+ * Fehlermeldung abzubrechen: Eine fehlende Grafik darf keine Aufnahme
+ * verhindern.
+ */
+async function ladeLogo(pdf: PDFDocument, pfad: string) {
+  if (!pfad) return null;
+  try {
+    const basis = Deno.env.get("SUPABASE_URL");
+    if (!basis) return null;
+    const antwort = await fetch(
+      `${basis}/storage/v1/object/public/gallery/${pfad.split("/").map(encodeURIComponent).join("/")}`
+    );
+    if (!antwort.ok) return null;
+    const bytes = new Uint8Array(await antwort.arrayBuffer());
+
+    // Nach den ersten Bytes gehen, nicht nach der Dateiendung: Die sagt nur,
+    // wie die Datei heisst.
+    const istPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const istJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    if (istPng) return await pdf.embedPng(bytes);
+    if (istJpeg) return await pdf.embedJpg(bytes);
+    return null;
+  } catch (err) {
+    console.error("Logo fuer den Antrag nicht ladbar:", err);
+    return null;
+  }
+}
+
 /** Hex aus den Vereinsangaben in die Farbdarstellung von pdf-lib. */
 function hexFarbe(hex: string, ersatz: [number, number, number]) {
   const m = /^#?([0-9a-f]{6})$/i.exec((hex ?? "").trim());
@@ -156,15 +188,18 @@ async function buildApplicationPdf(
   const bold   = await pdf.embedFont(StandardFonts.HelveticaBold);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
 
-  // Das mitgelieferte Logo gehoert zu dem Namen, unter dem es ausgeliefert
-  // wurde. Traegt die Installation einen anderen Vereinsnamen, bleibt die
-  // Stelle leer – lieber kein Logo als ein fremdes auf dem Aufnahmeantrag.
-  //
-  // Ein eigenes Logo laesst sich hier noch nicht einsetzen: Die Bilderablage
-  // wandelt Logos in WebP um, und pdf-lib kann nur PNG und JPEG einbetten.
-  const eigenerName = m.name !== "Diu lebendec Histôrje e. V.";
-  const logoImg  = eigenerName ? null : await pdf.embedPng(b64ToUint8(LOGO_B64));
-  const logoDims = logoImg ? logoImg.scale(0.14) : null;
+  // Zuerst das Logo aus den Vereinsangaben. Nur wenn dort keins liegt, greift
+  // das mitgelieferte – und auch das nur, solange die Installation den Namen
+  // traegt, zu dem es gehoert: lieber kein Logo als ein fremdes auf einem
+  // Aufnahmeantrag.
+  const eigenes = await ladeLogo(pdf, m.logoPfad);
+  const logoImg = eigenes
+    ?? (m.name === "Diu lebendec Histôrje e. V." ? await pdf.embedPng(b64ToUint8(LOGO_B64)) : null);
+  // Das mitgelieferte Logo ist auf 0.14 abgestimmt; ein hochgeladenes kommt in
+  // beliebiger Groesse und wird auf eine feste Hoehe gebracht.
+  const logoDims = !logoImg ? null
+    : eigenes ? logoImg.scale(46 / logoImg.height)
+    : logoImg.scale(0.14);
 
   // ── Farben ────────────────────────────────────────────────────────────────
   const AMBER = hexFarbe(m.farbe, [0.851, 0.467, 0.024]);
@@ -315,12 +350,22 @@ async function buildApplicationPdf(
   y -= 14;
 
   // ── EINVERSTANDNIS ────────────────────────────────────────────────────────
-  checkbox(L, y, app.statutes_accepted);
-  at(texte.zustimmungen[0] ?? "", L + 14, y, 9.5, font, DARK);
-  y -= 16;
-  checkbox(L, y, app.data_processing_accepted);
-  at(texte.zustimmungen[1] ?? "", L + 14, y, 9.5, font, DARK);
-  y -= 26;
+  //
+  // Die Saetze sind jetzt dieselben wie im Webformular und damit laenger als
+  // die frueheren Kurzformen („Satzung anerkannt"). Sie werden umbrochen; das
+  // Kaestchen bleibt in der ersten Zeile stehen.
+  //
+  // {{satzung}} ist im Formular ein Verweis – auf Papier bleibt das Wort.
+  for (const [zeile, gesetzt] of [
+    [texte.zustimmungen[0] ?? "", app.statutes_accepted],
+    [texte.zustimmungen[1] ?? "", app.data_processing_accepted],
+  ] as [string, boolean][]) {
+    checkbox(L, y, gesetzt);
+    const danach = textBlock(zeile.replace(/\{\{\s*satzung\s*\}\}/g, "Satzung"),
+      L + 14, y, 9.5, font, DARK, W - 14);
+    y = danach - 4;
+  }
+  y -= 22;
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
   page.drawRectangle({ x: L, y: y + 2, width: W, height: 1, color: AMBER });

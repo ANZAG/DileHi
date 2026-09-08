@@ -308,6 +308,8 @@ export async function baueMail(
     verein: m.name,
     vereinKurz: m.kurz,
     webseite: m.web,
+    // Die Adresse ohne „https://" – so stand sie im Original als Linktext.
+    webseiteName: m.web.replace(/^https?:\/\//, ""),
     vereinsmail: m.mail,
     ...werte,
     // Der Block ist bereits fertiges HTML und darf nicht maskiert werden.
@@ -327,7 +329,7 @@ export async function baueMail(
   // Der Ersatzlink stand bisher in jeder zweiten Vorlage von Hand darin.
   // Mailprogramme, die Knoepfe verschlucken, gibt es weiterhin.
   const ersatz = extras.knopfZiel && vorlage.knopf
-    ? `<p style="margin: 0; font-size: 12px; color: ${STILL}; line-height: 1.6;">Falls der Knopf nicht funktioniert, kopiere diesen Link in deinen Browser:<br><a href="${extras.knopfZiel}" style="color: ${m.farbe}; word-break: break-all;">${escapeHtml(extras.knopfZiel)}</a></p>`
+    ? `<p style="margin: 0; font-size: 12px; color: ${STILL}; line-height: 1.6;">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br><a href="${extras.knopfZiel}" style="color: ${m.farbe}; word-break: break-all;">${escapeHtml(extras.knopfZiel)}</a></p>`
     : "";
 
   const fussnote = [fuelle(vorlage.fussnote, sicher), ersatz].filter(Boolean).join("<br><br>");

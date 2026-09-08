@@ -66,8 +66,10 @@ export default function VorlagenAdmin() {
       <div className="mb-4">
         <h2 className="font-serif text-lg font-semibold">Textvorlagen</h2>
         <p className="text-sm text-muted-foreground">
-          Was in den E-Mails der Anwendung und auf dem Aufnahmeantrag steht.
-          Vereinsname, Anschrift und Farben kommen aus dem Erscheinungsbild.
+          Was in den E-Mails der Anwendung steht und was jemand beim
+          Aufnahmeantrag zu lesen bekommt – im Webformular wie auf dem PDF, das
+          daraus entsteht. Vereinsname, Anschrift und Farben kommen aus dem
+          Erscheinungsbild.
         </p>
       </div>
 
@@ -272,14 +274,14 @@ function Antragstexte() {
       <div className="space-y-4">
         <Kopf label={gewaehlt.label} hinweis={gewaehlt.hinweis} platzhalter={gewaehlt.platzhalter} />
 
-        <Zeile label="Abschnittsüberschrift" hinweis="Steht im Antrag über dem Text. Darf leer bleiben.">
+        <Zeile label="Abschnittsüberschrift" hinweis="Steht auf dem gedruckten Antrag über dem Text. Darf leer bleiben.">
           <Input
             value={entwurf.titel}
             onChange={(e) => setEntwurf({ ...entwurf, titel: e.target.value })}
           />
         </Zeile>
 
-        <Zeile label="Text" hinweis="Jede Zeile ist ein eigener Absatz beziehungsweise eine eigene Angabe.">
+        <Zeile label="Text" hinweis="Jede Zeile ist ein eigener Absatz beziehungsweise eine eigene Angabe. Derselbe Wortlaut erscheint im Webformular und auf dem PDF.">
           <Textarea
             rows={8}
             value={entwurf.inhalt}
