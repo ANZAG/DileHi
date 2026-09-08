@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * der Umgebung. Der Abzug entsteht also innen; von außen wird er nur abgeholt
  * und verschlüsselt abgelegt.
  *
- * Abgesichert über ein gemeinsames Geheimnis (BACKUP_SECRET) – wie die
+ * Abgesichert über ein gemeinsames Geheimnis (BACKUP_TOKEN) – wie die
  * Tageszusammenfassung, denn ein Zeitplandienst hat keine Sitzung. Bewusst ein
  * EIGENES Geheimnis und nicht dasselbe wie für die Zusammenfassung: Diese
  * Funktion gibt den gesamten Datenbestand heraus, die andere verschickt nur
@@ -18,7 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-backup-secret",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-backup-token",
 };
 
 /** PostgREST liefert höchstens 1000 Zeilen je Anfrage. */
@@ -40,8 +40,8 @@ interface StorageEntry {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const expected = Deno.env.get("BACKUP_SECRET");
-  const provided = req.headers.get("x-backup-secret");
+  const expected = Deno.env.get("BACKUP_TOKEN");
+  const provided = req.headers.get("x-backup-token");
   if (!expected || provided !== expected) {
     return json({ error: "Nicht berechtigt" }, 401);
   }

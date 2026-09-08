@@ -27,6 +27,58 @@
   white-space: nowrap;
 }
 
+/* ── Farbwörter ───────────────────────────────────────────────────────────── */
+
+/*
+ * Im Beitrag steht nur `data-farbe="rot"`, nie eine Farbangabe – die steht
+ * hier. Das hält beliebiges CSS aus der Datenbank heraus und erlaubt, im
+ * dunklen Modus andere Töne zu nehmen: Reines Gelb ist auf Weiß unlesbar,
+ * Dunkelblau auf Schwarz genauso.
+ */
+.forum-content [data-farbe] {
+  font-weight: 500;
+}
+
+.forum-content [data-farbe="rot"]      { color: #c62828; }
+.forum-content [data-farbe="blau"]     { color: #1565c0; }
+.forum-content [data-farbe="gruen"]    { color: #2e7d32; }
+.forum-content [data-farbe="gelb"]     { color: #a17400; }
+.forum-content [data-farbe="orange"]   { color: #e65100; }
+.forum-content [data-farbe="lila"]     { color: #6a1b9a; }
+.forum-content [data-farbe="rosa"]     { color: #ad1457; }
+.forum-content [data-farbe="braun"]    { color: #6d4c41; }
+.forum-content [data-farbe="grau"]     { color: #616161; }
+.forum-content [data-farbe="schwarz"]  { color: #1a1a1a; }
+.forum-content [data-farbe="tuerkis"]  { color: #00838f; }
+.forum-content [data-farbe="gold"]     { color: #9a7b1f; }
+.forum-content [data-farbe="silber"]   { color: #757575; }
+
+/* Weiß braucht in beiden Modi eine Kontur, sonst ist es entweder unsichtbar
+   oder es sieht aus wie ein Fehler. */
+.forum-content [data-farbe="weiss"] {
+  color: #ffffff;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.85);
+}
+
+.dark .forum-content [data-farbe="rot"]     { color: #ef5350; }
+.dark .forum-content [data-farbe="blau"]    { color: #64b5f6; }
+.dark .forum-content [data-farbe="gruen"]   { color: #66bb6a; }
+.dark .forum-content [data-farbe="gelb"]    { color: #ffd54f; }
+.dark .forum-content [data-farbe="orange"]  { color: #ffa726; }
+.dark .forum-content [data-farbe="lila"]    { color: #ba68c8; }
+.dark .forum-content [data-farbe="rosa"]    { color: #f06292; }
+.dark .forum-content [data-farbe="braun"]   { color: #bcaaa4; }
+.dark .forum-content [data-farbe="grau"]    { color: #bdbdbd; }
+.dark .forum-content [data-farbe="schwarz"] { color: #d0d0d0; }
+.dark .forum-content [data-farbe="tuerkis"] { color: #4dd0e1; }
+.dark .forum-content [data-farbe="gold"]    { color: #d4af37; }
+.dark .forum-content [data-farbe="silber"]  { color: #c0c0c0; }
+
+.dark .forum-content [data-farbe="weiss"] {
+  color: #ffffff;
+  text-shadow: none;
+}
+
 /* ── Aufgabenlisten ───────────────────────────────────────────────────────── */
 
 .forum-content ul[data-type="taskList"] {

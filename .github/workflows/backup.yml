@@ -12,15 +12,18 @@ name: Datenbank-Sicherung
 # Einzurichten sind ZWEI Stellen, und das wird leicht verwechselt:
 #
 #   1. GitHub (Repository → Settings → Secrets and variables → Actions)
-#        BACKUP_SECRET       frei gewaehltes langes Passwort
-#        BACKUP_PASSPHRASE   Passwort fuer die Verschluesselung des Artefakts.
+#        BACKUP_TOKEN        Zugang zur Funktion backup-export. Frei
+#                            gewaehlt, lang. Muss beim Backend denselben Wert
+#                            haben (siehe 2.).
+#        BACKUP_PASSPHRASE   Etwas ANDERES: das Passwort, mit dem das fertige
+#                            Artefakt verschluesselt wird. Nur hier noetig.
 #                            Ohne dieses Passwort ist die Sicherung wertlos –
 #                            getrennt vom Repository aufbewahren
 #                            (Passwortmanager).
 #        FUNCTIONS_URL       optional, nur wenn das Backend woanders liegt.
 #
 #   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
-#        BACKUP_SECRET       derselbe Wert wie oben
+#        BACKUP_TOKEN       derselbe Wert wie oben
 #
 # Bewusst ein anderes Geheimnis als DIGEST_SECRET: Diese Funktion gibt den
 # gesamten Datenbestand heraus, die Tageszusammenfassung verschickt nur Mails.
@@ -63,14 +66,14 @@ jobs:
       - name: Abzug abholen
         env:
           FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
-          BACKUP_SECRET: ${{ secrets.BACKUP_SECRET }}
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
           # Dateien sind gross und aendern sich selten – deshalb nur sonntags,
           # oder auf ausdruecklichen Wunsch beim Handstart.
           WITH_FILES: ${{ github.event.inputs.dateien == 'true' && 'true' || '' }}
         run: |
           set -euo pipefail
-          if [ -z "${BACKUP_SECRET}" ]; then
-            echo "::error::Secret BACKUP_SECRET fehlt – siehe Kommentar in dieser Datei."
+          if [ -z "${BACKUP_TOKEN}" ]; then
+            echo "::error::Secret BACKUP_TOKEN fehlt – siehe Kommentar in dieser Datei."
             exit 1
           fi
 
@@ -83,7 +86,7 @@ jobs:
           mkdir -p backup
           code=$(curl -s -o backup/sicherung.json -w "%{http_code}" --max-time 600 \
             -X POST "${FUNCTIONS_URL}/backup-export" \
-            -H "x-backup-secret: ${BACKUP_SECRET}" \
+            -H "x-backup-token: ${BACKUP_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"files\": ${files}}")
 

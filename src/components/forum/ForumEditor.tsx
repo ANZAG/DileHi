@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Farbwort, Smileys } from "./cleverExtensions";
 import { createMentionSuggestion, type MentionMember } from "./mentionSuggestion";
 import { signForumImages, uploadForumImage } from "./forumImages";
 import "./forum-content.css";
@@ -118,10 +119,13 @@ export default function ForumEditor({
       TaskItem.configure({ nested: false }),
       ForumImage.configure({ inline: false, allowBase64: false }),
       TableKit.configure({ table: { resizable: false } }),
-      // Das Nützliche aus dem „Clever Editor": „--" wird zum Gedankenstrich,
-      // „..." zu Auslassungspunkten, Anführungszeichen werden typografisch.
-      // Nichts davon muss man lernen, es passiert einfach richtig.
+      // „Clever Editor": „--" wird zum Gedankenstrich, „..." zu
+      // Auslassungspunkten, Anführungszeichen werden typografisch – dazu
+      // Farbwörter und Smileys. Nichts davon muss man lernen, es passiert
+      // beim Tippen.
       Typography,
+      Farbwort,
+      Smileys,
       Mention.configure({
         HTMLAttributes: { class: "forum-mention" },
         // data-mention-id ist die Fassung, die der Datenbank-Trigger ausliest;
