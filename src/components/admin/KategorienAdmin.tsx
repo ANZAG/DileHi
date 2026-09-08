@@ -155,8 +155,8 @@ export default function KategorienAdmin() {
           {kategorien.map((k) => {
             const anzahl = verwendung[k.key] ?? 0;
             return (
-              <li key={k.key} className="flex items-center gap-2 p-3">
-                <span className="min-w-0 flex-1">
+              <li key={k.key} className="flex flex-wrap items-center gap-2 p-3">
+                <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                   {bearbeitet === k.key ? (
                     <span className="flex gap-1">
                       <Input

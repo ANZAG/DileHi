@@ -49,14 +49,16 @@ const textFeld = {
 
 const gemeinsameFelder = {
   breite: { type: "select" as const, label: "Breite", options: BREITEN },
-  abstand: { type: "select" as const, label: "Abstand oben und unten", options: ABSTAENDE },
+  abstandOben: { type: "select" as const, label: "Abstand oben", options: ABSTAENDE },
+  abstandUnten: { type: "select" as const, label: "Abstand unten", options: ABSTAENDE },
   textfarbe: { type: "select" as const, label: "Schriftfarbe", options: TEXTFARBEN },
   hintergrund: { type: "select" as const, label: "Hintergrund", options: HINTERGRUENDE },
 };
 
 const layoutFelder = {
   breite: gemeinsameFelder.breite,
-  abstand: gemeinsameFelder.abstand,
+  abstandOben: gemeinsameFelder.abstandOben,
+  abstandUnten: gemeinsameFelder.abstandUnten,
 };
 
 /**
@@ -66,7 +68,8 @@ const layoutFelder = {
  */
 const layoutVorgaben = {
   breite: "schmal" as Breite,
-  abstand: "normal" as Abstand,
+  abstandOben: "normal" as Abstand,
+  abstandUnten: "normal" as Abstand,
 };
 
 const gemeinsameVorgaben = {
@@ -130,7 +133,7 @@ export type Bausteine = {
   Darstellungen: {
     kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei";
   } & typeof layoutVorgaben;
-  Termine: { ueberschrift?: string; anzahl: number } & typeof layoutVorgaben;
+  Termine: { ueberschrift?: string; unterzeile?: string; anzahl: number } & typeof layoutVorgaben;
   Kontaktformular: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
   Willkommen: {
     bildSchluessel: string;
@@ -142,19 +145,21 @@ export type Bausteine = {
   };
   Eckdaten: {
     eintraege: { symbol: "kalender" | "leute" | "ort" | "stern"; text: string; hervorgehoben?: string }[];
-    hintergrund: Hintergrund;
-    abstand: Abstand;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
   };
   Zeitstrahl: {
     ueberschrift?: string;
     punkte: { titel: string; jahre: string; untertitel: string; bildSchluessel: string; ziel?: string }[];
     hintergrund: Hintergrund;
-    abstand: Abstand;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
   };
   Aktionskaesten: {
     kaesten: { titel: string; text: string; knopf: string; ziel: string; betont?: boolean }[];
     hintergrund: Hintergrund;
-    abstand: Abstand;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
   };
   EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
@@ -225,7 +230,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...gemeinsameFelder,
       },
       defaultProps: {
-        text: "Überschrift", groesse: "mittel", ausrichtung: "links", ...gemeinsameVorgaben, abstand: "eng",
+        text: "Überschrift", groesse: "mittel", ausrichtung: "links", ...gemeinsameVorgaben, abstandOben: "klein", abstandUnten: "klein",
       },
       render: Ueberschrift,
     },
@@ -287,7 +292,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           { titel: "Themen", wert: "" },
         ],
         ...gemeinsameVorgaben,
-        abstand: "eng",
+        abstandOben: "klein", abstandUnten: "klein",
         hintergrund: "karte",
       },
       render: Kennzahlen,
@@ -300,7 +305,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         bildunterschrift: { type: "text", label: "Bildunterschrift" },
         ...layoutFelder,
       },
-      defaultProps: { ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", abstand: "eng" },
+      defaultProps: { ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", abstandOben: "eng", abstandUnten: "eng" },
       render: Einzelbild,
     },
 
@@ -380,7 +385,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         zielFrei: "",
         art: "gefuellt",
         ausrichtung: "links",
-        abstand: "eng",
+        abstandOben: "klein", abstandUnten: "klein",
       },
       render: Knopf,
     },
@@ -421,7 +426,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         },
         ...layoutFelder,
       },
-      defaultProps: { ...layoutVorgaben, nachweise: [], abstand: "eng" },
+      defaultProps: { ...layoutVorgaben, nachweise: [], abstandOben: "eng", abstandUnten: "eng" },
       render: Bildnachweise,
     },
 
@@ -436,7 +441,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         abschluss: { type: "textarea", label: "Abschluss" },
         ...layoutFelder,
       }),
-      defaultProps: { ...layoutVorgaben, epoche: "", einleitung: "", abschluss: "", abstand: "eng" },
+      defaultProps: { ...layoutVorgaben, epoche: "", einleitung: "", abschluss: "", abstandOben: "eng", abstandUnten: "eng" },
       render: Besucherhinweis,
     },
 
@@ -449,7 +454,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         },
         ...layoutFelder,
       }),
-      defaultProps: { ...layoutVorgaben, epoche: "", abstand: "eng" },
+      defaultProps: { ...layoutVorgaben, epoche: "", abstandOben: "eng", abstandUnten: "eng" },
       render: Quellen,
     },
 
@@ -472,7 +477,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     Trennlinie: {
       label: "Trennlinie",
       fields: layoutFelder,
-      defaultProps: { ...layoutVorgaben, abstand: "eng" },
+      defaultProps: { ...layoutVorgaben, abstandOben: "eng", abstandUnten: "eng" },
       render: Trennlinie,
     },
 
@@ -536,10 +541,18 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Nächste Veranstaltungen",
       fields: {
         ueberschrift: { type: "text", label: "Überschrift" },
+        unterzeile: { type: "text", label: "Zeile darunter" },
         anzahl: { type: "number", label: "Wie viele höchstens?", min: 1, max: 20 },
         ...layoutFelder,
       },
-      defaultProps: { ...layoutVorgaben, ueberschrift: "Nächste Veranstaltungen", anzahl: 5 },
+      defaultProps: {
+        ...layoutVorgaben,
+        ueberschrift: "Nächste Termine",
+        unterzeile: "Hier findet ihr unsere öffentlichen Auftritte und Veranstaltungen.",
+        anzahl: 10,
+        abstandOben: "weit",
+        abstandUnten: "weit",
+      },
       render: Termine,
     },
 
@@ -604,13 +617,12 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           },
           getItemSummary: (item: { text?: string }) => item?.text || "Eintrag",
         },
-        hintergrund: gemeinsameFelder.hintergrund,
-        abstand: gemeinsameFelder.abstand,
+        abstandOben: gemeinsameFelder.abstandOben,
+        abstandUnten: gemeinsameFelder.abstandUnten,
       },
       defaultProps: {
         eintraege: [{ symbol: "kalender", text: "Seit", hervorgehoben: "2011 aktiv" }],
-        hintergrund: "gedaempft",
-        abstand: "eng",
+        abstandOben: "klein", abstandUnten: "klein",
       },
       render: Eckdaten,
     },
@@ -639,10 +651,11 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             getItemSummary: (item: { titel?: string }) => item?.titel || "Punkt",
           },
           hintergrund: gemeinsameFelder.hintergrund,
-          abstand: gemeinsameFelder.abstand,
+          abstandOben: gemeinsameFelder.abstandOben,
+        abstandUnten: gemeinsameFelder.abstandUnten,
         };
       },
-      defaultProps: { ueberschrift: "Unsere Darstellungen", punkte: [], hintergrund: "karte", abstand: "weit" },
+      defaultProps: { ueberschrift: "Unsere Darstellungen", punkte: [], hintergrund: "karte", abstandOben: "weit", abstandUnten: "weit" },
       render: Zeitstrahl,
     },
 
@@ -672,10 +685,11 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             getItemSummary: (item: { titel?: string }) => item?.titel || "Kasten",
           },
           hintergrund: gemeinsameFelder.hintergrund,
-          abstand: gemeinsameFelder.abstand,
+          abstandOben: gemeinsameFelder.abstandOben,
+        abstandUnten: gemeinsameFelder.abstandUnten,
         };
       },
-      defaultProps: { kaesten: [], hintergrund: "karte", abstand: "weit" },
+      defaultProps: { kaesten: [], hintergrund: "karte", abstandOben: "weit", abstandUnten: "weit" },
       render: Aktionskaesten,
     },
 

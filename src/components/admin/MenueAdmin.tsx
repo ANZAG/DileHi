@@ -237,11 +237,13 @@ function MenueZeile({ eintrag, ziel, untergeordnet, onHoch, onRunter, onSichtbar
   onEntfernen: () => void;
 }) {
   return (
-    <li className={`flex items-center gap-2 p-3 ${eintrag.is_visible ? "" : "opacity-50"}`}>
+    // Auf schmalen Bildschirmen rutschen die vier Knöpfe unter den Text, statt
+    // ihn auf zwei Zeichen zusammenzuquetschen.
+    <li className={`flex flex-wrap items-center gap-2 p-3 ${eintrag.is_visible ? "" : "opacity-50"}`}>
       {untergeordnet && <CornerDownRight size={14} className="text-muted-foreground ml-4 shrink-0" />}
-      <span className="min-w-0 flex-1">
-        <span className="font-medium text-sm">{eintrag.label}</span>
-        <span className="block text-xs text-muted-foreground">{ziel}</span>
+      <span className="min-w-0 flex-1 basis-full sm:basis-auto">
+        <span className="font-medium text-sm break-words">{eintrag.label}</span>
+        <span className="block text-xs text-muted-foreground break-all">{ziel}</span>
       </span>
 
       <Button variant="ghost" size="icon" aria-label="Nach oben" onClick={onHoch}>

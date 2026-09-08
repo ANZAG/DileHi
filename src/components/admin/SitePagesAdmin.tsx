@@ -130,10 +130,10 @@ export default function SitePagesAdmin() {
         <ul className="divide-y rounded-lg border bg-card overflow-hidden">
           {seiten.map((s: SitePage) => (
             <li key={s.id}>
-              <div className="flex items-center gap-3 p-3">
-              <span className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 p-3">
+              <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                 <span className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-medium text-sm">{s.title}</span>
+                  <span className="font-medium text-sm break-words">{s.title}</span>
                   {s.is_published ? (
                     <Globe size={13} className="text-primary shrink-0" aria-label="Veröffentlicht" />
                   ) : (
@@ -142,7 +142,7 @@ export default function SitePagesAdmin() {
                     </span>
                   )}
                 </span>
-                <span className="block text-xs text-muted-foreground">/{s.slug}</span>
+                <span className="block text-xs text-muted-foreground break-all">/{s.slug}</span>
               </span>
 
               {s.is_published && (
