@@ -64,7 +64,9 @@ Deno.serve(async (req) => {
 
     const { betreff, html } = await baueMail(
       "kontakt_antwort",
-      { name: name ?? "" },
+      // Der Name traegt sein Leerzeichen selbst – ohne Namen bleibt es bei
+      // „Guten Tag," und nicht „Guten Tag ,".
+      { anrede: name ? ` ${name}` : "" },
       { block, unterschrift: { name: senderName, amt: senderRole } }
     );
 

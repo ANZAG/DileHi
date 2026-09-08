@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { useBranding } from "@/hooks/useBranding";
+import { useAntragstexte, fuelleText } from "@/hooks/useAntragstexte";
 
 const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-satzung-link`;
 const FALLBACK_RATE = 36;
@@ -57,6 +59,33 @@ function RadioGroup({
   );
 }
 
+/**
+ * Setzt {{satzung}} als Verweis auf die Satzung ein.
+ *
+ * Im gedruckten Antrag steht an derselben Stelle schlicht das Wort – Papier
+ * kennt keine Verweise. Der Satz drumherum ist in beiden Fällen derselbe.
+ */
+function MitSatzungslink({ text }: { text: string }) {
+  const marke = "{{satzung}}";
+  const teile = text.split(marke);
+  if (teile.length === 1) return <>{text}</>;
+  return (
+    <>
+      {teile[0]}
+      <a
+        href={SATZUNG_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline inline-flex items-center gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <FileText size={12} /> Satzung
+      </a>
+      {teile.slice(1).join(marke)}
+    </>
+  );
+}
+
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 const MembershipApplication = () => {
   const [form, setForm] = useState({
@@ -87,6 +116,8 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
+  const { org_name } = useBranding();
+  const texte = useAntragstexte();
 
 
   useEffect(() => {
@@ -97,6 +128,19 @@ const MembershipApplication = () => {
   }, []);
 
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " \u20AC";
+  // Die Textbausteine des Antrags mit den aktuellen Werten. Sie stehen
+  // wortgleich auf dem PDF, das daraus entsteht. Fehlen sie, bleibt der
+  // Abschnitt leer statt kaputt.
+  const werte = { verein: org_name, beitrag: rate.toFixed(2).replace(".", ",") };
+  const zeilen = (key: string) =>
+    fuelleText(texte[key]?.inhalt ?? "", werte)
+      .split("\n")
+      .map((z) => z.trim())
+      .filter(Boolean);
+  const erklaerung = zeilen("erklaerung");
+  const zustimmungen = zeilen("zustimmungen");
+  const datenschutz = zeilen("datenschutz").join(" ");
+
   const halfFmt = (n: number) =>
     (Math.round((n / 2) * 100) / 100).toFixed(2).replace(".", ",") + " \u20AC";
 
@@ -361,6 +405,20 @@ const MembershipApplication = () => {
                 Einverständnis
               </h2>
 
+              {/* Erklärung und Zustimmungen stehen wortgleich auf dem Antrag,
+                  der daraus entsteht. Vorher hatte jede Seite ihren eigenen
+                  Wortlaut: Wer zustimmte, las den einen Text, protokolliert
+                  wurde der andere. */}
+              {erklaerung.length > 0 && (
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {erklaerung.map((zeile, i) => (
+                    <p key={i} className={i === 0 ? "font-medium text-foreground" : undefined}>
+                      {zeile}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -369,17 +427,7 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  Ich habe die{" "}
-                  <a
-                    href={SATZUNG_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline inline-flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <FileText size={12} /> Satzung
-                  </a>{" "}
-                  von Diu lebendec Histôrje e.V. gelesen und erkenne sie an. *
+                  <MitSatzungslink text={zustimmungen[0] ?? ""} /> *
                 </span>
               </label>
 
@@ -391,14 +439,15 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  Ich stimme der Verarbeitung meiner personenbezogenen Daten gemäß Datenschutzerklärung zu. *
+                  <MitSatzungslink text={zustimmungen[1] ?? ""} /> *
                 </span>
               </label>
 
+              {datenschutz && <p className="text-xs text-muted-foreground">{datenschutz}</p>}
+
               <p className="text-xs text-muted-foreground">
-                Mit Absenden bestätigst du die vorstehenden Erklärungen. Die
-                Mitgliedschaft ist nach schriftlicher Bestätigung durch den Vorstand
-                gültig. Das Eintrittsdatum ist das Datum der Unterschrift.
+                Mit Absenden bestätigst du die vorstehenden Erklärungen. Das
+                Eintrittsdatum ist das Datum der Unterschrift.
               </p>
             </section>
 

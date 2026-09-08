@@ -84,12 +84,13 @@ Deno.serve(async (req) => {
         .join("");
 
       const count = row.items.length;
-      const neuigkeiten = count === 1 ? "Eine Neuigkeit" : `${count} Neuigkeiten`;
+      const neuigkeiten = count === 1 ? "eine Neuigkeit" : `${count} Neuigkeiten`;
+      const neuigkeitenGross = neuigkeiten.charAt(0).toUpperCase() + neuigkeiten.slice(1);
       const block = `<table cellpadding="0" cellspacing="0" border="0" width="100%">${list}</table>`;
 
       const { betreff, html } = await baueMail(
         "zusammenfassung",
-        { name: row.display_name || "", neuigkeiten, anzahl: String(count) },
+        { name: row.display_name || "", neuigkeiten, neuigkeitenGross, anzahl: String(count) },
         { block, knopfZiel: `${siteUrl}/intern/forum` }
       );
 
