@@ -18,6 +18,8 @@ import { abstandKlasse, flaechenKlasse, type Abstand, type Hintergrund } from ".
 
 interface Grund {
   hintergrund?: Hintergrund;
+  abstandOben?: Abstand;
+  abstandUnten?: Abstand;
   abstand?: Abstand;
 }
 
@@ -106,13 +108,18 @@ export type EckdatenSymbol = keyof typeof SYMBOLE;
 
 /** Die schmale Leiste mit Eckdaten: seit wann, wie viele, wo. */
 export function Eckdaten({
-  eintraege, hintergrund, abstand,
+  eintraege, hintergrund, abstandOben, abstandUnten, abstand,
 }: Grund & { eintraege: { symbol: EckdatenSymbol; text: string; hervorgehoben?: string }[] }) {
   const liste = eintraege ?? [];
   if (liste.length === 0) return null;
 
   return (
-    <section className={`border-b ${flaechenKlasse(hintergrund ?? "gedaempft")} ${abstandKlasse(abstand ?? "eng")}`}>
+    // bg-muted wäre deutlich dunkler als das Original – dort steht bg-muted/30.
+    // Der Unterschied fällt erst im direkten Vergleich auf, macht aber aus einem
+    // dezenten Band einen grauen Streifen.
+    <section
+      className={`border-b bg-muted/30 ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}
+    >
       <div className="container">
         <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12 text-sm text-muted-foreground">
           {liste.map((e, i) => {
@@ -150,7 +157,7 @@ interface Punkt {
  * funktioniert dort nicht. Das war in der alten Fassung schon so.
  */
 export function Zeitstrahl({
-  ueberschrift, punkte, hintergrund, abstand,
+  ueberschrift, punkte, hintergrund, abstandOben, abstandUnten, abstand,
 }: Grund & { ueberschrift?: string; punkte: Punkt[] }) {
   const [aktiv, setAktiv] = useState(0);
   const istHandy = useIsMobile();
@@ -159,7 +166,7 @@ export function Zeitstrahl({
   const gewaehlt = liste[Math.min(aktiv, liste.length - 1)];
 
   return (
-    <section className={`${flaechenKlasse(hintergrund ?? "karte")} ${abstandKlasse(abstand ?? "weit")}`}>
+    <section className={`${flaechenKlasse(hintergrund ?? "karte")} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "weit")}`}>
       <div className="container">
         {ueberschrift && (
           <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-12">{ueberschrift}</h2>
@@ -244,13 +251,13 @@ function Kachel({ punkt, gross }: { punkt: Punkt; gross?: boolean }) {
 
 /** Kästen mit Titel, Text und Knopf – meist der Abschluss einer Seite. */
 export function Aktionskaesten({
-  kaesten, hintergrund, abstand,
+  kaesten, hintergrund, abstandOben, abstandUnten, abstand,
 }: Grund & { kaesten: { titel: string; text: string; knopf: string; ziel: string; betont?: boolean }[] }) {
   const liste = kaesten ?? [];
   if (liste.length === 0) return null;
 
   return (
-    <section className={`${flaechenKlasse(hintergrund ?? "karte")} ${abstandKlasse(abstand ?? "weit")}`}>
+    <section className={`${flaechenKlasse(hintergrund ?? "karte")} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "weit")}`}>
       <div className="container max-w-4xl mx-auto">
         <div className={`grid grid-cols-1 gap-8 ${liste.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           {liste.map((k, i) => (

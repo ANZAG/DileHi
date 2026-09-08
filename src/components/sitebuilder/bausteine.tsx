@@ -3,7 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  X, ChevronLeft, ChevronRight,
+  Calendar as CalendarIcon, MapPin as MapPinIcon,
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage } from "@/hooks/useSiteImage";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
@@ -29,6 +34,9 @@ import {
 
 interface Gemeinsam {
   breite?: Breite;
+  abstandOben?: Abstand;
+  abstandUnten?: Abstand;
+  /** Ältere Seiten kennen nur einen Wert für beide Seiten. */
   abstand?: Abstand;
   textfarbe?: Textfarbe;
   hintergrund?: Hintergrund;
@@ -37,21 +45,21 @@ interface Gemeinsam {
 
 /** Rahmen um jeden Baustein – Breite, Abstand, Farbe an einer Stelle. */
 function Rahmen({
-  breite, abstand, textfarbe, hintergrund, flaeche, children, className = "",
+  breite, abstandOben, abstandUnten, abstand, textfarbe, hintergrund, flaeche, children, className = "",
 }: Gemeinsam & { children: React.ReactNode; className?: string }) {
   // Über die ganze Breite: Der Hintergrund liegt am Abschnitt, der Inhalt
   // bleibt in seiner Breite. So entstehen die farbigen Bänder, aus denen die
   // Startseite besteht.
   if (flaeche === "voll" && hintergrund && hintergrund !== "keine") {
     return (
-      <section className={`${flaechenKlasse(hintergrund)} ${abstandKlasse(abstand)} ${className}`}>
+      <section className={`${flaechenKlasse(hintergrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)} ${className}`}>
         <div className={`${breitenKlasse(breite)} ${textKlasse(textfarbe)}`}>{children}</div>
       </section>
     );
   }
 
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)} ${className}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)} ${className}`}>
       <div className={`${grundKlasse(hintergrund)} ${polsterung(hintergrund)} ${textKlasse(textfarbe)}`}>
         {children}
       </div>
@@ -196,11 +204,11 @@ export function Kennzahlen({
 // ── Einzelbild ──────────────────────────────────────────────────────────────
 
 export function Einzelbild({
-  bildSchluessel, bildunterschrift, breite, abstand,
+  bildSchluessel, bildunterschrift, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { bildSchluessel: string; bildunterschrift?: string }) {
   const bild = useSiteImage(bildSchluessel);
   return (
-    <figure className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
+    <figure className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <div className="rounded-lg overflow-hidden">
         <img src={bild.src} alt={bild.alt} className="w-full h-auto object-cover" loading="lazy" />
       </div>
@@ -293,7 +301,7 @@ function Karte({ titel, text, bildSchluessel, ziel }: {
 // ── Knopf ───────────────────────────────────────────────────────────────────
 
 export function Knopf({
-  beschriftung, ziel, art, ausrichtung, breite, abstand,
+  beschriftung, ziel, art, ausrichtung, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & {
   beschriftung: string;
   ziel: string;
@@ -311,7 +319,7 @@ export function Knopf({
   }`;
 
   return (
-    <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
+    <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <div className={`flex ${lage[ausrichtung] ?? lage.links}`}>
         {ziel?.startsWith("http") ? (
           <a href={ziel} target="_blank" rel="noreferrer" className={klasse}>{beschriftung}</a>
@@ -330,9 +338,9 @@ export function Abstandhalter({ hoehe }: { hoehe: "klein" | "mittel" | "gross" }
   return <div className={hoehen[hoehe] ?? hoehen.mittel} aria-hidden="true" />;
 }
 
-export function Trennlinie({ breite }: Gemeinsam) {
+export function Trennlinie({ breite, abstandOben, abstandUnten, abstand }: Gemeinsam) {
   return (
-    <div className={`${breitenKlasse(breite)} py-6`}>
+    <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <hr className="border-border" />
     </div>
   );
@@ -340,9 +348,9 @@ export function Trennlinie({ breite }: Gemeinsam) {
 
 // ── Eigenes HTML ────────────────────────────────────────────────────────────
 
-export function EigenesHtml({ code, breite, abstand }: Gemeinsam & { code: string }) {
+export function EigenesHtml({ code, breite, abstandOben, abstandUnten, abstand }: Gemeinsam & { code: string }) {
   return (
-    <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+    <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
       {/* Auch hier gesäubert. Wer diesen Baustein benutzen darf, verwaltet
           zwar ohnehin die Installation – aber ein eingebettetes Skript würde
           auf jeder öffentlichen Seite laufen, und ein Tippfehler soll nicht
@@ -355,7 +363,7 @@ export function EigenesHtml({ code, breite, abstand }: Gemeinsam & { code: strin
 // ── Galerie ─────────────────────────────────────────────────────────────────
 
 export function Galerie({
-  epoche, ueberschrift, spalten, breite, abstand,
+  epoche, ueberschrift, spalten, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { epoche: string; ueberschrift?: string; spalten?: "zwei" | "drei" | "vier" }) {
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -391,7 +399,7 @@ export function Galerie({
     setLightbox((i) => (i === null ? null : (i + richtung + bilder.length) % bilder.length));
 
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
       {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
 
       {bilder.length === 0 ? (
@@ -467,28 +475,28 @@ export function Galerie({
 // ── Bestehende Komponenten durchreichen ─────────────────────────────────────
 
 export function Besucherhinweis({
-  epoche, einleitung, abschluss, breite, abstand,
+  epoche, einleitung, abschluss, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { epoche: string; einleitung?: string; abschluss?: string }) {
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <VisitorHighlight epoch={epoche} intro={einleitung} outro={abschluss} />
     </section>
   );
 }
 
-export function Quellen({ epoche, breite, abstand }: Gemeinsam & { epoche: string }) {
+export function Quellen({ epoche, breite, abstandOben, abstandUnten, abstand }: Gemeinsam & { epoche: string }) {
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <EpochSources epoch={epoche} />
     </section>
   );
 }
 
 export function Bildnachweise({
-  nachweise, breite, abstand,
+  nachweise, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { nachweise: { description: string; source: string; license: string }[] }) {
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <ImageCredits credits={nachweise ?? []} />
     </section>
   );
@@ -497,7 +505,7 @@ export function Bildnachweise({
 // ── Logos (Partner, Sponsoren, Mitgliedschaften) ────────────────────────────
 
 export function Logos({
-  ueberschrift, logos, groesse, breite, abstand,
+  ueberschrift, logos, groesse, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & {
   ueberschrift?: string;
   logos: { bildSchluessel: string; name: string; ziel?: string }[];
@@ -508,7 +516,7 @@ export function Logos({
   const hoehen = { klein: "h-10", mittel: "h-16", gross: "h-24" };
 
   return (
-    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstand)}`}>
+    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
       {ueberschrift && (
         <h2 className="font-serif text-2xl font-semibold mb-6 text-center">{ueberschrift}</h2>
       )}
@@ -551,7 +559,7 @@ interface OeffentlicheDarstellung {
 }
 
 export function Darstellungen({
-  kategorie, ueberschrift, spalten, breite, abstand,
+  kategorie, ueberschrift, spalten, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei" }) {
   const { data: alle = [] } = useQuery({
     queryKey: ["public-personas"],
@@ -567,7 +575,7 @@ export function Darstellungen({
 
   if (liste.length === 0) {
     return (
-      <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+      <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
         <p className="text-sm text-muted-foreground">
           Hier erscheinen die Darstellungen, die der Herold freigegeben hat.
         </p>
@@ -576,7 +584,7 @@ export function Darstellungen({
   }
 
   return (
-    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstand)}`}>
+    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
       {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
       <div className={`grid gap-4 ${spalten === "zwei" ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
         {liste.map((d, i) => (
@@ -611,50 +619,99 @@ interface OeffentlicherTermin {
   all_day: boolean;
 }
 
+/**
+ * Die öffentlichen Termine.
+ *
+ * Zuerst hatte ich das nachgebaut – und dabei ein anderes Aussehen erzeugt als
+ * die bestehende Fassung auf der Startseite: andere Karten, kein Datumsbereich,
+ * keine Uhrzeit. Jetzt dieselbe Darstellung wie bisher, nur mit einstellbarer
+ * Überschrift.
+ */
 export function Termine({
-  ueberschrift, anzahl, breite, abstand,
-}: Gemeinsam & { ueberschrift?: string; anzahl: number }) {
-  const { data: termine = [] } = useQuery({
-    queryKey: ["oeffentliche-termine", anzahl],
+  ueberschrift, unterzeile, anzahl, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & { ueberschrift?: string; unterzeile?: string; anzahl: number }) {
+  const jahr = new Date().getFullYear();
+
+  const { data: termine = [], isLoading } = useQuery({
+    queryKey: ["public-events", jahr],
     queryFn: async () => {
-      // Nur öffentliche Termine – die Policy lässt für Gäste ohnehin nichts
-      // anderes zu, aber der Filter macht die Absicht sichtbar.
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("events")
         .select("id, title, start_date, end_date, location, all_day")
         .eq("is_public", true)
+        .gte("start_date", `${jahr}-01-01`)
+        .lte("start_date", `${jahr + 1}-12-31`)
         .gte("start_date", new Date().toISOString())
-        .order("start_date")
-        .limit(anzahl || 5);
+        .order("start_date", { ascending: true });
+      if (error) throw error;
       return (data ?? []) as OeffentlicherTermin[];
     },
   });
 
+  // Wie bisher: Steht nichts an, steht auch kein leerer Abschnitt da.
+  if (isLoading || termine.length === 0) return null;
+
+  const datum = (start: string, ende: string | null, ganztags: boolean) => {
+    const a = parseISO(start);
+    if (!ganztags) return format(a, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de });
+    if (!ende) return format(a, "d. MMMM yyyy", { locale: de });
+    const b = parseISO(ende);
+    return format(a, "yyyy-MM") === format(b, "yyyy-MM")
+      ? `${format(a, "d.")}–${format(b, "d. MMMM yyyy", { locale: de })}`
+      : `${format(a, "d. MMM", { locale: de })} – ${format(b, "d. MMM yyyy", { locale: de })}`;
+  };
+
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
-      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
-      {termine.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Zurzeit sind keine Termine öffentlich angekündigt.</p>
-      ) : (
-        <ul className="divide-y rounded-lg border bg-card overflow-hidden">
-          {termine.map((t) => (
-            <li key={t.id} className="flex items-center gap-4 p-4">
-              <div className="text-center min-w-[48px] shrink-0">
-                <div className="text-xs text-muted-foreground uppercase">
-                  {new Date(t.start_date).toLocaleDateString("de-DE", { month: "short" })}
-                </div>
-                <div className="text-xl font-bold leading-none">
-                  {new Date(t.start_date).getDate()}
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "weit")}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        {ueberschrift && (
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-2 text-center">
+            {ueberschrift}
+          </h2>
+        )}
+        {unterzeile && (
+          <p className="text-sm text-muted-foreground text-center mb-10">{unterzeile}</p>
+        )}
+
+        <div className="space-y-3">
+          {termine.slice(0, anzahl || 99).map((t) => (
+            <div
+              key={t.id}
+              className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex-shrink-0 w-12 text-center">
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+                  {format(parseISO(t.start_date), "MMM", { locale: de }).toUpperCase()}
+                </p>
+                <p className="font-serif text-2xl font-bold text-foreground leading-none">
+                  {format(parseISO(t.start_date), "d")}
+                </p>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground truncate">{t.title}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <CalendarIcon className="w-3 h-3" />
+                    {datum(t.start_date, t.end_date, t.all_day)}
+                  </span>
+                  {t.location && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPinIcon className="w-3 h-3" />
+                      {t.location}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-medium">{t.title}</p>
-                {t.location && <p className="text-sm text-muted-foreground break-words">{t.location}</p>}
-              </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      )}
+        </div>
+      </motion.div>
     </section>
   );
 }
@@ -662,10 +719,10 @@ export function Termine({
 // ── Kontaktformular ─────────────────────────────────────────────────────────
 
 export function Kontaktformular({
-  ueberschrift, hinweis, breite, abstand,
+  ueberschrift, hinweis, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { ueberschrift?: string; hinweis?: string }) {
   return (
-    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
       {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-2">{ueberschrift}</h2>}
       {hinweis && <p className="text-sm text-muted-foreground mb-6">{hinweis}</p>}
       <KontaktFelder />

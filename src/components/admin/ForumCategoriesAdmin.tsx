@@ -117,7 +117,7 @@ export default function ForumCategoriesAdmin() {
               value={c.status}
               onValueChange={(v) => save.mutate({ id: c.id, ...c, status: v as CategoryStatus })}
             >
-              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-full sm:w-40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(Object.keys(STATUS_LABEL) as CategoryStatus[]).map((s) => (
                   <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>

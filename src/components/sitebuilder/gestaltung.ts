@@ -100,16 +100,50 @@ export function breitenKlasse(breite?: Breite): string {
   return `container mx-auto ${breite === "breit" ? "max-w-5xl" : "max-w-3xl"}`;
 }
 
-export type Abstand = "eng" | "normal" | "weit";
+export type Abstand = "keiner" | "eng" | "klein" | "normal" | "weit";
 
 export const ABSTAENDE: { label: string; value: Abstand }[] = [
-  { label: "Eng", value: "eng" },
+  { label: "Kein Abstand", value: "keiner" },
+  { label: "Sehr klein", value: "eng" },
+  { label: "Klein", value: "klein" },
   { label: "Normal", value: "normal" },
-  { label: "Weit", value: "weit" },
+  { label: "Groß", value: "weit" },
 ];
 
-export function abstandKlasse(abstand?: Abstand): string {
-  if (abstand === "eng") return "py-3";
-  if (abstand === "weit") return "py-12 md:py-20";
-  return "py-8 md:py-12";
+/**
+ * Abstand oben und unten getrennt.
+ *
+ * Zuerst gab es nur einen Wert für beides. Beim Nachbauen der Startseite fiel
+ * auf, warum das nicht reicht: Dort stehen Text, Bild und Link dicht
+ * untereinander in einem Block, der als Ganzes viel Luft nach oben und unten
+ * hat. Mit einem einzigen Wert wird entweder der Block zu eng oder die Teile
+ * darin zu weit auseinander.
+ */
+const OBEN: Record<Abstand, string> = {
+  keiner: "pt-0",
+  eng: "pt-2",
+  klein: "pt-6",
+  normal: "pt-8 md:pt-12",
+  weit: "pt-16 md:pt-24",
+};
+
+const UNTEN: Record<Abstand, string> = {
+  keiner: "pb-0",
+  eng: "pb-2",
+  klein: "pb-6",
+  normal: "pb-8 md:pb-12",
+  weit: "pb-16 md:pb-24",
+};
+
+/**
+ * @param oben  Abstand nach oben
+ * @param unten Abstand nach unten
+ * @param beide Ältere Seiten haben nur einen Wert für beides – der gilt dann
+ *              für oben und unten. Ohne diesen Rückfall stünden alle vor der
+ *              Umstellung gebauten Seiten plötzlich ohne Abstände da.
+ */
+export function abstandKlasse(oben?: Abstand, unten?: Abstand, beide?: Abstand): string {
+  const o = oben ?? beide ?? "normal";
+  const u = unten ?? beide ?? "normal";
+  return `${OBEN[o] ?? OBEN.normal} ${UNTEN[u] ?? UNTEN.normal}`;
 }

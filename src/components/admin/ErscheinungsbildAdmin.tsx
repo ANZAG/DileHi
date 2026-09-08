@@ -244,8 +244,14 @@ export default function ErscheinungsbildAdmin() {
         </div>
       </Abschnitt>
 
-      <div className="flex justify-end sticky bottom-4">
-        <Button disabled={speichern.isPending} onClick={() => speichern.mutate(entwurf)}>
+      {/* Der Knopf bleibt beim Scrollen sichtbar – die Seite ist lang, und ein
+          Speichern-Knopf, den man erst suchen muss, wird vergessen. */}
+      <div className="flex justify-end sticky bottom-4 z-10">
+        <Button
+          className="shadow-lg"
+          disabled={speichern.isPending}
+          onClick={() => speichern.mutate(entwurf)}
+        >
           {speichern.isPending ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Save size={15} className="mr-1" />}
           Speichern
         </Button>
