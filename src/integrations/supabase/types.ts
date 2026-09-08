@@ -142,10 +142,16 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          board_members: string | null
           calendar_timezone: string
           color_dark: string
           color_primary: string
+          favicon_path: string | null
+          font_body: string
+          font_headings: string
           forum_event_thread: string
+          hosting_address: string | null
+          hosting_provider: string | null
           id: boolean
           logo_path: string | null
           mail_from_address: string | null
@@ -161,15 +167,28 @@ export type Database = {
           org_street: string | null
           org_tagline: string | null
           org_zip: string | null
+          privacy_contact: string | null
+          privacy_officer: string | null
+          register_court: string | null
+          register_number: string | null
+          seo_description: string | null
+          seo_image_path: string | null
           updated_at: string
           updated_by: string | null
+          vat_id: string | null
           website_url: string | null
         }
         Insert: {
+          board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          favicon_path?: string | null
+          font_body?: string
+          font_headings?: string
           forum_event_thread?: string
+          hosting_address?: string | null
+          hosting_provider?: string | null
           id?: boolean
           logo_path?: string | null
           mail_from_address?: string | null
@@ -185,15 +204,28 @@ export type Database = {
           org_street?: string | null
           org_tagline?: string | null
           org_zip?: string | null
+          privacy_contact?: string | null
+          privacy_officer?: string | null
+          register_court?: string | null
+          register_number?: string | null
+          seo_description?: string | null
+          seo_image_path?: string | null
           updated_at?: string
           updated_by?: string | null
+          vat_id?: string | null
           website_url?: string | null
         }
         Update: {
+          board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          favicon_path?: string | null
+          font_body?: string
+          font_headings?: string
           forum_event_thread?: string
+          hosting_address?: string | null
+          hosting_provider?: string | null
           id?: boolean
           logo_path?: string | null
           mail_from_address?: string | null
@@ -209,8 +241,15 @@ export type Database = {
           org_street?: string | null
           org_tagline?: string | null
           org_zip?: string | null
+          privacy_contact?: string | null
+          privacy_officer?: string | null
+          register_court?: string | null
+          register_number?: string | null
+          seo_description?: string | null
+          seo_image_path?: string | null
           updated_at?: string
           updated_by?: string | null
+          vat_id?: string | null
           website_url?: string | null
         }
         Relationships: []
@@ -1796,6 +1835,30 @@ export type Database = {
         }
         Relationships: []
       }
+      site_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       site_images: {
         Row: {
           alt_text: string
@@ -1824,6 +1887,108 @@ export type Database = {
           page?: string
           slot?: string
           storage_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      site_menu: {
+        Row: {
+          created_at: string
+          href: string | null
+          id: string
+          is_visible: boolean
+          label: string
+          opens_new: boolean
+          page_id: string | null
+          parent_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          href?: string | null
+          id?: string
+          is_visible?: boolean
+          label: string
+          opens_new?: boolean
+          page_id?: string | null
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          href?: string | null
+          id?: string
+          is_visible?: boolean
+          label?: string
+          opens_new?: boolean
+          page_id?: string | null
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_menu_page_fk"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "site_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_menu_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "site_menu"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_pages: {
+        Row: {
+          content: Json | null
+          created_at: string
+          draft_content: Json | null
+          id: string
+          is_published: boolean
+          is_system: boolean
+          noindex: boolean
+          published_at: string | null
+          seo_description: string | null
+          seo_image_path: string | null
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          draft_content?: Json | null
+          id?: string
+          is_published?: boolean
+          is_system?: boolean
+          noindex?: boolean
+          published_at?: string | null
+          seo_description?: string | null
+          seo_image_path?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          draft_content?: Json | null
+          id?: string
+          is_published?: boolean
+          is_system?: boolean
+          noindex?: boolean
+          published_at?: string | null
+          seo_description?: string | null
+          seo_image_path?: string | null
+          slug?: string
+          title?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -2156,6 +2321,37 @@ export type Database = {
           display_name: string
           items: Json
           user_id: string
+        }[]
+      }
+      public_branding: {
+        Args: never
+        Returns: {
+          board_members: string
+          color_dark: string
+          color_primary: string
+          favicon_path: string
+          font_body: string
+          font_headings: string
+          hosting_address: string
+          hosting_provider: string
+          logo_path: string
+          org_city: string
+          org_country: string
+          org_email: string
+          org_name: string
+          org_phone: string
+          org_short_name: string
+          org_street: string
+          org_tagline: string
+          org_zip: string
+          privacy_contact: string
+          privacy_officer: string
+          register_court: string
+          register_number: string
+          seo_description: string
+          seo_image_path: string
+          vat_id: string
+          website_url: string
         }[]
       }
       push_mark_failure: {
