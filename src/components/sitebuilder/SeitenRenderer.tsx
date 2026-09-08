@@ -4,6 +4,7 @@ import {
   Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
+import { Hinweiskasten } from "./Hinweiskasten";
 
 /**
  * Zeigt eine gespeicherte Seite an – ohne Puck.
@@ -48,6 +49,7 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Eckdaten,
   Zeitstrahl,
   Aktionskaesten,
+  Hinweiskasten,
   Abstandhalter,
   Trennlinie,
   EigenesHtml,
