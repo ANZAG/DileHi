@@ -132,17 +132,24 @@ export default function ForumCategoriesAdmin() {
               Rechte
             </Button>
 
-            {!c.is_event_room && (
-              <Button
-                variant="ghost" size="icon"
-                aria-label={`Rubrik „${c.name}" löschen`}
-                onClick={() => {
-                  if (confirm(`Rubrik „${c.name}" mit allen Themen und Beiträgen löschen?`)) remove.mutate(c.id);
-                }}
-              >
-                <Trash2 size={15} className="text-destructive" />
-              </Button>
-            )}
+            {/* Der Platz für die Tonne bleibt auch dann stehen, wenn es keine
+                gibt. Sonst rutscht die Zeile der Veranstaltungs-Rubrik – die
+                als einzige nicht gelöscht werden darf – gegenüber allen
+                anderen nach rechts, und die Spalten stehen nicht mehr
+                untereinander. */}
+            <div className="w-10 shrink-0 flex justify-center">
+              {!c.is_event_room && (
+                <Button
+                  variant="ghost" size="icon"
+                  aria-label={`Rubrik „${c.name}" löschen`}
+                  onClick={() => {
+                    if (confirm(`Rubrik „${c.name}" mit allen Themen und Beiträgen löschen?`)) remove.mutate(c.id);
+                  }}
+                >
+                  <Trash2 size={15} className="text-destructive" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {expanded === c.id && (

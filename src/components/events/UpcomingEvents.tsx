@@ -64,7 +64,13 @@ export default function UpcomingEvents({
                     <Badge variant="secondary" className="text-xs">
                       <Users size={12} className="mr-1" /> {att.length}
                     </Badge>
-                    {attending && <Check size={14} className="text-primary" />}
+                    {/* Fester Platz: Ohne ihn rutscht die Teilnehmerzahl bei
+                        jedem Termin, bei dem man selbst zugesagt hat, nach
+                        links – und die Zahlen stehen nicht mehr
+                        untereinander. */}
+                    <span className="w-4 shrink-0" aria-hidden={!attending}>
+                      {attending && <Check size={14} className="text-primary" />}
+                    </span>
                   </div>
                 </div>
               );
