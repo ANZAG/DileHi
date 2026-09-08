@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
+import { ladeSchriften } from "@/lib/schriften";
 
 export interface Branding {
   org_name: string;
@@ -14,6 +15,8 @@ export interface Branding {
   seo_description: string | null;
   seo_image_path: string | null;
   website_url: string | null;
+  font_headings: string;
+  font_body: string;
 }
 
 /** Fällt der Aufruf aus, sieht die Seite aus wie bisher – nicht kaputt. */
@@ -28,6 +31,8 @@ const VORGABE: Branding = {
   seo_description: null,
   seo_image_path: null,
   website_url: null,
+  font_headings: "DM Serif Display",
+  font_body: "Inter",
 };
 
 function oeffentlicheAdresse(pfad: string | null): string | null {
@@ -80,7 +85,7 @@ export function useBranding() {
  */
 export function useBrandingAnwenden() {
   const branding = useBranding();
-  const { color_primary, color_dark, faviconUrl, org_name } = branding;
+  const { color_primary, color_dark, faviconUrl, org_name, font_headings, font_body } = branding;
 
   useEffect(() => {
     const wurzel = document.documentElement;
@@ -108,6 +113,15 @@ export function useBrandingAnwenden() {
       wurzel.style.setProperty("--foreground", hslToTokens(dunkel));
     }
   }, [color_primary, color_dark]);
+
+  useEffect(() => {
+    ladeSchriften([font_headings, font_body]);
+    const wurzel = document.documentElement;
+    // In Anführungszeichen: Namen wie „Source Sans 3" brauchen sie, sonst
+    // versteht CSS die Zahl als eigenen Wert.
+    wurzel.style.setProperty("--schrift-ueberschrift", `"${font_headings}"`);
+    wurzel.style.setProperty("--schrift-text", `"${font_body}"`);
+  }, [font_headings, font_body]);
 
   useEffect(() => {
     if (!faviconUrl) return;

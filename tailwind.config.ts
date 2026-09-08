@@ -15,8 +15,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ["DM Serif Display", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        // Ueber CSS-Variablen, damit die Schriftart aus den Vereinsdaten
+        // kommen kann. Die Vorgabe steht in index.css - faellt die Abfrage
+        // aus, sieht die Seite aus wie bisher.
+        serif: ["var(--schrift-ueberschrift)", "DM Serif Display", "serif"],
+        sans: ["var(--schrift-text)", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

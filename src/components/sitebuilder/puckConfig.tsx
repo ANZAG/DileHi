@@ -1,103 +1,218 @@
 import type { Config } from "@puckeditor/core";
 import {
-  Besucherhinweis, Bildnachweise, Einzelbild, Galerie, Kennzahlen,
-  Quellen, Textabschnitt, Titelbild,
+  Abstandhalter, Besucherhinweis, Bildnachweise, EigenesHtml, Einzelbild, Galerie,
+  Karten, Kennzahlen, Knopf, Quellen, Textabschnitt, Titelbild, Trennlinie,
+  Ueberschrift, ZweiSpalten,
 } from "./bausteine";
+import { bildAuswahl, epochenAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
+import {
+  ABSTAENDE, BREITEN, HINTERGRUENDE, TEXTFARBEN,
+  type Abstand, type Breite, type Hintergrund, type Textfarbe,
+} from "./gestaltung";
 
 /**
  * Welche Bausteine es gibt und was sich an ihnen einstellen lässt.
  *
- * Die Beschriftungen sind die, die im Editor stehen – also deutsch und ohne
- * Fachbegriffe. „Baustein" statt „Component", „Bildschlüssel" wäre auch schon
- * zu technisch, deshalb „Bild (Kürzel aus der Bilderverwaltung)".
+ * Die Beschriftungen sind die, die im Editor stehen – deutsch und ohne
+ * Fachbegriffe.
  *
- * Die Auswahl ist absichtlich klein. Jeder zusätzliche Baustein ist eine
- * weitere Entscheidung, die jemand treffen muss, der eigentlich nur einen Text
- * ändern wollte.
- *
- * Die Eigenschaften stehen ausgeschrieben in `Bausteine`, damit Puck und die
- * Komponenten dieselbe Vorstellung davon haben. Ohne diese Angabe hält Puck
- * alle Eigenschaften für beliebig, und ein Tippfehler in einem Feldnamen fällt
- * erst im Browser auf.
+ * Die Kürzel für Bilder, Galerien und Epochen kommen über `resolveFields` aus
+ * der Datenbank. Vorher standen dort freie Textfelder, und man musste die
+ * Kürzel auswendig kennen – was selbst der nicht tut, der die Seite gebaut
+ * hat.
  */
+
+const gemeinsameFelder = {
+  breite: { type: "select" as const, label: "Breite", options: BREITEN },
+  abstand: { type: "select" as const, label: "Abstand oben und unten", options: ABSTAENDE },
+  textfarbe: { type: "select" as const, label: "Schriftfarbe", options: TEXTFARBEN },
+  hintergrund: { type: "select" as const, label: "Hintergrund", options: HINTERGRUENDE },
+};
+
+const layoutFelder = {
+  breite: gemeinsameFelder.breite,
+  abstand: gemeinsameFelder.abstand,
+};
+
+/**
+ * Puck verlangt zu jeder Eigenschaft ein Feld. Bausteine, die keinen eigenen
+ * Kasten haben (ein Bild, eine Trennlinie), bekommen deshalb auch keine
+ * Farbeinstellung – sonst stünde im Editor ein Feld, das nichts bewirkt.
+ */
+const layoutVorgaben = {
+  breite: "schmal" as Breite,
+  abstand: "normal" as Abstand,
+};
+
+const gemeinsameVorgaben = {
+  ...layoutVorgaben,
+  textfarbe: "standard" as Textfarbe,
+  hintergrund: "keine" as Hintergrund,
+};
+
 export type Bausteine = {
   Titelbild: {
     bildSchluessel: string;
     ueberschrift: string;
     unterzeile?: string;
     hoehe: "klein" | "mittel" | "gross";
+    farbeUeberschrift?: Textfarbe;
+    farbeUnterzeile?: Textfarbe;
   };
-  Textabschnitt: { inhalt: unknown; breite: "schmal" | "breit" };
-  Kennzahlen: { eintraege: { titel: string; wert: string }[] };
-  Einzelbild: { bildSchluessel: string; bildunterschrift?: string; breite: "schmal" | "breit" };
-  Galerie: { epoche: string; ueberschrift?: string };
-  Bildnachweise: { nachweise: { description: string; source: string; license: string }[] };
-  Besucherhinweis: { epoche: string; einleitung?: string; abschluss?: string };
-  Quellen: { epoche: string };
+  Ueberschrift: {
+    text: string;
+    groesse: "gross" | "mittel" | "klein";
+    ausrichtung: "links" | "mitte";
+  } & typeof gemeinsameVorgaben;
+  Textabschnitt: { inhalt: unknown } & typeof gemeinsameVorgaben;
+  ZweiSpalten: {
+    inhalt: unknown;
+    bildSchluessel: string;
+    bildSeite: "links" | "rechts";
+  } & typeof gemeinsameVorgaben;
+  Kennzahlen: { eintraege: { titel: string; wert: string }[] } & typeof gemeinsameVorgaben;
+  Einzelbild: { bildSchluessel: string; bildunterschrift?: string } & typeof layoutVorgaben;
+  Karten: {
+    karten: { titel: string; text: string; bildSchluessel?: string; ziel?: string }[];
+    spalten: "zwei" | "drei";
+  } & typeof gemeinsameVorgaben;
+  Knopf: {
+    beschriftung: string;
+    ziel: string;
+    zielFrei?: string;
+    art: "gefuellt" | "umrandet" | "schlicht";
+    ausrichtung: "links" | "mitte" | "rechts";
+  } & typeof layoutVorgaben;
+  Galerie: {
+    epoche: string;
+    ueberschrift?: string;
+    spalten?: "zwei" | "drei" | "vier";
+  } & typeof layoutVorgaben;
+  Bildnachweise: {
+    nachweise: { description: string; source: string; license: string }[];
+  } & typeof layoutVorgaben;
+  Besucherhinweis: {
+    epoche: string; einleitung?: string; abschluss?: string;
+  } & typeof layoutVorgaben;
+  Quellen: { epoche: string } & typeof layoutVorgaben;
+  Abstandhalter: { hoehe: "klein" | "mittel" | "gross" };
+  Trennlinie: typeof layoutVorgaben;
+  EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
 
 export const puckConfig: Config<{ components: Bausteine }> = {
   categories: {
-    aufbau: { title: "Aufbau", components: ["Titelbild", "Textabschnitt", "Kennzahlen"] },
-    bilder: { title: "Bilder", components: ["Einzelbild", "Galerie", "Bildnachweise"] },
-    inhalte: { title: "Aus dem Mitgliederbereich", components: ["Besucherhinweis", "Quellen"] },
+    text: { title: "Text", components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen"] },
+    bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
+    navigation: { title: "Verweise", components: ["Karten", "Knopf"] },
+    vereinsdaten: { title: "Aus dem Mitgliederbereich", components: ["Besucherhinweis", "Quellen"] },
+    zwischenraum: { title: "Zwischenraum", components: ["Abstandhalter", "Trennlinie", "EigenesHtml"] },
   },
 
   components: {
     Titelbild: {
       label: "Titelbild",
-      fields: {
-        bildSchluessel: { type: "text", label: "Bild (Kürzel aus der Bilderverwaltung)" },
+      // Die Bildauswahl kommt aus der Bilderverwaltung, nicht aus dem Kopf des
+      // Bearbeiters.
+      resolveFields: async (data) => ({
+        bildSchluessel: {
+          type: "select",
+          label: "Bild",
+          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
+        },
         ueberschrift: { type: "text", label: "Überschrift" },
         unterzeile: { type: "text", label: "Unterzeile" },
         hoehe: {
-          type: "select",
-          label: "Höhe",
+          type: "select", label: "Höhe",
           options: [
             { label: "Klein", value: "klein" },
             { label: "Mittel", value: "mittel" },
             { label: "Groß", value: "gross" },
           ],
         },
-      },
+        farbeUeberschrift: { type: "select", label: "Farbe der Überschrift", options: TEXTFARBEN },
+        farbeUnterzeile: { type: "select", label: "Farbe der Unterzeile", options: TEXTFARBEN },
+      }),
       defaultProps: {
-        bildSchluessel: "hero-startseite",
+        bildSchluessel: "",
         ueberschrift: "Überschrift",
         unterzeile: "",
         hoehe: "mittel",
+        farbeUeberschrift: "standard",
+        farbeUnterzeile: "akzent",
       },
       render: Titelbild,
     },
 
-    Textabschnitt: {
-      label: "Text",
+    Ueberschrift: {
+      label: "Überschrift",
       fields: {
-        inhalt: { type: "richtext", label: "Text" },
-        breite: {
-          type: "radio",
-          label: "Breite",
+        text: { type: "text", label: "Text" },
+        groesse: {
+          type: "select", label: "Größe",
           options: [
-            { label: "Schmal (gut lesbar)", value: "schmal" },
-            { label: "Breit", value: "breit" },
+            { label: "Groß", value: "gross" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Klein", value: "klein" },
           ],
         },
+        ausrichtung: {
+          type: "radio", label: "Ausrichtung",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Mittig", value: "mitte" },
+          ],
+        },
+        ...gemeinsameFelder,
       },
-      defaultProps: { inhalt: "", breite: "schmal" },
+      defaultProps: {
+        text: "Überschrift", groesse: "mittel", ausrichtung: "links", ...gemeinsameVorgaben, abstand: "eng",
+      },
+      render: Ueberschrift,
+    },
+
+    Textabschnitt: {
+      label: "Text",
+      fields: { inhalt: { type: "richtext", label: "Text" }, ...gemeinsameFelder },
+      defaultProps: { inhalt: "", ...gemeinsameVorgaben },
       render: Textabschnitt,
+    },
+
+    ZweiSpalten: {
+      label: "Text neben Bild",
+      resolveFields: async (data) => ({
+        inhalt: { type: "richtext", label: "Text" },
+        bildSchluessel: {
+          type: "select", label: "Bild",
+          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
+        },
+        bildSeite: {
+          type: "radio", label: "Bild steht",
+          options: [
+            { label: "links", value: "links" },
+            { label: "rechts", value: "rechts" },
+          ],
+        },
+        ...gemeinsameFelder,
+      }),
+      defaultProps: {
+        inhalt: "", bildSchluessel: "", bildSeite: "links", ...gemeinsameVorgaben, breite: "breit",
+      },
+      render: ZweiSpalten,
     },
 
     Kennzahlen: {
       label: "Kennzahlen",
       fields: {
         eintraege: {
-          type: "array",
-          label: "Einträge",
+          type: "array", label: "Einträge",
           arrayFields: {
             titel: { type: "text", label: "Bezeichnung" },
             wert: { type: "text", label: "Angabe" },
           },
           getItemSummary: (item: { titel?: string }) => item?.titel || "Eintrag",
         },
+        ...gemeinsameFelder,
       },
       defaultProps: {
         eintraege: [
@@ -105,35 +220,127 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           { titel: "Region", wert: "" },
           { titel: "Themen", wert: "" },
         ],
+        ...gemeinsameVorgaben,
+        abstand: "eng",
+        hintergrund: "karte",
       },
       render: Kennzahlen,
     },
 
     Einzelbild: {
       label: "Bild",
-      fields: {
-        bildSchluessel: { type: "text", label: "Bild (Kürzel aus der Bilderverwaltung)" },
+      resolveFields: async (data) => ({
+        bildSchluessel: {
+          type: "select", label: "Bild",
+          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
+        },
         bildunterschrift: { type: "text", label: "Bildunterschrift" },
-        breite: {
-          type: "radio",
-          label: "Breite",
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", abstand: "eng" },
+      render: Einzelbild,
+    },
+
+    Karten: {
+      label: "Karten",
+      resolveFields: async () => {
+        const [bilder, seiten] = await Promise.all([bildAuswahl(), seitenAuswahl()]);
+        return {
+          karten: {
+            type: "array", label: "Karten",
+            arrayFields: {
+              titel: { type: "text", label: "Titel" },
+              text: { type: "textarea", label: "Kurzer Text" },
+              bildSchluessel: {
+                type: "select", label: "Bild",
+                options: [{ label: "Ohne Bild", value: "" }, ...bilder],
+              },
+              ziel: {
+                type: "select", label: "Verweist auf",
+                options: [{ label: "Nirgendwohin", value: "" }, ...seiten],
+              },
+            },
+            getItemSummary: (item: { titel?: string }) => item?.titel || "Karte",
+          },
+          spalten: {
+            type: "radio", label: "Nebeneinander",
+            options: [
+              { label: "Zwei", value: "zwei" },
+              { label: "Drei", value: "drei" },
+            ],
+          },
+          ...gemeinsameFelder,
+        };
+      },
+      defaultProps: {
+        karten: [{ titel: "Titel", text: "", bildSchluessel: "", ziel: "" }],
+        spalten: "drei",
+        ...gemeinsameVorgaben,
+        breite: "breit",
+      },
+      render: Karten,
+    },
+
+    Knopf: {
+      label: "Knopf",
+      resolveFields: async () => ({
+        beschriftung: { type: "text", label: "Beschriftung" },
+        ziel: {
+          type: "select", label: "Verweist auf",
+          // Eigene Seiten stehen zur Auswahl; für alles andere gibt es das
+          // Textfeld darunter.
+          options: [{ label: "— eigene Adresse eintragen —", value: "" }, ...(await seitenAuswahl())],
+        },
+        zielFrei: { type: "text", label: "Eigene Adresse (falls oben nichts passt)" },
+        art: {
+          type: "radio", label: "Aussehen",
           options: [
-            { label: "Schmal", value: "schmal" },
-            { label: "Breit", value: "breit" },
+            { label: "Gefüllt", value: "gefuellt" },
+            { label: "Umrandet", value: "umrandet" },
+            { label: "Schlicht", value: "schlicht" },
           ],
         },
+        ausrichtung: {
+          type: "radio", label: "Ausrichtung",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Mittig", value: "mitte" },
+            { label: "Rechts", value: "rechts" },
+          ],
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: {
+        ...layoutVorgaben,
+        beschriftung: "Mehr erfahren",
+        ziel: "",
+        zielFrei: "",
+        art: "gefuellt",
+        ausrichtung: "links",
+        abstand: "eng",
       },
-      defaultProps: { bildSchluessel: "", bildunterschrift: "", breite: "schmal" },
-      render: Einzelbild,
+      render: Knopf,
     },
 
     Galerie: {
       label: "Bildergalerie",
-      fields: {
-        epoche: { type: "text", label: "Galerie (Kürzel, z. B. mittelalter)" },
+      resolveFields: async (data) => ({
+        epoche: {
+          type: "select", label: "Galerie",
+          options: mitBestehendem(await galerieAuswahl(), data.props.epoche),
+        },
         ueberschrift: { type: "text", label: "Überschrift" },
-      },
-      defaultProps: { epoche: "", ueberschrift: "" },
+        spalten: {
+          type: "radio", label: "Bilder nebeneinander",
+          options: [
+            { label: "Zwei", value: "zwei" },
+            { label: "Drei", value: "drei" },
+            { label: "Vier", value: "vier" },
+          ],
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, epoche: "", ueberschrift: "", spalten: "drei" },
       render: Galerie,
     },
 
@@ -141,8 +348,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Bildnachweise",
       fields: {
         nachweise: {
-          type: "array",
-          label: "Nachweise",
+          type: "array", label: "Nachweise",
           arrayFields: {
             description: { type: "text", label: "Was ist zu sehen?" },
             source: { type: "text", label: "Quelle" },
@@ -150,29 +356,71 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           },
           getItemSummary: (item: { description?: string }) => item?.description || "Nachweis",
         },
+        ...layoutFelder,
       },
-      defaultProps: { nachweise: [] },
+      defaultProps: { ...layoutVorgaben, nachweise: [], abstand: "eng" },
       render: Bildnachweise,
     },
 
     Besucherhinweis: {
       label: "Besucher-Highlights",
-      fields: {
-        epoche: { type: "text", label: "Epoche (Kürzel)" },
+      resolveFields: async (data) => ({
+        epoche: {
+          type: "select", label: "Epoche",
+          options: mitBestehendem(await epochenAuswahl(), data.props.epoche),
+        },
         einleitung: { type: "textarea", label: "Einleitung" },
         abschluss: { type: "textarea", label: "Abschluss" },
-      },
-      defaultProps: { epoche: "", einleitung: "", abschluss: "" },
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, epoche: "", einleitung: "", abschluss: "", abstand: "eng" },
       render: Besucherhinweis,
     },
 
     Quellen: {
       label: "Quellenangaben",
-      fields: {
-        epoche: { type: "text", label: "Epoche (Kürzel)" },
-      },
-      defaultProps: { epoche: "" },
+      resolveFields: async (data) => ({
+        epoche: {
+          type: "select", label: "Epoche",
+          options: mitBestehendem(await epochenAuswahl(), data.props.epoche),
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, epoche: "", abstand: "eng" },
       render: Quellen,
+    },
+
+    Abstandhalter: {
+      label: "Abstand",
+      fields: {
+        hoehe: {
+          type: "radio", label: "Höhe",
+          options: [
+            { label: "Klein", value: "klein" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Groß", value: "gross" },
+          ],
+        },
+      },
+      defaultProps: { hoehe: "mittel" },
+      render: Abstandhalter,
+    },
+
+    Trennlinie: {
+      label: "Trennlinie",
+      fields: layoutFelder,
+      defaultProps: { ...layoutVorgaben, abstand: "eng" },
+      render: Trennlinie,
+    },
+
+    EigenesHtml: {
+      label: "Eigenes HTML",
+      fields: {
+        code: { type: "textarea", label: "HTML" },
+        ...layoutFelder,
+      },
+      defaultProps: { ...layoutVorgaben, code: "" },
+      render: EigenesHtml,
     },
   },
 };
@@ -192,5 +440,21 @@ export function rechteFuer(darfLayout: boolean) {
     insert: darfLayout,
     delete: darfLayout,
     duplicate: darfLayout,
+  };
+}
+
+/**
+ * Der HTML-Baustein bleibt auch beim Bearbeiten gesperrt, solange jemand nur
+ * Inhalte pflegen darf: Ein Tippfehler darin zerlegt die Seite, und zwar
+ * öffentlich. Rechte am einzelnen Baustein schlagen die globalen.
+ */
+export function configFuer(darfLayout: boolean): Config<{ components: Bausteine }> {
+  if (darfLayout) return puckConfig;
+  return {
+    ...puckConfig,
+    components: {
+      ...puckConfig.components,
+      EigenesHtml: { ...puckConfig.components.EigenesHtml, permissions: { edit: false } },
+    },
   };
 }
