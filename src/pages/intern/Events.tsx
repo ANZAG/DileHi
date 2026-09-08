@@ -1,19 +1,65 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
 import { useEvents } from "@/components/events/useEvents";
 import EventCalendar from "@/components/events/EventCalendar";
 import EventFormDialog from "@/components/events/EventFormDialog";
-import EventDayView from "@/components/events/EventDayView";
 import UpcomingEvents from "@/components/events/UpcomingEvents";
 import EventDetailDialog from "@/components/events/EventDetailDialog";
 import CalendarSyncDialog from "@/components/events/CalendarSyncDialog";
 
 const EventsPage = () => {
   const ev = useEvents();
+
+  // Welcher Termin unten aufgeklappt ist. Liegt hier, weil ihn auch der
+  // Kalender setzt: Ein Klick auf einen Tag klappt den Termin dieses Tages auf,
+  // statt darunter eine dritte Ansicht aufzubauen.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Aus dem Forum kommt man mit ?termin=<id> hierher. Vorher zeigte der Link
+  // dort nur allgemein auf diese Seite, und man durfte den Termin selbst
+  // suchen.
+  const termin = searchParams.get("termin");
+  useEffect(() => {
+    if (!termin) return;
+    const treffer = ev.events.find((e) => e.id === termin);
+    if (!treffer) return;
+
+    ev.setCurrentMonth(parseISO(treffer.start_date));
+    setExpandedId(treffer.id);
+    // Den Parameter wieder entfernen: Sonst springt die Seite bei jedem
+    // Zurück-Schritt erneut dorthin.
+    setSearchParams({}, { replace: true });
+    requestAnimationFrame(() => {
+      document.getElementById(`termin-${treffer.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    // ev ändert sich bei jedem Rendern; nur der Parameter und die geladenen
+    // Termine sind hier interessant.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [termin, ev.events]);
+
+  const waehleTag = (date: Date | null) => {
+    ev.setSelectedDate(date);
+    if (!date) return;
+    const treffer = ev.eventsForDay(date);
+    if (treffer.length > 0) {
+      setExpandedId(treffer[0].id);
+      // Nach dem Ausklappen dorthin scrollen – sonst passiert die Änderung
+      // unterhalb des sichtbaren Bereichs und wirkt wie nichts.
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`termin-${treffer[0].id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  };
 
   return (
     <div className="container py-8 sm:py-12 max-w-5xl px-4">
@@ -35,8 +81,17 @@ const EventsPage = () => {
                 <Download size={16} className="mr-1" /> iCal
               </a>
             </Button>
-            <Button size="sm" onClick={() => ev.openCreate()}>
-              <Plus size={16} className="mr-1" /> <span className="hidden sm:inline">Hinzufügen</span>
+            {/* Der einzige Knopf zum Anlegen. Ein ausgewählter Tag im Kalender
+                ist gleich vorbelegt – das war vorher der einzige Zweck des
+                zweiten Knopfes weiter unten. */}
+            <Button size="sm" onClick={() => ev.openCreate(ev.selectedDate ?? undefined)}>
+              <Plus size={16} className="mr-1" />
+              Veranstaltung hinzufügen
+              {ev.selectedDate && (
+                <span className="hidden sm:inline ml-1 opacity-80">
+                  ({format(ev.selectedDate, "d. MMM", { locale: de })})
+                </span>
+              )}
             </Button>
           </div>
         </div>
@@ -79,7 +134,7 @@ const EventsPage = () => {
           setCurrentMonth={ev.setCurrentMonth}
           calendarDays={ev.calendarDays}
           selectedDate={ev.selectedDate}
-          setSelectedDate={ev.setSelectedDate}
+          setSelectedDate={waehleTag}
           holidays={ev.holidays}
           rowSpanSegments={ev.rowSpanSegments}
           filteredEvents={ev.filteredEvents}
@@ -91,35 +146,25 @@ const EventsPage = () => {
           setSelectedEvent={ev.setSelectedEvent}
         />
 
-        {ev.selectedDate && (
-          <EventDayView
-            selectedDate={ev.selectedDate}
-            events={ev.selectedDayEvents}
-            eventAttendees={ev.eventAttendees}
-            isAttending={ev.isAttending}
-            hasDeclined={ev.hasDeclined}
-            canEdit={ev.canEdit}
-            formatTimeDisplay={ev.formatTimeDisplay}
-            openCreate={ev.openCreate}
-            openEdit={ev.openEdit}
-            deleteEvent={(id) => ev.deleteEvent.mutate(id)}
-            toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
-            declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
-            toggleRSVPPending={ev.toggleRSVP.isPending}
-            getFormForEvent={ev.getFormForEvent}
-            getThreadForEvent={ev.getThreadForEvent}
-            hasSubmittedForm={ev.hasSubmittedForm}
-          />
-        )}
-
         <UpcomingEvents
           filteredEvents={ev.filteredEvents}
           eventAttendees={ev.eventAttendees}
           isAttending={ev.isAttending}
+          hasDeclined={ev.hasDeclined}
+          canEdit={ev.canEdit}
+          formatTimeDisplay={ev.formatTimeDisplay}
+          openEdit={ev.openEdit}
+          deleteEvent={(id) => ev.deleteEvent.mutate(id)}
+          toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
+          declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
+          toggleRSVPPending={ev.toggleRSVP.isPending}
+          getFormForEvent={ev.getFormForEvent}
+          getThreadForEvent={ev.getThreadForEvent}
+          hasSubmittedForm={ev.hasSubmittedForm}
           showAllUpcoming={ev.showAllUpcoming}
           setShowAllUpcoming={ev.setShowAllUpcoming}
-          setCurrentMonth={ev.setCurrentMonth}
-          setSelectedDate={ev.setSelectedDate}
+          expandedId={expandedId}
+          setExpandedId={setExpandedId}
         />
       </motion.div>
 
@@ -189,9 +234,17 @@ const EventsPage = () => {
         onClose={() => ev.setSelectedEvent(null)}
         eventAttendees={ev.eventAttendees}
         isAttending={ev.isAttending}
+        hasDeclined={ev.hasDeclined}
         canEdit={ev.canEdit}
+        formatTimeDisplay={ev.formatTimeDisplay}
         openEdit={ev.openEdit}
+        deleteEvent={(id) => ev.deleteEvent.mutate(id)}
         toggleRSVP={(id) => ev.toggleRSVP.mutate({ eventId: id })}
+        declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
+        toggleRSVPPending={ev.toggleRSVP.isPending}
+        getFormForEvent={ev.getFormForEvent}
+        getThreadForEvent={ev.getThreadForEvent}
+        hasSubmittedForm={ev.hasSubmittedForm}
       />
 
       <CalendarSyncDialog

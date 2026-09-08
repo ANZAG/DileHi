@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays, BarChart3, Quote } from "lucide-react";
+import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays, BarChart3, Quote, Trash2, RotateCcw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ForumEditor from "@/components/forum/ForumEditor";
 import PostBody from "@/components/forum/PostBody";
-import { createPost, createPollPost, fetchPosts, fetchThread, markRead } from "@/components/forum/api";
+import {
+  createPost, createPollPost, fetchPosts, fetchThread, markRead,
+  removePost, restorePost, updatePost,
+} from "@/components/forum/api";
 import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
 import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
 import { buildQuote } from "@/components/forum/quote";
+import ThreadModeration from "@/components/forum/ThreadModeration";
 
 interface Member { id: string; display_name: string }
 
@@ -27,6 +31,9 @@ export default function ForumThread() {
   const [composingPoll, setComposingPoll] = useState(false);
   // Der Zähler sorgt dafür, dass zweimal „Zitieren" auch zweimal einfügt.
   const [quote, setQuote] = useState<{ html: string; nonce: number }>();
+  // Welcher Beitrag gerade bearbeitet wird, und womit.
+  const [editing, setEditing] = useState<{ id: string; original: string } | null>(null);
+  const [editBody, setEditBody] = useState("");
   const editorAnchor = useRef<HTMLDivElement>(null);
 
   const canModerate = hasPermission("forum.moderate");
@@ -95,6 +102,31 @@ export default function ForumThread() {
       toast({ title: "Konnte nicht angelegt werden", description: err.message, variant: "destructive" }),
   });
 
+  const bearbeiten = useMutation({
+    mutationFn: () =>
+      updatePost({
+        postId: editing!.id,
+        body: editBody,
+        userId: user!.id,
+        originalBody: editing!.original,
+      }),
+    onSuccess: () => {
+      setEditing(null);
+      setEditBody("");
+      queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Änderung nicht gespeichert", description: err.message, variant: "destructive" }),
+  });
+
+  const entfernen = useMutation({
+    mutationFn: ({ id, zurueck }: { id: string; zurueck: boolean }) =>
+      zurueck ? restorePost(id) : removePost(id, user!.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] }),
+    onError: (err: Error) =>
+      toast({ title: "Ging nicht", description: err.message, variant: "destructive" }),
+  });
+
   const replyIsEmpty = reply.replace(/<[^>]*>/g, "").trim() === "";
   const closed = !!thread?.is_locked || !!thread?.is_archived;
 
@@ -125,17 +157,27 @@ export default function ForumThread() {
               {thread?.is_pinned && <span className="inline-flex items-center gap-1"><Pin size={12} /> angeheftet</span>}
               {thread?.is_locked && <span className="inline-flex items-center gap-1"><Lock size={12} /> geschlossen</span>}
               {thread?.is_archived && <span className="inline-flex items-center gap-1"><Archive size={12} /> archiviert</span>}
-              {thread?.event_id && (
+              {/* Der Link zeigte vorher nur allgemein auf die Übersicht – man
+                  musste den Termin dort selbst suchen. Jetzt klappt er ihn auf.
+                  Ist der Termin gelöscht, bleibt nur der Hinweis: Ein Link ins
+                  Nichts ist schlimmer als keiner. */}
+              {thread?.event_id ? (
                 <Link
-                  to={`/intern/veranstaltungen`}
+                  to={`/intern/veranstaltungen?termin=${thread.event_id}`}
                   className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
-                  <CalendarDays size={12} /> gehört zu einer Veranstaltung
+                  <CalendarDays size={12} /> zur Veranstaltung
                 </Link>
-              )}
+              ) : thread?.event_ends_on ? (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays size={12} /> Der zugehörige Termin wurde gelöscht.
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
+
+        {canModerate && thread && <ThreadModeration thread={thread} />}
 
         <div className="space-y-3">
           {posts.map((p, i) => (
@@ -156,20 +198,76 @@ export default function ForumThread() {
               </header>
 
               {p.deleted_at ? (
-                <p className="text-sm text-muted-foreground italic">
-                  Dieser Beitrag wurde entfernt.
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground italic">
+                    Dieser Beitrag wurde entfernt.
+                  </p>
+                  {canModerate && (
+                    <Button
+                      variant="ghost" size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={() => entfernen.mutate({ id: p.id, zurueck: true })}
+                    >
+                      <RotateCcw size={13} className="mr-1" /> Zurückholen
+                    </Button>
+                  )}
+                </div>
               ) : p.kind === "umfrage" || p.kind === "mitbringliste" ? (
                 <ForumPoll
                   postId={p.id}
                   kind={p.kind}
                   payload={(p.payload ?? {}) as PollPayload}
                 />
+              ) : editing?.id === p.id ? (
+                <div className="space-y-2">
+                  <ForumEditor
+                    value={editBody}
+                    onChange={setEditBody}
+                    members={members}
+                    placeholder="Beitrag bearbeiten …"
+                    compact
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>Abbrechen</Button>
+                    <Button
+                      size="sm"
+                      disabled={bearbeiten.isPending || editBody.replace(/<[^>]*>/g, "").trim() === ""}
+                      onClick={() => bearbeiten.mutate()}
+                    >
+                      Speichern
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <PostBody html={p.body} />
-                  {!closed && (
-                    <div className="mt-2 -mb-1 flex justify-end">
+                  <div className="mt-2 -mb-1 flex justify-end gap-1">
+                    {(p.created_by === user?.id || canModerate) && (
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={() => {
+                          setEditing({ id: p.id, original: p.body });
+                          setEditBody(p.body);
+                        }}
+                      >
+                        <Pencil size={13} className="mr-1" /> Bearbeiten
+                      </Button>
+                    )}
+                    {canModerate && (
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={() => {
+                          if (confirm("Beitrag entfernen? Er bleibt als „entfernt“ sichtbar.")) {
+                            entfernen.mutate({ id: p.id, zurueck: false });
+                          }
+                        }}
+                      >
+                        <Trash2 size={13} className="mr-1" /> Entfernen
+                      </Button>
+                    )}
+                    {!closed && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -178,8 +276,8 @@ export default function ForumThread() {
                       >
                         <Quote size={13} className="mr-1" /> Zitieren
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </>
               )}
             </article>
@@ -194,7 +292,7 @@ export default function ForumThread() {
               {thread?.is_archived
                 ? "Dieses Thema ist archiviert und wird nicht mehr fortgeführt."
                 : "Dieses Thema ist geschlossen."}
-              {canModerate && " Als Moderation kannst du es in der Verwaltung wieder öffnen."}
+              {canModerate && " Als Moderation kannst du es oben wieder öffnen."}
             </p>
           ) : (
             <>

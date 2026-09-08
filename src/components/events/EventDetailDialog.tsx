@@ -1,25 +1,38 @@
-import { format, parseISO, isSameDay } from "date-fns";
-import { de } from "date-fns/locale";
-import { MapPin, Calendar as CalIcon, Users, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Globe } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Event, Attendee } from "./types";
-import Linkify from "./Linkify";
+import EventBody from "./EventBody";
 
 interface Props {
   selectedEvent: Event | null;
   onClose: () => void;
   eventAttendees: (id: string) => Attendee[];
   isAttending: (id: string) => boolean;
+  hasDeclined: (id: string) => boolean;
   canEdit: (ev: Event) => boolean;
+  formatTimeDisplay: (ev: Event) => string;
   openEdit: (ev: Event) => void;
+  deleteEvent: (id: string) => void;
   toggleRSVP: (id: string) => void;
+  declineEvent: (id: string) => void;
+  toggleRSVPPending: boolean;
+  getFormForEvent: (eventId: string) => any;
+  getThreadForEvent?: (eventId: string) => { id: string; post_count: number } | undefined;
+  hasSubmittedForm: (formId: string) => boolean;
 }
 
+/**
+ * Der Termin aus dem Kalender.
+ *
+ * Zeigt dasselbe wie der aufgeklappte Eintrag in der Liste – und kann dasselbe.
+ * Vorher fehlten hier Anmeldeformular, Absprache, Absagen und Löschen; wer im
+ * Kalender klickte, landete in einer ärmeren Ansicht als der, der die Liste
+ * benutzte.
+ */
 export default function EventDetailDialog({
-  selectedEvent, onClose,
-  eventAttendees, isAttending, canEdit, openEdit, toggleRSVP,
+  selectedEvent, onClose, eventAttendees, isAttending, hasDeclined, canEdit,
+  formatTimeDisplay, openEdit, deleteEvent, toggleRSVP, declineEvent, toggleRSVPPending,
+  getFormForEvent, getThreadForEvent, hasSubmittedForm,
 }: Props) {
   return (
     <Dialog open={!!selectedEvent} onOpenChange={() => onClose()}>
@@ -27,53 +40,33 @@ export default function EventDetailDialog({
         {selectedEvent && (
           <>
             <DialogHeader>
-              <DialogTitle>{selectedEvent.title}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedEvent.title}
+                {selectedEvent.is_public && (
+                  <Globe size={14} className="text-primary opacity-70 shrink-0" aria-label="Öffentlich" />
+                )}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CalIcon size={16} />
-                {selectedEvent.all_day
-                  ? (selectedEvent.end_date && !isSameDay(parseISO(selectedEvent.start_date), parseISO(selectedEvent.end_date))
-                    ? `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM", { locale: de })} – ${format(parseISO(selectedEvent.end_date), "EEEE, d. MMMM yyyy", { locale: de })}`
-                    : `${format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy", { locale: de })} (Ganztägig)`)
-                  : <>
-                      {format(parseISO(selectedEvent.start_date), "EEEE, d. MMMM yyyy, HH:mm", { locale: de })}
-                      {selectedEvent.end_date && ` – ${format(parseISO(selectedEvent.end_date), "HH:mm")}`}
-                    </>
-                }
-              </div>
-              {selectedEvent.location && (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
-                  <MapPin size={16} className="shrink-0 mt-0.5" />
-                  <Linkify text={selectedEvent.location} className="break-all" />
-                </div>
-              )}
-              {selectedEvent.description && <p className="text-sm"><Linkify text={selectedEvent.description} /></p>}
-              <div className="pt-3 border-t">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users size={16} className="text-muted-foreground" />
-                  <span className="text-sm font-medium">Teilnehmer ({eventAttendees(selectedEvent.id).length})</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {eventAttendees(selectedEvent.id).map(a => (
-                    <Badge key={a.id} variant="secondary">{a.profiles?.display_name || "Mitglied"}</Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              {canEdit(selectedEvent) && (
-                <Button variant="outline" onClick={() => { openEdit(selectedEvent); onClose(); }}>
-                  <Pencil size={14} className="mr-1" /> Bearbeiten
-                </Button>
-              )}
-              <Button
-                variant={isAttending(selectedEvent.id) ? "secondary" : "default"}
-                onClick={() => toggleRSVP(selectedEvent.id)}
-              >
-                {isAttending(selectedEvent.id) ? "Absagen" : "Zusagen"}
-              </Button>
-            </DialogFooter>
+            <EventBody
+              variant="dialog"
+              ev={selectedEvent}
+              attendees={eventAttendees(selectedEvent.id)}
+              attending={isAttending(selectedEvent.id)}
+              declined={hasDeclined(selectedEvent.id)}
+              canEdit={canEdit(selectedEvent)}
+              formatTimeDisplay={formatTimeDisplay}
+              // Bearbeiten und Löschen öffnen einen eigenen Dialog – dieser
+              // muss vorher zu, sonst liegen zwei Fenster übereinander.
+              openEdit={(ev) => { onClose(); openEdit(ev); }}
+              deleteEvent={(id) => { onClose(); deleteEvent(id); }}
+              toggleRSVP={toggleRSVP}
+              declineEvent={declineEvent}
+              toggleRSVPPending={toggleRSVPPending}
+              getFormForEvent={getFormForEvent}
+              getThreadForEvent={getThreadForEvent}
+              hasSubmittedForm={hasSubmittedForm}
+              onNavigate={onClose}
+            />
           </>
         )}
       </DialogContent>
