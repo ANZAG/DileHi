@@ -12,12 +12,13 @@ import { mergeAttributes } from "@tiptap/core";
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, ListChecks,
   Quote, Link as LinkIcon, Undo, Redo, ImagePlus, Table as TableIcon,
-  Loader2, Rows3, Columns3, Trash2,
+  Loader2, Rows3, Columns3, Trash2, Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Farbwort, Smileys } from "./cleverExtensions";
+import { FARBPALETTE, Smileys, Textfarbe } from "./cleverExtensions";
 import { createMentionSuggestion, type MentionMember } from "./mentionSuggestion";
 import { signForumImages, uploadForumImage } from "./forumImages";
 import "./forum-content.css";
@@ -124,7 +125,7 @@ export default function ForumEditor({
       // Farbwörter und Smileys. Nichts davon muss man lernen, es passiert
       // beim Tippen.
       Typography,
-      Farbwort,
+      Textfarbe,
       Smileys,
       Mention.configure({
         HTMLAttributes: { class: "forum-mention" },
@@ -171,6 +172,7 @@ export default function ForumEditor({
         blockquote: editor.isActive("blockquote"),
         link: editor.isActive("link"),
         inTable: editor.isActive("table"),
+        farbe: (editor.getAttributes("textfarbe").farbe as string | undefined) ?? null,
         heading: editor.isActive("heading", { level: 1 })
           ? "1"
           : editor.isActive("heading", { level: 2 })
@@ -298,20 +300,22 @@ export default function ForumEditor({
   return (
     <div className="rounded-lg border bg-background focus-within:border-primary transition-colors">
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
-        {!compact && (
-          <select
-            aria-label="Absatzformat"
-            value={state.heading}
-            onChange={(e) => setBlock(e.target.value)}
-            className="h-8 rounded-md border-0 bg-transparent px-1.5 text-sm text-muted-foreground
-              focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-          >
-            <option value="p">Text</option>
-            <option value="1">Überschrift</option>
-            <option value="2">Zwischentitel</option>
-            <option value="3">Kleiner Titel</option>
-          </select>
-        )}
+        {/* Auch in Antworten sichtbar: Wer eine Zwischenüberschrift braucht,
+            braucht sie auch dort – und was man nicht sieht, gibt es nicht.
+            Die Beschriftung nennt die Größe statt „H1", weil kaum jemand
+            außerhalb der Technik weiß, was H1 bedeutet. */}
+        <select
+          aria-label="Schriftgröße"
+          value={state.heading}
+          onChange={(e) => setBlock(e.target.value)}
+          className="h-8 rounded-md border-0 bg-transparent px-1.5 text-sm text-muted-foreground
+            focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+        >
+          <option value="p">Normal</option>
+          <option value="1">Überschrift groß</option>
+          <option value="2">Überschrift mittel</option>
+          <option value="3">Überschrift klein</option>
+        </select>
 
         {tool("Fett", <Bold size={15} />, () => editor.chain().focus().toggleBold().run(), state.bold)}
         {tool("Kursiv", <Italic size={15} />, () => editor.chain().focus().toggleItalic().run(), state.italic)}
@@ -335,10 +339,55 @@ export default function ForumEditor({
           false,
           uploading || !user
         )}
-        {!compact &&
-          tool("Tabelle einfügen", <TableIcon size={15} />, () =>
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-          )}
+        {tool("Tabelle einfügen", <TableIcon size={15} />, () =>
+          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        )}
+
+        {/* Farbe für beliebigen Text. Die Automatik beim Tippen bleibt – aber
+            sie erwischt nur Farbwörter, und „rot" färben zu wollen ist nicht
+            dasselbe wie „Achtung" färben zu wollen. */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Textfarbe"
+              title="Textfarbe"
+              className={`h-8 w-8 rounded-md ${state.farbe ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+            >
+              <Palette size={15} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="grid grid-cols-7 gap-1">
+              {FARBPALETTE.map((f) => (
+                <button
+                  key={f.wert}
+                  type="button"
+                  aria-label={f.name}
+                  title={f.name}
+                  onClick={() => editor.chain().focus().setTextfarbe(f.wert).run()}
+                  className={`h-7 w-7 rounded-md border flex items-center justify-center text-base font-bold
+                    hover:bg-muted forum-content ${state.farbe === f.wert ? "ring-2 ring-ring" : ""}`}
+                >
+                  {/* Das A trägt die Farbe selbst – so ist die Vorschau
+                      dieselbe Darstellung wie später im Beitrag. */}
+                  <span data-farbe={f.wert}>A</span>
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-2 w-full text-xs text-muted-foreground"
+              onClick={() => editor.chain().focus().unsetTextfarbe().run()}
+            >
+              Farbe entfernen
+            </Button>
+          </PopoverContent>
+        </Popover>
 
         <span className="ml-auto flex gap-0.5">
           {tool("Rückgängig", <Undo size={15} />, () => editor.chain().focus().undo().run(), false, !state.canUndo)}
