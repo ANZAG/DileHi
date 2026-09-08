@@ -93,7 +93,12 @@ export function Vereinsangaben({
       <div className="space-y-4 text-muted-foreground leading-relaxed">
         {sichtbar.map((z, i) => (
           <div key={i}>
-            {z.titel && <p className="font-semibold text-foreground">{z.titel}</p>}
+            {/* Als echte Ueberschrift und in derselben Groesse wie die
+                Abschnitte daneben – sonst steht auf dem Impressum die eine
+                Haelfte klein und fett, die andere gross und serif. */}
+            {z.titel && (
+              <h2 className="font-serif text-xl font-semibold text-foreground mb-1">{z.titel}</h2>
+            )}
             {z.werte.filter(Boolean).map((w, j) => (
               <p key={j}>{w}</p>
             ))}

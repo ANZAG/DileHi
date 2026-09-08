@@ -141,11 +141,15 @@ function sonderelementeHerausloesen(quelle, { nachweise }) {
 
   // Hervorgehobener Kasten: bg-primary/5 mit Ueberschrift und Absaetzen.
   rest = divsErsetzen(rest, /<div className="p-\d rounded-xl bg-primary\/5[^"]*">/, (inneres) => {
-    const h = inneres.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
+    const h = inneres.match(/<h2([^>]*)>([\s\S]*?)<\/h2>/);
+    // Steht die Ueberschrift in der Vereinsfarbe, ist es die schmale
+    // Randbemerkung; sonst der grosse Hinweiskasten mit Symbol.
+    const stil = h && h[1].includes("text-primary") ? "notiz" : "hinweis";
     const absaetze = [...inneres.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map((m) => saeubern(m[1]));
     return merken({
       art: "kasten",
-      ueberschrift: h ? saeubern(h[1]) : "",
+      stil,
+      ueberschrift: h ? saeubern(h[2]) : "",
       inhalt: absaetze.map((a) => `<p>${a}</p>`).join(""),
     });
   });
@@ -200,7 +204,10 @@ function elemente(rest, teile, bilder) {
       /(?<betont><p className="text-foreground[^"]*">(?<betontText>[\s\S]*?)<\/p>)/.source,
       /(?<absatz><p(?: className="text-muted-foreground[^"]*")?>(?<absatzText>[\s\S]*?)<\/p>)/.source,
       /(?<liste><ul[^>]*>(?<listeText>[\s\S]*?)<\/ul>)/.source,
-      /(?<bild><img src=\{(?<bildVar>\w+)\.src\})/.source,
+      // Der umgebende <div> steht mit im Muster: Dort steht, ob das Bild die
+      // volle Spalte einnimmt oder schmaler gesetzt ist (max-w-lg). Ohne das
+      // waren im Original schmal gesetzte Tafeln plötzlich bildschirmbreit.
+      /(?<bild><div className="(?<bildRahmen>rounded-lg overflow-hidden[^"]*)">\s*<img src=\{(?<bildVar>\w+)\.src\})/.source,
     ].join("|"),
     "g"
   );
@@ -216,7 +223,16 @@ function elemente(rest, teile, bilder) {
     else if (g.betont) raus.push({ art: "p-betont", text: saeubern(g.betontText) });
     else if (g.absatz) raus.push({ art: "p", text: saeubern(g.absatzText) });
     else if (g.liste) raus.push({ art: "ul", text: saeubern(g.listeText) });
-    else if (g.bild) raus.push({ art: "bild", schluessel: bilder[g.bildVar] ?? "" });
+    else if (g.bild) {
+      const rahmen = g.bildRahmen ?? "";
+      raus.push({
+        art: "bild",
+        schluessel: bilder[g.bildVar] ?? "",
+        bildbreite: rahmen.includes("max-w-sm") ? "schmal"
+          : rahmen.includes("max-w-lg") || rahmen.includes("max-w-md") ? "mittel"
+          : "voll",
+      });
+    }
   }
 
   // Reste mit JSX-Ausdrücken darin sind keine Inhalte, sondern Logik.
@@ -272,6 +288,7 @@ function zuBausteinen(liste) {
         pufferLeeren();
         bausteine.push(baustein("Einzelbild", {
           bildSchluessel: e.schluessel, bildunterschrift: "",
+          bildbreite: e.bildbreite ?? "voll",
           breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
         }));
         break;
@@ -297,7 +314,9 @@ function zuBausteinen(liste) {
       case "kasten":
         pufferLeeren();
         bausteine.push(baustein("Hinweiskasten", {
-          symbol: "info", ueberschrift: e.ueberschrift, inhalt: e.inhalt,
+          stil: e.stil ?? "hinweis",
+          symbol: e.stil === "notiz" ? "keins" : "info",
+          ueberschrift: e.ueberschrift, inhalt: e.inhalt,
           knopf: "", ziel: "", betont: false,
           breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
         }));

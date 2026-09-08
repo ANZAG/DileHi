@@ -33,6 +33,10 @@ export interface Branding {
   privacy_officer: string | null;
   hosting_provider: string | null;
   hosting_address: string | null;
+  // Beschriftungen im Fussbereich. Stehen hier, weil der Fuss auf jeder
+  // oeffentlichen Seite steht.
+  footer_navigation_label: string;
+  footer_legal_label: string;
 }
 
 /** Fällt der Aufruf aus, sieht die Seite aus wie bisher – nicht kaputt. */
@@ -63,6 +67,8 @@ const VORGABE: Branding = {
   privacy_officer: null,
   hosting_provider: null,
   hosting_address: null,
+  footer_navigation_label: "Navigation",
+  footer_legal_label: "Rechtliches",
 };
 
 function oeffentlicheAdresse(pfad: string | null): string | null {
