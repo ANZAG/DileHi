@@ -9,10 +9,11 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "seo:check": "node scripts/seo-check.mjs",
-    "ci": "npm run lint && npm run seo:check && npx tsc --noEmit -p tsconfig.app.json && npm test && npm run build",
+    "ci": "npm run lint && npm run seo:check && npx tsc --noEmit -p tsconfig.app.json && npm run seiten:pruefen && npm test && npm run build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seiten:pruefen": "node scripts/seiten-pruefen.mjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

@@ -5,6 +5,7 @@ import {
   Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
+import { Hinweiskasten, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
@@ -161,13 +162,24 @@ export type Bausteine = {
     abstandOben: Abstand;
     abstandUnten: Abstand;
   };
+  Hinweiskasten: {
+    symbol: KastenSymbol;
+    ueberschrift?: string;
+    inhalt: unknown;
+    knopf?: string;
+    ziel?: string;
+    betont?: boolean;
+  } & typeof layoutVorgaben;
   EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
 
 export const puckConfig: Config<{ components: Bausteine }> = {
   categories: {
     startseite: { title: "Große Abschnitte", components: ["Willkommen", "Eckdaten", "Zeitstrahl", "Aktionskaesten"] },
-    text: { title: "Text", components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen"] },
+    text: {
+      title: "Text",
+      components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen", "Hinweiskasten"],
+    },
     bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
     navigation: { title: "Verweise", components: ["Karten", "Knopf", "Logos"] },
     vereinsdaten: {
@@ -691,6 +703,34 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       },
       defaultProps: { kaesten: [], hintergrund: "karte", abstandOben: "weit", abstandUnten: "weit" },
       render: Aktionskaesten,
+    },
+
+    Hinweiskasten: {
+      label: "Hinweiskasten",
+      resolveFields: async () => ({
+        symbol: { type: "select", label: "Symbol", options: KASTEN_SYMBOLE },
+        ueberschrift: { type: "text", label: "Überschrift" },
+        inhalt: textFeld,
+        knopf: { type: "text", label: "Knopf (leer = keiner)" },
+        ziel: {
+          type: "select", label: "…führt zu",
+          options: [{ label: "— eigene Adresse —", value: "" }, ...(await seitenAuswahl())],
+        },
+        betont: {
+          type: "radio", label: "Kräftigkeit",
+          options: [
+            { label: "Zart", value: false },
+            { label: "Kräftig", value: true },
+          ],
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: {
+        ...layoutVorgaben,
+        symbol: "info", ueberschrift: "", inhalt: "", knopf: "", ziel: "", betont: false,
+        abstandOben: "klein", abstandUnten: "klein",
+      },
+      render: Hinweiskasten,
     },
 
     EigenesHtml: {
