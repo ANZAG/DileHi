@@ -1,6 +1,7 @@
 import {
-  Besucherhinweis, Bildnachweise, Einzelbild, Galerie, Kennzahlen,
-  Quellen, Textabschnitt, Titelbild,
+  Abstandhalter, Besucherhinweis, Bildnachweise, EigenesHtml, Einzelbild, Galerie,
+  Karten, Kennzahlen, Knopf, Quellen, Textabschnitt, Titelbild, Trennlinie,
+  Ueberschrift, ZweiSpalten,
 } from "./bausteine";
 
 /**
@@ -27,13 +28,20 @@ type BausteinKomponente = (props: Record<string, unknown>) => JSX.Element | null
 
 const BAUSTEINE: Record<string, BausteinKomponente> = {
   Titelbild,
+  Ueberschrift,
   Textabschnitt,
+  ZweiSpalten,
   Kennzahlen,
   Einzelbild,
+  Karten,
+  Knopf,
   Galerie,
   Bildnachweise,
   Besucherhinweis,
   Quellen,
+  Abstandhalter,
+  Trennlinie,
+  EigenesHtml,
 } as unknown as Record<string, BausteinKomponente>;
 
 export interface SeitenDaten {

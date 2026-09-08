@@ -6,7 +6,7 @@ import { ArrowLeft, Eye, EyeOff, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { puckConfig, rechteFuer } from "@/components/sitebuilder/puckConfig";
+import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
 import { WOERTERBUCH } from "@/components/sitebuilder/woerterbuch";
 import {
   fetchPageById, LEERE_SEITE, publish, saveDraft, unpublish,
@@ -94,7 +94,7 @@ export default function SeitenEditor() {
   return (
     <div className="h-[calc(100vh-4rem)]">
       <Puck
-        config={puckConfig}
+        config={configFuer(darfLayout)}
         data={stand}
         dictionary={WOERTERBUCH}
         permissions={rechteFuer(darfLayout)}

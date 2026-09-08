@@ -6,6 +6,10 @@
 
 @layer base {
   :root {
+    /* Vorgabe; wird von den Vereinsdaten ueberschrieben (useBranding). */
+    --schrift-ueberschrift: "DM Serif Display";
+    --schrift-text: "Inter";
+
     --background: 40 12% 97%;
     --foreground: 220 20% 12%;
 
