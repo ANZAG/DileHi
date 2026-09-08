@@ -62,15 +62,46 @@ export const FARBWOERTER: Record<string, string> = {
   silberner: "silber",
 };
 
+/** Die Farben, die es gibt – so heissen sie im Knopf und in der CSS-Datei. */
+export const FARBPALETTE: { wert: string; name: string }[] = [
+  { wert: "rot", name: "Rot" },
+  { wert: "orange", name: "Orange" },
+  { wert: "gelb", name: "Gelb" },
+  { wert: "gruen", name: "Grün" },
+  { wert: "tuerkis", name: "Türkis" },
+  { wert: "blau", name: "Blau" },
+  { wert: "lila", name: "Lila" },
+  { wert: "rosa", name: "Rosa" },
+  { wert: "braun", name: "Braun" },
+  { wert: "grau", name: "Grau" },
+  { wert: "schwarz", name: "Schwarz" },
+  { wert: "weiss", name: "Weiß" },
+  { wert: "gold", name: "Gold" },
+  { wert: "silber", name: "Silber" },
+];
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    textfarbe: {
+      setTextfarbe: (farbe: string) => ReturnType;
+      unsetTextfarbe: () => ReturnType;
+    };
+  }
+}
+
 /**
- * Ein Wort, das seine eigene Farbe trägt.
+ * Farbiger Text.
  *
- * Als Mark und nicht als Textfarbe aus @tiptap/extension-text-style: Die würde
- * `style="color: …"` schreiben, und ein erlaubtes style-Attribut in der
- * Säuberung ist ein Einfallstor, das sich für diese Spielerei nicht lohnt.
+ * Entsteht auf zwei Wegen: automatisch beim Tippen eines Farbworts, und über
+ * den Knopf in der Werkzeugleiste für beliebigen Text.
+ *
+ * Als eigene Mark und nicht als Textfarbe aus @tiptap/extension-text-style:
+ * Die würde `style="color: …"` schreiben, und ein erlaubtes style-Attribut in
+ * der Säuberung ist ein Einfallstor, das sich dafür nicht lohnt. So steht im
+ * Beitrag nur `data-farbe="rot"` aus einer festen Liste.
  */
-export const Farbwort = Mark.create({
-  name: "farbwort",
+export const Textfarbe = Mark.create({
+  name: "textfarbe",
 
   addAttributes() {
     return {
@@ -88,6 +119,19 @@ export const Farbwort = Mark.create({
 
   renderHTML({ HTMLAttributes }) {
     return ["span", mergeAttributes(HTMLAttributes), 0];
+  },
+
+  addCommands() {
+    return {
+      setTextfarbe:
+        (farbe: string) =>
+        ({ commands }) =>
+          commands.setMark(this.name, { farbe }),
+      unsetTextfarbe:
+        () =>
+        ({ commands }) =>
+          commands.unsetMark(this.name),
+    };
   },
 
   addInputRules() {

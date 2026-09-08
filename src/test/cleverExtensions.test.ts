@@ -3,7 +3,7 @@ import { Editor } from "@tiptap/core";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
-import { Farbwort, Smileys } from "@/components/forum/cleverExtensions";
+import { Smileys, Textfarbe } from "@/components/forum/cleverExtensions";
 
 /**
  * Farbwörter und Smileys beim Tippen.
@@ -25,7 +25,7 @@ afterEach(() => {
 function neuerEditor(): Editor {
   editor = new Editor({
     element: document.createElement("div"),
-    extensions: [Document, Paragraph, Text, Farbwort, Smileys],
+    extensions: [Document, Paragraph, Text, Textfarbe, Smileys],
     content: "<p></p>",
   });
   return editor;
