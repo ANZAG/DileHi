@@ -21,6 +21,12 @@ COMMENT ON COLUMN public.app_settings.font_body IS
 
 -- Die öffentliche Fassung mitziehen: Die Startseite muss die Schriften kennen,
 -- bevor sich jemand anmeldet.
+--
+-- CREATE OR REPLACE reicht hier nicht: Postgres lässt die Rückgabespalten einer
+-- bestehenden Funktion nicht verändern, und es kommen zwei dazu. Also erst weg,
+-- dann neu.
+DROP FUNCTION IF EXISTS public.public_branding();
+
 CREATE OR REPLACE FUNCTION public.public_branding()
 RETURNS TABLE (
   org_name        text,

@@ -29,6 +29,13 @@ interface Props {
   placeholder?: string;
   /** Kompakte Leiste für Antworten, volle für neue Themen. */
   compact?: boolean;
+  /**
+   * Wie viel Werkzeug angeboten wird. „knapp" ist die Fassung fürs
+   * Kontaktformular: Ein Gast, der eine Anfrage schreibt, braucht keine
+   * Tabellen und keine Aufgabenlisten – er braucht Absätze, eine Aufzählung
+   * und vielleicht eine Hervorhebung.
+   */
+  umfang?: "voll" | "knapp";
   /** Namensliste für „@" – ohne sie bleibt die Erwähnung einfach aus. */
   members?: MentionMember[];
   /** Von außen eingefügter Text (Zitat). `nonce` erzwingt das erneute Einfügen. */
@@ -87,6 +94,7 @@ export default function ForumEditor({
   onChange,
   placeholder,
   compact = false,
+  umfang = "voll",
   members,
   insert,
 }: Props) {
@@ -232,6 +240,8 @@ export default function ForumEditor({
     };
   }, [editor]);
 
+  const knapp = umfang === "knapp";
+
   if (!editor || !state) return null;
 
   const tool = (
@@ -300,6 +310,19 @@ export default function ForumEditor({
   return (
     <div className="rounded-lg border bg-background focus-within:border-primary transition-colors">
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
+        {knapp ? (
+          <>
+            {tool("Fett", <Bold size={15} />, () => editor.chain().focus().toggleBold().run(), state.bold)}
+            {tool("Kursiv", <Italic size={15} />, () => editor.chain().focus().toggleItalic().run(), state.italic)}
+            {tool("Aufzählung", <List size={15} />, () => editor.chain().focus().toggleBulletList().run(), state.bulletList)}
+            {tool("Link", <LinkIcon size={15} />, addLink, state.link)}
+            <span className="ml-auto flex gap-0.5">
+              {tool("Rückgängig", <Undo size={15} />, () => editor.chain().focus().undo().run(), false, !state.canUndo)}
+              {tool("Wiederherstellen", <Redo size={15} />, () => editor.chain().focus().redo().run(), false, !state.canRedo)}
+            </span>
+          </>
+        ) : (
+        <>
         {/* Auch in Antworten sichtbar: Wer eine Zwischenüberschrift braucht,
             braucht sie auch dort – und was man nicht sieht, gibt es nicht.
             Die Beschriftung nennt die Größe statt „H1", weil kaum jemand
@@ -393,12 +416,14 @@ export default function ForumEditor({
           {tool("Rückgängig", <Undo size={15} />, () => editor.chain().focus().undo().run(), false, !state.canUndo)}
           {tool("Wiederherstellen", <Redo size={15} />, () => editor.chain().focus().redo().run(), false, !state.canRedo)}
         </span>
+        </>
+        )}
       </div>
 
       {/* Tabellenwerkzeuge erscheinen nur, wenn der Cursor in einer Tabelle
           steht – sonst stehen sieben Knöpfe herum, die fast nie gebraucht
           werden. */}
-      {state.inTable && (
+      {!knapp && state.inTable && (
         <div className="flex flex-wrap items-center gap-1 border-b bg-muted/30 px-1.5 py-1">
           <span className="text-xs text-muted-foreground px-1">Tabelle:</span>
           {tool("Zeile darunter", <Rows3 size={15} />, () => editor.chain().focus().addRowAfter().run())}

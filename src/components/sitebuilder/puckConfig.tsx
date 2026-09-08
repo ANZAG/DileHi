@@ -1,10 +1,12 @@
 import type { Config } from "@puckeditor/core";
 import {
-  Abstandhalter, Besucherhinweis, Bildnachweise, EigenesHtml, Einzelbild, Galerie,
-  Karten, Kennzahlen, Knopf, Quellen, Textabschnitt, Titelbild, Trennlinie,
-  Ueberschrift, ZweiSpalten,
+  Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
+  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
+  Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
-import { bildAuswahl, epochenAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
+import BildFeld from "./BildFeld";
+import QuelltextFeld from "./QuelltextFeld";
+import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
 import {
   ABSTAENDE, BREITEN, HINTERGRUENDE, TEXTFARBEN,
   type Abstand, type Breite, type Hintergrund, type Textfarbe,
@@ -21,6 +23,28 @@ import {
  * Kürzel auswendig kennen – was selbst der nicht tut, der die Seite gebaut
  * hat.
  */
+
+/**
+ * Das Bildfeld: Auswahl aus der Bilderverwaltung plus Hochladen. Als eigenes
+ * Feld und nicht als Auswahlliste, weil eine neue Seite auch neue Bilder
+ * braucht – und niemand dafür erst in die Bilderverwaltung wechseln soll.
+ */
+const bildFeld = {
+  type: "custom" as const,
+  label: "Bild",
+  render: ({ value, onChange, readOnly }: {
+    value: string; onChange: (v: string) => void; readOnly?: boolean;
+  }) => <BildFeld value={value} onChange={onChange} readOnly={readOnly} seitentitel="Seiten" />,
+};
+
+/** Fliesstext mit Umschalter auf Quelltext. */
+const textFeld = {
+  type: "custom" as const,
+  label: "Text",
+  render: ({ value, onChange, readOnly }: {
+    value: unknown; onChange: (v: unknown) => void; readOnly?: boolean;
+  }) => <QuelltextFeld value={value} onChange={onChange} readOnly={readOnly} />,
+};
 
 const gemeinsameFelder = {
   breite: { type: "select" as const, label: "Breite", options: BREITEN },
@@ -97,6 +121,16 @@ export type Bausteine = {
   Quellen: { epoche: string } & typeof layoutVorgaben;
   Abstandhalter: { hoehe: "klein" | "mittel" | "gross" };
   Trennlinie: typeof layoutVorgaben;
+  Logos: {
+    ueberschrift?: string;
+    logos: { bildSchluessel: string; name: string; ziel?: string }[];
+    groesse: "klein" | "mittel" | "gross";
+  } & typeof layoutVorgaben;
+  Darstellungen: {
+    kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei";
+  } & typeof layoutVorgaben;
+  Termine: { ueberschrift?: string; anzahl: number } & typeof layoutVorgaben;
+  Kontaktformular: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
   EigenesHtml: { code: string } & typeof layoutVorgaben;
 };
 
@@ -104,8 +138,11 @@ export const puckConfig: Config<{ components: Bausteine }> = {
   categories: {
     text: { title: "Text", components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen"] },
     bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
-    navigation: { title: "Verweise", components: ["Karten", "Knopf"] },
-    vereinsdaten: { title: "Aus dem Mitgliederbereich", components: ["Besucherhinweis", "Quellen"] },
+    navigation: { title: "Verweise", components: ["Karten", "Knopf", "Logos"] },
+    vereinsdaten: {
+      title: "Aus dem Mitgliederbereich",
+      components: ["Besucherhinweis", "Quellen", "Darstellungen", "Termine", "Kontaktformular"],
+    },
     zwischenraum: { title: "Zwischenraum", components: ["Abstandhalter", "Trennlinie", "EigenesHtml"] },
   },
 
@@ -114,12 +151,8 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Titelbild",
       // Die Bildauswahl kommt aus der Bilderverwaltung, nicht aus dem Kopf des
       // Bearbeiters.
-      resolveFields: async (data) => ({
-        bildSchluessel: {
-          type: "select",
-          label: "Bild",
-          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
-        },
+      fields: {
+        bildSchluessel: bildFeld,
         ueberschrift: { type: "text", label: "Überschrift" },
         unterzeile: { type: "text", label: "Unterzeile" },
         hoehe: {
@@ -132,7 +165,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         },
         farbeUeberschrift: { type: "select", label: "Farbe der Überschrift", options: TEXTFARBEN },
         farbeUnterzeile: { type: "select", label: "Farbe der Unterzeile", options: TEXTFARBEN },
-      }),
+      },
       defaultProps: {
         bildSchluessel: "",
         ueberschrift: "Überschrift",
@@ -173,19 +206,16 @@ export const puckConfig: Config<{ components: Bausteine }> = {
 
     Textabschnitt: {
       label: "Text",
-      fields: { inhalt: { type: "richtext", label: "Text" }, ...gemeinsameFelder },
+      fields: { inhalt: textFeld, ...gemeinsameFelder },
       defaultProps: { inhalt: "", ...gemeinsameVorgaben },
       render: Textabschnitt,
     },
 
     ZweiSpalten: {
       label: "Text neben Bild",
-      resolveFields: async (data) => ({
-        inhalt: { type: "richtext", label: "Text" },
-        bildSchluessel: {
-          type: "select", label: "Bild",
-          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
-        },
+      fields: {
+        inhalt: textFeld,
+        bildSchluessel: bildFeld,
         bildSeite: {
           type: "radio", label: "Bild steht",
           options: [
@@ -194,7 +224,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           ],
         },
         ...gemeinsameFelder,
-      }),
+      },
       defaultProps: {
         inhalt: "", bildSchluessel: "", bildSeite: "links", ...gemeinsameVorgaben, breite: "breit",
       },
@@ -229,14 +259,11 @@ export const puckConfig: Config<{ components: Bausteine }> = {
 
     Einzelbild: {
       label: "Bild",
-      resolveFields: async (data) => ({
-        bildSchluessel: {
-          type: "select", label: "Bild",
-          options: mitBestehendem(await bildAuswahl(), data.props.bildSchluessel),
-        },
+      fields: {
+        bildSchluessel: bildFeld,
         bildunterschrift: { type: "text", label: "Bildunterschrift" },
         ...layoutFelder,
-      }),
+      },
       defaultProps: { ...layoutVorgaben, bildSchluessel: "", bildunterschrift: "", abstand: "eng" },
       render: Einzelbild,
     },
@@ -366,8 +393,8 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Besucher-Highlights",
       resolveFields: async (data) => ({
         epoche: {
-          type: "select", label: "Epoche",
-          options: mitBestehendem(await epochenAuswahl(), data.props.epoche),
+          type: "select", label: "Kategorie",
+          options: mitBestehendem(await kategorieAuswahl(), data.props.epoche),
         },
         einleitung: { type: "textarea", label: "Einleitung" },
         abschluss: { type: "textarea", label: "Abschluss" },
@@ -381,8 +408,8 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Quellenangaben",
       resolveFields: async (data) => ({
         epoche: {
-          type: "select", label: "Epoche",
-          options: mitBestehendem(await epochenAuswahl(), data.props.epoche),
+          type: "select", label: "Kategorie",
+          options: mitBestehendem(await kategorieAuswahl(), data.props.epoche),
         },
         ...layoutFelder,
       }),
@@ -411,6 +438,88 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       fields: layoutFelder,
       defaultProps: { ...layoutVorgaben, abstand: "eng" },
       render: Trennlinie,
+    },
+
+    Logos: {
+      label: "Logos",
+      resolveFields: async () => ({
+        ueberschrift: { type: "text", label: "Überschrift" },
+        logos: {
+          type: "array", label: "Logos",
+          arrayFields: {
+            bildSchluessel: {
+              type: "select", label: "Bild",
+              options: [{ label: "— wählen —", value: "" }, ...(await bildAuswahl())],
+            },
+            name: { type: "text", label: "Name" },
+            ziel: { type: "text", label: "Adresse (optional)" },
+          },
+          getItemSummary: (item: { name?: string }) => item?.name || "Logo",
+        },
+        groesse: {
+          type: "radio", label: "Größe",
+          options: [
+            { label: "Klein", value: "klein" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Groß", value: "gross" },
+          ],
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, breite: "breit", ueberschrift: "", logos: [], groesse: "mittel" },
+      render: Logos,
+    },
+
+    Darstellungen: {
+      label: "Darstellungen",
+      resolveFields: async (data) => ({
+        kategorie: {
+          type: "select", label: "Kategorie",
+          // Ohne Kategorie werden alle freigegebenen Darstellungen gezeigt –
+          // ein Verein mit nur einer Darstellungszeit muss hier nichts wählen.
+          options: [
+            { label: "Alle", value: "" },
+            ...mitBestehendem(await kategorieAuswahl(), data.props.kategorie),
+          ],
+        },
+        ueberschrift: { type: "text", label: "Überschrift" },
+        spalten: {
+          type: "radio", label: "Nebeneinander",
+          options: [
+            { label: "Zwei", value: "zwei" },
+            { label: "Drei", value: "drei" },
+          ],
+        },
+        ...layoutFelder,
+      }),
+      defaultProps: { ...layoutVorgaben, breite: "breit", kategorie: "", ueberschrift: "", spalten: "drei" },
+      render: Darstellungen,
+    },
+
+    Termine: {
+      label: "Nächste Veranstaltungen",
+      fields: {
+        ueberschrift: { type: "text", label: "Überschrift" },
+        anzahl: { type: "number", label: "Wie viele höchstens?", min: 1, max: 20 },
+        ...layoutFelder,
+      },
+      defaultProps: { ...layoutVorgaben, ueberschrift: "Nächste Veranstaltungen", anzahl: 5 },
+      render: Termine,
+    },
+
+    Kontaktformular: {
+      label: "Kontaktformular",
+      fields: {
+        ueberschrift: { type: "text", label: "Überschrift" },
+        hinweis: { type: "textarea", label: "Text darüber" },
+        ...layoutFelder,
+      },
+      defaultProps: {
+        ...layoutVorgaben,
+        ueberschrift: "Kontakt aufnehmen",
+        hinweis: "Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns.",
+      },
+      render: Kontaktformular,
     },
 
     EigenesHtml: {

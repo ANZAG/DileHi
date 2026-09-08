@@ -41,6 +41,12 @@ async function gemerkt(schluessel: string, laden: () => Promise<Auswahl[]>): Pro
  * Beschriftet wird mit dem sprechenden Namen und der Seite, zu der das Bild
  * gehört – „Titelbild (Startseite)" statt „hero-startseite".
  */
+/** Nach dem Hochladen eines Bildes muss die gemerkte Liste weg. */
+export function leereAuswahlMerker(schluessel?: string) {
+  if (schluessel) merker.delete(schluessel);
+  else merker.clear();
+}
+
 export function bildAuswahl(): Promise<Auswahl[]> {
   return gemerkt("bilder", async () => {
     const { data, error } = await supabase
@@ -67,24 +73,31 @@ export function galerieAuswahl(): Promise<Auswahl[]> {
 }
 
 /**
- * Die Epochen für Quellen und Besucher-Highlights.
+ * Die Kategorien für Galerien, Quellen und Besucher-Highlights.
  *
- * Zusammengetragen aus beiden Tabellen: Eine Epoche, zu der es nur Quellen
- * gibt, soll trotzdem wählbar sein.
+ * Hiess bei uns „Epoche" – das ist aber unser Wort. Die meisten Vereine
+ * stellen genau eine Zeit dar und sortieren nach Themen. Verwaltet werden sie
+ * jetzt in site_categories; wer dort nichts gepflegt hat, bekommt weiterhin
+ * das, was in den Daten steht.
  */
-export function epochenAuswahl(): Promise<Auswahl[]> {
-  return gemerkt("epochen", async () => {
-    const [quellen, highlights, galerien] = await Promise.all([
-      supabase.from("epoch_sources").select("epoch"),
-      supabase.from("epoch_visitor_items").select("epoch"),
-      supabase.from("gallery_images").select("epoch"),
-    ]);
-    const alle = [
-      ...(quellen.data ?? []),
-      ...(highlights.data ?? []),
-      ...(galerien.data ?? []),
-    ].map((z) => (z as { epoch?: string }).epoch);
-    const namen = [...new Set(alle.filter(Boolean))].sort();
+export function kategorieAuswahl(): Promise<Auswahl[]> {
+  return gemerkt("kategorien", async () => {
+    const { data, error } = await (supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => {
+          order: (c: string) => Promise<{ data: { key: string; label: string }[] | null; error: { message: string } | null }>;
+        };
+      };
+    })
+      .from("site_categories")
+      .select("key, label")
+      .order("sort_order");
+    if (error) throw new Error(error.message);
+    if (data && data.length > 0) return data.map((k) => ({ value: k.key, label: k.label }));
+
+    // Notnagel, solange die Kategorien noch nicht eingespielt sind.
+    const galerien = await supabase.from("gallery_images").select("epoch");
+    const namen = [...new Set((galerien.data ?? []).map((g) => g.epoch).filter(Boolean))].sort();
     return (namen as string[]).map((n) => ({ value: n, label: n }));
   });
 }

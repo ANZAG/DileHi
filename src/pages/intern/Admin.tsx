@@ -17,8 +17,11 @@ import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
 import EmbedAdmin from "@/components/admin/EmbedAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
+import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
+import MenueAdmin from "@/components/admin/MenueAdmin";
+import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild";
 
 
 const Admin = () => {
@@ -54,8 +57,14 @@ const Admin = () => {
     ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
       { id: "sitepages" as const, gruppe: "website", label: "Seiten", icon: FileText, desc: "Öffentliche Seiten zusammenstellen" },
     ] : []),
+    ...(hasPermission("site.layout_edit") ? [
+      { id: "menue" as const, gruppe: "website", label: "Menü", icon: ListChecks, desc: "Punkte in der Kopfzeile" },
+    ] : []),
     ...(hasPermission("gallery.manage") ? [
       { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder verwalten" },
+    ] : []),
+    ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
+      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Galerien und Quellen" },
     ] : []),
     ...(hasPermission("site_images.manage") ? [
       { id: "siteimages" as const, gruppe: "website", label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
@@ -77,6 +86,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("events.moderate") ? [
       { id: "formtemplate" as const, gruppe: "intern", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" },
+    ] : []),
+    ...(hasPermission("system.settings") ? [
+      { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
     ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
@@ -182,6 +194,9 @@ const Admin = () => {
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "sitepages" && (hasPermission("site.content_edit") || hasPermission("site.layout_edit")) && <SitePagesAdmin />}
+          {activeTab === "menue" && hasPermission("site.layout_edit") && <MenueAdmin />}
+          {activeTab === "kategorien" && (hasPermission("site.content_edit") || hasPermission("gallery.manage")) && <KategorienAdmin />}
+          {activeTab === "erscheinungsbild" && hasPermission("system.settings") && <ErscheinungsbildAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}

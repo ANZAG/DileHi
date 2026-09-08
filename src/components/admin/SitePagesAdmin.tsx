@@ -64,9 +64,6 @@ export default function SitePagesAdmin() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="font-serif text-lg font-semibold">Seiten</h2>
-          <p className="text-sm text-muted-foreground">
-            Öffentliche Seiten, die sich hier zusammenstellen lassen – ohne Programmieren.
-          </p>
         </div>
         {darfLayout && !anlegen && (
           <Button size="sm" onClick={() => setAnlegen(true)}>

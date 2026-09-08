@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Trash2, ChevronDown, Reply, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizePostHtml } from "@/components/forum/sanitize";
 
 const ContactMessages = () => {
   const { hasPermission } = useAuth();
@@ -149,7 +150,15 @@ const ContactMessages = () => {
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm mt-2">{msg.message}</p>
+                  // Nachrichten aus dem Kontaktformular kommen jetzt als HTML
+                  // – Absätze und Aufzählungen bleiben erhalten. Ältere
+                  // Nachrichten sind reiner Text; der wird hier unverändert
+                  // angezeigt, Zeilenumbrüche eingeschlossen.
+                  <div
+                    className="text-sm mt-2 prose prose-sm dark:prose-invert max-w-none
+                      prose-p:my-1 whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: sanitizePostHtml(msg.message) }}
+                  />
                 )}
 
                 {/* Reply history */}
