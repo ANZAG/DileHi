@@ -222,3 +222,20 @@ export async function setCategoryRight(
     .upsert({ category_id: categoryId, role, ...patch }, { onConflict: "category_id,role" });
   if (error) throw new Error(error.message);
 }
+
+/** Umfrage oder Mitbringliste als Beitrag im Thread. */
+export async function createPollPost(input: {
+  threadId: string;
+  userId: string;
+  kind: "umfrage" | "mitbringliste";
+  payload: Record<string, unknown>;
+}) {
+  const { error } = await db.from("forum_posts").insert({
+    thread_id: input.threadId,
+    kind: input.kind,
+    body: "",
+    payload: input.payload,
+    created_by: input.userId,
+  });
+  if (error) throw new Error(error.message);
+}

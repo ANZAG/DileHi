@@ -107,6 +107,7 @@ const EventsPage = () => {
             declineEvent={(id) => ev.toggleRSVP.mutate({ eventId: id, decline: true })}
             toggleRSVPPending={ev.toggleRSVP.isPending}
             getFormForEvent={ev.getFormForEvent}
+            getThreadForEvent={ev.getThreadForEvent}
             hasSubmittedForm={ev.hasSubmittedForm}
           />
         )}
@@ -140,6 +141,8 @@ const EventsPage = () => {
             isPublic={ev.isPublic} setIsPublic={ev.setIsPublic}
             canSetPublic={ev.canSetPublic}
             isEdit={false}
+            wantForumThread={ev.wantForumThread}
+            setWantForumThread={ev.setWantForumThread}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => ev.setShowCreate(false)}>Abbrechen</Button>
