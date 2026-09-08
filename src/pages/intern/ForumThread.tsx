@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays, BarChart3 } from "lucide-react";
+import { ArrowLeft, Lock, Pin, Archive, Pencil, CalendarDays, BarChart3, Quote } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import PostBody from "@/components/forum/PostBody";
 import { createPost, createPollPost, fetchPosts, fetchThread, markRead } from "@/components/forum/api";
 import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
 import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
+import { buildQuote } from "@/components/forum/quote";
 
 interface Member { id: string; display_name: string }
 
@@ -24,6 +25,9 @@ export default function ForumThread() {
   const queryClient = useQueryClient();
   const [reply, setReply] = useState("");
   const [composingPoll, setComposingPoll] = useState(false);
+  // Der Zähler sorgt dafür, dass zweimal „Zitieren" auch zweimal einfügt.
+  const [quote, setQuote] = useState<{ html: string; nonce: number }>();
+  const editorAnchor = useRef<HTMLDivElement>(null);
 
   const canModerate = hasPermission("forum.moderate");
 
@@ -94,6 +98,11 @@ export default function ForumThread() {
   const replyIsEmpty = reply.replace(/<[^>]*>/g, "").trim() === "";
   const closed = !!thread?.is_locked || !!thread?.is_archived;
 
+  const quotePost = (author: string, body: string) => {
+    setQuote({ html: buildQuote(author, body), nonce: Date.now() });
+    editorAnchor.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   if (!thread && !isLoading) {
     return (
       <div className="container py-16 text-center max-w-lg px-4">
@@ -157,7 +166,21 @@ export default function ForumThread() {
                   payload={(p.payload ?? {}) as PollPayload}
                 />
               ) : (
-                <PostBody html={p.body} />
+                <>
+                  <PostBody html={p.body} />
+                  {!closed && (
+                    <div className="mt-2 -mb-1 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground"
+                        onClick={() => quotePost(nameOf(p.created_by), p.body)}
+                      >
+                        <Quote size={13} className="mr-1" /> Zitieren
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </article>
           ))}
@@ -165,7 +188,7 @@ export default function ForumThread() {
           {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Lade Beiträge …</p>}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6" ref={editorAnchor}>
           {closed ? (
             <p className="text-sm text-muted-foreground text-center py-6 border rounded-lg border-dashed">
               {thread?.is_archived
@@ -183,7 +206,14 @@ export default function ForumThread() {
                 />
               ) : (
                 <>
-                  <ForumEditor value={reply} onChange={setReply} placeholder="Antworten …" compact />
+                  <ForumEditor
+                    value={reply}
+                    onChange={setReply}
+                    placeholder="Antworten … (@ erwähnt jemanden)"
+                    compact
+                    members={members}
+                    insert={quote}
+                  />
                   <div className="flex flex-wrap justify-between gap-2 mt-2">
                     <Button variant="outline" onClick={() => setComposingPoll(true)}>
                       <BarChart3 size={15} className="mr-1" /> Umfrage oder Liste

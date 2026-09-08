@@ -1,12 +1,25 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect, useRef, useState } from "react";
+import { useEditor, useEditorState, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
+import Blockquote from "@tiptap/extension-blockquote";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect } from "react";
+import Image from "@tiptap/extension-image";
+import Mention from "@tiptap/extension-mention";
+import Typography from "@tiptap/extension-typography";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TableKit } from "@tiptap/extension-table";
+import { mergeAttributes } from "@tiptap/core";
 import {
-  Bold, Italic, List, ListOrdered, Quote, Link as LinkIcon, Undo, Redo, Heading2,
+  Bold, Italic, Underline, Strikethrough, List, ListOrdered, ListChecks,
+  Quote, Link as LinkIcon, Undo, Redo, ImagePlus, Table as TableIcon,
+  Loader2, Rows3, Columns3, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { createMentionSuggestion, type MentionMember } from "./mentionSuggestion";
+import { signForumImages, uploadForumImage } from "./forumImages";
+import "./forum-content.css";
 
 interface Props {
   value: string;
@@ -14,7 +27,50 @@ interface Props {
   placeholder?: string;
   /** Kompakte Leiste für Antworten, volle für neue Themen. */
   compact?: boolean;
+  /** Namensliste für „@" – ohne sie bleibt die Erwähnung einfach aus. */
+  members?: MentionMember[];
+  /** Von außen eingefügter Text (Zitat). `nonce` erzwingt das erneute Einfügen. */
+  insert?: { html: string; nonce: number };
 }
+
+/**
+ * Zitat mit Bezug: ein Blockquote, das sich merkt, von wem es stammt.
+ *
+ * Der Name steht nicht als Text im Zitat, sondern als Eigenschaft daran – so
+ * lässt er sich beim Anzeigen einheitlich davorsetzen und niemand kann ihn
+ * versehentlich mitlöschen oder überschreiben.
+ */
+const QuoteWithSource = Blockquote.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      author: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("data-quote-author"),
+        renderHTML: (attrs) =>
+          attrs.author ? { "data-quote-author": attrs.author as string } : {},
+      },
+    };
+  },
+});
+
+/** Bild, das sich seinen Ablageort merkt – siehe forumImages.ts. */
+const ForumImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      path: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("data-path"),
+        renderHTML: (attrs) => (attrs.path ? { "data-path": attrs.path as string } : {}),
+      },
+    };
+  },
+});
+
+const EDITOR_CLASS =
+  "forum-content prose prose-sm dark:prose-invert max-w-none min-h-[8rem] px-3 py-2.5 " +
+  "focus:outline-none prose-p:my-1.5 prose-headings:font-serif prose-a:text-primary";
 
 /**
  * Editor mit sichtbarem Ergebnis.
@@ -24,25 +80,103 @@ interface Props {
  * nicht täglich mit Technik zu tun haben, ist das die eigentliche Hürde – und
  * der Grund, warum Beiträge lieber in WhatsApp landen.
  */
-export default function ForumEditor({ value, onChange, placeholder, compact = false }: Props) {
+export default function ForumEditor({
+  value,
+  onChange,
+  placeholder,
+  compact = false,
+  members,
+  insert,
+}: Props) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Die Namensliste kommt asynchron, der Editor wird einmal gebaut. Über die
+  // Referenz sieht die Vorschlagsliste immer den aktuellen Stand, ohne dass der
+  // Editor dafür neu entstehen muss (das würde den Text verwerfen).
+  const membersRef = useRef<MentionMember[]>(members ?? []);
+  membersRef.current = members ?? [];
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: compact ? false : { levels: [2, 3] },
+        // H1 gehört eigentlich der Seitenüberschrift; im Beitrag ist es aber
+        // die Größe, nach der Leute greifen, wenn sie etwas abheben wollen.
+        // Angezeigt wird es deshalb kleiner als der Thementitel.
+        heading: { levels: [1, 2, 3] },
         codeBlock: false,
         horizontalRule: false,
+        // Eigene Fassung mit Herkunftsangabe.
+        blockquote: false,
+        link: { openOnClick: false, autolink: true, protocols: ["http", "https", "mailto"] },
       }),
-      Link.configure({ openOnClick: false, autolink: true, protocols: ["http", "https", "mailto"] }),
+      QuoteWithSource,
       Placeholder.configure({ placeholder: placeholder ?? "Schreib etwas …" }),
+      TaskList,
+      TaskItem.configure({ nested: false }),
+      ForumImage.configure({ inline: false, allowBase64: false }),
+      TableKit.configure({ table: { resizable: false } }),
+      // Das Nützliche aus dem „Clever Editor": „--" wird zum Gedankenstrich,
+      // „..." zu Auslassungspunkten, Anführungszeichen werden typografisch.
+      // Nichts davon muss man lernen, es passiert einfach richtig.
+      Typography,
+      Mention.configure({
+        HTMLAttributes: { class: "forum-mention" },
+        // data-mention-id ist die Fassung, die der Datenbank-Trigger ausliest;
+        // data-id bleibt daneben stehen, damit Tiptap den Beitrag beim
+        // Bearbeiten wieder einlesen kann.
+        renderHTML: ({ node }) =>
+          [
+            "span",
+            mergeAttributes(
+              { class: "forum-mention", "data-type": "mention" },
+              {
+                "data-id": node.attrs.id,
+                "data-mention-id": node.attrs.id,
+                "data-label": node.attrs.label,
+              }
+            ),
+            `@${node.attrs.label ?? node.attrs.id}`,
+          ] as const,
+        renderText: ({ node }) => `@${node.attrs.label ?? node.attrs.id}`,
+        suggestion: createMentionSuggestion(() => membersRef.current),
+      }),
     ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm dark:prose-invert max-w-none min-h-[8rem] px-3 py-2.5 focus:outline-none " +
-          "prose-p:my-1.5 prose-headings:font-serif prose-a:text-primary",
-      },
+    editorProps: { attributes: { class: EDITOR_CLASS } },
+  });
+
+  // In Tiptap 3 wird die Komponente nicht mehr bei jeder Änderung neu gezeichnet.
+  // Ohne das hier bliebe die Werkzeugleiste stumm – ein „Fett"-Knopf, der nie
+  // aufleuchtet, wirkt kaputt.
+  const state = useEditorState({
+    editor,
+    selector: ({ editor }) => {
+      if (!editor) return null;
+      return {
+        bold: editor.isActive("bold"),
+        italic: editor.isActive("italic"),
+        underline: editor.isActive("underline"),
+        strike: editor.isActive("strike"),
+        bulletList: editor.isActive("bulletList"),
+        orderedList: editor.isActive("orderedList"),
+        taskList: editor.isActive("taskList"),
+        blockquote: editor.isActive("blockquote"),
+        link: editor.isActive("link"),
+        inTable: editor.isActive("table"),
+        heading: editor.isActive("heading", { level: 1 })
+          ? "1"
+          : editor.isActive("heading", { level: 2 })
+            ? "2"
+            : editor.isActive("heading", { level: 3 })
+              ? "3"
+              : "p",
+        canUndo: editor.can().undo(),
+        canRedo: editor.can().redo(),
+      };
     },
   });
 
@@ -51,7 +185,48 @@ export default function ForumEditor({ value, onChange, placeholder, compact = fa
     if (editor && value === "" && editor.getHTML() !== "<p></p>") editor.commands.clearContent();
   }, [value, editor]);
 
-  if (!editor) return null;
+  // Zitat aus einem Beitrag übernehmen.
+  useEffect(() => {
+    if (!editor || !insert) return;
+    editor.chain().focus("end").insertContent(insert.html).run();
+    // Absichtlich nur auf den Zähler hören: derselbe Text darf zweimal
+    // eingefügt werden, wenn zweimal auf „Zitieren" geklickt wird.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insert?.nonce, editor]);
+
+  // Bereits gespeicherte Bilder tragen eine abgelaufene Adresse. Beim
+  // Bearbeiten eines älteren Beitrags werden sie hier frisch signiert.
+  useEffect(() => {
+    if (!editor) return;
+    const paths: string[] = [];
+    editor.state.doc.descendants((node) => {
+      const p = node.attrs?.path as string | undefined;
+      if (node.type.name === "image" && p) paths.push(p);
+    });
+    if (paths.length === 0) return;
+
+    let cancelled = false;
+    signForumImages(paths)
+      .then((map) => {
+        if (cancelled || editor.isDestroyed) return;
+        editor.state.doc.descendants((node, pos) => {
+          const p = node.attrs?.path as string | undefined;
+          if (node.type.name === "image" && p && map[p] && node.attrs.src !== map[p]) {
+            // Nicht in den Verlauf: Ein „Rückgängig" soll den eigenen Text
+            // zurückholen, nicht eine technische Adressänderung.
+            editor.view.dispatch(
+              editor.state.tr.setNodeAttribute(pos, "src", map[p]).setMeta("addToHistory", false)
+            );
+          }
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [editor]);
+
+  if (!editor || !state) return null;
 
   const tool = (
     label: string,
@@ -65,6 +240,7 @@ export default function ForumEditor({ value, onChange, placeholder, compact = fa
       variant="ghost"
       size="icon"
       aria-label={label}
+      title={label}
       aria-pressed={active}
       disabled={disabled}
       onClick={action}
@@ -85,24 +261,128 @@ export default function ForumEditor({ value, onChange, placeholder, compact = fa
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
+  const pickImage = async (file: File | undefined) => {
+    if (!file || !user) return;
+    setUploading(true);
+    try {
+      const { path, url } = await uploadForumImage(file, user.id);
+      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+      // Der Ablageort muss mit; die signierte Adresse läuft ab.
+      const { state: s } = editor;
+      s.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === url && !node.attrs.path) {
+          editor.view.dispatch(editor.state.tr.setNodeAttribute(pos, "path", path));
+        }
+      });
+      onChange(editor.getHTML());
+    } catch (err) {
+      toast({
+        title: "Bild konnte nicht hochgeladen werden",
+        description: err instanceof Error ? err.message : "Unbekannter Fehler",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const setBlock = (v: string) => {
+    if (v === "p") editor.chain().focus().setParagraph().run();
+    else editor.chain().focus().setHeading({ level: Number(v) as 1 | 2 | 3 }).run();
+  };
+
   return (
     <div className="rounded-lg border bg-background focus-within:border-primary transition-colors">
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
-        {tool("Fett", <Bold size={15} />, () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}
-        {tool("Kursiv", <Italic size={15} />, () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}
+        {!compact && (
+          <select
+            aria-label="Absatzformat"
+            value={state.heading}
+            onChange={(e) => setBlock(e.target.value)}
+            className="h-8 rounded-md border-0 bg-transparent px-1.5 text-sm text-muted-foreground
+              focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+          >
+            <option value="p">Text</option>
+            <option value="1">Überschrift</option>
+            <option value="2">Zwischentitel</option>
+            <option value="3">Kleiner Titel</option>
+          </select>
+        )}
+
+        {tool("Fett", <Bold size={15} />, () => editor.chain().focus().toggleBold().run(), state.bold)}
+        {tool("Kursiv", <Italic size={15} />, () => editor.chain().focus().toggleItalic().run(), state.italic)}
+        {tool("Unterstrichen", <Underline size={15} />, () => editor.chain().focus().toggleUnderline().run(), state.underline)}
+        {tool("Durchgestrichen", <Strikethrough size={15} />, () => editor.chain().focus().toggleStrike().run(), state.strike)}
+
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+
+        {tool("Aufzählung", <List size={15} />, () => editor.chain().focus().toggleBulletList().run(), state.bulletList)}
+        {tool("Nummerierung", <ListOrdered size={15} />, () => editor.chain().focus().toggleOrderedList().run(), state.orderedList)}
+        {tool("Aufgabenliste", <ListChecks size={15} />, () => editor.chain().focus().toggleTaskList().run(), state.taskList)}
+        {tool("Zitat", <Quote size={15} />, () => editor.chain().focus().toggleBlockquote().run(), state.blockquote)}
+
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+
+        {tool("Link", <LinkIcon size={15} />, addLink, state.link)}
+        {tool(
+          "Bild einfügen",
+          uploading ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />,
+          () => fileInput.current?.click(),
+          false,
+          uploading || !user
+        )}
         {!compact &&
-          tool("Zwischenüberschrift", <Heading2 size={15} />,
-            () => editor.chain().focus().toggleHeading({ level: 2 }).run(), editor.isActive("heading", { level: 2 }))}
-        {tool("Aufzählung", <List size={15} />, () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}
-        {tool("Nummerierung", <ListOrdered size={15} />, () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}
-        {tool("Zitat", <Quote size={15} />, () => editor.chain().focus().toggleBlockquote().run(), editor.isActive("blockquote"))}
-        {tool("Link", <LinkIcon size={15} />, addLink, editor.isActive("link"))}
+          tool("Tabelle einfügen", <TableIcon size={15} />, () =>
+            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+          )}
+
         <span className="ml-auto flex gap-0.5">
-          {tool("Rückgängig", <Undo size={15} />, () => editor.chain().focus().undo().run(), false, !editor.can().undo())}
-          {tool("Wiederherstellen", <Redo size={15} />, () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
+          {tool("Rückgängig", <Undo size={15} />, () => editor.chain().focus().undo().run(), false, !state.canUndo)}
+          {tool("Wiederherstellen", <Redo size={15} />, () => editor.chain().focus().redo().run(), false, !state.canRedo)}
         </span>
       </div>
-      <EditorContent editor={editor} />
+
+      {/* Tabellenwerkzeuge erscheinen nur, wenn der Cursor in einer Tabelle
+          steht – sonst stehen sieben Knöpfe herum, die fast nie gebraucht
+          werden. */}
+      {state.inTable && (
+        <div className="flex flex-wrap items-center gap-1 border-b bg-muted/30 px-1.5 py-1">
+          <span className="text-xs text-muted-foreground px-1">Tabelle:</span>
+          {tool("Zeile darunter", <Rows3 size={15} />, () => editor.chain().focus().addRowAfter().run())}
+          {tool("Spalte rechts", <Columns3 size={15} />, () => editor.chain().focus().addColumnAfter().run())}
+          <Button
+            type="button" variant="ghost" size="sm"
+            className="h-8 text-xs text-muted-foreground"
+            onClick={() => editor.chain().focus().deleteRow().run()}
+          >
+            Zeile weg
+          </Button>
+          <Button
+            type="button" variant="ghost" size="sm"
+            className="h-8 text-xs text-muted-foreground"
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+          >
+            Spalte weg
+          </Button>
+          {tool("Tabelle entfernen", <Trash2 size={15} />, () => editor.chain().focus().deleteTable().run())}
+        </div>
+      )}
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+        className="sr-only"
+        onChange={(e) => {
+          void pickImage(e.target.files?.[0]);
+          // Zurücksetzen, sonst löst dieselbe Datei kein zweites Mal aus.
+          e.target.value = "";
+        }}
+      />
+
+      <div className="overflow-x-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
