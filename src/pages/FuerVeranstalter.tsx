@@ -1,47 +1,12 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
 import { useSiteImage } from "@/hooks/useSiteImage";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import VeranstalterFelder from "@/components/kontakt/VeranstalterFelder";
 import PublicPersonasSection from "@/components/PublicPersonasSection";
 
 const FuerVeranstalter = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", organisation: "", email: "", eventType: "", date: "", location: "", visitors: "", epoch: "", message: "" });
-
   const lederworkshopImg = useSiteImage("lederworkshop-veranstalter");
   const epochenUebersichtImg = useSiteImage("epochen-uebersicht-veranstalter");
-
-  const handleChange = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.organisation || !form.email) {
-      toast({ title: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    const messageText = [
-      `Name: ${form.name}`, `Organisation: ${form.organisation}`, `Art: ${form.eventType}`, `Datum: ${form.date}`, `Ort: ${form.location}`,
-      form.visitors ? `Besucherzahl: ${form.visitors}` : null, form.epoch ? `Epoche: ${form.epoch}` : null, form.message ? `Nachricht: ${form.message}` : null,
-    ].filter(Boolean).join("\n");
-    const { error } = await supabase.from("contact_messages").insert({ name: form.name.trim().slice(0, 100), email: form.email.trim().slice(0, 255), message: messageText.slice(0, 5000) });
-    supabase.functions.invoke("notify-contact", { body: { name: form.name.trim(), email: form.email.trim(), message: messageText } }).catch(() => {});
-    setLoading(false);
-    if (error) {
-      toast({ title: "Fehler beim Senden.", variant: "destructive" });
-    } else {
-      toast({ title: "Anfrage gesendet!", description: "Wir melden uns bei Ihnen." });
-      setForm({ name: "", organisation: "", email: "", eventType: "", date: "", location: "", visitors: "", epoch: "", message: "" });
-    }
-  };
 
   return (
     <div>
@@ -107,20 +72,7 @@ const FuerVeranstalter = () => {
             <p>Sie möchten uns für eine Veranstaltung anfragen? Wir freuen uns darüber.</p>
             <p>Je mehr Informationen Sie uns bereits zu Termin, Ort und Art der Veranstaltung geben können, desto besser können wir einschätzen, ob und wie wir zusammenpassen.</p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2"><Label htmlFor="name">Name *</Label><Input id="name" value={form.name} onChange={(e) => handleChange("name", e.target.value)} required maxLength={100} /></div>
-              <div className="space-y-2"><Label htmlFor="organisation">Organisation / Institution *</Label><Input id="organisation" value={form.organisation} onChange={(e) => handleChange("organisation", e.target.value)} required maxLength={200} /></div>
-              <div className="space-y-2"><Label htmlFor="email">E-Mail *</Label><Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required maxLength={255} /></div>
-              <div className="space-y-2"><Label htmlFor="eventType">Art der Veranstaltung</Label><Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} maxLength={200} /></div>
-              <div className="space-y-2"><Label htmlFor="date">Datum / Zeitraum</Label><Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} maxLength={100} /></div>
-              <div className="space-y-2"><Label htmlFor="location">Ort der Veranstaltung</Label><Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} maxLength={200} /></div>
-              <div className="space-y-2"><Label htmlFor="visitors">Erwartete Besucherzahl</Label><Select value={form.visitors} onValueChange={(v) => handleChange("visitors", v)}><SelectTrigger id="visitors"><SelectValue placeholder="Bitte wählen" /></SelectTrigger><SelectContent><SelectItem value="bis 100">bis 100</SelectItem><SelectItem value="100–500">100–500</SelectItem><SelectItem value="500–1000">500–1.000</SelectItem><SelectItem value="über 1000">über 1.000</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label htmlFor="epoch">Gewünschte Epoche</Label><Select value={form.epoch} onValueChange={(v) => handleChange("epoch", v)}><SelectTrigger id="epoch"><SelectValue placeholder="Bitte wählen" /></SelectTrigger><SelectContent><SelectItem value="Spätmittelalter">Spätmittelalter</SelectItem><SelectItem value="Napoleonik">Napoleonik</SelectItem><SelectItem value="Erster Weltkrieg">Erster Weltkrieg</SelectItem><SelectItem value="Mehrere">Mehrere</SelectItem><SelectItem value="Offen">Offen</SelectItem></SelectContent></Select></div>
-            </div>
-            <div className="space-y-2"><Label htmlFor="message">Nachricht / Weitere Informationen</Label><Textarea id="message" value={form.message} onChange={(e) => handleChange("message", e.target.value)} rows={4} maxLength={5000} /></div>
-            <Button type="submit" disabled={loading} className="w-full md:w-auto">{loading ? "Wird gesendet…" : "Anfrage senden"}</Button>
-          </form>
+          <VeranstalterFelder />
         </motion.section>
       </div>
 

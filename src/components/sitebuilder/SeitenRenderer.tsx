@@ -1,7 +1,8 @@
 import {
   Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
-  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
-  Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
+  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Seitenkopf,
+  Termine, Textabschnitt, Titelbild, Trennlinie, Ueberschrift, Veranstalteranfrage,
+  ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten } from "./Hinweiskasten";
@@ -31,6 +32,7 @@ type BausteinKomponente = (props: Record<string, unknown>) => JSX.Element | null
 
 const BAUSTEINE: Record<string, BausteinKomponente> = {
   Titelbild,
+  Seitenkopf,
   Ueberschrift,
   Textabschnitt,
   ZweiSpalten,
@@ -46,6 +48,7 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Darstellungen,
   Termine,
   Kontaktformular,
+  Veranstalteranfrage,
   Willkommen,
   Eckdaten,
   Zeitstrahl,
@@ -56,6 +59,16 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Trennlinie,
   EigenesHtml,
 } as unknown as Record<string, BausteinKomponente>;
+
+/**
+ * Welche Bausteine diese Fassung kennt.
+ *
+ * Nach aussen gegeben fuer den Test, der sie mit der Liste im Editor
+ * vergleicht. Ein Baustein, der hier fehlt, wird oben stillschweigend
+ * uebersprungen – im Editor sichtbar, auf der Seite weg. Genau so ein
+ * lautloser Ausfall soll nicht noch einmal vorkommen.
+ */
+export const BAUSTEIN_NAMEN = Object.keys(BAUSTEINE);
 
 export interface SeitenDaten {
   content?: { type: string; props?: Record<string, unknown> }[];

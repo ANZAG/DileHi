@@ -103,11 +103,42 @@ function ueberschriften(text, quelle = false) {
   return raus;
 }
 
+/**
+ * Die Bilder mit ihrer Breite.
+ *
+ * Der Textvergleich oben haette den auffaelligsten Fehler der bisherigen
+ * Umzuege nicht gefunden: Eine Uniformtafel, die im Original 512 Pixel breit
+ * ist, stand in der neuen Fassung ueber die vollen 704 – kein Wort fehlte,
+ * die Seite sah trotzdem anders aus. Deshalb hier ausdruecklich.
+ */
+function bilder(datei, quelle = false) {
+  if (quelle) {
+    const s = readFileSync(datei, "utf-8");
+    const namen = {};
+    for (const m of s.matchAll(/const\s+(\w+)\s*=\s*useSiteImage\("([^"]+)"\)/g)) namen[m[1]] = m[2];
+    return [...s.matchAll(
+      /<div className="(rounded-lg overflow-hidden[^"]*)">\s*<img src=\{(\w+)\.src\}/g
+    )].map((m) => ({
+      schluessel: namen[m[2]] ?? m[2],
+      breite: m[1].includes("max-w-md") ? "schmal"
+        : m[1].includes("max-w-lg") ? "mittel"
+        : "voll",
+    }));
+  }
+  const sql = readFileSync(datei, "utf-8");
+  const daten = JSON.parse(sql.match(/'(\{.*?\})'::jsonb/s)[1]);
+  return (daten.content ?? [])
+    .filter((b) => b.type === "Einzelbild")
+    .map((b) => ({ schluessel: b.props.bildSchluessel, breite: b.props.bildbreite ?? "voll" }));
+}
+
 const paare = [
   ["src/pages/EpochMedieval.tsx", "supabase/migrations/20260908080000_prototyp_spaetmittelalter.sql"],
   ["src/pages/Epoch1815.tsx", "supabase/migrations/20260908120000_seite_napoleonik.sql"],
   ["src/pages/EpochWW1.tsx", "supabase/migrations/20260908130000_seite_wk1.sql"],
   ["src/pages/Index.tsx", "supabase/migrations/20260908110000_seite_startseite.sql"],
+  ["src/pages/About.tsx", "supabase/migrations/20260908190000_seite_verein.sql"],
+  ["src/pages/FuerVeranstalter.tsx", "supabase/migrations/20260908200000_seite_fuer_veranstalter.sql"],
 ];
 
 let fehler = 0;
@@ -139,22 +170,40 @@ for (const [quelle, migration] of paare) {
     reihenfolgeNeu.length !== reihenfolgeQuelle.length ||
     reihenfolgeNeu.every((h, i) => h === reihenfolgeQuelle[i]);
 
-  const inOrdnung = fehlend.length === 0 && hFehlend.length === 0 && reihenfolgePasst;
+  // Bilder mit ihrer Breite – Reihenfolge und Zuschnitt muessen stimmen.
+  const bQuelle = bilder(quelle, true);
+  const bNeu = bilder(migration);
+  const bAbweichung = bQuelle
+    .map((b, i) => {
+      const gegen = bNeu[i];
+      if (!gegen) return `${b.schluessel} fehlt`;
+      if (gegen.schluessel !== b.schluessel) return `${b.schluessel} statt ${gegen.schluessel}`;
+      if (gegen.breite !== b.breite) return `${b.schluessel}: Breite ${gegen.breite} statt ${b.breite}`;
+      return null;
+    })
+    .filter(Boolean);
+
+  const inOrdnung =
+    fehlend.length === 0 && hFehlend.length === 0 && reihenfolgePasst && bAbweichung.length === 0;
+  const maengel = [
+    fehlend.length ? `${fehlend.length} Satz/Saetze fehlen` : null,
+    hFehlend.length ? `${hFehlend.length} Ueberschrift(en) fehlen` : null,
+    reihenfolgePasst ? null : "Reihenfolge weicht ab",
+    bAbweichung.length ? `${bAbweichung.length} Bild(er) weichen ab` : null,
+  ].filter(Boolean);
+
   console.log(
-    `${quelle.padEnd(30)} ${inOrdnung ? "vollstaendig" : ""}` +
-    `${fehlend.length ? `${fehlend.length} Satz/Saetze` : ""}` +
-    `${hFehlend.length ? ` ${hFehlend.length} Ueberschrift(en)` : ""}` +
-    `${reihenfolgePasst ? "" : " Reihenfolge weicht ab"}` +
-    `${inOrdnung ? "" : " fehlen"}` +
-    `  (${hQuelle.length} Ueberschriften geprueft)`
+    `${quelle.padEnd(30)} ${inOrdnung ? "vollstaendig" : maengel.join(", ")}` +
+    `  (${hQuelle.length} Ueberschriften, ${bQuelle.length} Bilder geprueft)`
   );
   for (const h of hFehlend) console.log(`   – Ueberschrift: ${h}`);
+  for (const b of bAbweichung) console.log(`   – Bild: ${b}`);
   for (const s of fehlend.slice(0, 4)) console.log(`   – ${s.slice(0, 110)}…`);
   if (!reihenfolgePasst) {
     console.log(`   Quelle:  ${hQuelle.join(" · ")}`);
     console.log(`   Editor:  ${hNeu.join(" · ")}`);
   }
-  fehler += fehlend.length + hFehlend.length + (reihenfolgePasst ? 0 : 1);
+  fehler += fehlend.length + hFehlend.length + bAbweichung.length + (reihenfolgePasst ? 0 : 1);
 }
 
 process.exit(fehler > 0 ? 1 : 0);

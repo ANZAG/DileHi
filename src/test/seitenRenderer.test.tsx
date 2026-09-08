@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import SeitenRenderer, { type SeitenDaten } from "@/components/sitebuilder/SeitenRenderer";
+import SeitenRenderer, { BAUSTEIN_NAMEN, type SeitenDaten } from "@/components/sitebuilder/SeitenRenderer";
+import { puckConfig } from "@/components/sitebuilder/puckConfig";
 
 // Die Bausteine fragen Bilder, Quellen und Highlights aus der Datenbank ab.
 // Hier geht es nur um das Zusammensetzen der Seite, deshalb ein stiller Ersatz.
@@ -103,6 +104,16 @@ describe("Seitenaufbau", () => {
   it("verträgt eine leere Seite", () => {
     const { container } = zeige({ content: [] });
     expect(container.textContent).toBe("");
+  });
+
+  it("kennt jeden Baustein, den der Editor anbietet", () => {
+    // Der Renderer hat eine eigene Liste, weil die oeffentliche Seite ohne
+    // Pucks Bündel auskommen soll. Zwei Listen laufen auseinander: Wer einen
+    // Baustein hinzufuegt und diese hier vergisst, baut eine Seite, die im
+    // Editor richtig aussieht und oeffentlich eine Luecke hat – ohne Fehler.
+    const imEditor = Object.keys(puckConfig.components);
+    const fehlend = imEditor.filter((name) => !BAUSTEIN_NAMEN.includes(name));
+    expect(fehlend).toEqual([]);
   });
 
   it("verträgt fehlende Daten", () => {
