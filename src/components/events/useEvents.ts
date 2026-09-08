@@ -382,7 +382,6 @@ export function useEvents() {
     return `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`;
   };
 
-  const selectedDayEvents = selectedDate ? eventsForDay(selectedDate) : [];
 
   const copyCalendarUrl = () => {
     if (personalIcalUrl) {
@@ -440,7 +439,7 @@ export function useEvents() {
     openCreate, openEdit, resetForm,
     eventsForDay, isMultiDay, toDateOnly,
     eventAttendees, isAttending, hasDeclined, eventDeclines, canEdit,
-    formatTimeDisplay, selectedDayEvents,
+    formatTimeDisplay,
     copyCalendarUrl,
     getFormForEvent, hasSubmittedForm, getThreadForEvent,
     openUnsubmittedForms,

@@ -24,6 +24,8 @@ export interface ForumCategory {
   sort_order: number;
   status: CategoryStatus;
   is_event_room: boolean;
+  /** Rubrik, die sich nur ueber Veranstaltungen fuellt – kein Thema von Hand. */
+  only_auto_threads: boolean;
   created_by: string | null;
 }
 
@@ -37,6 +39,8 @@ export interface ForumThread {
   is_locked: boolean;
   is_archived: boolean;
   event_id: string | null;
+  /** Nicht NULL = gehoert zu einer Veranstaltung, auch wenn die geloescht ist. */
+  event_ends_on: string | null;
   post_count: number;
   last_post_at: string;
   last_post_by: string | null;
@@ -238,4 +242,87 @@ export async function createPollPost(input: {
     created_by: input.userId,
   });
   if (error) throw new Error(error.message);
+}
+
+// ══ Moderation ═══════════════════════════════════════════════════════════════
+//
+// Die Rechte dafuer gab es in der Datenbank von Anfang an – nur keinen Knopf.
+// Wer moderieren durfte, konnte es faktisch nicht.
+
+export interface ThreadPatch {
+  title?: string;
+  category_id?: string;
+  is_pinned?: boolean;
+  is_locked?: boolean;
+  is_archived?: boolean;
+}
+
+export async function updateThread(id: string, patch: ThreadPatch) {
+  const daten: Record<string, unknown> = { ...patch };
+  // Der Titel bestimmt die Adresse mit – sonst zeigt der Link auf den alten.
+  if (patch.title !== undefined) {
+    daten.title = patch.title.trim();
+    daten.slug = slugify(patch.title);
+  }
+  const { error } = await db.from("forum_threads").update(daten).eq("id", id);
+  if (error) throw new Error(uebersetzeFehler(error.message));
+}
+
+export async function deleteThread(id: string) {
+  const { error } = await db.from("forum_threads").delete().eq("id", id);
+  if (error) throw new Error(uebersetzeFehler(error.message));
+}
+
+export async function updatePost(input: {
+  postId: string;
+  body: string;
+  userId: string;
+  originalBody: string;
+}) {
+  // Erst den alten Stand sichern, dann aendern. Andersherum waere der alte
+  // Stand weg, falls das Schreiben des Verlaufs scheitert.
+  const { error: histError } = await db.from("forum_post_revisions").insert({
+    post_id: input.postId,
+    body: input.originalBody,
+    edited_by: input.userId,
+  });
+  if (histError) throw new Error(histError.message);
+
+  const { error } = await db
+    .from("forum_posts")
+    .update({ body: input.body, edited_at: new Date().toISOString(), edited_by: input.userId })
+    .eq("id", input.postId);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Weiches Entfernen: Der Beitrag verschwindet aus der Anzeige, aber es bleibt
+ * sichtbar, dass dort einer war. Fuer einen Verein mit Protokollcharakter ist
+ * das der Unterschied zwischen „entfernt" und „hat es nie gegeben".
+ */
+export async function removePost(postId: string, userId: string) {
+  const { error } = await db
+    .from("forum_posts")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+    .eq("id", postId);
+  if (error) throw new Error(error.message);
+}
+
+export async function restorePost(postId: string) {
+  const { error } = await db
+    .from("forum_posts")
+    .update({ deleted_at: null, deleted_by: null })
+    .eq("id", postId);
+  if (error) throw new Error(error.message);
+}
+
+/** Die Schutzregeln melden sich mit Klartext – der soll auch ankommen. */
+function uebersetzeFehler(message: string): string {
+  if (message.includes("Veranstaltung geloescht")) {
+    return "Diese Absprache gehört zu einer Veranstaltung. Sie wandert ins Archiv, wenn der Termin gelöscht wird.";
+  }
+  if (message.includes("Termin laeuft")) {
+    return "Solange der Termin läuft, kann die Absprache nicht archiviert werden.";
+  }
+  return message;
 }

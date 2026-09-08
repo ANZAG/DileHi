@@ -29,6 +29,8 @@ const Admin = () => {
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
+  // Welcher Reiter offen ist. null heisst „der, in dem das Geöffnete liegt".
+  const [offeneGruppeTitel, setOffeneGruppeTitel] = useState<string | null>(null);
 
   if (!canAdmin) return <Navigate to="/intern" replace />;
 
@@ -93,6 +95,21 @@ const Admin = () => {
     if (tabs.length > 0) gruppen.push({ titel, tabs });
   }
 
+  const offeneGruppe =
+    gruppen.find((g) => g.titel === offeneGruppeTitel) ??
+    gruppen.find((g) => g.tabs.some((t) => t.id === activeTab)) ??
+    gruppen[0];
+
+  /** Reiter wechseln zeigt gleich dessen erste Kachel – wie man es von
+   *  Reitern erwartet. Nur umschalten und darunter den alten Inhalt stehen
+   *  lassen wäre die verwirrendere Hälfte. */
+  const oeffneGruppe = (gruppe: (typeof gruppen)[number]) => {
+    setOffeneGruppeTitel(gruppe.titel);
+    if (!gruppe.tabs.some((t) => t.id === activeTab) && gruppe.tabs[0]) {
+      setActiveTab(gruppe.tabs[0].id);
+    }
+  };
+
   return (
     <div className={`container py-8 sm:py-12 px-4 ${activeTab === "formtemplate" ? "max-w-6xl" : "max-w-4xl"}`}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -103,14 +120,37 @@ const Admin = () => {
           <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
         </div>
 
-        <div className="space-y-5 mb-8">
-          {gruppen.map((gruppe) => (
-            <section key={gruppe.titel}>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        {/* Die Gruppen als Reiter. Nach dem Gruppieren standen dreizehn Kacheln
+            untereinander und schoben den eigentlichen Inhalt weit nach unten –
+            der Ueberblick war gewonnen, der Platz verloren. So ist beides da:
+            vier Reiter in einer Zeile, darunter nur die Kacheln der offenen
+            Gruppe. */}
+        <div className="mb-4 flex flex-wrap gap-1 border-b">
+          {gruppen.map((gruppe) => {
+            const aktiv = gruppe === offeneGruppe;
+            return (
+              <button
+                key={gruppe.titel}
+                type="button"
+                onClick={() => oeffneGruppe(gruppe)}
+                aria-current={aktiv ? "true" : undefined}
+                className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+                  aktiv
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 {gruppe.titel}
-              </h2>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mb-8">
+          {offeneGruppe && (
+            <section>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {gruppe.tabs.map((tab) => (
+                {offeneGruppe.tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
@@ -130,7 +170,7 @@ const Admin = () => {
                 ))}
               </div>
             </section>
-          ))}
+          )}
         </div>
 
         <div className="p-5 rounded-lg border bg-card">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Pin, Lock, Plus, MessageSquare, Archive } from "lucide-react";
+import { ArrowLeft, Pin, Lock, Plus, MessageSquare, Archive, ChevronDown } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default function ForumCategory() {
   const queryClient = useQueryClient();
 
   const [composing, setComposing] = useState(false);
+  const [zeigeArchiv, setZeigeArchiv] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
@@ -60,6 +61,12 @@ export default function ForumCategory() {
 
   const bodyIsEmpty = body.replace(/<[^>]*>/g, "").trim() === "";
 
+  // Archiviertes steht nicht zwischen den laufenden Themen, sondern darunter
+  // und zugeklappt. Weggeworfen wird nichts – Vereine schlagen erstaunlich oft
+  // nach, wie es im letzten Jahr lief.
+  const laufend = threads.filter((t) => !t.is_archived);
+  const archiviert = threads.filter((t) => t.is_archived);
+
   if (!category) {
     return (
       <div className="container py-16 text-center max-w-lg px-4">
@@ -82,7 +89,10 @@ export default function ForumCategory() {
               <p className="text-sm text-muted-foreground">{category.description}</p>
             )}
           </div>
-          {!composing && (
+          {/* In der Terminrubrik entsteht jedes Thema aus einer Veranstaltung.
+              Ein Knopf, der dort nur eine Fehlermeldung erzeugt, gehoert weg –
+              die Regel selbst steht in der Datenbank. */}
+          {!composing && !category.only_auto_threads && (
             <Button size="sm" onClick={() => setComposing(true)}>
               <Plus size={15} className="mr-1" /> Neues Thema
             </Button>
@@ -127,12 +137,14 @@ export default function ForumCategory() {
           <div className="py-16 text-center border rounded-lg bg-card">
             <MessageSquare className="mx-auto mb-3 text-muted-foreground" size={30} />
             <p className="text-sm text-muted-foreground">
-              Noch kein Thema. Fang gern an – so bleibt es nicht leer.
+              {category.only_auto_threads
+                ? "Hier erscheint zu jeder Veranstaltung eine Absprache, sobald ein Termin angelegt wird."
+                : "Noch kein Thema. Fang gern an – so bleibt es nicht leer."}
             </p>
           </div>
         ) : (
           <ul className="divide-y rounded-lg border bg-card overflow-hidden">
-            {threads.map((t) => (
+            {laufend.map((t) => (
               <li key={t.id}>
                 <Link
                   to={`/intern/forum/thema/${t.id}`}
@@ -157,6 +169,48 @@ export default function ForumCategory() {
               </li>
             ))}
           </ul>
+        )}
+
+        {archiviert.length > 0 && (
+          <div className="mt-6">
+            <button
+              type="button"
+              aria-expanded={zeigeArchiv}
+              onClick={() => setZeigeArchiv(!zeigeArchiv)}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <Archive size={14} />
+              Archiv ({archiviert.length})
+              <ChevronDown size={14} className={`transition-transform ${zeigeArchiv ? "rotate-180" : ""}`} />
+            </button>
+
+            {zeigeArchiv && (
+              <ul className="divide-y rounded-lg border bg-card overflow-hidden mt-2 opacity-80">
+                {archiviert.map((t) => (
+                  <li key={t.id}>
+                    <Link
+                      to={`/intern/forum/thema/${t.id}`}
+                      className="flex items-center gap-3 p-3 hover:bg-muted/40 transition-colors group"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          <Archive size={13} className="text-muted-foreground shrink-0" />
+                          <span className="text-sm group-hover:text-primary transition-colors">{t.title}</span>
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          letzter Beitrag{" "}
+                          {formatDistanceToNow(parseISO(t.last_post_at), { locale: de, addSuffix: true })}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                        {t.post_count}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </motion.div>
     </div>
