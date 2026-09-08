@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3";
+import { seitenAdresse, vereinsAdresse } from "../_shared/mail.ts";
 
 /**
  * Push-Meldungen für Forumsbeiträge.
@@ -31,7 +32,10 @@ Deno.serve(async (req) => {
 
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY");
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-  const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:vorstand@dilehi.de";
+  // Der Push-Dienst verlangt eine Kontaktadresse des Absenders. Ohne
+  // eigenes Secret ist das die Vereinsadresse – nicht unsere.
+  const subject = Deno.env.get("VAPID_SUBJECT")
+    ?? `mailto:${await vereinsAdresse()}`;
 
   // Der öffentliche Schlüssel wird vom Browser zum Anmelden gebraucht. Ihn hier
   // auszuliefern erspart es, ihn in den Build zu backen – und für eine eigene
@@ -89,7 +93,7 @@ Deno.serve(async (req) => {
 
   webpush.setVapidDetails(subject, publicKey, privateKey);
 
-  const siteUrl = (Deno.env.get("SITE_URL") || "https://www.dilehi.de").replace(/\/$/, "");
+  const siteUrl = await seitenAdresse();
   const payload = JSON.stringify({
     title: `${profile?.display_name || "Ein Mitglied"} hat geantwortet`,
     body: thread?.title ?? "Neuer Beitrag im Forum",

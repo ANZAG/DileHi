@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  sendeMail, escapeHtml, buildEmailWrapper, buildButton, seitenAdresse,
-} from "../_shared/mail.ts";
+import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
+import { baueMail, escapeHtml, knopfHtml } from "../_shared/vorlagen.ts";
+import { marke } from "../_shared/einstellungen.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +97,6 @@ Deno.serve(async (req) => {
       ? `${siteUrl.replace(/\/$/, "")}/anmeldung/${form.public_token}?edit=${editToken}`
       : "";
 
-    const subject = `Anmeldung bestätigt: ${eventTitle}`;
 
     let groupSection = "";
     if (/^https:\/\//.test(groupLink)) {
@@ -110,26 +109,23 @@ Deno.serve(async (req) => {
       `;
     }
 
+    // Die Farben der Kaesten sind Ampelfarben und bleiben; nur der Knopf
+    // traegt die Vereinsfarbe.
+    const m = await marke();
     let editSection = "";
     if (editUrl) {
       editSection = `
         <div style="margin-top: 24px; padding: 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; text-align: center;">
           <p style="margin: 0 0 8px; font-weight: 600; color: #854d0e; font-size: 14px;">✏️ Anmeldung bearbeiten</p>
           <p style="margin: 0 0 12px; font-size: 13px; color: #a16207;">Du kannst deine Anmeldung bis zum Anmeldeschluss jederzeit ändern.</p>
-          ${buildButton(editUrl, "Anmeldung bearbeiten")}
+          ${knopfHtml(editUrl, "Anmeldung bearbeiten", m)}
         </div>
       `;
     }
 
-    const htmlBody = buildEmailWrapper(`
-      <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #a8a29e;">Anmeldebestätigung</p>
-      <p style="margin: 0 0 20px; font-size: 20px; font-family: Georgia, serif; color: #1c1917; font-weight: bold;">${escapeHtml(eventTitle)}</p>
-      
-      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.7;">
-        Hallo ${escapeHtml(name)},<br><br>
-        deine Anmeldung für <strong>${escapeHtml(eventTitle)}</strong> ist bei uns eingegangen. Vielen Dank!
-      </p>
-
+    // Termin, Ort, Bearbeitungslink und Gruppenhinweis sind erzeugte Bloecke,
+    // kein Text zum Umformulieren – sie stehen als {{block}} in der Vorlage.
+    const block = `
       <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 20px;">
         ${eventDate ? `
         <tr>
@@ -142,16 +138,17 @@ Deno.serve(async (req) => {
           <td style="padding: 10px 0; border-bottom: 1px solid #e7e5e4; font-size: 14px; color: #292524;">${escapeHtml(eventLocation)}</td>
         </tr>` : ""}
       </table>
-
       ${editSection}
       ${groupSection}
+    `;
 
-      <p style="margin: 20px 0 0; font-size: 13px; color: #57534e;">
-        Bei Fragen kannst du dich jederzeit an <a href="mailto:vorstand@dilehi.de" style="color: #dd9933;">vorstand@dilehi.de</a> wenden.
-      </p>
-    `);
+    const { betreff, html } = await baueMail(
+      "veranstaltung_anmeldung",
+      { name, veranstaltung: eventTitle },
+      { block }
+    );
 
-    await sendeMail(email, subject, htmlBody);
+    await sendeMail(email, betreff, html);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

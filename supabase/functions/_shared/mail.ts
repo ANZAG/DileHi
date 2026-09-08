@@ -14,12 +14,11 @@
 // (backup-export) schreibt alle öffentlichen Tabellen nach GitHub. Ein
 // SMTP-Passwort in app_settings läge damit in jedem Sicherungslauf.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { sendEmailViaMsGraph } from "./ms-email.ts";
+import { einstellungen } from "./einstellungen.ts";
 
-export { escapeHtml, buildEmailWrapper, buildButton } from "./ms-email.ts";
-export type { SignatureInfo } from "./ms-email.ts";
+export { escapeHtml } from "./ms-email.ts";
 
 export interface MailOptionen {
   bcc?: string | string[];
@@ -58,25 +57,17 @@ export async function versandweg(): Promise<Versandweg> {
   };
 
   try {
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-    const { data } = await admin
-      .from("app_settings")
-      .select("mail_transport, mail_from_address, mail_from_name, mail_reply_to, org_email, website_url")
-      .maybeSingle();
+    const s = await einstellungen();
+    if (!s.mail_transport && !s.org_email) return vorgabe;
 
-    const stand: Versandweg = data
-      ? {
-          weg: data.mail_transport === "smtp" ? "smtp" : "microsoft_graph",
-          absender: data.mail_from_address || null,
-          absenderName: data.mail_from_name || null,
-          antwortAn: data.mail_reply_to || null,
-          vereinsMail: data.org_email || data.mail_from_address || null,
-          seite: (data.website_url || "").replace(/\/$/, "") || null,
-        }
-      : vorgabe;
+    const stand: Versandweg = {
+      weg: s.mail_transport === "smtp" ? "smtp" : "microsoft_graph",
+      absender: (s.mail_from_address as string) || null,
+      absenderName: (s.mail_from_name as string) || null,
+      antwortAn: (s.mail_reply_to as string) || null,
+      vereinsMail: (s.org_email as string) || (s.mail_from_address as string) || null,
+      seite: ((s.website_url as string) || "").replace(/\/$/, "") || null,
+    };
 
     gemerkt = { stand, bis: Date.now() + 60_000 };
     return stand;
