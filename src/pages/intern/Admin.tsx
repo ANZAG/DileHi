@@ -16,8 +16,9 @@ import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
 import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
 import EmbedAdmin from "@/components/admin/EmbedAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
+import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages";
 
 
 const Admin = () => {
@@ -50,6 +51,9 @@ const Admin = () => {
       { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" },
     ] : []),
     { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
+    ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
+      { id: "sitepages" as const, gruppe: "website", label: "Seiten", icon: FileText, desc: "Öffentliche Seiten zusammenstellen" },
+    ] : []),
     ...(hasPermission("gallery.manage") ? [
       { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder verwalten" },
     ] : []),
@@ -177,6 +181,7 @@ const Admin = () => {
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
           {activeTab === "messages" && <ContactMessages />}
+          {activeTab === "sitepages" && (hasPermission("site.content_edit") || hasPermission("site.layout_edit")) && <SitePagesAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}

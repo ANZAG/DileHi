@@ -63,8 +63,10 @@ const Login                = lazyPage(() => import("./pages/Login"));
 const ResetPassword        = lazyPage(() => import("./pages/ResetPassword"));
 const EventRegistration    = lazyPage(() => import("./pages/EventRegistration"));
 const MembershipApplication = lazyPage(() => import("./pages/MembershipApplication"));
+const SeiteAnzeigen        = lazyPage(() => import("./pages/SeiteAnzeigen"));
 
 const Dashboard            = lazyPage(() => import("./pages/intern/Dashboard"));
+const SeitenEditor         = lazyPage(() => import("./pages/intern/SeitenEditor"));
 const Forum                = lazyPage(() => import("./pages/intern/Forum"));
 const ForumCategory        = lazyPage(() => import("./pages/intern/ForumCategory"));
 const ForumThread          = lazyPage(() => import("./pages/intern/ForumThread"));
@@ -141,6 +143,7 @@ const App = () => (
                 <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                 <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
                 <Route path="/intern/verwaltung/berechtigungen" element={<ProtectedRoute><RolesPermissions /></ProtectedRoute>} />
+                <Route path="/intern/seiten/:pageId" element={<ProtectedRoute><SeitenEditor /></ProtectedRoute>} />
                 <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
 
                 <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
@@ -152,7 +155,10 @@ const App = () => (
 
                 <Route path="/anmeldung/:token" element={<EventRegistration />} />
                 <Route path="/mitglied-werden" element={<MembershipApplication />} />
-                <Route path="*" element={<NotFound />} />
+                {/* Ganz am Ende: Was keine feste Route trifft, koennte eine im
+                    Editor gebaute Seite sein. Gibt es sie nicht, zeigt
+                    SeiteAnzeigen selbst die 404-Seite. */}
+                <Route path="*" element={<SeiteAnzeigen />} />
               </Routes>
             </Suspense>
             <AppUpdatePrompt />
