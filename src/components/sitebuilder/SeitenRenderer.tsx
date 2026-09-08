@@ -1,7 +1,7 @@
 import {
-  Abstandhalter, Besucherhinweis, Bildnachweise, EigenesHtml, Einzelbild, Galerie,
-  Karten, Kennzahlen, Knopf, Quellen, Textabschnitt, Titelbild, Trennlinie,
-  Ueberschrift, ZweiSpalten,
+  Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
+  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
+  Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
 } from "./bausteine";
 
 /**
@@ -39,6 +39,10 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Bildnachweise,
   Besucherhinweis,
   Quellen,
+  Logos,
+  Darstellungen,
+  Termine,
+  Kontaktformular,
   Abstandhalter,
   Trennlinie,
   EigenesHtml,

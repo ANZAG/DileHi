@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { convertToWebP } from "@/lib/imageConversion";
 
 const EPOCH_OPTIONS = [
   { value: "mittelalter", label: "Spätmittelalter" },
@@ -24,32 +25,6 @@ interface GalleryImage {
 }
 
 /** Converts any image File to WebP using the Canvas API */
-const convertToWebP = (file: File): Promise<File> =>
-  new Promise((resolve, reject) => {
-    const img = document.createElement("img");
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext("2d")?.drawImage(img, 0, 0);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Konvertierung fehlgeschlagen"));
-            return;
-          }
-          const baseName = file.name.replace(/\.[^/.]+$/, "");
-          resolve(new File([blob], `${baseName}.webp`, { type: "image/webp" }));
-        },
-        "image/webp",
-        0.85
-      );
-    };
-    img.onerror = () => reject(new Error("Bild konnte nicht geladen werden"));
-    img.src = objectUrl;
-  });
 
 const GalleryAdmin = () => {
   const { user } = useAuth();

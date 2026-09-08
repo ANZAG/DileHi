@@ -9,6 +9,7 @@ import { useSiteImage } from "@/hooks/useSiteImage";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 import ImageCredits from "@/components/epochs/ImageCredits";
+import KontaktFelder from "@/components/kontakt/KontaktFelder";
 import {
   abstandKlasse, breitenKlasse, grundKlasse, polsterung, textKlasse,
   type Abstand, type Breite, type Hintergrund, type Textfarbe,
@@ -472,6 +473,185 @@ export function Bildnachweise({
   return (
     <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand ?? "eng")}`}>
       <ImageCredits credits={nachweise ?? []} />
+    </section>
+  );
+}
+
+// ── Logos (Partner, Sponsoren, Mitgliedschaften) ────────────────────────────
+
+export function Logos({
+  ueberschrift, logos, groesse, breite, abstand,
+}: Gemeinsam & {
+  ueberschrift?: string;
+  logos: { bildSchluessel: string; name: string; ziel?: string }[];
+  groesse: "klein" | "mittel" | "gross";
+}) {
+  const liste = (logos ?? []).filter((l) => l.bildSchluessel);
+  if (liste.length === 0) return null;
+  const hoehen = { klein: "h-10", mittel: "h-16", gross: "h-24" };
+
+  return (
+    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstand)}`}>
+      {ueberschrift && (
+        <h2 className="font-serif text-2xl font-semibold mb-6 text-center">{ueberschrift}</h2>
+      )}
+      <div className="flex flex-wrap items-center justify-center gap-8">
+        {liste.map((l, i) => (
+          <LogoBild key={i} {...l} hoehe={hoehen[groesse] ?? hoehen.mittel} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LogoBild({ bildSchluessel, name, ziel, hoehe }: {
+  bildSchluessel: string; name: string; ziel?: string; hoehe: string;
+}) {
+  const bild = useSiteImage(bildSchluessel);
+  // Graustufen und volle Farbe beim Überfahren: So wirken Logos verschiedener
+  // Herkunft nebeneinander ruhig, statt jedes für sich um Aufmerksamkeit zu
+  // kämpfen.
+  const img = (
+    <img
+      src={bild.src}
+      alt={name || bild.alt}
+      loading="lazy"
+      className={`${hoehe} w-auto object-contain opacity-70 grayscale
+        hover:opacity-100 hover:grayscale-0 transition-all`}
+    />
+  );
+  if (!ziel) return img;
+  return <a href={ziel} target="_blank" rel="noreferrer" title={name}>{img}</a>;
+}
+
+// ── Darstellungen ───────────────────────────────────────────────────────────
+
+interface OeffentlicheDarstellung {
+  period: string;
+  portrayal: string;
+  expertise: string | null;
+  images: string[] | null;
+}
+
+export function Darstellungen({
+  kategorie, ueberschrift, spalten, breite, abstand,
+}: Gemeinsam & { kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei" }) {
+  const { data: alle = [] } = useQuery({
+    queryKey: ["public-personas"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_public_personas");
+      return (data ?? []) as OeffentlicheDarstellung[];
+    },
+  });
+
+  // Ohne Kategorie alle zeigen – ein Verein mit nur einer Darstellungszeit
+  // soll sich nicht erst überlegen müssen, was er hier einträgt.
+  const liste = kategorie ? alle.filter((d) => d.period === kategorie) : alle;
+
+  if (liste.length === 0) {
+    return (
+      <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+        <p className="text-sm text-muted-foreground">
+          Hier erscheinen die Darstellungen, die der Herold freigegeben hat.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstand)}`}>
+      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
+      <div className={`grid gap-4 ${spalten === "zwei" ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+        {liste.map((d, i) => (
+          <article key={i} className="rounded-lg border bg-card overflow-hidden">
+            {d.images?.[0] && (
+              <img
+                src={supabase.storage.from("gallery").getPublicUrl(d.images[0]).data.publicUrl}
+                alt={d.portrayal}
+                loading="lazy"
+                className="w-full aspect-[3/4] object-cover"
+              />
+            )}
+            <div className="p-4">
+              <h3 className="font-serif font-semibold">{d.portrayal}</h3>
+              {d.expertise && <p className="text-sm text-muted-foreground mt-1">{d.expertise}</p>}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Nächste Veranstaltungen ─────────────────────────────────────────────────
+
+interface OeffentlicherTermin {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string | null;
+  location: string | null;
+  all_day: boolean;
+}
+
+export function Termine({
+  ueberschrift, anzahl, breite, abstand,
+}: Gemeinsam & { ueberschrift?: string; anzahl: number }) {
+  const { data: termine = [] } = useQuery({
+    queryKey: ["oeffentliche-termine", anzahl],
+    queryFn: async () => {
+      // Nur öffentliche Termine – die Policy lässt für Gäste ohnehin nichts
+      // anderes zu, aber der Filter macht die Absicht sichtbar.
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, start_date, end_date, location, all_day")
+        .eq("is_public", true)
+        .gte("start_date", new Date().toISOString())
+        .order("start_date")
+        .limit(anzahl || 5);
+      return (data ?? []) as OeffentlicherTermin[];
+    },
+  });
+
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
+      {termine.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Zurzeit sind keine Termine öffentlich angekündigt.</p>
+      ) : (
+        <ul className="divide-y rounded-lg border bg-card overflow-hidden">
+          {termine.map((t) => (
+            <li key={t.id} className="flex items-center gap-4 p-4">
+              <div className="text-center min-w-[48px] shrink-0">
+                <div className="text-xs text-muted-foreground uppercase">
+                  {new Date(t.start_date).toLocaleDateString("de-DE", { month: "short" })}
+                </div>
+                <div className="text-xl font-bold leading-none">
+                  {new Date(t.start_date).getDate()}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium">{t.title}</p>
+                {t.location && <p className="text-sm text-muted-foreground break-words">{t.location}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ── Kontaktformular ─────────────────────────────────────────────────────────
+
+export function Kontaktformular({
+  ueberschrift, hinweis, breite, abstand,
+}: Gemeinsam & { ueberschrift?: string; hinweis?: string }) {
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstand)}`}>
+      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-2">{ueberschrift}</h2>}
+      {hinweis && <p className="text-sm text-muted-foreground mb-6">{hinweis}</p>}
+      <KontaktFelder />
     </section>
   );
 }
