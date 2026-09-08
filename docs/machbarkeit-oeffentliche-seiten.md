@@ -213,3 +213,153 @@ WordPress plus phpBB plus Handarbeit kostet, kein schlechter Schnitt.
 4. Puck bleibt der Rückfallplan, falls sich in Schritt 2 herausstellt, dass die
    Vereine doch freieres Layout brauchen. Die Blöcke aus Schritt 3 liessen sich
    in eine Puck-Konfiguration überführen – die Arbeit wäre nicht verloren.
+
+---
+
+# Nachtrag vom 08.09.2026: Entscheidung für Puck
+
+Die Empfehlung oben ist überholt. Eric hat drei Einwände gebracht, die besser
+sind als meine Begründung, und die Prüfung danach hat die verbleibende
+technische Sorge ausgeräumt.
+
+## Warum die Empfehlung oben falsch war
+
+**Mein Argument war:** Ein Baukasten mit Ziehen und Ablegen überfordert
+Vereinsmitglieder und lässt kaputte Seiten zu.
+
+**Dagegen spricht, was tatsächlich der Fall ist:**
+
+1. **Vuozvolc pflegt seine Website heute mit WordPress und Divi – ohne uns.**
+   Divi ist ein Baukasten mit Ziehen und Ablegen. Die Behauptung, so etwas
+   überfordere die Zielgruppe, ist damit empirisch widerlegt, und zwar am
+   konkreten Verein.
+2. **Die Alternative ist teurer, als sie aussieht.** Ein Blockeditor ohne freies
+   Layout heisst: Für jede neue Seitenform muss jemand programmieren. Vereine,
+   die dafür einen Entwickler brauchen, steigen aus. Der Aufwand verschwindet
+   nicht, er verlagert sich nur zu uns.
+3. **DileHi hat dasselbe Problem.** Zurzeit kann niemand ausser Eric die
+   Website weiterbauen. Das ist kein Randfall der Standalone-Fassung, sondern
+   ein Engpass im eigenen Verein.
+
+Der Punkt, an dem meine Sorge berechtigt war – dass jemand versehentlich das
+Layout zerlegt –, wird von Erics eigenem Vorschlag erledigt: **Rechte
+auftrennen.** Wer Texte und Bilder pflegt, muss das Layout nicht verschieben
+dürfen.
+
+## Puck kann genau diese Trennung von Haus aus
+
+Seit Version 0.16 gibt es eine Rechte-Schnittstelle mit fünf Schaltern:
+
+| Schalter | Wirkung |
+|---|---|
+| `edit` | Felder bearbeiten (entspricht `readOnly` für alle Felder) |
+| `drag` | Bausteine verschieben |
+| `insert` | Bausteine einfügen |
+| `delete` | Bausteine löschen |
+| `duplicate` | Bausteine duplizieren |
+
+Setzbar global, je Baustein und dynamisch. Damit ist die Aufteilung eine
+Handvoll Zeilen, angebunden an unser bestehendes Rechtesystem:
+
+```ts
+// Herold: Inhalte pflegen, Layout nicht anfassen.
+// Siteadmin: alles.
+const rechte = darfLayout
+  ? { edit: true, drag: true, insert: true, delete: true, duplicate: true }
+  : { edit: true, drag: false, insert: false, delete: false, duplicate: false };
+```
+
+Das ist der eigentliche Grund, warum Puck hier passt – nicht das Ziehen und
+Ablegen, sondern dass man es abschalten kann.
+
+## Lizenz: MIT, nicht „ohne Lizenz"
+
+Wichtige Richtigstellung. Puck steht unter der **MIT-Lizenz**
+(`Copyright (c) The Puck Contributors`). Das heisst:
+
+**Erlaubt, ohne zu fragen und ohne zu zahlen:** benutzen, kopieren, verändern,
+in eigene Software einbauen, weitergeben, unterlizenzieren, verkaufen. Auch in
+geschlossenem Quellcode. Es gibt keine Copyleft-Pflicht wie bei der GPL – unser
+Code muss nicht offengelegt werden.
+
+**Die einzige Pflicht:** Der Urheberrechtsvermerk und der Lizenztext müssen bei
+Kopien und wesentlichen Teilen der Software mitgeliefert werden.
+
+Praktisch heisst das: eine Datei mit dem Lizenztext im Projekt und ein Eintrag
+in einer Übersicht der verwendeten Bibliotheken. „Ohne Lizenz" einbinden geht
+nicht und wäre auch nicht nötig – MIT verlangt fast nichts.
+
+## Einbinden statt forken
+
+Ein Fork wäre der falsche Weg, obwohl er erlaubt ist:
+
+- Alles, was wir wollen, geht über dokumentierte Erweiterungspunkte: eigene
+  Komponenten als Bausteine, `overrides` für die Oberfläche, eigene Feldtypen,
+  Plugins, die Rechte-Schnittstelle. Ein Fork kauft uns dafür nichts.
+- Ein Fork von 2,5 MB Code ist ab dem ersten Tag unser Wartungsfall. Jede
+  Fehlerbehebung von oben müsste von Hand nachgezogen werden.
+- Umgekehrt lässt sich jederzeit forken, *wenn* wir an eine Grenze stossen. Der
+  Weg bleibt offen; ihn sofort zu gehen, wäre verfrüht.
+
+**Also: `@puckeditor/core` als normale Abhängigkeit, unsere Komponenten als
+Bausteine.**
+
+## Technische Passung – geprüft, nicht vermutet
+
+Puck 0.23.0 (erschienen 07.08.2026) hängt selbst an Tiptap und Radix – genau
+unserem Stack. Das ist bei ProseMirror kein Detail: Zwei Kopien im selben
+Bundle funktionieren nicht.
+
+Ein Probelauf der Installation zeigt: Puck verlangt `@tiptap/* ^3.11.1`, wir
+haben `3.31.3`. Das erfüllt die Bedingung, npm legt **eine** gemeinsame Kopie
+an. Neu hinzu kommen nur `@tiptap/html` und `@tiptap/extension-text-align`,
+beide in unserer Version. Auch `@radix-ui/react-popover` wird
+zusammengelegt – shadcn/ui baut auf denselben Grundbausteinen.
+
+Insgesamt 45 neue Pakete, davon der grösste Teil Radix-Interna und `@dnd-kit`.
+
+## Was ehrlich dagegen spricht
+
+- **Version 0.23.0 – noch keine 1.0.** Zwischen Nebenversionen gab es bisher
+  brechende Änderungen (0.13, 0.16, 0.21 brachten jeweils Umbauten). Wir sollten
+  auf eine Version festnageln und Aktualisierungen bewusst durchführen, nicht
+  nebenbei.
+- **Die Oberfläche ist englisch.** Es gibt einen `dictionary`-Parameter zum
+  Übersetzen, aber keine mitgelieferte deutsche Fassung. Das ist unsere Arbeit.
+- **`happy-dom` als Laufzeitabhängigkeit** ist ungewöhnlich (sonst ein
+  Testwerkzeug). Muss beim Bündeln beobachtet werden, damit es nicht im
+  Browser-Bundle landet.
+- **Die Sorge bleibt, nur kleiner:** Auch mit abgeschalteten Layout-Rechten
+  kann ein Siteadmin eine Seite zerlegen. Dagegen hilft eine Vorschau und die
+  Trennung von Entwurf und Veröffentlichung – beides ohnehin geplant.
+
+## Aufwand, überarbeitet
+
+| Paket | Tage |
+|---|---|
+| Puck einbinden, Grundgerüst, Speichern als JSON | 1,5 |
+| Unsere Komponenten als Bausteine (Text, Bild, Galerie, Quellen, Highlight, Termine, Formular, Titelbild, Zwei-Spalter, Kennzahlen) | 3 |
+| Rechte anbinden (Herold / Siteadmin), Entwurf und Veröffentlichung | 1,5 |
+| Oberfläche eindeutschen | 1 |
+| Öffentlicher Renderer, Routing, SEO je Seite | 1,5 |
+| Menüverwaltung | 1 |
+| Erscheinungsbild aus `app_settings` anwenden (Farben, Logo, Favicon, Name) | 1,5 |
+| Die 8 bestehenden Seiten auf Bausteine umstellen | 2 |
+| **Summe** | **13** |
+
+Mit 30 % Puffer: **rund 17 Tage**. Das entspricht ungefähr dem Blockeditor –
+der Unterschied ist nicht der Preis, sondern dass am Ende ein Verein ohne uns
+weiterarbeiten kann.
+
+## Vorgehen
+
+1. **Erscheinungsbild zuerst** (1,5 Tage). `app_settings` steht schon in der
+   Datenbank, wird aber nirgends gelesen. Nützt sofort und ist Voraussetzung.
+2. **Eine echte Seite als Prototyp**: „Spätmittelalter" auf Puck umstellen.
+   Diese Seite hat alles, was schwierig ist – Titelbild, Kennzahlen, Fliesstext,
+   Galerie mit Lightbox, Quellen, Bildnachweise, SEO. Wenn sie funktioniert,
+   funktionieren die anderen sieben auch.
+3. Erst danach die restlichen Seiten und die Menüverwaltung.
+
+Schritt 2 ist der eigentliche Test. Er beantwortet innerhalb eines Tages, ob
+die Bausteine tragen – bevor 13 Tage investiert sind.
