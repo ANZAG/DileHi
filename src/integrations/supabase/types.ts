@@ -767,6 +767,7 @@ export type Database = {
           created_by: string
           description: string | null
           end_date: string | null
+          forum_thread_wanted: boolean | null
           id: string
           is_public: boolean
           location: string | null
@@ -782,6 +783,7 @@ export type Database = {
           created_by: string
           description?: string | null
           end_date?: string | null
+          forum_thread_wanted?: boolean | null
           id?: string
           is_public?: boolean
           location?: string | null
@@ -797,6 +799,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           end_date?: string | null
+          forum_thread_wanted?: boolean | null
           id?: string
           is_public?: boolean
           location?: string | null
@@ -1992,6 +1995,14 @@ export type Database = {
         Args: { _response_id: string; _user_id: string }
         Returns: undefined
       }
+      backup_manifest: {
+        Args: never
+        Returns: {
+          approx_rows: number
+          table_name: string
+        }[]
+      }
+      backup_schema_ddl: { Args: never; Returns: string }
       can_vote: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
@@ -2001,9 +2012,25 @@ export type Database = {
         Returns: undefined
       }
       count_members: { Args: never; Returns: number }
+      ensure_event_thread: { Args: { _event_id: string }; Returns: string }
       forum_can: {
         Args: { _category_id: string; _what: string }
         Returns: boolean
+      }
+      forum_mentioned_users: {
+        Args: { _body: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      forum_poll_results: {
+        Args: { _post_id: string }
+        Returns: {
+          namen: string[]
+          note_by: string[]
+          option_key: string
+          stimmen: number
+        }[]
       }
       forum_thread_audience: {
         Args: { _exclude: string; _thread_id: string }
