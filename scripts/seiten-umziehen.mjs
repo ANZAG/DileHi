@@ -1,14 +1,23 @@
 /**
  * Überträgt eine im Code stehende Seite in Bausteine für den Editor.
  *
- * Von Hand abzutippen wäre bei fünf Seiten mit je mehreren tausend Zeichen der
+ * Von Hand abzutippen wäre bei mehreren Seiten à einigen tausend Zeichen der
  * sichere Weg, dabei einen Absatz zu verlieren oder einen Bindestrich zu
  * verändern – und niemand würde es merken. Dieses Skript liest den Text aus der
- * Quelldatei und zählt am Ende nach, wie viele Zeichen übernommen wurden.
+ * Quelldatei; scripts/seiten-pruefen.mjs vergleicht danach beide Fassungen.
  *
- * Bewusst kein allgemeiner JSX-Parser: Es kennt genau die Muster, die in
- * unseren Seiten vorkommen. Für einmalige Umstellungsarbeit ist das die
- * richtige Menge Werkzeug.
+ * Aufbau in zwei Schritten:
+ *
+ *   1. Alle Sonderelemente (Kennzahlen, hervorgehobene Kästen, Galerie,
+ *      Besucherhinweis, Quellen, Bildnachweise) werden aus der Quelle
+ *      herausgelöst und an ihrer Stelle durch einen Platzhalter ersetzt.
+ *   2. Der Rest ist nur noch Fliesstext, Überschriften, Listen und Bilder.
+ *
+ * Der Umweg über Platzhalter ist Absicht. Vorher stand alles in einem grossen
+ * regulären Ausdruck mit einem Dutzend Gruppen, und zweimal hat sich beim
+ * Hinzufügen einer Alternative die Nummerierung verschoben – einmal fielen
+ * sämtliche Überschriften weg, einmal der Besucherhinweis. Beide Male ohne
+ * Fehlermeldung. Deshalb jetzt benannte Gruppen und kleine, getrennte Muster.
  *
  *   node scripts/seiten-umziehen.mjs
  */
@@ -37,28 +46,12 @@ function bildSchluessel(quelle) {
   return map;
 }
 
-/** Der Kennzahlen-Kasten (Zeit / Region / Themen) aus der Quelle. */
-function kennzahlen(quelle) {
-  const eintraege = [];
-  for (const m of quelle.matchAll(
-    /<span className="font-semibold text-foreground">([^<]+)<\/span><p className="text-muted-foreground">([^<]+)<\/p>/g
-  )) {
-    eintraege.push({ titel: saeubern(m[1]), wert: saeubern(m[2]) });
-  }
-  return eintraege;
-}
-
 /** Die Bildnachweise, die am Kopf der Datei als Liste stehen. */
 function bildnachweise(quelle) {
   const block = quelle.match(/const imageCredits = \[([\s\S]*?)\];/);
   if (!block) return [];
-  const raus = [];
-  for (const m of block[1].matchAll(
-    /description: "([^"]*)",\s*source: "([^"]*)",\s*license: "([^"]*)"/g
-  )) {
-    raus.push({ description: m[1], source: m[2], license: m[3] });
-  }
-  return raus;
+  return [...block[1].matchAll(/description: "([^"]*)",\s*source: "([^"]*)",\s*license: "([^"]*)"/g)]
+    .map((m) => ({ description: m[1], source: m[2], license: m[3] }));
 }
 
 /** Titelbild, Überschrift und Unterzeile aus dem Kopfbereich der Seite. */
@@ -76,80 +69,165 @@ function titelbereich(quelle, bilder) {
 }
 
 /**
- * Läuft die Datei einmal durch und meldet, was in welcher Reihenfolge vorkommt.
- * Die Reihenfolge ist der ganze Punkt – ein Bild zwischen zwei Absätzen muss
- * auch nachher dort stehen.
+ * Schneidet ein <div> samt seines Inhalts heraus, bei der passenden Klammer.
+ *
+ * Ein nicht-gieriges `</div>\s*</div>` trifft irgendein Paar, nicht das
+ * richtige – beim Kasten auf der Napoleonik-Seite verschluckte es den
+ * Kennzahlen-Kasten dahinter, weil dessen schliessende Klammern die ersten
+ * waren, die zueinander passten. Zaehlen ist hier die einzige verlaessliche
+ * Methode.
+ *
+ * @returns {{ganz: string, inneres: string, ende: number} | null}
  */
-function elemente(quelle, bilder) {
-  // Der Kopfbereich wird als Titelbild uebernommen und darf nicht noch einmal
-  // als Einzelbild auftauchen; die Galerie kommt als eigener Baustein und ihre
-  // Bilder stehen in einer Schleife, nicht als fester Bildplatz.
-  quelle = quelle
-    .replace(/<section className="relative h-\[40vh\][\s\S]*?<\/section>/, "")
-    .replace(/\{allImages\.map[\s\S]*?\)\}/, "")
-    .replace(/<AnimatePresence>[\s\S]*?<\/AnimatePresence>/, "");
-  // Hervorgehobene Kaesten (bg-primary/5) sind im Original ein eigenes Element
-  // – sie als normalen Text zu uebernehmen wuerde die Hervorhebung verlieren.
-  // Sie werden herausgeloest und an ihrer Stelle vermerkt.
-  const kaesten = [];
-  quelle = quelle.replace(
-    /<div className="p-8 rounded-xl bg-primary\/5[^"]*">([\s\S]*?)<\/div>\s*<\/div>/g,
-    (_, inneres) => {
-      const h = inneres.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
-      const absaetze = [...inneres.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map((m) => saeubern(m[1]));
-      kaesten.push({
-        ueberschrift: h ? saeubern(h[1]) : "",
-        inhalt: absaetze.map((a) => `<p>${a}</p>`).join(""),
-      });
-      return `<!--kasten:${kaesten.length - 1}-->`;
+function divAusschneiden(text, start) {
+  const oeffnend = text.indexOf(">", start);
+  if (oeffnend < 0) return null;
+
+  let tiefe = 1;
+  let i = oeffnend + 1;
+  const inhaltAb = i;
+
+  while (i < text.length && tiefe > 0) {
+    const auf = text.indexOf("<div", i);
+    const zu = text.indexOf("</div>", i);
+    if (zu < 0) return null;
+    if (auf >= 0 && auf < zu) {
+      tiefe += 1;
+      i = auf + 4;
+    } else {
+      tiefe -= 1;
+      i = zu + 6;
     }
-  );
-
-  const muster = new RegExp([
-    /<!--kasten:(\d+)-->/.source,
-    // Kein Rückverweis (\1): Der zeigt auf eine feste Gruppennummer und
-    // zerbricht still, sobald vorne eine Alternative dazukommt. Genau das ist
-    // passiert – danach fehlten sämtliche Überschriften, ohne dass ein Fehler
-    // aufgetreten wäre. Aufgefallen ist es erst beim Nachprüfen.
-    /<h1[^>]*>([\s\S]*?)<\/h1>/.source,
-    /<h2[^>]*>([\s\S]*?)<\/h2>/.source,
-    /<h3[^>]*>([\s\S]*?)<\/h3>/.source,
-    /<p className="text-muted-foreground[^"]*">([\s\S]*?)<\/p>/.source,
-    /<p className="text-foreground[^"]*">([\s\S]*?)<\/p>/.source,
-    /<p>([\s\S]*?)<\/p>/.source,
-    /<ul[^>]*>([\s\S]*?)<\/ul>/.source,
-    /<img src=\{(\w+)\.src\}/.source,
-    /<p className="text-xs text-muted-foreground mt-2 italic">([\s\S]*?)<\/p>/.source,
-    /<VisitorHighlight epoch="([^"]+)" intro="([^"]*)" outro="([^"]*)"/.source,
-    /<EpochSources epoch="([^"]+)"/.source,
-    /<ImageCredits/.source,
-  ].join("|"), "g");
-
-  const raus = [];
-  for (const m of quelle.matchAll(muster)) {
-    if (m[1] !== undefined) raus.push({ art: "kasten", ...kaesten[Number(m[1])] });
-    else if (m[2] !== undefined) raus.push({ art: "h1", text: saeubern(m[2]) });
-    else if (m[3] !== undefined) raus.push({ art: "h2", text: saeubern(m[3]) });
-    else if (m[4] !== undefined) raus.push({ art: "h3", text: saeubern(m[4]) });
-    else if (m[5] !== undefined) raus.push({ art: "p", text: saeubern(m[5]) });
-    else if (m[6] !== undefined) raus.push({ art: "p-betont", text: saeubern(m[6]) });
-    else if (m[7] !== undefined) raus.push({ art: "p", text: saeubern(m[7]) });
-    else if (m[8] !== undefined) raus.push({ art: "ul", text: saeubern(m[8]) });
-    else if (m[9] !== undefined) raus.push({ art: "bild", schluessel: bilder[m[9]] ?? "" });
-    else if (m[10] !== undefined) raus.push({ art: "bildunterschrift", text: saeubern(m[10]) });
-    else if (m[11] !== undefined) raus.push({ art: "highlight", epoche: m[11], intro: m[12], outro: m[13] });
-    else if (m[14] !== undefined) raus.push({ art: "quellen", epoche: m[14] });
-    else raus.push({ art: "nachweise" });
   }
-  return raus.filter((e) => e.art.startsWith("h") || e.art.startsWith("p") || e.art === "ul"
-    ? e.text && !e.text.includes("{") : true);
+  if (tiefe !== 0) return null;
+  return { ganz: text.slice(start, i), inneres: text.slice(inhaltAb, i - 6), ende: i };
 }
 
 /**
- * Fasst zusammenhängende Überschriften und Absätze zu Textblöcken zusammen und
- * lässt alles andere als eigenen Baustein stehen.
+ * Ersetzt jedes <div>, dessen Klasse zum Muster passt, durch das Ergebnis von
+ * `umwandeln(inneres)`. Anders als String.replace mit einem regulaeren
+ * Ausdruck beachtet das die Verschachtelung.
  */
-function zuBausteinen(liste, { kategorie, galerieUeberschrift, nachweise = [] }) {
+function divsErsetzen(text, klassenMuster, umwandeln) {
+  let raus = "";
+  let i = 0;
+  for (;;) {
+    const treffer = text.slice(i).match(klassenMuster);
+    if (!treffer) return raus + text.slice(i);
+    const start = i + treffer.index;
+    const block = divAusschneiden(text, start);
+    if (!block) return raus + text.slice(i);
+    raus += text.slice(i, start) + umwandeln(block.inneres, block.ganz);
+    i = block.ende;
+  }
+}
+
+/**
+ * Schritt 1: Sonderelemente herauslösen.
+ *
+ * Jedes wird durch `<!--x:N-->` ersetzt, damit seine Stelle im Text erhalten
+ * bleibt. Genau das ging vorher verloren: Die Kennzahlen wurden fest an
+ * Position zwei gesetzt, standen im Original aber hinter dem Kasten.
+ */
+function sonderelementeHerausloesen(quelle, { nachweise }) {
+  const teile = [];
+  const merken = (element) => `<!--x:${teile.push(element) - 1}-->`;
+
+  let rest = quelle
+    // Der Kopfbereich wird als Titelbild uebernommen.
+    .replace(/<section className="relative h-\[40vh\][\s\S]*?<\/section>/, "")
+    // Die Lightbox ist Bedienlogik, kein Inhalt.
+    .replace(/<AnimatePresence>[\s\S]*?<\/AnimatePresence>/, "");
+
+  // Hervorgehobener Kasten: bg-primary/5 mit Ueberschrift und Absaetzen.
+  rest = divsErsetzen(rest, /<div className="p-\d rounded-xl bg-primary\/5[^"]*">/, (inneres) => {
+    const h = inneres.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
+    const absaetze = [...inneres.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map((m) => saeubern(m[1]));
+    return merken({
+      art: "kasten",
+      ueberschrift: h ? saeubern(h[1]) : "",
+      inhalt: absaetze.map((a) => `<p>${a}</p>`).join(""),
+    });
+  });
+
+  // Kennzahlen-Kasten (Zeit / Region / Themen).
+  rest = divsErsetzen(rest, /<div className="p-6 rounded-lg bg-card border[^"]*">/, (inneres, ganz) => {
+    const eintraege = [...inneres.matchAll(
+      /<span className="font-semibold text-foreground">([^<]+)<\/span><p className="text-muted-foreground">([^<]+)<\/p>/g
+    )].map((m) => ({ titel: saeubern(m[1]), wert: saeubern(m[2]) }));
+    return eintraege.length > 0 ? merken({ art: "kennzahlen", eintraege }) : ganz;
+  });
+
+  // Die Galerie samt ihrer Ueberschrift – sonst stuende der Titel zweimal da:
+  // einmal als Fliesstext und einmal am Galerie-Baustein.
+  rest = rest.replace(
+    /<h2[^>]*>Galerie<\/h2>[\s\S]*?\{allImages\.length > 0 \?[\s\S]*?\)\}/,
+    () => merken({ art: "galerie", ueberschrift: "Galerie" })
+  );
+
+  rest = rest.replace(
+    /<VisitorHighlight\s+epoch="([^"]+)"\s+intro="([^"]*)"\s+outro="([^"]*)"\s*\/>/g,
+    (_, epoche, intro, outro) => merken({ art: "highlight", epoche, intro, outro })
+  );
+
+  rest = rest.replace(
+    /<EpochSources\s+epoch="([^"]+)"\s*\/>/g,
+    (_, epoche) => merken({ art: "quellen", epoche })
+  );
+
+  rest = rest.replace(
+    /<ImageCredits[^/]*\/>/g,
+    () => merken({ art: "nachweise", nachweise })
+  );
+
+  return { rest, teile };
+}
+
+/**
+ * Schritt 2: Den Rest der Reihe nach einsammeln.
+ *
+ * Benannte Gruppen statt Nummern – so kann eine zusätzliche Alternative nichts
+ * mehr durcheinanderbringen.
+ */
+function elemente(rest, teile, bilder) {
+  const muster = new RegExp(
+    [
+      /(?<platzhalter><!--x:(?<nummer>\d+)-->)/.source,
+      /(?<hEins><h1[^>]*>(?<hEinsText>[\s\S]*?)<\/h1>)/.source,
+      /(?<hZwei><h2[^>]*>(?<hZweiText>[\s\S]*?)<\/h2>)/.source,
+      /(?<hDrei><h3[^>]*>(?<hDreiText>[\s\S]*?)<\/h3>)/.source,
+      /(?<unterschrift><p className="text-xs text-muted-foreground[^"]*italic">(?<unterschriftText>[\s\S]*?)<\/p>)/.source,
+      /(?<betont><p className="text-foreground[^"]*">(?<betontText>[\s\S]*?)<\/p>)/.source,
+      /(?<absatz><p(?: className="text-muted-foreground[^"]*")?>(?<absatzText>[\s\S]*?)<\/p>)/.source,
+      /(?<liste><ul[^>]*>(?<listeText>[\s\S]*?)<\/ul>)/.source,
+      /(?<bild><img src=\{(?<bildVar>\w+)\.src\})/.source,
+    ].join("|"),
+    "g"
+  );
+
+  const raus = [];
+  for (const m of rest.matchAll(muster)) {
+    const g = m.groups;
+    if (g.platzhalter) raus.push(teile[Number(g.nummer)]);
+    else if (g.hEins) raus.push({ art: "h1", text: saeubern(g.hEinsText) });
+    else if (g.hZwei) raus.push({ art: "h2", text: saeubern(g.hZweiText) });
+    else if (g.hDrei) raus.push({ art: "h3", text: saeubern(g.hDreiText) });
+    else if (g.unterschrift) raus.push({ art: "bildunterschrift", text: saeubern(g.unterschriftText) });
+    else if (g.betont) raus.push({ art: "p-betont", text: saeubern(g.betontText) });
+    else if (g.absatz) raus.push({ art: "p", text: saeubern(g.absatzText) });
+    else if (g.liste) raus.push({ art: "ul", text: saeubern(g.listeText) });
+    else if (g.bild) raus.push({ art: "bild", schluessel: bilder[g.bildVar] ?? "" });
+  }
+
+  // Reste mit JSX-Ausdrücken darin sind keine Inhalte, sondern Logik.
+  return raus.filter((e) => (e.text === undefined ? true : e.text && !e.text.includes("{")));
+}
+
+/**
+ * Schritt 3: Zusammenhängende Überschriften und Absätze zu Textblöcken
+ * bündeln, alles andere als eigenen Baustein stehen lassen.
+ */
+function zuBausteinen(liste) {
   const bausteine = [];
   let puffer = "";
   let zeichen = 0;
@@ -157,7 +235,7 @@ function zuBausteinen(liste, { kategorie, galerieUeberschrift, nachweise = [] })
   const pufferLeeren = (unten = "keiner") => {
     if (!puffer) return;
     bausteine.push(baustein("Textabschnitt", {
-      inhalt: puffer, breite: "schmal", ausrichtung: "links",
+      inhalt: puffer, breite: "schmal",
       abstandOben: "klein", abstandUnten: unten,
       textfarbe: "standard", hintergrund: "keine",
     }));
@@ -165,79 +243,108 @@ function zuBausteinen(liste, { kategorie, galerieUeberschrift, nachweise = [] })
   };
 
   for (const e of liste) {
-    if (e.art === "h1") continue; // Der Titel steht im Titelbild.
-    if (e.art === "h2" || e.art === "h3") { puffer += `<${e.art}>${e.text}</${e.art}>`; zeichen += e.text.length; }
-    else if (e.art === "p") { puffer += `<p>${e.text}</p>`; zeichen += e.text.length; }
-    else if (e.art === "p-betont") { puffer += `<p><strong>${e.text}</strong></p>`; zeichen += e.text.length; }
-    else if (e.art === "ul") {
-      const punkte = [...e.text.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => saeubern(m[1]));
-      puffer += `<ul>${punkte.map((p) => `<li>${p}</li>`).join("")}</ul>`;
-      zeichen += punkte.join("").length;
-    }
-    else if (e.art === "bild") {
-      // Ohne Schluessel gibt es keinen Bildplatz – das ist ein Bild aus einer
-      // Schleife und gehoert nicht hierher.
-      if (!e.schluessel) continue;
-      pufferLeeren();
-      bausteine.push(baustein("Einzelbild", {
-        bildSchluessel: e.schluessel, bildunterschrift: "",
-        breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
-      }));
-    }
-    else if (e.art === "highlight") {
-      pufferLeeren();
-      bausteine.push(baustein("Besucherhinweis", {
-        epoche: e.epoche, einleitung: e.intro, abschluss: e.outro,
-        breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
-      }));
-    }
-    else if (e.art === "quellen") {
-      pufferLeeren();
-      bausteine.push(baustein("Quellen", {
-        epoche: e.epoche, breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
-      }));
-    }
-    else if (e.art === "bildunterschrift") {
-      // Steht im Original direkt unter dem Bild – gehoert also an den
-      // Bildbaustein und nicht in den Fliesstext.
-      const letztes = bausteine[bausteine.length - 1];
-      if (letztes?.type === "Einzelbild") {
-        letztes.props.bildunterschrift = e.text;
+    switch (e.art) {
+      case "h1":
+        break; // Der Titel steht im Titelbild.
+      case "h2":
+      case "h3":
+        puffer += `<${e.art}>${e.text}</${e.art}>`;
         zeichen += e.text.length;
+        break;
+      case "p":
+        puffer += `<p>${e.text}</p>`;
+        zeichen += e.text.length;
+        break;
+      case "p-betont":
+        puffer += `<p><strong>${e.text}</strong></p>`;
+        zeichen += e.text.length;
+        break;
+      case "ul": {
+        const punkte = [...e.text.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => saeubern(m[1]));
+        puffer += `<ul>${punkte.map((p) => `<li>${p}</li>`).join("")}</ul>`;
+        zeichen += punkte.join("").length;
+        break;
       }
-    }
-    else if (e.art === "kasten") {
-      pufferLeeren();
-      bausteine.push(baustein("Hinweiskasten", {
-        symbol: "info", ueberschrift: e.ueberschrift, inhalt: e.inhalt,
-        knopf: "", ziel: "", betont: false,
-        breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
-      }));
-      zeichen += (e.ueberschrift?.length ?? 0) + e.inhalt.replace(/<[^>]*>/g, "").length;
-    }
-    else if (e.art === "nachweise") {
-      pufferLeeren();
-      bausteine.push(baustein("Bildnachweise", {
-        nachweise, breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
-      }));
-      zeichen += nachweise.map((n) => n.description + n.source + n.license).join("").length;
+      case "bild":
+        // Ohne Schluessel gibt es keinen Bildplatz – das ist ein Bild aus einer
+        // Schleife und gehoert nicht hierher.
+        if (!e.schluessel) break;
+        pufferLeeren();
+        bausteine.push(baustein("Einzelbild", {
+          bildSchluessel: e.schluessel, bildunterschrift: "",
+          breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
+        }));
+        break;
+      case "bildunterschrift": {
+        // Steht im Original direkt unter dem Bild – gehoert also an den
+        // Bildbaustein und nicht in den Fliesstext.
+        const letztes = bausteine[bausteine.length - 1];
+        if (letztes?.type === "Einzelbild") {
+          letztes.props.bildunterschrift = e.text;
+          zeichen += e.text.length;
+        }
+        break;
+      }
+      case "kennzahlen":
+        pufferLeeren();
+        bausteine.push(baustein("Kennzahlen", {
+          eintraege: e.eintraege, breite: "schmal",
+          abstandOben: "klein", abstandUnten: "keiner",
+          textfarbe: "standard", hintergrund: "karte",
+        }));
+        zeichen += e.eintraege.map((k) => k.titel + k.wert).join("").length;
+        break;
+      case "kasten":
+        pufferLeeren();
+        bausteine.push(baustein("Hinweiskasten", {
+          symbol: "info", ueberschrift: e.ueberschrift, inhalt: e.inhalt,
+          knopf: "", ziel: "", betont: false,
+          breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
+        }));
+        zeichen += (e.ueberschrift?.length ?? 0) + e.inhalt.replace(/<[^>]*>/g, "").length;
+        break;
+      case "highlight":
+        pufferLeeren();
+        bausteine.push(baustein("Besucherhinweis", {
+          epoche: e.epoche, einleitung: e.intro, abschluss: e.outro,
+          breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
+        }));
+        zeichen += (e.intro?.length ?? 0) + (e.outro?.length ?? 0);
+        break;
+      case "quellen":
+        pufferLeeren();
+        bausteine.push(baustein("Quellen", {
+          epoche: e.epoche, breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
+        }));
+        break;
+      case "nachweise":
+        pufferLeeren();
+        bausteine.push(baustein("Bildnachweise", {
+          nachweise: e.nachweise, breite: "schmal", abstandOben: "klein", abstandUnten: "keiner",
+        }));
+        zeichen += e.nachweise.map((n) => n.description + n.source + n.license).join("").length;
+        break;
+      case "galerie":
+        pufferLeeren();
+        bausteine.push(baustein("Galerie", {
+          epoche: "", ueberschrift: e.ueberschrift, spalten: "drei",
+          breite: "schmal", abstandOben: "klein", abstandUnten: "weit",
+        }));
+        zeichen += e.ueberschrift.length;
+        break;
+      default:
+        break;
     }
   }
-  pufferLeeren("klein");
+  pufferLeeren("weit");
 
-  if (kategorie) {
-    bausteine.push(baustein("Galerie", {
-      epoche: kategorie, ueberschrift: galerieUeberschrift ?? "Galerie", spalten: "drei",
-      breite: "schmal", abstandOben: "klein", abstandUnten: "weit",
-    }));
-  }
   return { bausteine, zeichen };
 }
 
 function sqlSchreiben(datei, { slug, titel, beschreibung, inhalt, kopf }) {
   const js = JSON.stringify({ content: inhalt, root: { props: { title: titel } } });
   if (js.includes("'")) throw new Error("Einfache Anfuehrungszeichen muessten in SQL verdoppelt werden.");
-  const text = `${kopf}
+  writeFileSync(datei, `${kopf}
 INSERT INTO public.site_pages (slug, title, content, draft_content, seo_description, is_published, published_at)
 VALUES (
   '${slug}',
@@ -254,13 +361,20 @@ SET title = EXCLUDED.title,
     draft_content = EXCLUDED.draft_content,
     seo_description = EXCLUDED.seo_description,
     is_published = true;
-`;
-  writeFileSync(datei, text, "utf-8");
+`, "utf-8");
 }
 
 // ── Die Seiten ──────────────────────────────────────────────────────────────
 
 const seiten = [
+  {
+    quelle: "src/pages/EpochMedieval.tsx",
+    ziel: "supabase/migrations/20260908080000_prototyp_spaetmittelalter.sql",
+    slug: "epochen/mittelalter-neu",
+    titel: "Spätmittelalter in Nassau",
+    beschreibung: "Als Nassau den König stellte: Darstellung des Spätmittelalters in der Grafschaft Nassau - Niederadel und Handwerk um 1300 authentisch erfahrbar.",
+    kategorie: "mittelalter",
+  },
   {
     quelle: "src/pages/Epoch1815.tsx",
     ziel: "supabase/migrations/20260908120000_seite_napoleonik.sql",
@@ -282,9 +396,15 @@ const seiten = [
 for (const seite of seiten) {
   const quelle = readFileSync(seite.quelle, "utf-8");
   const bilder = bildSchluessel(quelle);
-  const gefunden = elemente(quelle, bilder);
   const nachweise = bildnachweise(quelle);
-  const { bausteine, zeichen } = zuBausteinen(gefunden, { kategorie: seite.kategorie, nachweise });
+
+  const { rest, teile } = sonderelementeHerausloesen(quelle, { nachweise });
+  const gefunden = elemente(rest, teile, bilder);
+  const { bausteine, zeichen } = zuBausteinen(gefunden);
+
+  // Die Galerie kennt ihre Kategorie erst hier – im Quelltext steht sie in
+  // einer Abfrage, nicht am Element.
+  for (const b of bausteine) if (b.type === "Galerie") b.props.epoche = seite.kategorie;
 
   const kopf = titelbereich(quelle, bilder);
   if (!kopf?.bildSchluessel) throw new Error(`Kein Titelbild in ${seite.quelle} gefunden.`);
@@ -294,11 +414,6 @@ for (const seite of seiten) {
       ...kopf, hoehe: "mittel",
       farbeUeberschrift: "standard", farbeUnterzeile: "akzent",
     }),
-    baustein("Kennzahlen", {
-      eintraege: kennzahlen(quelle), breite: "schmal",
-      abstandOben: "normal", abstandUnten: "keiner",
-      textfarbe: "standard", hintergrund: "karte",
-    }),
     ...bausteine,
   ];
 
@@ -307,12 +422,10 @@ for (const seite of seiten) {
     titel: seite.titel,
     beschreibung: seite.beschreibung,
     inhalt,
-    kopf: `-- ${seite.titel} im Editor\n--\n-- Aus ${seite.quelle} uebertragen (scripts/seiten-umziehen.mjs).\n-- Wieder unter eigener Adresse neben der Code-Fassung.\n`,
+    kopf: `-- ${seite.titel} im Editor\n--\n-- Aus ${seite.quelle} uebertragen (scripts/seiten-umziehen.mjs).\n-- Unter eigener Adresse neben der Code-Fassung, zum Vergleichen.\n`,
   });
 
-  console.log(
-    `${seite.quelle.padEnd(28)} → ${inhalt.length} Bausteine, ${zeichen} Zeichen Text`
-  );
-  const fehlend = inhalt.filter((b) => b.type === "Einzelbild" && !b.props.bildSchluessel);
-  if (fehlend.length) console.log(`  ⚠ ${fehlend.length} Bild(er) ohne Schluessel`);
+  const arten = inhalt.map((b) => b.type);
+  console.log(`${seite.quelle.padEnd(28)} → ${inhalt.length} Bausteine, ${zeichen} Zeichen`);
+  console.log(`   ${arten.join(" · ")}`);
 }
