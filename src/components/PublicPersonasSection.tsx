@@ -17,8 +17,27 @@ interface PublicPersona {
  * get_public_personas gibt sie gar nicht erst heraus.
  *
  * Freigegeben wird je Darstellung durch den Herold.
+ *
+ * Überschrift, Einleitung und Aussenabstand sind einstellbar, weil derselbe
+ * Abschnitt auch als Baustein im Seiteneditor steht. Es gibt bewusst nur diese
+ * eine Fassung: Der Baustein war zuerst eine zweite, eigene Umsetzung – anderes
+ * Raster, andere Bildformate, keine Gruppierung nach Zeitstellung – und wäre
+ * damit über kurz oder lang von dieser hier abgewichen.
  */
-export default function PublicPersonasSection() {
+export default function PublicPersonasSection({
+  ueberschrift = "Unsere Darstellungen",
+  einleitung = "Welche Epochen und Handwerke wir zeigen können – nach Zeitstellung geordnet. Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.",
+  kategorie,
+  rahmen,
+}: {
+  ueberschrift?: string;
+  einleitung?: string;
+  /** Leer = alle Zeitstellungen. */
+  kategorie?: string;
+  /** Klassen für den umgebenden Abschnitt; der Baustein setzt hier Breite und
+   *  Abstand aus seinen eigenen Feldern ein. */
+  rahmen?: string;
+} = {}) {
   const { data: personas = [] } = useQuery({
     queryKey: ["public-personas"],
     queryFn: async () => {
@@ -31,10 +50,12 @@ export default function PublicPersonasSection() {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Nichts freigegeben, nichts anzeigen – kein leerer Abschnitt.
-  if (personas.length === 0) return null;
+  const gefiltert = kategorie ? personas.filter((p) => p.period === kategorie) : personas;
 
-  const byPeriod = personas.reduce<Record<string, PublicPersona[]>>((acc, p) => {
+  // Nichts freigegeben, nichts anzeigen – kein leerer Abschnitt.
+  if (gefiltert.length === 0) return null;
+
+  const byPeriod = gefiltert.reduce<Record<string, PublicPersona[]>>((acc, p) => {
     const key = p.period?.trim() || "Weitere Darstellungen";
     (acc[key] ??= []).push(p);
     return acc;
@@ -44,17 +65,16 @@ export default function PublicPersonasSection() {
     supabase.storage.from("gallery").getPublicUrl(path).data.publicUrl;
 
   return (
-    <section className="container py-16 md:py-24 max-w-4xl">
+    <section className={rahmen ?? "container mx-auto py-16 md:py-24 max-w-4xl"}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
       >
-        <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2">Unsere Darstellungen</h2>
-        <p className="text-muted-foreground mb-10 max-w-2xl">
-          Welche Epochen und Handwerke wir zeigen können – nach Zeitstellung geordnet.
-          Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.
-        </p>
+        {ueberschrift && (
+          <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2">{ueberschrift}</h2>
+        )}
+        {einleitung && <p className="text-muted-foreground mb-10 max-w-2xl">{einleitung}</p>}
 
         <div className="space-y-10">
           {Object.entries(byPeriod).map(([period, entries]) => (

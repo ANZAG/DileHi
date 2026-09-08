@@ -100,14 +100,15 @@ export function breitenKlasse(breite?: Breite): string {
   return `container mx-auto ${breite === "breit" ? "max-w-5xl" : "max-w-3xl"}`;
 }
 
-export type Abstand = "keiner" | "eng" | "klein" | "normal" | "weit";
+export type Abstand = "keiner" | "eng" | "klein" | "normal" | "gross" | "weit";
 
 export const ABSTAENDE: { label: string; value: Abstand }[] = [
   { label: "Kein Abstand", value: "keiner" },
   { label: "Sehr klein", value: "eng" },
   { label: "Klein", value: "klein" },
   { label: "Normal", value: "normal" },
-  { label: "Groß", value: "weit" },
+  { label: "Groß", value: "gross" },
+  { label: "Sehr groß", value: "weit" },
 ];
 
 /**
@@ -119,11 +120,17 @@ export const ABSTAENDE: { label: string; value: Abstand }[] = [
  * hat. Mit einem einzigen Wert wird entweder der Block zu eng oder die Teile
  * darin zu weit auseinander.
  */
+// `gross` ist nicht erfunden, sondern abgemessen: Die Seiten „Ueber uns" und
+// „Fuer Veranstalter" stehen im Original in einem Container mit
+// `py-12 md:py-20`. Zwischen `normal` (32/48) und `weit` (64/96) lag dafuer
+// nichts, und der Seitenanfang haette entweder gedrungen oder zu luftig
+// gewirkt.
 const OBEN: Record<Abstand, string> = {
   keiner: "pt-0",
   eng: "pt-2",
   klein: "pt-6",
   normal: "pt-8 md:pt-12",
+  gross: "pt-12 md:pt-20",
   weit: "pt-16 md:pt-24",
 };
 
@@ -132,6 +139,7 @@ const UNTEN: Record<Abstand, string> = {
   eng: "pb-2",
   klein: "pb-6",
   normal: "pb-8 md:pb-12",
+  gross: "pb-12 md:pb-20",
   weit: "pb-16 md:pb-24",
 };
 

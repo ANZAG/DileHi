@@ -1,8 +1,9 @@
 import type { Config } from "@puckeditor/core";
 import {
   Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
-  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Termine,
-  Textabschnitt, Titelbild, Trennlinie, Ueberschrift, ZweiSpalten,
+  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Seitenkopf,
+  Termine, Textabschnitt, Titelbild, Trennlinie, Ueberschrift, Veranstalteranfrage,
+  ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten, KASTEN_STILE, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
@@ -11,8 +12,8 @@ import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
 import {
-  ABSTAENDE, BREITEN, HINTERGRUENDE, TEXTFARBEN,
-  type Abstand, type Breite, type Hintergrund, type Textfarbe,
+  ABSTAENDE, BREITEN, FLAECHEN, HINTERGRUENDE, TEXTFARBEN,
+  type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
 } from "./gestaltung";
 
 /**
@@ -55,6 +56,10 @@ const gemeinsameFelder = {
   abstandUnten: { type: "select" as const, label: "Abstand unten", options: ABSTAENDE },
   textfarbe: { type: "select" as const, label: "Schriftfarbe", options: TEXTFARBEN },
   hintergrund: { type: "select" as const, label: "Hintergrund", options: HINTERGRUENDE },
+  // Die Bausteine konnten einen Hintergrund schon immer ueber die ganze
+  // Seitenbreite ziehen – im Editor war die Einstellung nur nirgends zu
+  // erreichen. Genau daraus bestehen die Baender auf der Startseite.
+  flaeche: { type: "select" as const, label: "Hintergrund reicht", options: FLAECHEN },
 };
 
 const layoutFelder = {
@@ -78,6 +83,7 @@ const gemeinsameVorgaben = {
   ...layoutVorgaben,
   textfarbe: "standard" as Textfarbe,
   hintergrund: "keine" as Hintergrund,
+  flaeche: "inhalt" as Flaeche,
 };
 
 export type Bausteine = {
@@ -94,7 +100,16 @@ export type Bausteine = {
     groesse: "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
   } & typeof gemeinsameVorgaben;
-  Textabschnitt: { inhalt: unknown; ausrichtung: "links" | "mitte" } & typeof gemeinsameVorgaben;
+  Textabschnitt: {
+    inhalt: unknown;
+    ausrichtung: "links" | "mitte";
+    aufzaehlung: "punkte" | "schlicht";
+  } & typeof gemeinsameVorgaben;
+  Seitenkopf: {
+    ueberschrift: string;
+    text?: string;
+    ausrichtung: "links" | "mitte";
+  } & typeof gemeinsameVorgaben;
   ZweiSpalten: {
     inhalt: unknown;
     bildSchluessel: string;
@@ -114,7 +129,7 @@ export type Bausteine = {
     beschriftung: string;
     ziel: string;
     zielFrei?: string;
-    art: "gefuellt" | "umrandet" | "schlicht";
+    art: "gefuellt" | "umrandet" | "schlicht" | "verweis";
     ausrichtung: "links" | "mitte" | "rechts";
   } & typeof layoutVorgaben;
   Galerie: {
@@ -137,10 +152,11 @@ export type Bausteine = {
     groesse: "klein" | "mittel" | "gross";
   } & typeof layoutVorgaben;
   Darstellungen: {
-    kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei";
+    kategorie?: string; ueberschrift?: string; einleitung?: string;
   } & typeof layoutVorgaben;
   Termine: { ueberschrift?: string; unterzeile?: string; anzahl: number } & typeof layoutVorgaben;
   Kontaktformular: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
+  Veranstalteranfrage: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
   Willkommen: {
     bildSchluessel: string;
     ueberschrift: string;
@@ -169,7 +185,7 @@ export type Bausteine = {
   };
   Hinweiskasten: {
     symbol: KastenSymbol;
-    stil: "hinweis" | "notiz";
+    stil: "hinweis" | "notiz" | "abschnitt";
     ueberschrift?: string;
     inhalt: unknown;
     knopf?: string;
@@ -188,13 +204,16 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     startseite: { title: "Große Abschnitte", components: ["Willkommen", "Eckdaten", "Zeitstrahl", "Aktionskaesten"] },
     text: {
       title: "Text",
-      components: ["Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen", "Hinweiskasten"],
+      components: ["Seitenkopf", "Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen", "Hinweiskasten"],
     },
     bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
     navigation: { title: "Verweise", components: ["Karten", "Knopf", "Logos"] },
     vereinsdaten: {
       title: "Aus dem Mitgliederbereich",
-      components: ["Besucherhinweis", "Quellen", "Darstellungen", "Termine", "Kontaktformular"],
+      components: [
+        "Besucherhinweis", "Quellen", "Darstellungen", "Termine",
+        "Kontaktformular", "Veranstalteranfrage",
+      ],
     },
     zwischenraum: {
       title: "Zwischenraum und Rechtliches",
@@ -271,10 +290,38 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Mittig", value: "mitte" },
           ],
         },
+        aufzaehlung: {
+          type: "radio", label: "Aufzählungen",
+          options: [
+            { label: "Mit Punkten", value: "punkte" },
+            { label: "Ohne Punkte", value: "schlicht" },
+          ],
+        },
         ...gemeinsameFelder,
       },
-      defaultProps: { inhalt: "", ausrichtung: "links", ...gemeinsameVorgaben },
+      defaultProps: { inhalt: "", ausrichtung: "links", aufzaehlung: "punkte", ...gemeinsameVorgaben },
       render: Textabschnitt,
+    },
+
+    Seitenkopf: {
+      label: "Seitenkopf",
+      fields: {
+        ueberschrift: { type: "text", label: "Überschrift" },
+        text: textFeld,
+        ausrichtung: {
+          type: "radio", label: "Ausrichtung",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Mittig", value: "mitte" },
+          ],
+        },
+        ...gemeinsameFelder,
+      },
+      defaultProps: {
+        ueberschrift: "Überschrift", text: "", ausrichtung: "links",
+        ...gemeinsameVorgaben, abstandOben: "gross", abstandUnten: "gross",
+      },
+      render: Seitenkopf,
     },
 
     ZweiSpalten: {
@@ -402,6 +449,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Gefüllt", value: "gefuellt" },
             { label: "Umrandet", value: "umrandet" },
             { label: "Schlicht", value: "schlicht" },
+            { label: "Textlink (ohne Knopfform)", value: "verweis" },
           ],
         },
         ausrichtung: {
@@ -560,16 +608,15 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           ],
         },
         ueberschrift: { type: "text", label: "Überschrift" },
-        spalten: {
-          type: "radio", label: "Nebeneinander",
-          options: [
-            { label: "Zwei", value: "zwei" },
-            { label: "Drei", value: "drei" },
-          ],
-        },
+        einleitung: { type: "textarea", label: "Text darunter" },
         ...layoutFelder,
       }),
-      defaultProps: { ...layoutVorgaben, breite: "breit", kategorie: "", ueberschrift: "", spalten: "drei" },
+      defaultProps: {
+        ...layoutVorgaben, breite: "breit", kategorie: "",
+        ueberschrift: "Unsere Darstellungen",
+        einleitung: "Welche Epochen und Handwerke wir zeigen können – nach Zeitstellung geordnet. Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.",
+        abstandOben: "weit", abstandUnten: "weit",
+      },
       render: Darstellungen,
     },
 
@@ -605,6 +652,21 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         hinweis: "Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns.",
       },
       render: Kontaktformular,
+    },
+
+    Veranstalteranfrage: {
+      label: "Anfrage von Veranstaltern",
+      fields: {
+        ueberschrift: { type: "text", label: "Überschrift" },
+        hinweis: textFeld,
+        ...layoutFelder,
+      },
+      defaultProps: {
+        ...layoutVorgaben,
+        ueberschrift: "Anfrage",
+        hinweis: "",
+      },
+      render: Veranstalteranfrage,
     },
 
     Willkommen: {

@@ -31,7 +31,7 @@ export function Hinweiskasten({
   betont, breite, abstandOben, abstandUnten, abstand,
 }: {
   symbol: KastenSymbol;
-  stil?: "hinweis" | "notiz";
+  stil?: "hinweis" | "notiz" | "abschnitt";
   ueberschrift?: string;
   inhalt: unknown;
   knopf?: string;
@@ -44,18 +44,37 @@ export function Hinweiskasten({
 }) {
   const Symbol = SYMBOLE[symbol] ?? null;
 
-  // Zwei Ausprägungen, beide gibt es im Original:
-  //   „hinweis" – der grosse Kasten mit Symbol („Was ist Living History?")
-  //   „notiz"   – die schmale Randbemerkung ohne Symbol, Überschrift in der
-  //               Vereinsfarbe („Ein Wort zur Vollständigkeit")
+  // Drei Ausprägungen, alle drei gibt es im Original:
+  //   „hinweis"   – der grosse Kasten mit Symbol („Was ist Living History?")
+  //   „notiz"     – die schmale Randbemerkung ohne Symbol, Überschrift in der
+  //                 Vereinsfarbe („Ein Wort zur Vollständigkeit")
+  //   „abschnitt" – der Kasten, der einen ganzen Seitenabschnitt aufnimmt:
+  //                 Überschrift so gross wie eine Abschnittsüberschrift,
+  //                 darin mehrere Untertitel („Interesse, mitzumachen?")
   // Ohne diese Unterscheidung sah der zweite Fall aus wie der erste: zu grosse
   // Überschrift, falsche Farbe, Symbol, das dort nie stand.
   const notiz = stil === "notiz";
+  const abschnitt = stil === "abschnitt";
+
+  // Untertitel innerhalb des Kastens. Im Original sind es <h3> ohne Serifen,
+  // in Textfarbe, mit 24 px Luft davor und 8 px danach.
+  //
+  // Die Abstände stehen mit „!" da, und das ist kein Schnellschuss: Der
+  // Reihenabstand von `space-y-3` heisst bei Tailwind
+  // `> :not([hidden]) ~ :not([hidden])` und wiegt damit schwerer als ein
+  // schlichtes `.klasse h3`. Ohne „!" bliebe es bei 12 px, und die drei
+  // Gruppen im Kasten klebten aneinander – nachgesehen im gebauten
+  // Stylesheet, nicht geschaetzt.
+  const untertitel =
+    "[&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:text-base [&_h3]:!mt-6 [&_h3]:mb-2 " +
+    "[&_h3:first-child]:!mt-0 [&_h3+*]:!mt-0";
 
   const textKlassen = notiz
-    ? "space-y-3 text-sm text-foreground/80 leading-relaxed [&_strong]:text-foreground"
+    // Im Original steht hier `space-y-2`, nicht `space-y-3` wie im grossen
+    // Kasten – die Randbemerkung ist enger gesetzt.
+    ? "space-y-2 text-sm text-foreground/80 leading-relaxed [&_strong]:text-foreground"
     : "space-y-3 text-muted-foreground leading-relaxed [&_strong]:text-foreground " +
-      "[&_ul]:list-disc [&_ul]:list-inside [&_ul]:pl-2 [&_ul]:space-y-1";
+      "[&_ul]:list-disc [&_ul]:list-inside [&_ul]:pl-2 [&_ul]:space-y-1 " + untertitel;
 
   const text = typeof inhalt === "string"
     ? <div className={textKlassen} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inhalt) }} />
@@ -69,7 +88,7 @@ export function Hinweiskasten({
         }`}
       >
         <div className="flex items-start gap-4">
-          {Symbol && !notiz && (
+          {Symbol && !notiz && !abschnitt && (
             // Auf dem Handy weggelassen: Das Symbol nimmt dort Platz, den der
             // Text besser gebrauchen kann.
             <div className="bg-primary/10 p-3 rounded-full hidden sm:block mt-1 shrink-0">
@@ -79,8 +98,10 @@ export function Hinweiskasten({
           <div className="min-w-0">
             {ueberschrift && (
               <h2
-                className={`font-serif font-semibold mb-3 ${
-                  notiz ? "text-lg text-primary" : "text-xl text-foreground"
+                className={`font-serif font-semibold ${
+                  abschnitt ? "text-2xl text-foreground mb-6"
+                  : notiz ? "text-lg text-primary mb-3"
+                  : "text-xl text-foreground mb-3"
                 }`}
               >
                 {ueberschrift}
@@ -113,9 +134,10 @@ export function Hinweiskasten({
   );
 }
 
-export const KASTEN_STILE: { label: string; value: "hinweis" | "notiz" }[] = [
+export const KASTEN_STILE: { label: string; value: "hinweis" | "notiz" | "abschnitt" }[] = [
   { label: "Hinweis (groß, mit Symbol)", value: "hinweis" },
   { label: "Randbemerkung (schmal, ohne Symbol)", value: "notiz" },
+  { label: "Ganzer Abschnitt (mit Untertiteln)", value: "abschnitt" },
 ];
 
 export const KASTEN_SYMBOLE: { label: string; value: KastenSymbol }[] = [

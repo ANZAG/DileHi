@@ -15,6 +15,8 @@ import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 import ImageCredits from "@/components/epochs/ImageCredits";
 import KontaktFelder from "@/components/kontakt/KontaktFelder";
+import VeranstalterFelder from "@/components/kontakt/VeranstalterFelder";
+import PublicPersonasSection from "@/components/PublicPersonasSection";
 import {
   abstandKlasse, breitenKlasse, flaechenKlasse, grundKlasse, polsterung, textKlasse,
   type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
@@ -106,17 +108,88 @@ export function Titelbild({
   );
 }
 
+// ── Seitenkopf ohne Bild ────────────────────────────────────────────────────
+
+/**
+ * Der Kopf einer Seite, die kein Titelbild hat.
+ *
+ * „Für Veranstalter" beginnt mit einem farbigen Band ueber die ganze Breite,
+ * darin mittig Ueberschrift und Anriss; „Ueber uns" beginnt schlicht mit der
+ * Ueberschrift. Beides ist derselbe Baustein – mit und ohne Hintergrund.
+ *
+ * Als eigener Baustein und nicht als Ueberschrift plus Textabschnitt: Die
+ * beiden waeren zwei Abschnitte mit je eigenem Abstand, und das farbige Band
+ * risse zwischen ihnen auf.
+ */
+export function Seitenkopf({
+  ueberschrift, text, ausrichtung, breite, abstandOben, abstandUnten, abstand,
+  hintergrund, flaeche, textfarbe,
+}: Gemeinsam & { ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte" }) {
+  const mitte = ausrichtung === "mitte";
+  const inneres = (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className={mitte ? "text-center" : ""}
+    >
+      <h1 className={`font-serif text-3xl md:text-4xl font-bold ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
+        {ueberschrift}
+      </h1>
+      {text && (
+        <div
+          className="text-muted-foreground leading-relaxed [&>p+p]:mt-4"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(text) }}
+        />
+      )}
+    </motion.div>
+  );
+
+  // Ueber die ganze Breite: Der Grund liegt am Abschnitt, der Text bleibt in
+  // seiner Spalte – sonst waere das Band nur so breit wie der Text.
+  if (flaeche === "voll" && hintergrund && hintergrund !== "keine") {
+    return (
+      <section className={`${flaechenKlasse(hintergrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+        <div className={breitenKlasse(breite)}>{inneres}</div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+      <div className={`${grundKlasse(hintergrund)} ${polsterung(hintergrund)}`}>{inneres}</div>
+    </section>
+  );
+}
+
 // ── Fließtext ───────────────────────────────────────────────────────────────
 
 export function Textabschnitt({
-  inhalt, ausrichtung, ...rest
-}: Gemeinsam & { inhalt: unknown; ausrichtung?: "links" | "mitte" }) {
+  inhalt, ausrichtung, aufzaehlung, ...rest
+}: Gemeinsam & {
+  inhalt: unknown;
+  ausrichtung?: "links" | "mitte";
+  /** „punkte" = Aufzählungszeichen, „schlicht" = Liste ohne Punkte. Beides
+   *  kommt im Original vor: die Vorführungen auf „Über uns" mit Punkten, die
+   *  Epochenliste auf „Für Veranstalter" ohne. */
+  aufzaehlung?: "punkte" | "schlicht";
+}) {
   // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
   // wirkte die neue Seite dunkler als die alte.
   const klassen =
     "prose prose-sm sm:prose dark:prose-invert max-w-none " +
     "prose-headings:font-serif prose-headings:text-foreground prose-p:text-muted-foreground " +
-    "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground" +
+    "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground " +
+    // Kursives war im Original nicht grau, sondern in Textfarbe und leicht
+    // fetter – der Schlusssatz auf „Über uns" ist genau so gesetzt. Ohne das
+    // ging die Hervorhebung im Fliesstext unter.
+    "prose-em:text-foreground prose-em:font-medium " +
+    // Aufzählungen standen im Original mit den Punkten INNERHALB des Textes
+    // (`list-inside`) und enger beieinander; `prose` haengt sie stattdessen
+    // links aus und setzt sie weiter auseinander.
+    (aufzaehlung === "schlicht"
+      ? "prose-ul:list-none prose-ul:pl-0 prose-ul:space-y-3 prose-li:my-0 prose-li:pl-0"
+      : "prose-ul:list-inside prose-ul:pl-2 prose-ul:space-y-1 prose-li:my-0 prose-li:pl-0") +
     // Zentriert nur den Text, nicht die Aufzählungspunkte – die sähen sonst
     // aus, als wären sie verrutscht.
     (ausrichtung === "mitte" ? " text-center prose-headings:text-center" : "");
@@ -214,9 +287,12 @@ export function Einzelbild({
   bildbreite?: "voll" | "mittel" | "schmal";
 }) {
   const bild = useSiteImage(bildSchluessel);
+  // Die Werte sind aus den Quellseiten abgemessen, nicht gewaehlt: Die
+  // Uniformtafeln stehen dort in `max-w-lg`, das Lederwerkstatt-Bild auf
+  // „Fuer Veranstalter" in `max-w-md`.
   const grenze =
     bildbreite === "mittel" ? "max-w-lg mx-auto"
-    : bildbreite === "schmal" ? "max-w-sm mx-auto"
+    : bildbreite === "schmal" ? "max-w-md mx-auto"
     : "";
   return (
     <figure className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
@@ -318,18 +394,25 @@ export function Knopf({
 }: Gemeinsam & {
   beschriftung: string;
   ziel: string;
-  art: "gefuellt" | "umrandet" | "schlicht";
+  art: "gefuellt" | "umrandet" | "schlicht" | "verweis";
   ausrichtung: "links" | "mitte" | "rechts";
 }) {
   const arten = {
     gefuellt: "bg-primary text-primary-foreground hover:opacity-90",
     umrandet: "border border-primary text-primary hover:bg-primary/10",
     schlicht: "text-primary hover:underline",
+    verweis: "text-primary hover:underline",
   };
   const lage = { links: "justify-start", mitte: "justify-center", rechts: "justify-end" };
-  const klasse = `inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-    arten[art] ?? arten.gefuellt
-  }`;
+  // „Verweis" ist ein Link im Fliesstext, kein Knopf: keine Polsterung, keine
+  // kleinere Schrift. Genau so steht „Zur Kontaktseite →" im Original – als
+  // Knopf gesetzt sah es aus wie eine zweite Schaltflaeche.
+  const klasse =
+    art === "verweis"
+      ? "inline-flex items-center font-medium transition-colors text-primary hover:underline"
+      : `inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          arten[art] ?? arten.gefuellt
+        }`;
 
   return (
     <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
@@ -564,60 +647,26 @@ function LogoBild({ bildSchluessel, name, ziel, hoehe }: {
 
 // ── Darstellungen ───────────────────────────────────────────────────────────
 
-interface OeffentlicheDarstellung {
-  period: string;
-  portrayal: string;
-  expertise: string | null;
-  images: string[] | null;
-}
-
+/**
+ * Die freigegebenen Darstellungen des Vereins.
+ *
+ * Reicht `PublicPersonasSection` durch, statt den Abschnitt ein zweites Mal zu
+ * bauen. Die frühere eigene Umsetzung sah anders aus als die Seite „Für
+ * Veranstalter", auf der derselbe Abschnitt steht: drei statt zwei Spalten,
+ * Hochformate statt Querformate, keine Gruppierung nach Zeitstellung und keine
+ * Einleitung. Zwei Fassungen desselben Abschnitts laufen auseinander – beim
+ * Terminabschnitt ist genau das schon einmal passiert.
+ */
 export function Darstellungen({
-  kategorie, ueberschrift, spalten, breite, abstandOben, abstandUnten, abstand,
-}: Gemeinsam & { kategorie?: string; ueberschrift?: string; spalten?: "zwei" | "drei" }) {
-  const { data: alle = [] } = useQuery({
-    queryKey: ["public-personas"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_public_personas");
-      return (data ?? []) as OeffentlicheDarstellung[];
-    },
-  });
-
-  // Ohne Kategorie alle zeigen – ein Verein mit nur einer Darstellungszeit
-  // soll sich nicht erst überlegen müssen, was er hier einträgt.
-  const liste = kategorie ? alle.filter((d) => d.period === kategorie) : alle;
-
-  if (liste.length === 0) {
-    return (
-      <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
-        <p className="text-sm text-muted-foreground">
-          Hier erscheinen die Darstellungen, die der Herold freigegeben hat.
-        </p>
-      </section>
-    );
-  }
-
+  kategorie, ueberschrift, einleitung, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & { kategorie?: string; ueberschrift?: string; einleitung?: string }) {
   return (
-    <section className={`${breitenKlasse(breite ?? "breit")} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
-      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
-      <div className={`grid gap-4 ${spalten === "zwei" ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
-        {liste.map((d, i) => (
-          <article key={i} className="rounded-lg border bg-card overflow-hidden">
-            {d.images?.[0] && (
-              <img
-                src={supabase.storage.from("gallery").getPublicUrl(d.images[0]).data.publicUrl}
-                alt={d.portrayal}
-                loading="lazy"
-                className="w-full aspect-[3/4] object-cover"
-              />
-            )}
-            <div className="p-4">
-              <h3 className="font-serif font-semibold">{d.portrayal}</h3>
-              {d.expertise && <p className="text-sm text-muted-foreground mt-1">{d.expertise}</p>}
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+    <PublicPersonasSection
+      kategorie={kategorie}
+      ueberschrift={ueberschrift}
+      einleitung={einleitung}
+      rahmen={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}
+    />
   );
 }
 
@@ -739,6 +788,32 @@ export function Kontaktformular({
       {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-2">{ueberschrift}</h2>}
       {hinweis && <p className="text-sm text-muted-foreground mb-6">{hinweis}</p>}
       <KontaktFelder />
+    </section>
+  );
+}
+
+// ── Anfrage von Veranstaltern ───────────────────────────────────────────────
+
+/**
+ * Das laengere Formular fuer Museen und Veranstalter.
+ *
+ * Getrennt vom Kontaktformular, weil es andere Felder hat – Termin, Ort,
+ * Besucherzahl, gewuenschte Epoche. Ein Verein, der so etwas nicht braucht,
+ * nimmt den Baustein einfach nicht.
+ */
+export function Veranstalteranfrage({
+  ueberschrift, hinweis, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & { ueberschrift?: string; hinweis?: string }) {
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+      {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-4">{ueberschrift}</h2>}
+      {hinweis && (
+        <div
+          className="text-muted-foreground leading-relaxed mb-6 space-y-2"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(hinweis) }}
+        />
+      )}
+      <VeranstalterFelder />
     </section>
   );
 }
