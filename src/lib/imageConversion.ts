@@ -6,8 +6,8 @@
  * tut. Ein Foto aus einer Kamera bringt gern 4 MB mit; als WebP sind daraus
  * ein paar Hundert Kilobyte.
  *
- * Stand vorher wortgleich in GalleryAdmin und SiteImagesAdmin. Beim dritten
- * Aufrufer (Bildauswahl im Seiteneditor) war es Zeit, sie herauszuziehen.
+ * Stand vorher wortgleich in mehreren Verwaltungsmasken. Beim dritten
+ * Aufrufer war es Zeit, sie herauszuziehen.
  */
 export function convertToWebP(file: File, qualitaet = 0.85): Promise<File> {
   return new Promise((resolve, reject) => {

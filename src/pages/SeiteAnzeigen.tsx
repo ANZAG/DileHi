@@ -29,29 +29,61 @@ function strukturierteDaten(
 
   const web = (marke.website_url || "").replace(/\/$/, "");
   const beschreibung = page.seo_description ?? marke.seo_description ?? undefined;
-
-  if (page.seo_type === "organisation") {
-    return {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      name: marke.org_name,
-      alternateName: marke.org_short_name,
-      url: web || undefined,
-      description: beschreibung,
-      address: marke.org_city
-        ? { "@type": "PostalAddress", addressLocality: marke.org_city, addressCountry: marke.org_country ?? "DE" }
-        : undefined,
-    };
-  }
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: page.seo_title || page.title,
-    description: beschreibung,
-    author: { "@type": "Organization", name: marke.org_name },
-    publisher: { "@type": "Organization", name: marke.org_name },
+  const verein = {
+    "@type": "Organization",
+    name: marke.org_name,
+    url: web || undefined,
   };
+  const anschrift = marke.org_city
+    ? { "@type": "PostalAddress", addressLocality: marke.org_city, addressCountry: marke.org_country ?? "DE" }
+    : undefined;
+
+  switch (page.seo_type) {
+    // Genau eine Seite: Der Verein ist eine Sache, nicht drei. Mehrere
+    // Organisationsangaben geben Suchmaschinen mehrere Kandidaten fuer
+    // dieselbe Frage.
+    case "organisation":
+      return {
+        "@context": "https://schema.org",
+        ...verein,
+        alternateName: marke.org_short_name,
+        description: beschreibung,
+        address: anschrift,
+        email: marke.org_email ?? undefined,
+        telephone: marke.org_phone ?? undefined,
+      };
+
+    // Eine Seite ueber den Verein – nicht der Verein selbst.
+    case "ueber_uns":
+      return {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        name: page.seo_title || page.title,
+        description: beschreibung,
+        about: verein,
+      };
+
+    // Was der Verein anbietet.
+    case "angebot":
+      return {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: page.seo_title || page.title,
+        description: beschreibung,
+        provider: verein,
+        areaServed: marke.org_city ?? undefined,
+      };
+
+    default:
+      return {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: page.seo_title || page.title,
+        description: beschreibung,
+        author: verein,
+        publisher: verein,
+      };
+  }
 }
 
 export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
