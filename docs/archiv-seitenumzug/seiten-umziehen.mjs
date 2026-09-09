@@ -282,6 +282,9 @@ function sonderelementeHerausloesen(quelle, { nachweise, kopfArt }) {
       return merken({
         art: "kasten",
         stil,
+        // Die Rangstufe steht in der Quelle: „Was ist eigentlich Living
+        // History?" ist dort ein h3 innerhalb von „Unser Anspruch".
+        ebene: h ? `h${h[1]}` : "h2",
         symbol: sym ? (SYMBOLE[sym[1]] ?? "info") : "keins",
         betont: /bg-primary\/(?:8|10)\b/.test(aussen),
         ueberschrift: h ? saeubern(h[3]) : "",
@@ -568,6 +571,7 @@ function zuBausteinen(liste) {
         pufferLeeren();
         bausteine.push(baustein("Hinweiskasten", {
           stil: e.stil ?? "hinweis",
+          ebene: e.ebene ?? "h2",
           symbol: e.symbol ?? "keins",
           ueberschrift: e.ueberschrift, inhalt: e.inhalt,
           knopf: e.knopf ?? "", ziel: e.ziel ?? "", betont: e.betont ?? false,

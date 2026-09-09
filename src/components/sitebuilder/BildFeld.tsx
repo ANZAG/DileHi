@@ -3,7 +3,7 @@ import { FieldLabel } from "@puckeditor/core";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { convertToWebP } from "@/lib/imageConversion";
-import { bildAuswahl, leereAuswahlMerker, type Auswahl } from "./auswahl";
+import { bildVorschauen, leereAuswahlMerker, leereVorschauMerker, type BildVorschau } from "./auswahl";
 
 /**
  * Bildauswahl mit Hochladen.
@@ -30,13 +30,14 @@ export default function BildFeld({
   seitentitel: string;
   readOnly?: boolean;
 }) {
-  const [bilder, setBilder] = useState<Auswahl[]>([]);
+  const [bilder, setBilder] = useState<BildVorschau[]>([]);
+  const [suche, setSuche] = useState("");
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
   useEffect(() => {
     let abgebrochen = false;
-    bildAuswahl().then((b) => {
+    bildVorschauen().then((b) => {
       if (!abgebrochen) setBilder(b);
     });
     return () => { abgebrochen = true; };
@@ -74,7 +75,8 @@ export default function BildFeld({
 
       // Die Auswahlliste ist gemerkt; ohne Leeren fehlt das neue Bild.
       leereAuswahlMerker("bilder");
-      setBilder(await bildAuswahl());
+      leereVorschauMerker();
+      setBilder(await bildVorschauen());
       onChange(slot);
     } catch (err) {
       setFehler(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -83,44 +85,121 @@ export default function BildFeld({
     }
   };
 
-  const bekannt = bilder.some((b) => b.value === value);
+  const bekannt = bilder.some((b) => b.slot === value);
+  const gewaehlt = bilder.find((b) => b.slot === value);
+
+  const gefiltert = suche.trim()
+    ? bilder.filter((b) =>
+        `${b.label} ${b.page ?? ""} ${b.slot}`.toLowerCase().includes(suche.toLowerCase())
+      )
+    : bilder;
 
   return (
     <FieldLabel label="Bild">
-      <select
-        value={value ?? ""}
-        disabled={readOnly}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-      >
-        <option value="">— kein Bild —</option>
-        {/* Ein gespeichertes Bild, das es nicht mehr gibt, bleibt sichtbar.
-            Sonst stünde das Feld leer und der nächste Klick überschriebe den
-            Wert, ohne dass jemand merkt, was verloren geht. */}
-        {value && !bekannt && <option value={value}>{value} (nicht mehr vorhanden)</option>}
-        {bilder.map((b) => (
-          <option key={b.value} value={b.value}>{b.label}</option>
-        ))}
-      </select>
+      {/* Das gewaehlte Bild oben, gross genug zum Erkennen. Vorher stand hier
+          eine Auswahlliste aus Namen – „transition-gruppenfoto" verraet nicht,
+          wie das Bild aussieht, und wer eine Seite baut, waehlt nach dem Bild. */}
+      <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 mb-2">
+        {gewaehlt?.src ? (
+          <img
+            src={gewaehlt.src}
+            alt=""
+            className="h-14 w-20 rounded object-cover shrink-0"
+          />
+        ) : (
+          <div className="h-14 w-20 rounded bg-muted flex items-center justify-center shrink-0">
+            <ImagePlus size={16} className="text-muted-foreground" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">
+            {gewaehlt?.label ?? (value ? value : "Kein Bild")}
+          </p>
+          {value && !bekannt && (
+            // Ein gespeichertes Bild, das es nicht mehr gibt, bleibt sichtbar.
+            // Sonst stuende das Feld leer und der naechste Klick ueberschriebe
+            // den Wert, ohne dass jemand merkt, was verloren geht.
+            <p className="text-xs text-destructive">nicht mehr vorhanden</p>
+          )}
+          {gewaehlt?.page && (
+            <p className="text-xs text-muted-foreground truncate">{gewaehlt.page}</p>
+          )}
+        </div>
+        {value && !readOnly && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-xs text-muted-foreground hover:text-destructive shrink-0"
+          >
+            entfernen
+          </button>
+        )}
+      </div>
 
       {!readOnly && (
-        <label
-          className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground
-            cursor-pointer hover:text-foreground"
-        >
-          {laedt ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-          {laedt ? "Wird hochgeladen …" : "Neues Bild hochladen"}
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            disabled={laedt}
-            onChange={(e) => {
-              void hochladen(e.target.files?.[0]);
-              e.target.value = "";
-            }}
-          />
-        </label>
+        <>
+          {bilder.length > 8 && (
+            <input
+              type="text"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+              placeholder="Suchen …"
+              className="w-full rounded-md border bg-background px-2 py-1 text-sm mb-2"
+            />
+          )}
+
+          <div className="grid grid-cols-3 gap-1.5 max-h-56 overflow-y-auto rounded-md border p-1.5">
+            {gefiltert.map((b) => (
+              <button
+                key={b.slot}
+                type="button"
+                title={b.page ? `${b.label} (${b.page})` : b.label}
+                onClick={() => onChange(b.slot)}
+                className={`group relative aspect-[4/3] overflow-hidden rounded transition-all ${
+                  b.slot === value
+                    ? "ring-2 ring-primary ring-offset-1"
+                    : "hover:opacity-80"
+                }`}
+              >
+                {b.src ? (
+                  <img src={b.src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-muted text-[10px] text-muted-foreground px-1 text-center">
+                    {b.label}
+                  </span>
+                )}
+                {/* Der Name erst beim Ueberfahren: Sonst verdeckt Text die
+                    Bilder, und genau die will man ja sehen. */}
+                <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-[10px] leading-tight opacity-0 transition-opacity group-hover:opacity-100 truncate">
+                  {b.label}
+                </span>
+              </button>
+            ))}
+            {gefiltert.length === 0 && (
+              <p className="col-span-3 py-4 text-center text-xs text-muted-foreground">
+                Kein Bild gefunden.
+              </p>
+            )}
+          </div>
+
+          <label
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground
+              cursor-pointer hover:text-foreground"
+          >
+            {laedt ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+            {laedt ? "Wird hochgeladen …" : "Neues Bild hochladen"}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={laedt}
+              onChange={(e) => {
+                void hochladen(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </>
       )}
 
       {fehler && <p className="mt-1 text-xs text-destructive">{fehler}</p>}

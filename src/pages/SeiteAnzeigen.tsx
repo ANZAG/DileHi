@@ -13,9 +13,52 @@ import { useBranding } from "@/hooks/useBranding";
  * fürs Anzeigen, die auseinanderlaufen könnte. Was im Editor steht, steht auch
  * hier.
  */
-export default function SeiteAnzeigen() {
+/**
+ * Der maschinenlesbare Block fuer Suchmaschinen.
+ *
+ * Bewusst kein Feld fuer rohes JSON-LD: Was darin steht – Name, Anschrift,
+ * Web-Adresse des Vereins – weiss die Anwendung aus den Vereinsangaben besser
+ * als der Mensch vor dem Formular. In der Seitenverwaltung wird nur gewaehlt,
+ * um welche Art Seite es sich handelt.
+ */
+function strukturierteDaten(
+  page: { title: string; seo_title: string | null; seo_description: string | null; slug: string; seo_type: string },
+  marke: ReturnType<typeof useBranding>
+): Record<string, unknown> | undefined {
+  if (page.seo_type === "keine") return undefined;
+
+  const web = (marke.website_url || "").replace(/\/$/, "");
+  const beschreibung = page.seo_description ?? marke.seo_description ?? undefined;
+
+  if (page.seo_type === "organisation") {
+    return {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: marke.org_name,
+      alternateName: marke.org_short_name,
+      url: web || undefined,
+      description: beschreibung,
+      address: marke.org_city
+        ? { "@type": "PostalAddress", addressLocality: marke.org_city, addressCountry: marke.org_country ?? "DE" }
+        : undefined,
+    };
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: page.seo_title || page.title,
+    description: beschreibung,
+    author: { "@type": "Organization", name: marke.org_name },
+    publisher: { "@type": "Organization", name: marke.org_name },
+  };
+}
+
+export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
   const { "*": pfad } = useParams();
-  const slug = (pfad ?? "").replace(/^\/+|\/+$/g, "");
+  // Die Startseite hat keinen Namen in der Adresse und bekommt ihn deshalb
+  // mitgegeben.
+  const slug = fest ?? (pfad ?? "").replace(/^\/+|\/+$/g, "");
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["site-page-slug", slug],
@@ -38,11 +81,14 @@ export default function SeiteAnzeigen() {
   return (
     <>
       <SEO
-        title={`${page.title} – ${branding.org_short_name}`}
+        // Der ausformulierte Titel schlaegt das Schema: Er steht in der
+        // Trefferliste, und ein Satz ist dort besser als ein Muster.
+        title={page.seo_title || `${page.title} – ${branding.org_short_name}`}
         description={page.seo_description ?? branding.seo_description ?? undefined}
         url={`/${page.slug}`}
-        type="article"
+        type={page.seo_type === "organisation" ? "website" : "article"}
         noindex={page.noindex || !page.is_published}
+        jsonLd={strukturierteDaten(page, branding)}
       />
 
       {!page.is_published && (

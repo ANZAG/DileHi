@@ -6,7 +6,6 @@ import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
 import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
-import SiteImagesAdmin from "@/components/admin/SiteImagesAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
@@ -26,7 +25,7 @@ import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
 
 
 const Admin = () => {
@@ -76,7 +75,6 @@ const Admin = () => {
       { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Galerien und Quellen" },
     ] : []),
     ...(hasPermission("site_images.manage") ? [
-      { id: "siteimages" as const, gruppe: "website", label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
       { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" , modul: "sources"},
@@ -91,10 +89,10 @@ const Admin = () => {
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
+      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
     ] : []),
     ...(hasPermission("events.moderate") ? [
-      { id: "formtemplate" as const, gruppe: "intern", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
+      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
@@ -121,8 +119,7 @@ const Admin = () => {
   for (const [schluessel, titel] of [
     ["personen", "Mitglieder und Anfragen"],
     ["website", "Öffentliche Website"],
-    ["intern", "Mitgliederbereich"],
-    ["system", "System"],
+    ["system", "System und Einrichtung"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
     // Eine Überschrift ohne Kacheln darunter wäre nur Rauschen – wer die
@@ -221,7 +218,6 @@ const Admin = () => {
           {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
-          {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}

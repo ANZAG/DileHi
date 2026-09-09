@@ -43,7 +43,12 @@ export function Vereinsangaben({
           {
             titel: "Vereinsregister",
             werte: [b.register_court, b.register_number].filter(Boolean).length
-              ? [b.register_court, b.register_number && `Registernummer: ${b.register_number}`]
+              // Beide Zeilen beschriftet – „Amtsgericht Wiesbaden" allein sagt
+              // nicht, in welcher Eigenschaft es dasteht.
+              ? [
+                  b.register_court && `Registergericht: ${b.register_court}`,
+                  b.register_number && `Registernummer: ${b.register_number}`,
+                ]
               : [],
           },
           { titel: "Vertreten durch", werte: (b.board_members ?? "").split("\n").filter(Boolean) },

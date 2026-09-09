@@ -20,6 +20,10 @@ export interface SitePage {
   draft_content: Data | null;
   seo_description: string | null;
   seo_image_path: string | null;
+  /** Titel in der Trefferliste. Leer = „Seitenname – Kurzname des Vereins". */
+  seo_title: string | null;
+  /** Strukturierte Daten: keine | organisation | artikel. */
+  seo_type: string;
   noindex: boolean;
   is_published: boolean;
   is_system: boolean;
@@ -39,7 +43,15 @@ export async function fetchPages(): Promise<SitePage[]> {
 export async function fetchPageBySlug(slug: string): Promise<SitePage | null> {
   const { data, error } = await db.from("site_pages").select("*").eq("slug", slug).maybeSingle();
   if (error) throw new Error(error.message);
-  return (data ?? null) as SitePage | null;
+  if (data) return data as SitePage;
+
+  // Uebergang: Die Seiten hiessen bis zur Umstellung „…-neu". Der Code wird
+  // beim Push veroeffentlicht, die Migration spielt jemand von Hand ein –
+  // dazwischen liegen Minuten, in denen die Seite sonst ins Leere liefe.
+  //
+  // Diese Zeilen koennen weg, sobald 20260909220000 ueberall eingespielt ist.
+  const { data: alt } = await db.from("site_pages").select("*").eq("slug", `${slug}-neu`).maybeSingle();
+  return (alt ?? null) as SitePage | null;
 }
 
 export async function fetchPageById(id: string): Promise<SitePage | null> {
