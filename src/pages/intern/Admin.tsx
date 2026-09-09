@@ -20,10 +20,11 @@ import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
 import AufnahmeantragAdmin from "@/components/admin/AufnahmeantragAdmin";
+import ProfilfelderAdmin from "@/components/admin/ProfilfelderAdmin";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder";
 
 
 const Admin = () => {
@@ -93,6 +94,7 @@ const Admin = () => {
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" },
+      { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: Users, desc: "Welche Bereiche und Felder es hat" },
     ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
@@ -203,6 +205,7 @@ const Admin = () => {
           {activeTab === "erscheinungsbild" && hasPermission("system.settings") && <ErscheinungsbildAdmin />}
           {activeTab === "vorlagen" && hasPermission("system.settings") && <VorlagenAdmin />}
           {activeTab === "aufnahmeantrag" && hasPermission("system.settings") && <AufnahmeantragAdmin />}
+          {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}

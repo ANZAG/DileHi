@@ -1637,6 +1637,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          extra: Json
           allergies: string | null
           birthdate: string | null
           calendar_token: string | null
@@ -1667,6 +1668,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
@@ -1697,6 +1699,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
