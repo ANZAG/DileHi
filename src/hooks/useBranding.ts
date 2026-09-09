@@ -10,6 +10,8 @@ export interface Branding {
   org_tagline: string | null;
   logo_path: string | null;
   favicon_path: string | null;
+  /** Steht das Logo neben dem Vereinsnamen in der Kopfzeile? */
+  logo_in_header: boolean;
   color_primary: string;
   color_dark: string;
   seo_description: string | null;
@@ -46,6 +48,7 @@ const VORGABE: Branding = {
   org_tagline: null,
   logo_path: null,
   favicon_path: null,
+  logo_in_header: true,
   color_primary: "#dd9933",
   color_dark: "#1c1917",
   seo_description: null,

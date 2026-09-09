@@ -142,6 +142,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          logo_in_header: boolean
           bank_bic: string | null
           bank_iban: string | null
           bank_recipient: string | null
@@ -185,6 +186,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
@@ -2341,6 +2344,7 @@ export type Database = {
       public_branding: {
         Args: never
         Returns: {
+          logo_in_header: boolean
           footer_legal_label: string
           footer_navigation_label: string
           board_members: string
