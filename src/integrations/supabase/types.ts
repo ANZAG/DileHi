@@ -2197,6 +2197,8 @@ export type Database = {
           published_at: string | null
           seo_description: string | null
           seo_image_path: string | null
+          seo_title: string | null
+          seo_type: string
           slug: string
           title: string
           updated_at: string
@@ -2213,6 +2215,8 @@ export type Database = {
           published_at?: string | null
           seo_description?: string | null
           seo_image_path?: string | null
+          seo_title?: string | null
+          seo_type?: string
           slug: string
           title: string
           updated_at?: string
@@ -2229,6 +2233,8 @@ export type Database = {
           published_at?: string | null
           seo_description?: string | null
           seo_image_path?: string | null
+          seo_title?: string | null
+          seo_type?: string
           slug?: string
           title?: string
           updated_at?: string
@@ -2642,6 +2648,14 @@ export type Database = {
         Returns: {
           created_at: string
           id: string
+          title: string
+        }[]
+      }
+      seo_organisation_seiten: {
+        Args: never
+        Returns: {
+          id: string
+          slug: string
           title: string
         }[]
       }
