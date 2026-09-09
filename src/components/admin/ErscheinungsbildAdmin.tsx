@@ -647,7 +647,7 @@ function SatzungWahl({ entwurf, setze }: {
       </Select>
       <p className="text-xs text-muted-foreground mt-1">
         {dokumente.length === 0
-          ? "In der Kategorie „Satzung & Ordnungen" liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
+          ? "In der Kategorie „Satzung & Ordnungen“ liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
           : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen – die sind meist neuer als die Satzung. Deshalb hier ausdrücklich wählen."}
       </p>
     </div>
