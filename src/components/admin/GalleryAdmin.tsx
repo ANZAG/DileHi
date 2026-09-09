@@ -27,7 +27,10 @@ const GalleryAdmin = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  const [selectedEpoch, setSelectedEpoch] = useState("mittelalter");
+  const kategorien = useKategorien();
+  const [gewaehlt, setGewaehlt] = useState("");
+  const selectedEpoch = gewaehlt || kategorien[0]?.value || "";
+  const setSelectedEpoch = setGewaehlt;
   const [altText, setAltText] = useState("");
   const [filterEpoch, setFilterEpoch] = useState("alle");
   const [page, setPage] = useState(0);

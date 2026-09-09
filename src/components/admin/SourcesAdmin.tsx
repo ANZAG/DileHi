@@ -119,7 +119,7 @@ const SourcesAdmin = () => {
     <div className="space-y-4">
       {/* Epoch selector */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
-        {EPOCH_OPTIONS.map((ep) => (
+        {kategorien.map((ep) => (
           <button
             key={ep.value}
             onClick={() => setSelectedEpoch(ep.value)}
