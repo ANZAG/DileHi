@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FormField } from "@/components/event-forms/types";
+import { modulAn, type Modulstand } from "./useModule";
 
 /**
  * Was im Mitgliederprofil steht.
@@ -19,6 +20,8 @@ import type { FormField } from "@/components/event-forms/types";
 export interface Profilfeld extends FormField {
   block_key: string | null;
   is_active: boolean;
+  /** Bereich erscheint nur, wenn dieses Modul eingeschaltet ist. */
+  modul: string | null;
 }
 
 /** Was der Baukasten im Profil anbieten darf. */
@@ -51,9 +54,17 @@ export function useProfilfelder() {
  * hinzu, bevor die Migration gelaufen ist, soll er sichtbar sein und nicht
  * stillschweigend fehlen.
  */
-export function bereichAn(felder: Profilfeld[], key: string): boolean {
+export function bereichAn(
+  felder: Profilfeld[],
+  key: string,
+  module?: Modulstand[]
+): boolean {
   const eintrag = felder.find((f) => f.block_key === key);
-  return eintrag ? eintrag.is_active : true;
+  if (!eintrag) return true;
+  // Zwei Schalter, beide muessen an sein: der Bereich selbst und das Modul
+  // dahinter. „Meine Zelte" im Profil ohne Lagerlogistik in der Auswertung
+  // waere eine Liste, die nirgends ankommt.
+  return eintrag.is_active && modulAn(module, eintrag.modul);
 }
 
 /** Die frei zusammengestellten Fragen, in ihrer Reihenfolge. */

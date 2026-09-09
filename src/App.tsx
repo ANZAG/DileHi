@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ModulRoute from "./components/ModulRoute";
 import { zwischenspeicherLeeren } from "./lib/recovery";
 import AppUpdatePrompt from "./components/AppUpdatePrompt";
 import InstallHint from "./components/InstallHint";
@@ -145,28 +146,28 @@ const App = () => (
                 <Route path="/passwort-zuruecksetzen" element={<ResetPassword />} />
                 <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/intern/quellen" element={<ProtectedRoute><Sources /></ProtectedRoute>} />
-                <Route path="/intern/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
-                <Route path="/intern/forum/thema/:threadId" element={<ProtectedRoute><ForumThread /></ProtectedRoute>} />
-                <Route path="/intern/forum/:slug" element={<ProtectedRoute><ForumCategory /></ProtectedRoute>} />
-                <Route path="/intern/pinnwand" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-                <Route path="/intern/abstimmungen" element={<ProtectedRoute><Elections /></ProtectedRoute>} />
+                <Route path="/intern/quellen" element={<ModulRoute k="sources"><ProtectedRoute><Sources /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/forum" element={<ModulRoute k="forum"><ProtectedRoute><Forum /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/forum/thema/:threadId" element={<ModulRoute k="forum"><ProtectedRoute><ForumThread /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/forum/:slug" element={<ModulRoute k="forum"><ProtectedRoute><ForumCategory /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/pinnwand" element={<ModulRoute k="announcements"><ProtectedRoute><Announcements /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/veranstaltungen" element={<ModulRoute k="events"><ProtectedRoute><EventsPage /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/abstimmungen" element={<ModulRoute k="elections"><ProtectedRoute><Elections /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                 <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
                 <Route path="/intern/verwaltung/berechtigungen" element={<ProtectedRoute><RolesPermissions /></ProtectedRoute>} />
                 <Route path="/intern/seiten/:pageId" element={<ProtectedRoute><SeitenEditor /></ProtectedRoute>} />
-                <Route path="/intern/dokumente" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+                <Route path="/intern/dokumente" element={<ModulRoute k="documents"><ProtectedRoute><Documents /></ProtectedRoute></ModulRoute>} />
 
-                <Route path="/intern/beitraege" element={<ProtectedRoute><Contributions /></ProtectedRoute>} />
-                <Route path="/intern/karte" element={<ProtectedRoute><MemberMap /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen/:eventId/formular" element={<ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute>} />
-                <Route path="/intern/veranstaltungen/:eventId/anmeldung" element={<ProtectedRoute><EventRegistrationInternal /></ProtectedRoute>} />
-                <Route path="/intern/auswertungen" element={<ProtectedRoute><Auswertungen /></ProtectedRoute>} />
+                <Route path="/intern/beitraege" element={<ModulRoute k="contributions"><ProtectedRoute><Contributions /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/karte" element={<ModulRoute k="member_map"><ProtectedRoute><MemberMap /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/formular" element={<ModulRoute k="event_forms"><ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ModulRoute k="event_forms"><ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/veranstaltungen/:eventId/anmeldung" element={<ModulRoute k="event_forms"><ProtectedRoute><EventRegistrationInternal /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/auswertungen" element={<ModulRoute k="event_forms"><ProtectedRoute><Auswertungen /></ProtectedRoute></ModulRoute>} />
 
-                <Route path="/anmeldung/:token" element={<EventRegistration />} />
-                <Route path="/mitglied-werden" element={<MembershipApplication />} />
+                <Route path="/anmeldung/:token" element={<ModulRoute k="event_forms"><EventRegistration /></ModulRoute>} />
+                <Route path="/mitglied-werden" element={<ModulRoute k="applications"><MembershipApplication /></ModulRoute>} />
                 {/* Ganz am Ende: Was keine feste Route trifft, koennte eine im
                     Editor gebaute Seite sein. Gibt es sie nicht, zeigt
                     SeiteAnzeigen selbst die 404-Seite. */}

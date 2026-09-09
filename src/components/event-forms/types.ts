@@ -129,6 +129,9 @@ export const FIELD_TYPES = [
     example: "z.B. Aufbau / Abbau",
   },
   {
+    // Gehoert zum Modul „Helferaufgaben" – ohne das taucht der Typ in der
+    // Auswahl gar nicht erst auf.
+    modul: "helfer",
     value: "helper_tasks",
     label: "Helferaufgaben",
     icon: "HandHelping",
@@ -150,6 +153,7 @@ export const FIELD_TYPES = [
     example: "z.B. „An welchen Tagen bist du dabei?\"",
   },
   {
+    modul: "lagerlogistik",
     value: "tent",
     label: "Zelt-Details",
     icon: "Tent",

@@ -15,6 +15,7 @@ import { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PersonaEditor from "@/components/personas/PersonaEditor";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder";
+import { useModule } from "@/hooks/useModule";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -92,6 +93,7 @@ const Profile = () => {
   });
 
   const { data: profilfelder = [] } = useProfilfelder();
+  const { data: module } = useModule();
 
   /** Antworten auf die frei zusammengestellten Profilfelder. */
   const [extra, setExtra] = useState<Record<string, unknown>>({});
@@ -437,7 +439,7 @@ const Profile = () => {
           </div>
 
           {/* Dietary preferences – pre-fill event registration forms automatically */}
-          {bereichAn(profilfelder, "ernaehrung") && (
+          {bereichAn(profilfelder, "ernaehrung", module) && (
   <div className="p-6 rounded-lg border bg-card space-y-4">
               <div>
                 <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
@@ -475,7 +477,7 @@ const Profile = () => {
           )}
 
           {/* Darstellungssteckbrief – nur intern sichtbar */}
-          {bereichAn(profilfelder, "darstellung") && <PersonaEditor />}
+          {bereichAn(profilfelder, "darstellung", module) && <PersonaEditor />}
 
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
@@ -538,7 +540,7 @@ const Profile = () => {
           </div>
 
           {/* Tents */}
-          {bereichAn(profilfelder, "zelte") && (
+          {bereichAn(profilfelder, "zelte", module) && (
   <div className="p-6 rounded-lg border bg-card space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
@@ -666,7 +668,7 @@ const Profile = () => {
           </div>
 
           {/* Map opt-in */}
-          {bereichAn(profilfelder, "karte") && (
+          {bereichAn(profilfelder, "karte", module) && (
   <div className="p-6 rounded-lg border bg-card space-y-3">
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
                 <MapPin size={18} /> Mitgliederkarte
@@ -730,7 +732,7 @@ const Profile = () => {
           </div>
 
           {/* Membership files */}
-          {bereichAn(profilfelder, "antrag") && membershipFiles.length > 0 && (
+          {bereichAn(profilfelder, "antrag", module) && membershipFiles.length > 0 && (
             <div className="p-6 rounded-lg border bg-card space-y-3">
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
                 <FileText size={18} /> Mitgliedsantrag

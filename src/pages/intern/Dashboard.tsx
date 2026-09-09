@@ -8,15 +8,23 @@ import {
   FileText, Coins, MapPin, ClipboardList, ScrollText,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
+import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
 
+/**
+ * Die Kacheln des Mitgliederbereichs.
+ *
+ * `modul` sagt, wozu eine Kachel gehört – gefiltert wird unten an einer
+ * Stelle. Eine neue Kachel braucht deshalb keine eigene Abfrage, nur diesen
+ * Eintrag.
+ */
 const baseCards = [
-  { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen" },
-  { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum" },
-  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand" },
-  { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen" },
-  { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente" },
-  { title: "Quellensammlung", desc: "Quellen nach Epoche durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen" },
-  { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte" },
+  { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen", modul: "events" },
+  { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum", modul: "forum" },
+  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand", modul: "announcements" },
+  { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen", modul: "elections" },
+  { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", modul: "documents" },
+  { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", modul: "sources" },
+  { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", modul: "member_map" },
 ];
 
 const Dashboard = () => {
@@ -49,19 +57,25 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  const showEvalCard = organizedEvents.length > 0;
-  const cards = showEvalCard
-    ? [
-        ...baseCards.slice(0, 1),
-        {
-          title: "Anmeldungen",
-          desc: "Wer kommt, und was dafür gebraucht wird.",
-          icon: ClipboardList,
-          path: "/intern/auswertungen",
-        },
-        ...baseCards.slice(1),
-      ]
-    : baseCards;
+  const { data: module } = useModule();
+
+  const showEvalCard = organizedEvents.length > 0 && modulAn(module, "event_forms");
+  const cards = nurAktive(
+    showEvalCard
+      ? [
+          ...baseCards.slice(0, 1),
+          {
+            title: "Anmeldungen",
+            desc: "Wer kommt, und was dafür gebraucht wird.",
+            icon: ClipboardList,
+            path: "/intern/auswertungen",
+            modul: "event_forms",
+          },
+          ...baseCards.slice(1),
+        ]
+      : baseCards,
+    module
+  );
 
   return (
     <div className="container py-8 sm:py-12 max-w-4xl px-4">
@@ -93,12 +107,14 @@ const Dashboard = () => {
                 <Settings size={16} /> Verwaltung
               </Link>
             )}
+            {modulAn(module, "contributions") && (
             <Link
               to="/intern/beitraege"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
               <Coins size={16} /> Beiträge
             </Link>
+            )}
             <button
               onClick={signOut}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
