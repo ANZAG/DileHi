@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { useBranding } from "@/hooks/useBranding";
 
 interface SEOProps {
   title?: string;
@@ -10,16 +11,27 @@ interface SEOProps {
   jsonLd?: Record<string, unknown>;
 }
 
-const SEO = ({ 
-  title = "Diu lebendec Histôrje – Wiesbadener Living History Verein", 
-  description = "Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen.",
+/**
+ * Die Angaben fuer Suchmaschinen und geteilte Links.
+ *
+ * Vereinsname, Adresse und Vorgabetexte standen frueher fest in dieser Datei –
+ * eine fremde Installation haette unseren Namen in jedem geteilten Link
+ * gehabt. Sie kommen jetzt aus den Vereinsangaben; die Werte hier sind nur
+ * noch der Rueckfall, solange die Abfrage laeuft.
+ */
+const SEO = ({
+  title,
+  description,
   image = "/hero-medieval.webp",
   url,
   type = "website",
   noindex = false,
   jsonLd,
 }: SEOProps) => {
-  const baseUrl = "https://www.dilehi.de";
+  const marke = useBranding();
+  const baseUrl = (marke.website_url || "").replace(/\/$/, "");
+  title = title ?? [marke.org_name, marke.org_tagline].filter(Boolean).join(" – ");
+  description = description ?? marke.seo_description ?? undefined;
   const fullUrl = url ? `${baseUrl}${url}` : (typeof window !== "undefined" ? window.location.href : baseUrl);
   const fullImageUrl = image.startsWith('http') ? image : `${baseUrl}${image}`;
 
@@ -37,7 +49,7 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="Diu lebendec Histôrje" />
+      <meta property="og:site_name" content={marke.org_short_name} />
       <meta property="og:locale" content="de_DE" />
       
       {/* Twitter Card */}

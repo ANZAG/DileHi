@@ -27,11 +27,21 @@ export type KastenSymbol = keyof typeof SYMBOLE;
  * herausrutscht, sieht aus wie ein Fehler.
  */
 export function Hinweiskasten({
-  symbol, stil, ueberschrift, inhalt, knopf, ziel,
+  symbol, stil, ebene, ueberschrift, inhalt, knopf, ziel,
   betont, breite, abstandOben, abstandUnten, abstand,
 }: {
   symbol: KastenSymbol;
   stil?: "hinweis" | "notiz" | "abschnitt";
+  /**
+   * Rangstufe der Ueberschrift.
+   *
+   * „Was ist eigentlich Living History?" steht im Original als h3 innerhalb
+   * des Abschnitts „Unser Anspruch" – der Kasten erlaeutert ihn, er beginnt
+   * kein neues Thema. Als h2 haette die Seite eine Gliederung behauptet, die
+   * es nicht gibt; fuer Vorleseprogramme und Suchmaschinen ist das der
+   * Unterschied zwischen Kapitel und Einschub.
+   */
+  ebene?: "h2" | "h3";
   ueberschrift?: string;
   inhalt: unknown;
   knopf?: string;
@@ -55,6 +65,7 @@ export function Hinweiskasten({
   // Überschrift, falsche Farbe, Symbol, das dort nie stand.
   const notiz = stil === "notiz";
   const abschnitt = stil === "abschnitt";
+  const Titel = ebene === "h3" ? "h3" : "h2";
 
   // Untertitel innerhalb des Kastens. Im Original sind es <h3> ohne Serifen,
   // in Textfarbe, mit 24 px Luft davor und 8 px danach.
@@ -97,7 +108,7 @@ export function Hinweiskasten({
           )}
           <div className="min-w-0">
             {ueberschrift && (
-              <h2
+              <Titel
                 className={`font-serif font-semibold ${
                   abschnitt ? "text-2xl text-foreground mb-6"
                   : notiz ? "text-lg text-primary mb-3"
@@ -105,7 +116,7 @@ export function Hinweiskasten({
                 }`}
               >
                 {ueberschrift}
-              </h2>
+              </Titel>
             )}
             {text}
             {knopf && (

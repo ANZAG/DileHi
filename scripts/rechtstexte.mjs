@@ -70,7 +70,7 @@ const impressum = [
   }),
 
   text(
-    h2("Verbraucherstreitbeilegung") +
+    h2("Verbraucherstreitbeilegung / Universalschlichtungsstelle") +
     p(
       "Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: " +
       '<a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noreferrer">https://ec.europa.eu/consumers/odr/</a>. ' +

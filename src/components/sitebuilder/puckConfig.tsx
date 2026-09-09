@@ -186,6 +186,7 @@ export type Bausteine = {
   Hinweiskasten: {
     symbol: KastenSymbol;
     stil: "hinweis" | "notiz" | "abschnitt";
+    ebene: "h2" | "h3";
     ueberschrift?: string;
     inhalt: unknown;
     knopf?: string;
@@ -795,6 +796,13 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       label: "Hinweiskasten",
       resolveFields: async () => ({
         stil: { type: "radio", label: "Aussehen", options: KASTEN_STILE },
+        ebene: {
+          type: "radio", label: "Rang der Überschrift",
+          options: [
+            { label: "Eigener Abschnitt", value: "h2" },
+            { label: "Teil des Abschnitts darüber", value: "h3" },
+          ],
+        },
         symbol: { type: "select", label: "Symbol", options: KASTEN_SYMBOLE },
         ueberschrift: { type: "text", label: "Überschrift" },
         inhalt: textFeld,
@@ -814,7 +822,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       }),
       defaultProps: {
         ...layoutVorgaben,
-        stil: "hinweis", symbol: "info", ueberschrift: "", inhalt: "", knopf: "", ziel: "", betont: false,
+        stil: "hinweis", ebene: "h2", symbol: "info", ueberschrift: "", inhalt: "", knopf: "", ziel: "", betont: false,
         abstandOben: "klein", abstandUnten: "klein",
       },
       render: Hinweiskasten,

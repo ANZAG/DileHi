@@ -91,10 +91,10 @@ const Admin = () => {
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
+      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
     ] : []),
     ...(hasPermission("events.moderate") ? [
-      { id: "formtemplate" as const, gruppe: "intern", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
+      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
@@ -121,8 +121,7 @@ const Admin = () => {
   for (const [schluessel, titel] of [
     ["personen", "Mitglieder und Anfragen"],
     ["website", "Öffentliche Website"],
-    ["intern", "Mitgliederbereich"],
-    ["system", "System"],
+    ["system", "System und Einrichtung"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
     // Eine Überschrift ohne Kacheln darunter wäre nur Rauschen – wer die

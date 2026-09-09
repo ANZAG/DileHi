@@ -5,6 +5,9 @@ import { Plus, Pencil, Trash2, Globe, FileText, ExternalLink, Settings2 } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -220,12 +223,15 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
   onAbbrechen: () => void;
   onSpeichern: (patch: {
     title?: string; slug?: string; seo_description?: string; noindex?: boolean;
+    seo_title?: string | null; seo_type?: string;
   }) => void;
 }) {
   const [titel, setTitel] = useState(seite.title);
   const [adresse, setAdresse] = useState(seite.slug);
   const [beschreibung, setBeschreibung] = useState(seite.seo_description ?? "");
   const [versteckt, setVersteckt] = useState(seite.noindex);
+  const [suchtitel, setSuchtitel] = useState(seite.seo_title ?? "");
+  const [datenart, setDatenart] = useState(seite.seo_type ?? "keine");
 
   const adresseGeaendert = adresse !== seite.slug;
 
@@ -252,6 +258,35 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
       </div>
 
       <div>
+        <Label className="text-sm">Titel in der Trefferliste</Label>
+        <Input
+          value={suchtitel}
+          onChange={(e) => setSuchtitel(e.target.value)}
+          placeholder={`${titel} – Kurzname des Vereins`}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Leer lassen genügt meistens. Ein eigener Satz ist besser als ein
+          Muster – er steht in der Trefferliste und entscheidet über den Klick.
+        </p>
+      </div>
+
+      <div>
+        <Label className="text-sm">Angaben für Suchmaschinen</Label>
+        <Select value={datenart} onValueChange={setDatenart}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="keine">Keine besonderen</SelectItem>
+            <SelectItem value="organisation">Diese Seite stellt den Verein vor</SelectItem>
+            <SelectItem value="artikel">Diese Seite ist ein Thema oder Beitrag</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          Erzeugt einen maschinenlesbaren Block. Was darin steht – Name,
+          Anschrift, Web-Adresse – kommt aus den Vereinsangaben.
+        </p>
+      </div>
+
+      <div>
         <Label className="text-sm">Beschreibung für Suchmaschinen</Label>
         <Input
           value={beschreibung}
@@ -275,6 +310,8 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
         <Button
           disabled={!titel.trim() || !adresse.trim() || pending}
           onClick={() => onSpeichern({
+            seo_title: suchtitel.trim() || null,
+            seo_type: datenart,
             title: titel.trim(),
             slug: adresse.trim(),
             seo_description: beschreibung.trim() || null,

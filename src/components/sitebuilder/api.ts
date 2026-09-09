@@ -20,6 +20,10 @@ export interface SitePage {
   draft_content: Data | null;
   seo_description: string | null;
   seo_image_path: string | null;
+  /** Titel in der Trefferliste. Leer = „Seitenname – Kurzname des Vereins". */
+  seo_title: string | null;
+  /** Strukturierte Daten: keine | organisation | artikel. */
+  seo_type: string;
   noindex: boolean;
   is_published: boolean;
   is_system: boolean;

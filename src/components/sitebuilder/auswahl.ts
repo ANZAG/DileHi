@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_IMAGE_FALLBACKS } from "@/hooks/useSiteImage";
 
 /**
  * Auswahllisten für die Bausteine.
@@ -42,6 +43,10 @@ async function gemerkt(schluessel: string, laden: () => Promise<Auswahl[]>): Pro
  * gehört – „Titelbild (Startseite)" statt „hero-startseite".
  */
 /** Nach dem Hochladen eines Bildes muss die gemerkte Liste weg. */
+export function leereVorschauMerker() {
+  vorschauMerker = null;
+}
+
 export function leereAuswahlMerker(schluessel?: string) {
   if (schluessel) merker.delete(schluessel);
   else merker.clear();
@@ -60,6 +65,48 @@ export function bildAuswahl(): Promise<Auswahl[]> {
       label: b.page ? `${b.label} (${b.page})` : b.label,
     }));
   });
+}
+
+export interface BildVorschau {
+  slot: string;
+  label: string;
+  page: string | null;
+  /** Fertige Adresse – aus dem Speicher oder das mitgelieferte Bild. */
+  src: string;
+}
+
+/**
+ * Dieselben Bilder, aber mit Adresse zum Ansehen.
+ *
+ * Eine Auswahlliste aus Namen verraet nicht, wie ein Bild aussieht –
+ * „transition-gruppenfoto" koennte alles sein. Wer eine Seite baut, waehlt
+ * nach dem Bild, nicht nach dem Namen.
+ */
+let vorschauMerker: { zeit: number; werte: BildVorschau[] } | null = null;
+
+export async function bildVorschauen(): Promise<BildVorschau[]> {
+  if (vorschauMerker && Date.now() - vorschauMerker.zeit < HALTBARKEIT) {
+    return vorschauMerker.werte;
+  }
+  const laden = async (): Promise<BildVorschau[]> => {
+    const { data, error } = await supabase
+      .from("site_images")
+      .select("slot, label, page, storage_path")
+      .order("page")
+      .order("label");
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((b) => ({
+      slot: b.slot,
+      label: b.label,
+      page: b.page,
+      src: b.storage_path
+        ? supabase.storage.from("gallery").getPublicUrl(b.storage_path).data.publicUrl
+        : SITE_IMAGE_FALLBACKS[b.slot] ?? "",
+    }));
+  };
+  const werte = await laden();
+  vorschauMerker = { zeit: Date.now(), werte };
+  return werte;
 }
 
 /** Die Galerien – abgeleitet daraus, welche es tatsächlich gibt. */
