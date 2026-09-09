@@ -7,6 +7,7 @@ Ziel: Alle sichtbaren Texte im internen Bereich klingen natürlich, helfen der j
 Betroffen sind laufende Sätze in der Oberfläche (nicht Datumsangaben wie „14–18 Uhr" und nicht Platzhalter „–" in Tabellen, die bleiben).
 
 Beispiele, die umformuliert werden:
+
 - Onboarding-Tour: mehrere Sätze mit eingeschobenem Gedankenstrich („… vorgeschlagen", „… an einem Ort", „… für volle Nachvollziehbarkeit", „Du hast Zugriff auf die Mitgliedsunterlagen – … –, die du …").
 - Verwaltung: Seiten, Menü, Module, Darstellungen, Forum-Rubriken, Aufnahmeantrag, Mitgliederprofil, Erscheinungsbild.
 - Veranstaltungen: Formular-Baukasten, Feldbeschreibungen und Auswertung.
@@ -25,6 +26,7 @@ Stilregeln: kurze Hauptsätze, Doppelpunkt oder Punkt statt Gedankenstrich, kein
 Regel: Intern heißt es **Kategorie**, im Text darf der Zusatz stehen, dass das bei uns die Epochen sind. Nach außen (öffentliche Seiten, Menü, Kontaktformular) bleibt **Epoche**.
 
 Zu vereinheitlichen:
+
 - Verwaltungskachel „Quellen" beschreibt heute „Epochen-Quellenangaben pflegen", die Kachel „Kategorien" dagegen „Ordnen Galerien und Quellen". Beide auf Kategorie-Sprache bringen.
 - „Besucher-Highlights" nennt im Inhalt „Keine Stichpunkte für diese Epoche vorhanden".
 - Galerie, Quellen und Besucher-Highlights bieten jeweils eine fest im Code stehende Epochenliste an, während unter „Kategorien" gepflegte Einträge nicht dort erscheinen. Diese drei Stellen ziehen künftig dieselbe Liste wie der Seitenbaukasten (mit der bisherigen Liste als Rückfall, wenn nichts gepflegt ist).
@@ -32,7 +34,7 @@ Zu vereinheitlichen:
 
 ## 4. Übersicht der Menüs
 
-- Verwaltung hat drei Reiter: Mitglieder und Anfragen, Öffentliche Website, System und Einrichtung. „Forum-Rubriken" und „Umfrage-Vorlage" liegen unter System, gehören aber zum Mitgliederbereich. Vorschlag: vierte Gruppe „Mitgliederbereich" für Forum-Rubriken, Umfrage-Vorlage und Mitgliederprofil.
+- Verwaltung hat drei Reiter: Mitglieder und Anfragen, Öffentliche Website, System und Einrichtung. „Forum-Rubriken" und „Umfrage-Vorlage" liegen unter System, gehören aber zum Mitgliederbereich. Vorschlag: vierte Gruppe „Mitgliederbereich" für Forum-Rubriken, Umfrage-Vorlage und Mitgliederprofil.  ->Menschliche (meine) ANmelrkung: Umfragevorlage ist etwas das möglichst selten angepasst werden sollte. Daher bitte nicht in Mitgliederbereich. Lieber die aktuelle Kategorie in Allgemeine Einstellungen umbenennen. Sollten später mal mehr Customizingpunkte für den Mitgliederbereich kommen, kann dann Forum-Rubriken dort mit hingezogen werden.
 - Kachelbeschreibungen sind auf dem Handy ausgeblendet. Die Kachelnamen werden so gewählt, dass sie allein verständlich sind.
 - Reihenfolge innerhalb der Gruppen nach Häufigkeit der Nutzung, Einrichtungssachen nach unten.
 - Dashboard-Kacheltexte werden auf einen Satz mit klarem Nutzen gebracht.
@@ -40,6 +42,7 @@ Zu vereinheitlichen:
 ## 5. Responsivität
 
 Durchgang mit schmaler Ansicht (375 px) über Dashboard, Profil, Veranstaltungen, Anmeldungen/Auswertung, Abstimmungen, Beiträge, Dokumente, Quellen, Karte, Forum und alle Verwaltungsbereiche. Bekannte Kandidaten:
+
 - Mitgliederregister: feste Sechs-Spalten-Raster in der Ladeansicht.
 - Berechtigungen und Forum-Rubriken: breite Tabellen, seitliches Scrollen prüfen und Hinweis ergänzen.
 - Formular-Baukasten mit geteilter Ansicht und die Zeltplanung.
