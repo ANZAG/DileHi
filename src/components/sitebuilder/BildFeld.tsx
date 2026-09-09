@@ -32,6 +32,8 @@ export default function BildFeld({
 }) {
   const [bilder, setBilder] = useState<BildVorschau[]>([]);
   const [suche, setSuche] = useState("");
+  const [altText, setAltText] = useState("");
+  const [altGespeichert, setAltGespeichert] = useState(true);
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -42,6 +44,35 @@ export default function BildFeld({
     });
     return () => { abgebrochen = true; };
   }, []);
+
+  // Der Alternativtext gehoert zum Bild, nicht zur Seite – deshalb wird er hier
+  // geladen und nicht mit dem Baustein gespeichert. Er stand frueher in einer
+  // eigenen Bilderverwaltung; die gibt es nicht mehr, und ohne diese Zeilen
+  // waere er nirgends mehr zu aendern. Fuer Vorleseprogramme und fuer alle,
+  // bei denen ein Bild nicht laedt, ist er das Bild.
+  useEffect(() => {
+    let abgebrochen = false;
+    if (!value) { setAltText(""); return; }
+    supabase.from("site_images").select("alt_text").eq("slot", value).maybeSingle()
+      .then(({ data }) => {
+        if (!abgebrochen) {
+          setAltText(data?.alt_text ?? "");
+          setAltGespeichert(true);
+        }
+      });
+    return () => { abgebrochen = true; };
+  }, [value]);
+
+  const altSpeichern = async () => {
+    if (!value || altGespeichert) return;
+    const { error } = await supabase.from("site_images")
+      .update({ alt_text: altText.trim() }).eq("slot", value);
+    if (error) { setFehler(error.message); return; }
+    setAltGespeichert(true);
+    // Die Vorschauen tragen keinen Alternativtext, aber die Bausteine lesen
+    // ihn ueber useSiteImage – dort haengt er an einer eigenen Abfrage.
+    leereVorschauMerker();
+  };
 
   const hochladen = async (datei: File | undefined) => {
     if (!datei) return;
@@ -135,6 +166,24 @@ export default function BildFeld({
           </button>
         )}
       </div>
+
+      {value && bekannt && !readOnly && (
+        <div className="mb-2">
+          <input
+            type="text"
+            value={altText}
+            onChange={(e) => { setAltText(e.target.value); setAltGespeichert(false); }}
+            onBlur={() => void altSpeichern()}
+            placeholder="Bildbeschreibung (für Vorleseprogramme)"
+            className="w-full rounded-md border bg-background px-2 py-1 text-sm"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {altGespeichert
+              ? "Beschreibt, was zu sehen ist – gehört zum Bild, nicht zur Seite."
+              : "Wird gespeichert, sobald du das Feld verlässt."}
+          </p>
+        </div>
+      )}
 
       {!readOnly && (
         <>

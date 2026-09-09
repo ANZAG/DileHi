@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Globe, FileText, ExternalLink, Settings2 } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -217,6 +218,39 @@ export default function SitePagesAdmin() {
  * Ändert man sie, ändert sich der Link. Alte Adressen laufen danach ins Leere;
  * deshalb der Hinweis, und deshalb steht das nicht direkt in der Liste.
  */
+/**
+ * Warnt, wenn „Der Verein selbst" schon woanders steht.
+ *
+ * Der Verein ist eine Sache, nicht drei. Wer ihn auf mehreren Seiten als
+ * eigenstaendige Organisation ausweist, gibt Suchmaschinen mehrere Kandidaten
+ * fuer dieselbe Frage – welcher gewinnt, ist Gluecksache, und keiner sammelt
+ * die Merkmale der anderen. Verboten wird es nicht: Es gibt Faelle, in denen
+ * jemand weiss, was er tut.
+ */
+function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehlt: string }) {
+  const { data: seiten = [] } = useQuery({
+    queryKey: ["seo-organisation"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("seo_organisation_seiten" as never);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as { id: string; title: string; slug: string }[];
+    },
+    enabled: gewaehlt === "organisation",
+  });
+
+  if (gewaehlt !== "organisation") return null;
+  const andere = seiten.filter((s) => s.id !== eigeneId);
+  if (andere.length === 0) return null;
+
+  return (
+    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+      Steht bereits auf {andere.map((s) => `„${s.title}"`).join(", ")}. Für den
+      Verein selbst sollte es genau eine Seite geben – meist die Startseite.
+      Für die übrigen passt „Eine Seite über den Verein".
+    </p>
+  );
+}
+
 function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
   seite: SitePage;
   pending: boolean;
@@ -276,14 +310,17 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="keine">Keine besonderen</SelectItem>
-            <SelectItem value="organisation">Diese Seite stellt den Verein vor</SelectItem>
-            <SelectItem value="artikel">Diese Seite ist ein Thema oder Beitrag</SelectItem>
+            <SelectItem value="organisation">Der Verein selbst (nur eine Seite)</SelectItem>
+            <SelectItem value="ueber_uns">Eine Seite über den Verein</SelectItem>
+            <SelectItem value="angebot">Was der Verein anbietet</SelectItem>
+            <SelectItem value="artikel">Ein Thema oder Beitrag</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
           Erzeugt einen maschinenlesbaren Block. Was darin steht – Name,
           Anschrift, Web-Adresse – kommt aus den Vereinsangaben.
         </p>
+        <OrganisationHinweis eigeneId={seite.id} gewaehlt={datenart} />
       </div>
 
       <div>
