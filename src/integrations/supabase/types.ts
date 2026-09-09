@@ -1454,8 +1454,6 @@ export type Database = {
       }
       membership_applications: {
         Row: {
-          account_holder: string | null
-          bic: string | null
           birthdate: string | null
           city: string | null
           contribution_interval: string
@@ -1464,7 +1462,6 @@ export type Database = {
           data_processing_accepted: boolean
           email: string
           first_name: string
-          iban: string | null
           id: string
           last_name: string
           membership_type: string
@@ -1473,15 +1470,12 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           salutation: string | null
-          sepa_accepted: boolean
           status: string
           statutes_accepted: boolean
           street: string | null
           zip: string | null
         }
         Insert: {
-          account_holder?: string | null
-          bic?: string | null
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string
@@ -1490,7 +1484,6 @@ export type Database = {
           data_processing_accepted?: boolean
           email: string
           first_name: string
-          iban?: string | null
           id?: string
           last_name: string
           membership_type?: string
@@ -1499,15 +1492,12 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           salutation?: string | null
-          sepa_accepted?: boolean
           status?: string
           statutes_accepted?: boolean
           street?: string | null
           zip?: string | null
         }
         Update: {
-          account_holder?: string | null
-          bic?: string | null
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string
@@ -1516,7 +1506,6 @@ export type Database = {
           data_processing_accepted?: boolean
           email?: string
           first_name?: string
-          iban?: string | null
           id?: string
           last_name?: string
           membership_type?: string
@@ -1525,7 +1514,6 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           salutation?: string | null
-          sepa_accepted?: boolean
           status?: string
           statutes_accepted?: boolean
           street?: string | null

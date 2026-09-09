@@ -5,7 +5,7 @@
  * Dr. Thomas Schwenke, ergänzt um die Abschnitte, die unsere Anwendung
  * tatsächlich braucht und die eine Vorlage nicht kennen kann: Forum,
  * Benachrichtigungen samt Push, Veranstaltungsanmeldungen, Beiträge mit
- * SEPA-Daten, Abstimmungen, Darstellungen, Datensicherung.
+ * Beitragsstand, Abstimmungen, Darstellungen, Datensicherung.
  *
  * WICHTIG: Das ist ein Entwurf. Er beschreibt vollständig, was die Anwendung
  * verarbeitet – das ist der Teil, den nur wir wissen können. Die rechtliche
@@ -177,7 +177,7 @@ const datenschutz = [
       "Kontaktdaten (E-Mail-Adressen, Telefonnummern).",
       "Inhaltsdaten (Beiträge im Forum, Nachrichten, hochgeladene Bilder und Dateien).",
       "Vertrags- und Mitgliederdaten (Eintritts- und Austrittsdatum, Mitgliedsart, Rolle im Verein).",
-      "Zahlungsdaten (Bankverbindung und SEPA-Mandat für den Mitgliedsbeitrag).",
+      "Zahlungsdaten (Zahlungsstand des Mitgliedsbeitrags, Datum und Betrag eingegangener Zahlungen).",
       "Nutzungsdaten (aufgerufene Seiten, Lesestand im Forum, Zu- und Absagen zu Veranstaltungen).",
       "Meta-, Kommunikations- und Verfahrensdaten (IP-Adressen, Zeitangaben, Kennungen).",
       "Protokolldaten (Anmeldungen, Änderungen an Beiträgen, Abstimmungsprotokoll)."
@@ -294,9 +294,10 @@ const datenschutz = [
       "Mitgliederdaten, Zuordnung von Rollen und Ämtern sowie Verwaltung der Ein- und Austritte. Zum Aufnahmeantrag " +
       "erzeugen wir ein PDF, das im Verein abgelegt wird.",
 
-      "<strong>Beitragsverwaltung mit SEPA-Lastschrift:</strong> Zur Erhebung der Mitgliedsbeiträge verarbeiten wir " +
-      "Bankverbindung (IBAN und BIC) sowie die Angaben des erteilten SEPA-Lastschriftmandats. Diese Daten sind nur für " +
-      "die Kassenführung einsehbar. Aufbewahrung nach den handels- und steuerrechtlichen Fristen.",
+      "<strong>Beitragsverwaltung:</strong> Zur Abrechnung der Mitgliedsbeiträge halten wir je Jahr fest, welcher Betrag " +
+      "fällig ist und ob er beglichen wurde. Ein Lastschrifteinzug findet nicht statt; die Beiträge werden überwiesen, " +
+      "Bankverbindungen der Mitglieder speichern wir deshalb nicht. Der Zahlungsstand ist nur für die Kassenführung " +
+      "einsehbar. Aufbewahrung nach den handels- und steuerrechtlichen Fristen.",
 
       "<strong>Veranstaltungen:</strong> Planung und Durchführung von Terminen, Zu- und Absagen, Anmeldeformulare mit " +
       "den dort erhobenen Angaben (etwa Anreise, Mitfahrgelegenheiten, Verpflegung, mitgebrachte Ausrüstung) sowie die " +

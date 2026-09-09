@@ -21,7 +21,7 @@ ist.
 | Anmeldung | E-Mail, Passwort-Prüfwert, Sitzung im lokalen Speicher | Registrierung, Anmeldung und Nutzerkonto |
 | Mitgliederverwaltung | Name, Anschrift, Geburtsdatum, Ein-/Austritt, Rolle | Wahrnehmung von Aufgaben nach Satzung |
 | Aufnahmeantrag | Antragsdaten, erzeugtes PDF | dito, „Mitgliederverwaltung" |
-| **Beiträge / SEPA** | **IBAN, BIC, Mandatsdaten** | dito, „Beitragsverwaltung" |
+| Beiträge | fälliger Betrag, Zahlungsstand — keine Bankdaten | dito, „Beitragsverwaltung" |
 | Veranstaltungen | Zu-/Absagen, Formularantworten, Bearbeitungs-Link | dito, „Veranstaltungen" |
 | Abstimmungen | Teilnahme im Prüfprotokoll, Stimme getrennt | dito, „Abstimmungen" |
 | Steckbriefe | Darstellung, Kenntnisse, freigegebene Bilder | dito, „Darstellungen" |
@@ -54,6 +54,10 @@ Funktion live geht:
   Seiten (OpenStreetMap läuft nur im Mitgliederbereich)
 - keine Newsletter an Nichtmitglieder
 - keine automatisierte Entscheidungsfindung oder Profilbildung
+- **kein Lastschrifteinzug**: Bankverbindungen von Mitgliedern werden nicht
+  erhoben. Die Spalten dafür standen bis zum 09.09.2026 in der Datenbank, ohne
+  je gefüllt zu werden — die Erklärung beschrieb eine Verarbeitung, die es
+  nicht gab. Wer den Einzug einführt, muss den Abschnitt zuerst zurückholen.
 
 ## Was sich beim Umstellen ändert
 

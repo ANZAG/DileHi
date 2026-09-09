@@ -22,13 +22,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/** Kontodaten aus den Vereinsangaben – nur für Mitglieder lesbar. */
+function useVereinskonto() {
+  const { data } = useQuery({
+    queryKey: ["vereinskonto"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
+        .from("app_settings")
+        .select("org_name, bank_recipient, bank_iban, bank_bic")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as {
+        org_name: string | null;
+        bank_recipient: string | null;
+        bank_iban: string | null;
+        bank_bic: string | null;
+      } | null;
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+  return {
+    org_name: data?.org_name ?? "",
+    bank_recipient: data?.bank_recipient ?? "",
+    bank_iban: data?.bank_iban ?? "",
+    bank_bic: data?.bank_bic ?? "",
+  };
+}
+
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
-const BANK_INFO = {
-  recipient: "Diu lebendec Historje e.V.",
-  iban: "DE02 5109 0000 0030 8806 09",
-};
 
 const INTERVAL_LABELS: Record<string, string> = {
   jaehrlich: "Jährlich",
@@ -49,16 +71,30 @@ const IntervalBadge = ({ interval }: { interval: string | null }) => {
   return <Badge variant="secondary" className="text-xs">{label}</Badge>;
 };
 
-const BankInfoCard = () => (
-  <div className="flex items-start gap-3 p-4 rounded-lg border bg-card mb-4">
-    <Banknote size={20} className="text-primary mt-0.5 shrink-0" />
-    <div className="text-sm space-y-0.5">
-      <p className="font-medium">Bankverbindung</p>
-      <p className="text-muted-foreground">Empfänger: {BANK_INFO.recipient}</p>
-      <p className="text-muted-foreground font-mono">{BANK_INFO.iban}</p>
+/**
+ * Die Bankverbindung des Vereins.
+ *
+ * Stand bis vor Kurzem fest im Code – mit einem Vereinsnamen ohne Zirkumflex
+ * und einer IBAN, die der Beispiel-IBAN aus Anleitungen zum Verwechseln
+ * ähnlich sieht. Jetzt aus den Vereinsangaben, und ohne hinterlegte
+ * Kontonummer erscheint die Karte gar nicht: Eine falsche Nummer, auf die
+ * jemand überweist, ist schlimmer als keine.
+ */
+const BankInfoCard = () => {
+  const { bank_recipient, bank_iban, bank_bic, org_name } = useVereinskonto();
+  if (!bank_iban) return null;
+  return (
+    <div className="flex items-start gap-3 p-4 rounded-lg border bg-card mb-4">
+      <Banknote size={20} className="text-primary mt-0.5 shrink-0" />
+      <div className="text-sm space-y-0.5">
+        <p className="font-medium">Bankverbindung</p>
+        <p className="text-muted-foreground">Empfänger: {bank_recipient || org_name}</p>
+        <p className="text-muted-foreground font-mono">{bank_iban}</p>
+        {bank_bic && <p className="text-muted-foreground font-mono">{bank_bic}</p>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const RateEditor = ({
   year,

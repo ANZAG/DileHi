@@ -32,6 +32,9 @@ interface Einstellungen {
   mail_reply_to: string | null;
   mail_transport: string;
   calendar_timezone: string;
+  bank_recipient: string | null;
+  bank_iban: string | null;
+  bank_bic: string | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -256,6 +259,28 @@ export default function ErscheinungsbildAdmin() {
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Die Schrift wird erst nach dem Speichern und Neuladen sichtbar.
+        </p>
+      </Abschnitt>
+
+      {/* ── Bankverbindung ───────────────────────────────────────────────── */}
+      <Abschnitt
+        titel="Bankverbindung"
+        hinweis="Steht im Beitragsbereich, damit Mitglieder wissen, wohin sie überweisen. Ohne IBAN erscheint der Kasten dort gar nicht."
+      >
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
+            <Feld
+              label="Empfänger"
+              wert={entwurf.bank_recipient ?? ""}
+              setze={(v) => setze({ bank_recipient: v })}
+            />
+          </div>
+          <Feld label="IBAN" wert={entwurf.bank_iban ?? ""} setze={(v) => setze({ bank_iban: v })} />
+          <Feld label="BIC (optional)" wert={entwurf.bank_bic ?? ""} setze={(v) => setze({ bank_bic: v })} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Ein Lastschrifteinzug findet nicht statt – Bankdaten von Mitgliedern
+          werden nirgends erhoben.
         </p>
       </Abschnitt>
 

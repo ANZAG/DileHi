@@ -87,12 +87,8 @@ Deno.serve(async (req) => {
       city: data.city.trim(),
       membership_type: data.membership_type,
       contribution_interval: data.contribution_interval,
-      iban: null,
-      bic: null,
-      account_holder: null,
       statutes_accepted: data.statutes_accepted,
       data_processing_accepted: data.data_processing_accepted,
-      sepa_accepted: false,
       status: "pending",
     });
 

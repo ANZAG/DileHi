@@ -24,12 +24,8 @@ type Application = {
   city: string | null;
   membership_type: string;
   contribution_interval: string;
-  iban: string | null;
-  bic: string | null;
-  account_holder: string | null;
   statutes_accepted: boolean;
   data_processing_accepted: boolean;
-  sepa_accepted: boolean;
   status: string;
   reviewed_at: string | null;
   review_notes: string | null;
