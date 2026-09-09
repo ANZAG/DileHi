@@ -23,6 +23,7 @@ interface Einstellungen {
   logo_path: string | null;
   favicon_path: string | null;
   logo_in_header: boolean;
+  satzung_link: boolean;
   color_primary: string;
   color_dark: string;
   font_headings: string;
@@ -315,6 +316,30 @@ export default function ErscheinungsbildAdmin() {
             Textvorlagen → Aufnahmeantrag.
           </p>
         </div>
+      </Abschnitt>
+
+      {/* ── Aufnahmeantrag ───────────────────────────────────────────────── */}
+      <Abschnitt
+        titel="Aufnahmeantrag"
+        hinweis="Die Felder und Texte stehen unter Aufnahmeantrag. Hier nur, was den Verweis auf die Satzung angeht."
+      >
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={entwurf.satzung_link}
+            onChange={(e) => setze({ satzung_link: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+          />
+          <span className="text-sm">
+            Satzung im Antrag verlinken
+            <span className="block text-xs text-muted-foreground">
+              Verweist auf das neueste Dokument der Kategorie „Satzung &amp; Ordnungen"
+              aus dem Bereich Dokumente. Der Verweis ist ohne Anmeldung erreichbar –
+              er muss es sein, denn wer einen Antrag stellt, hat noch kein Konto.
+              Ausgeschaltet steht in der Zustimmung nur das Wort „Satzung".
+            </span>
+          </span>
+        </label>
       </Abschnitt>
 
       {/* ── Bankverbindung ───────────────────────────────────────────────── */}

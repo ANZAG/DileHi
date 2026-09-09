@@ -68,10 +68,13 @@ function RadioGroup({
  * Im gedruckten Antrag steht an derselben Stelle schlicht das Wort – Papier
  * kennt keine Verweise. Der Satz drumherum ist in beiden Fällen derselbe.
  */
-function MitSatzungslink({ text }: { text: string }) {
+function MitSatzungslink({ text, verlinken }: { text: string; verlinken: boolean }) {
   const marke = "{{satzung}}";
   const teile = text.split(marke);
   if (teile.length === 1) return <>{text}</>;
+  // Ohne Verweis bleibt das Wort stehen – der Satz ergibt weiterhin Sinn, und
+  // wer die Satzung sehen will, fragt danach.
+  if (!verlinken) return <>{teile.join("Satzung")}</>;
   return (
     <>
       {teile[0]}
@@ -119,7 +122,7 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
-  const { org_name } = useBranding();
+  const { org_name, satzung_link } = useBranding();
   const texte = useAntragstexte();
   const { modell, arten } = useBeitragsmodell();
   const { data: alleFelder = [] } = useAntragsfelder();
@@ -420,7 +423,7 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  <MitSatzungslink text={zustimmungen[0] ?? ""} /> *
+                  <MitSatzungslink text={zustimmungen[0] ?? ""} verlinken={satzung_link} /> *
                 </span>
               </label>
 
@@ -432,7 +435,7 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  <MitSatzungslink text={zustimmungen[1] ?? ""} /> *
+                  <MitSatzungslink text={zustimmungen[1] ?? ""} verlinken={satzung_link} /> *
                 </span>
               </label>
 

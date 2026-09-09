@@ -58,43 +58,29 @@ const MAILFELDER: { feld: keyof MailVorlage; label: string; hinweis: string }[] 
  * gleich aussieht, braucht Formatierung an jedem Absatz. Die macht weiterhin
  * die Anwendung. Hier steht nur, was drinsteht.
  */
+/**
+ * Die Texte der versendeten E-Mails.
+ *
+ * Bewusst keine Felder mit rohem HTML: Eine Mail, die in Outlook wie in Gmail
+ * gleich aussieht, braucht Formatierung an jedem Absatz. Die macht weiterhin
+ * die Anwendung. Hier steht nur, was drinsteht.
+ *
+ * Die Texte des Aufnahmeantrags standen früher ebenfalls hier. Sie sind zu den
+ * Feldern des Antrags gewandert: Wer den Antrag ändert, will beides in einer
+ * Maske – nicht die Felder unter „Mitglieder" und die Sätze darüber unter
+ * „System".
+ */
 export default function VorlagenAdmin() {
-  const [bereich, setBereich] = useState<"mail" | "pdf">("mail");
-
   return (
     <div>
       <div className="mb-4">
-        <h2 className="font-serif text-lg font-semibold">Textvorlagen</h2>
+        <h2 className="font-serif text-lg font-semibold">E-Mail-Vorlagen</h2>
         <p className="text-sm text-muted-foreground">
-          Was in den E-Mails der Anwendung steht und was jemand beim
-          Aufnahmeantrag zu lesen bekommt – im Webformular wie auf dem PDF, das
-          daraus entsteht. Vereinsname, Anschrift und Farben kommen aus dem
-          Erscheinungsbild.
+          Was in den E-Mails der Anwendung steht. Vereinsname, Anschrift und
+          Farben kommen aus dem Erscheinungsbild.
         </p>
       </div>
-
-      <div className="mb-4 flex flex-wrap gap-1 border-b">
-        {([
-          ["mail", "E-Mails"],
-          ["pdf", "Aufnahmeantrag"],
-        ] as const).map(([id, titel]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setBereich(id)}
-            aria-current={bereich === id ? "true" : undefined}
-            className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
-              bereich === id
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {titel}
-          </button>
-        ))}
-      </div>
-
-      {bereich === "mail" ? <Mailvorlagen /> : <Antragstexte />}
+      <Mailvorlagen />
     </div>
   );
 }
@@ -218,7 +204,7 @@ function Mailvorlagen() {
 
 // ── Aufnahmeantrag ──────────────────────────────────────────────────────────
 
-function Antragstexte() {
+export function Antragstexte() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [offen, setOffen] = useState<string | null>(null);

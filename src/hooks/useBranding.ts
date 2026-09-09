@@ -12,6 +12,8 @@ export interface Branding {
   favicon_path: string | null;
   /** Steht das Logo neben dem Vereinsnamen in der Kopfzeile? */
   logo_in_header: boolean;
+  /** Verlinkt {{satzung}} im Aufnahmeantrag auf das hinterlegte Dokument. */
+  satzung_link: boolean;
   color_primary: string;
   color_dark: string;
   seo_description: string | null;
@@ -49,6 +51,7 @@ const VORGABE: Branding = {
   logo_path: null,
   favicon_path: null,
   logo_in_header: true,
+  satzung_link: true,
   color_primary: "#dd9933",
   color_dark: "#1c1917",
   seo_description: null,

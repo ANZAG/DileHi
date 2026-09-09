@@ -108,7 +108,6 @@ export default function AntragsfelderAdmin() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <h2 className="font-serif text-lg font-semibold">Felder des Aufnahmeantrags</h2>
           <p className="text-sm text-muted-foreground max-w-prose">
             Was im Antrag abgefragt wird. Mit „fest" gekennzeichnete Felder
             tragen die Aufnahme – sie lassen sich umbenennen und umsortieren,
