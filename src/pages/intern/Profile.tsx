@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PersonaEditor from "@/components/personas/PersonaEditor";
+import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
+import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -89,9 +91,21 @@ const Profile = () => {
     },
   });
 
+  const { data: profilfelder = [] } = useProfilfelder();
+
+  /** Antworten auf die frei zusammengestellten Profilfelder. */
+  const [extra, setExtra] = useState<Record<string, unknown>>({});
+
   useEffect(() => {
     if (user) setEmail(user.email || "");
   }, [user]);
+
+  useEffect(() => {
+    const roh = (profileData as { extra?: unknown } | null)?.extra;
+    if (roh && typeof roh === "object" && !Array.isArray(roh)) {
+      setExtra(roh as Record<string, unknown>);
+    }
+  }, [profileData]);
 
   useEffect(() => {
     if (profileData) {
@@ -213,6 +227,7 @@ const Profile = () => {
           phone: form.phone,
           membership_type: form.membershipType,
           contribution_interval: form.contributionInterval,
+          extra,
           show_on_map: form.showOnMap,
           notify_digest: form.notifyDigest,
           map_lat: form.showOnMap ? mapLat : null,
@@ -422,43 +437,45 @@ const Profile = () => {
           </div>
 
           {/* Dietary preferences – pre-fill event registration forms automatically */}
-          <div className="p-6 rounded-lg border bg-card space-y-4">
-            <div>
-              <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {bereichAn(profilfelder, "ernaehrung") && (
+  <div className="p-6 rounded-lg border bg-card space-y-4">
               <div>
-                <label htmlFor="profile-diet" className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
-                <select
-                  id="profile-diet"
-                  value={form.diet}
-                  onChange={(e) => setField("diet", e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">– keine Angabe –</option>
-                  <option value="Keine Einschränkung">Keine Einschränkung</option>
-                  <option value="Vegetarisch">Vegetarisch</option>
-                  <option value="Vegan">Vegan</option>
-                </select>
+                <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
+                </p>
               </div>
-              <div>
-                <label htmlFor="profile-allergies" className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
-                <input
-                  id="profile-allergies"
-                  value={form.allergies}
-                  onChange={(e) => setField("allergies", e.target.value)}
-                  placeholder="z.B. Nüsse, Laktose …"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="profile-diet" className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
+                  <select
+                    id="profile-diet"
+                    value={form.diet}
+                    onChange={(e) => setField("diet", e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">– keine Angabe –</option>
+                    <option value="Keine Einschränkung">Keine Einschränkung</option>
+                    <option value="Vegetarisch">Vegetarisch</option>
+                    <option value="Vegan">Vegan</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="profile-allergies" className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
+                  <input
+                    id="profile-allergies"
+                    value={form.allergies}
+                    onChange={(e) => setField("allergies", e.target.value)}
+                    placeholder="z.B. Nüsse, Laktose …"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Darstellungssteckbrief – nur intern sichtbar */}
-          <PersonaEditor />
+          {bereichAn(profilfelder, "darstellung") && <PersonaEditor />}
 
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
@@ -521,88 +538,108 @@ const Profile = () => {
           </div>
 
           {/* Tents */}
-          <div className="p-6 rounded-lg border bg-card space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
-                <Tent size={18} /> Meine Zelte
-              </h2>
-              <Button variant="outline" size="sm" onClick={() => setShowAddTent(true)}>
-                <Plus size={14} className="mr-1" /> Zelt
-              </Button>
-            </div>
-            {myTents.length === 0 && !showAddTent && (
-              <p className="text-sm text-muted-foreground">Noch keine Zelte hinterlegt. Trage deine Zelte hier ein, damit sie bei Veranstaltungsumfragen automatisch zur Auswahl stehen.</p>
-            )}
-            {myTents.map((tent) => {
-              const typeLabel = TENT_TYPE_OPTIONS.find((t) => t.value === tent.tent_type)?.label || tent.tent_type;
-              const dimStr = tent.shape === "circle" && tent.diameter
-                ? `Ø${tent.diameter}m`
-                : tent.length && tent.width
-                  ? `${tent.length}×${tent.width}m`
-                  : "";
-              return (
-                <div key={tent.id} className="flex items-center justify-between p-3 rounded border bg-background">
-                  <div>
-                    <span className="text-sm font-medium">{tent.name || typeLabel}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{typeLabel} {dimStr}</span>
-                    {tent.guy_rope > 0 && <span className="text-xs text-muted-foreground ml-1">(Absp. {tent.guy_rope}m)</span>}
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteTent(tent.id)}>
-                    <Trash2 size={14} className="text-destructive" />
-                  </Button>
-                </div>
-              );
-            })}
-
-            {showAddTent && (
-              <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-sm">Name</Label>
-                    <Input value={tentName} onChange={(e) => setTentName(e.target.value)} placeholder="z.B. Mein Speichenrad" />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Zelttyp</Label>
-                    <Select value={tentType} onValueChange={setTentType}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {TENT_TYPE_OPTIONS.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {selectedTentShape === "circle" && (
-                  <div>
-                    <Label className="text-sm">Durchmesser (m)</Label>
-                    <Input type="number" step="0.1" value={tentDiameter} onChange={(e) => setTentDiameter(e.target.value)} placeholder="z.B. 5" />
-                  </div>
-                )}
-                {selectedTentShape === "rect" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-sm">Länge (m)</Label>
-                      <Input type="number" step="0.1" value={tentLength} onChange={(e) => setTentLength(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Breite (m)</Label>
-                      <Input type="number" step="0.1" value={tentWidth} onChange={(e) => setTentWidth(e.target.value)} />
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <Label className="text-sm">Abspannung (m)</Label>
-                  <Input type="number" step="0.1" value={tentGuyRope} onChange={(e) => setTentGuyRope(e.target.value)} placeholder="0" />
-                  <p className="text-xs text-muted-foreground mt-1">Radius der Abspannung (0 wenn keine)</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={addTent} disabled={!tentName}>Hinzufügen</Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowAddTent(false)}>Abbrechen</Button>
-                </div>
+          {bereichAn(profilfelder, "zelte") && (
+  <div className="p-6 rounded-lg border bg-card space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+                  <Tent size={18} /> Meine Zelte
+                </h2>
+                <Button variant="outline" size="sm" onClick={() => setShowAddTent(true)}>
+                  <Plus size={14} className="mr-1" /> Zelt
+                </Button>
               </div>
-            )}
-          </div>
+              {myTents.length === 0 && !showAddTent && (
+                <p className="text-sm text-muted-foreground">Noch keine Zelte hinterlegt. Trage deine Zelte hier ein, damit sie bei Veranstaltungsumfragen automatisch zur Auswahl stehen.</p>
+              )}
+              {myTents.map((tent) => {
+                const typeLabel = TENT_TYPE_OPTIONS.find((t) => t.value === tent.tent_type)?.label || tent.tent_type;
+                const dimStr = tent.shape === "circle" && tent.diameter
+                  ? `Ø${tent.diameter}m`
+                  : tent.length && tent.width
+                    ? `${tent.length}×${tent.width}m`
+                    : "";
+                return (
+                  <div key={tent.id} className="flex items-center justify-between p-3 rounded border bg-background">
+                    <div>
+                      <span className="text-sm font-medium">{tent.name || typeLabel}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{typeLabel} {dimStr}</span>
+                      {tent.guy_rope > 0 && <span className="text-xs text-muted-foreground ml-1">(Absp. {tent.guy_rope}m)</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteTent(tent.id)}>
+                      <Trash2 size={14} className="text-destructive" />
+                    </Button>
+                  </div>
+                );
+              })}
+
+              {showAddTent && (
+                <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Name</Label>
+                      <Input value={tentName} onChange={(e) => setTentName(e.target.value)} placeholder="z.B. Mein Speichenrad" />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Zelttyp</Label>
+                      <Select value={tentType} onValueChange={setTentType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {TENT_TYPE_OPTIONS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {selectedTentShape === "circle" && (
+                    <div>
+                      <Label className="text-sm">Durchmesser (m)</Label>
+                      <Input type="number" step="0.1" value={tentDiameter} onChange={(e) => setTentDiameter(e.target.value)} placeholder="z.B. 5" />
+                    </div>
+                  )}
+                  {selectedTentShape === "rect" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-sm">Länge (m)</Label>
+                        <Input type="number" step="0.1" value={tentLength} onChange={(e) => setTentLength(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Breite (m)</Label>
+                        <Input type="number" step="0.1" value={tentWidth} onChange={(e) => setTentWidth(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-sm">Abspannung (m)</Label>
+                    <Input type="number" step="0.1" value={tentGuyRope} onChange={(e) => setTentGuyRope(e.target.value)} placeholder="0" />
+                    <p className="text-xs text-muted-foreground mt-1">Radius der Abspannung (0 wenn keine)</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={addTent} disabled={!tentName}>Hinzufügen</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowAddTent(false)}>Abbrechen</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Frei zusammengestellte Felder.
+              Der Block erscheint nur, wenn es welche gibt – ein leerer Kasten
+              „Weitere Angaben" waere auf jedem Profil zu sehen und nirgends
+              zu erklaeren. */}
+          {freieFelder(profilfelder).length > 0 && (
+            <div className="p-6 rounded-lg border bg-card space-y-4">
+              <h2 className="font-serif text-lg font-semibold">Weitere Angaben</h2>
+              {freieFelder(profilfelder).map((feld) => (
+                <FormFieldRenderer
+                  key={feld.id}
+                  field={feld}
+                  value={extra[feld.id]}
+                  onChange={(v) => setExtra((p) => ({ ...p, [feld.id]: v }))}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Benachrichtigungen */}
           <div className="p-6 rounded-lg border bg-card space-y-3">
@@ -629,28 +666,30 @@ const Profile = () => {
           </div>
 
           {/* Map opt-in */}
-          <div className="p-6 rounded-lg border bg-card space-y-3">
-            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
-              <MapPin size={18} /> Mitgliederkarte
-            </h2>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.showOnMap}
-                onChange={(e) => setField("showOnMap", e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-input"
-              />
-              <div>
-                <span className="text-sm font-medium">Meinen Wohnort auf der Mitgliederkarte anzeigen</span>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Dein Anzeigename und Wohnort (nicht die genaue Adresse) werden für andere Mitglieder auf einer Karte sichtbar.
-                </p>
-              </div>
-            </label>
-            {form.showOnMap && (!form.zip && !form.city) && (
-              <p className="text-xs text-destructive">Bitte trage oben PLZ und Wohnort ein, damit dein Standort angezeigt werden kann.</p>
-            )}
-          </div>
+          {bereichAn(profilfelder, "karte") && (
+  <div className="p-6 rounded-lg border bg-card space-y-3">
+              <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+                <MapPin size={18} /> Mitgliederkarte
+              </h2>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.showOnMap}
+                  onChange={(e) => setField("showOnMap", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input"
+                />
+                <div>
+                  <span className="text-sm font-medium">Meinen Wohnort auf der Mitgliederkarte anzeigen</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Dein Anzeigename und Wohnort (nicht die genaue Adresse) werden für andere Mitglieder auf einer Karte sichtbar.
+                  </p>
+                </div>
+              </label>
+              {form.showOnMap && (!form.zip && !form.city) && (
+                <p className="text-xs text-destructive">Bitte trage oben PLZ und Wohnort ein, damit dein Standort angezeigt werden kann.</p>
+              )}
+            </div>
+          )}
 
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Konto</h2>
@@ -691,7 +730,7 @@ const Profile = () => {
           </div>
 
           {/* Membership files */}
-          {membershipFiles.length > 0 && (
+          {bereichAn(profilfelder, "antrag") && membershipFiles.length > 0 && (
             <div className="p-6 rounded-lg border bg-card space-y-3">
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
                 <FileText size={18} /> Mitgliedsantrag

@@ -142,6 +142,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          satzung_link: boolean
           logo_in_header: boolean
           bank_bic: string | null
           bank_iban: string | null
@@ -186,6 +187,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          satzung_link?: boolean
           logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          satzung_link?: boolean
           logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
@@ -1634,6 +1637,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          extra: Json
           allergies: string | null
           birthdate: string | null
           calendar_token: string | null
@@ -1664,6 +1668,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
@@ -1694,6 +1699,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
@@ -2344,6 +2350,7 @@ export type Database = {
       public_branding: {
         Args: never
         Returns: {
+          satzung_link: boolean
           logo_in_header: boolean
           footer_legal_label: string
           footer_navigation_label: string

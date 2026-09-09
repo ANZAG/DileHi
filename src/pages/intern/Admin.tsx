@@ -19,11 +19,12 @@ import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
-import AntragsfelderAdmin from "@/components/admin/AntragsfelderAdmin";
+import AufnahmeantragAdmin from "@/components/admin/AufnahmeantragAdmin";
+import ProfilfelderAdmin from "@/components/admin/ProfilfelderAdmin";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "antragsfelder";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder";
 
 
 const Admin = () => {
@@ -54,7 +55,6 @@ const Admin = () => {
     ...(canMembers ? [
       { id: "members" as const, gruppe: "personen", label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
       { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" },
-      { id: "antragsfelder" as const, gruppe: "personen", label: "Antragsfelder", icon: ListChecks, desc: "Was der Aufnahmeantrag abfragt" },
     ] : []),
     { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
@@ -92,7 +92,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
-      { id: "vorlagen" as const, gruppe: "system", label: "Textvorlagen", icon: MailPlus, desc: "E-Mails und Aufnahmeantrag" },
+      { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" },
+      { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: Users, desc: "Welche Bereiche und Felder es hat" },
     ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
@@ -196,13 +198,14 @@ const Admin = () => {
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
-          {activeTab === "antragsfelder" && canMembers && <AntragsfelderAdmin />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "sitepages" && (hasPermission("site.content_edit") || hasPermission("site.layout_edit")) && <SitePagesAdmin />}
           {activeTab === "menue" && hasPermission("site.layout_edit") && <MenueAdmin />}
           {activeTab === "kategorien" && (hasPermission("site.content_edit") || hasPermission("gallery.manage")) && <KategorienAdmin />}
           {activeTab === "erscheinungsbild" && hasPermission("system.settings") && <ErscheinungsbildAdmin />}
           {activeTab === "vorlagen" && hasPermission("system.settings") && <VorlagenAdmin />}
+          {activeTab === "aufnahmeantrag" && hasPermission("system.settings") && <AufnahmeantragAdmin />}
+          {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
