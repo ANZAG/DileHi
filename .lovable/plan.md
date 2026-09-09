@@ -1,55 +1,57 @@
-# Prüfung: Baukasten-Seiten (…-neu) gegen die bisherigen Seiten
+# Textprüfung und Feinschliff im Mitgliederbereich
 
-Verglichen wurden alle acht vorhandenen Baukasten-Seiten mit ihren Originalen im Browser: sichtbarer Text, Überschriften-Gliederung, Bilder samt Anzeigebreite, Seitenhöhe und die Angaben für Suchmaschinen.
+Ziel: Alle sichtbaren Texte im internen Bereich klingen natürlich, helfen der jeweiligen Rolle weiter, benennen gleiche Dinge gleich, und die Menüs sind übersichtlich und auf dem Handy bedienbar.
 
-## Ergebnis in Kurzform
+## 1. Sprache: Gedankenstriche und KI-Klang raus
 
-Inhaltlich stimmen Startseite, Über uns, Für Veranstalter und die drei Epochenseiten Wort für Wort überein. Bilder, Reihenfolge und Bildbreiten sind identisch. Abweichungen gibt es bei den Suchmaschinen-Angaben, bei zwei Überschriften-Details, bei den Rechtstexten und bei der Kontaktseite.
+Betroffen sind laufende Sätze in der Oberfläche (nicht Datumsangaben wie „14–18 Uhr" und nicht Platzhalter „–" in Tabellen, die bleiben).
 
-## Gefundene Abweichungen
+Beispiele, die umformuliert werden:
+- Onboarding-Tour: mehrere Sätze mit eingeschobenem Gedankenstrich („… vorgeschlagen", „… an einem Ort", „… für volle Nachvollziehbarkeit", „Du hast Zugriff auf die Mitgliedsunterlagen – … –, die du …").
+- Verwaltung: Seiten, Menü, Module, Darstellungen, Forum-Rubriken, Aufnahmeantrag, Mitgliederprofil, Erscheinungsbild.
+- Veranstaltungen: Formular-Baukasten, Feldbeschreibungen und Auswertung.
+- Meldungen wie „Mitglied deaktiviert – Zugang entzogen" werden zu zwei klaren Sätzen bzw. Halbsätzen.
 
-### 1. Seitentitel bei Suchmaschinen (wichtig)
-Die neuen Seiten bilden den Titel immer als "Seitenname – Diu lebendec Histôrje". Damit gehen die ausformulierten Titel verloren:
+Stilregeln: kurze Hauptsätze, Doppelpunkt oder Punkt statt Gedankenstrich, keine Dreiklänge („schnell, einfach und zuverlässig"), keine Werbefloskeln, Anrede wie bisher per „du".
 
-| Seite | bisher | neu |
-| --- | --- | --- |
-| Startseite | Diu lebendec Histôrje – Wiesbadener Living History Verein | Startseite – Diu lebendec Histôrje |
-| Spätmittelalter | Spätmittelalter - Grafschaft Nassau (1290-1310) | Spätmittelalter in Nassau – Diu lebendec Histôrje |
-| Napoleonik | Napoleonik – Nassauer Grenadiere 1815 | Napoleonik in Nassau – Diu lebendec Histôrje |
-| Erster Weltkrieg | Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21 | Erster Weltkrieg – Diu lebendec Histôrje |
+## 2. Mehrwert je Rolle
 
-Die Kurzbeschreibungen sind dagegen überall identisch.
+- Mitglieder, Vorstand, Schatzmeister, Herold: Texte sagen, was zu tun ist und was danach passiert, ohne technische Begriffe. Wörter wie „Schlüssel", „Feld-Typ", „JSON-LD", „Slug", „Chunk" verschwinden aus sichtbaren Texten oder werden erklärt („Adresse der Seite" statt „Slug").
+- Systemadministrator: bei Modulen, Berechtigungen, Einbindung, Audit-Log darf es genauer werden, aber mit Folgesatz „Was passiert, wenn ich das ändere".
+- Leere Zustände bekommen überall einen nächsten Schritt statt nur „Noch nichts vorhanden".
 
-### 2. Strukturierte Daten fehlen (wichtig)
-Startseite und alle drei Epochenseiten liefern bisher einen maschinenlesbaren Datenblock (Organisation bzw. Artikel) an Suchmaschinen. Auf den neuen Seiten fehlt er ersatzlos.
+## 3. Einheitliche Benennung
 
-### 3. Über uns: eine Überschriftenebene verschoben
-"Was ist eigentlich „Living History"?" ist im Original eine Unterüberschrift (H3) innerhalb von "Unser Anspruch", auf der neuen Seite eine Hauptüberschrift (H2).
+Regel: Intern heißt es **Kategorie**, im Text darf der Zusatz stehen, dass das bei uns die Epochen sind. Nach außen (öffentliche Seiten, Menü, Kontaktformular) bleibt **Epoche**.
 
-### 4. Impressum: inhaltlich verändert
-Nicht nur übertragen, sondern neu geschrieben: "§ 5 TMG" wurde zu "§ 5 DDG", "Registergericht:" entfällt, der Abschnitt "Verbraucherstreitbeilegung / Universalschlichtungsstelle" heißt jetzt nur "Verbraucherstreitbeilegung", und drei komplette Abschnitte kamen hinzu (Haftung für Inhalte, Haftung für Links, Urheberrecht). Die Seite ist dadurch rund 480 Pixel länger.
+Zu vereinheitlichen:
+- Verwaltungskachel „Quellen" beschreibt heute „Epochen-Quellenangaben pflegen", die Kachel „Kategorien" dagegen „Ordnen Galerien und Quellen". Beide auf Kategorie-Sprache bringen.
+- „Besucher-Highlights" nennt im Inhalt „Keine Stichpunkte für diese Epoche vorhanden".
+- Galerie, Quellen und Besucher-Highlights bieten jeweils eine fest im Code stehende Epochenliste an, während unter „Kategorien" gepflegte Einträge nicht dort erscheinen. Diese drei Stellen ziehen künftig dieselbe Liste wie der Seitenbaukasten (mit der bisherigen Liste als Rückfall, wenn nichts gepflegt ist).
+- Weitere Paare prüfen und angleichen: „Umfrage-Vorlage" gegen „Anmeldeformular", „Darstellungen" gegen „Darstellungssteckbrief", „Versammlungen" gegen „Pinnwand", „Anmeldungen" gegen „Auswertungen".
 
-### 5. Datenschutz: komplett andere Fassung
-Die neue Seite ist eine andere Erklärung, nicht dieselbe in Bausteinen: andere Gliederung (Präambel, Übersicht der Verarbeitungen, internationale Datentransfers …), gut ein Drittel mehr Text. Enthalten ist außerdem ein Abschnitt "Forum und interne Zusammenarbeit" — das Forum gibt es im Projekt nicht mehr.
+## 4. Übersicht der Menüs
 
-### 6. Kontaktseite fehlt
-Für /kontakt gibt es keine Baukasten-Fassung, obwohl der Menüpunkt existiert und ein passender Baustein (Kontaktformular) vorhanden ist.
+- Verwaltung hat drei Reiter: Mitglieder und Anfragen, Öffentliche Website, System und Einrichtung. „Forum-Rubriken" und „Umfrage-Vorlage" liegen unter System, gehören aber zum Mitgliederbereich. Vorschlag: vierte Gruppe „Mitgliederbereich" für Forum-Rubriken, Umfrage-Vorlage und Mitgliederprofil.
+- Kachelbeschreibungen sind auf dem Handy ausgeblendet. Die Kachelnamen werden so gewählt, dass sie allein verständlich sind.
+- Reihenfolge innerhalb der Gruppen nach Häufigkeit der Nutzung, Einrichtungssachen nach unten.
+- Dashboard-Kacheltexte werden auf einen Satz mit klarem Nutzen gebracht.
 
-### 7. Kleinigkeiten
-- Seitenhöhen weichen um 20 bis 350 Pixel ab (Über uns +346, Für Veranstalter +38, Epochenseiten +86 bis +140, Startseite +20). Das sind Abstände zwischen den Abschnitten, im direkten Vergleich kaum sichtbar.
-- Startseite: ein schließendes Anführungszeichen war im Original falsch gesetzt und ist in der neuen Fassung korrekt ("die lebendige Geschichte“).
+## 5. Responsivität
 
-## Vorschlag zum Vorgehen
+Durchgang mit schmaler Ansicht (375 px) über Dashboard, Profil, Veranstaltungen, Anmeldungen/Auswertung, Abstimmungen, Beiträge, Dokumente, Quellen, Karte, Forum und alle Verwaltungsbereiche. Bekannte Kandidaten:
+- Mitgliederregister: feste Sechs-Spalten-Raster in der Ladeansicht.
+- Berechtigungen und Forum-Rubriken: breite Tabellen, seitliches Scrollen prüfen und Hinweis ergänzen.
+- Formular-Baukasten mit geteilter Ansicht und die Zeltplanung.
+Auffälligkeiten werden korrigiert, Screenshots dienen als Beleg.
 
-1. Eigenes Feld für den Suchmaschinen-Titel je Seite, gefüllt mit den bisherigen Titeln; nur wenn es leer bleibt, greift das Muster "Seitenname – Verein".
-2. Strukturierte Daten je Seite hinterlegen und ausgeben (Organisation für die Startseite, Artikel für die drei Epochenseiten), inhaltsgleich zu heute.
-3. Über uns: die Living-History-Überschrift wieder als Unterüberschrift.
-4. Impressum und Datenschutz: klären, ob die neuen Fassungen gewollt sind. Falls ja, bleiben sie und der Forum-Abschnitt fliegt raus; falls nein, werden die bisherigen Texte wörtlich übernommen.
-5. Kontaktseite als Baukasten-Fassung anlegen (Überschrift, Einleitungstext, Kontaktformular).
-6. Abstände Abschnitt für Abschnitt an das Original angleichen, beginnend bei Über uns.
+## 6. Ergebnis
+
+Am Ende gibt es eine kurze Liste der geänderten Texte und der behobenen Darstellungsprobleme sowie eine Liste der Punkte, die bewusst offen bleiben.
 
 ## Technische Hinweise
 
-- Titel und strukturierte Daten: `src/pages/SeiteAnzeigen.tsx` setzt heute pauschal `${page.title} – ${branding.org_short_name}` und übergibt kein `jsonLd` an `SEO.tsx`. Nötig sind zwei zusätzliche Spalten in `site_pages` (`seo_title`, `structured_data`) plus Felder im Editor.
-- Der bestehende Prüfer `scripts/seiten-pruefen.mjs` vergleicht Fließtext, Überschriften, Reihenfolge und Bildbreiten und meldet für alle sechs geprüften Seiten "vollständig". Er kennt Impressum, Datenschutz und Kontakt nicht und prüft keine Suchmaschinen-Angaben — beides sollte er künftig abdecken.
-- Die Umstellung der Routen von den React-Seiten auf die Baukasten-Seiten (Slugs ohne "-neu", Wegfall der alten Dateien) ist bewusst nicht Teil dieser Prüfung.
+- Kategorienquelle: `src/components/sitebuilder/auswahl.ts` liest bereits `site_categories`; `GalleryAdmin.tsx`, `SourcesAdmin.tsx` und `VisitorHighlightsAdmin.tsx` nutzen stattdessen lokale `EPOCH_OPTIONS`. Ein gemeinsamer Hook (z. B. `useKategorien`) ersetzt die drei Kopien, Fallback bleibt die bisherige Liste.
+- Gruppierung der Verwaltung: `gruppe`-Feld in `src/pages/intern/Admin.tsx`, neue Gruppe nur dort ergänzen.
+- Keine Datenbank- oder Rechteänderungen, keine Änderung an Modul-Logik. Nur Texte, Beschriftungen, Anordnung und CSS-Klassen.
+- Abschluss mit `npm run ci` (Lint inklusive Barrierefreiheit) und Build.
