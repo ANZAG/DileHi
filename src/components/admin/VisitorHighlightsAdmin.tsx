@@ -5,18 +5,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Pencil, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-
-const EPOCH_OPTIONS = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+import { useKategorien } from "@/hooks/useKategorien";
 
 const VisitorHighlightsAdmin = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedEpoch, setSelectedEpoch] = useState("mittelalter");
+  const kategorien = useKategorien();
+  const [gewaehlt, setGewaehlt] = useState("");
+  const selectedEpoch = gewaehlt || kategorien[0]?.value || "";
+  const setSelectedEpoch = setGewaehlt;
   const [newText, setNewText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -109,7 +107,7 @@ const VisitorHighlightsAdmin = () => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
-        {EPOCH_OPTIONS.map((ep) => (
+        {kategorien.map((ep) => (
           <button
             key={ep.value}
             onClick={() => setSelectedEpoch(ep.value)}
@@ -144,7 +142,7 @@ const VisitorHighlightsAdmin = () => {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Laden…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Keine Stichpunkte für diese Epoche vorhanden.</p>
+        <p className="text-sm text-muted-foreground">Für diese Kategorie steht noch nichts hier. Trag oben den ersten Stichpunkt ein, er erscheint dann auf der Website.</p>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="visitor-items-list">

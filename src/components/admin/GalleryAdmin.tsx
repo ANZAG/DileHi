@@ -7,11 +7,7 @@ import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "luc
 import { Checkbox } from "@/components/ui/checkbox";
 import { convertToWebP } from "@/lib/imageConversion";
 
-const EPOCH_OPTIONS = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+import { useKategorien } from "@/hooks/useKategorien";
 
 const IMAGES_PER_PAGE = 6;
 
@@ -31,7 +27,10 @@ const GalleryAdmin = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  const [selectedEpoch, setSelectedEpoch] = useState("mittelalter");
+  const kategorien = useKategorien();
+  const [gewaehlt, setGewaehlt] = useState("");
+  const selectedEpoch = gewaehlt || kategorien[0]?.value || "";
+  const setSelectedEpoch = setGewaehlt;
   const [altText, setAltText] = useState("");
   const [filterEpoch, setFilterEpoch] = useState("alle");
   const [page, setPage] = useState(0);
@@ -152,7 +151,7 @@ const GalleryAdmin = () => {
           />
         </div>
         <div>
-          <label htmlFor="gallery-epoch" className="text-xs text-muted-foreground mb-1 block">Epoche</label>
+          <label htmlFor="gallery-epoch" className="text-xs text-muted-foreground mb-1 block">Kategorie</label>
           <select id="gallery-epoch"
             value={selectedEpoch}
             onChange={(e) => setSelectedEpoch(e.target.value)}
@@ -188,7 +187,7 @@ const GalleryAdmin = () => {
           onChange={(e) => { setFilterEpoch(e.target.value); setPage(0); }}
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="alle">Alle Epochen</option>
+          <option value="alle">Alle Kategorien</option>
           {EPOCH_OPTIONS.map((e) => (
             <option key={e.value} value={e.value}>{e.label}</option>
           ))}
@@ -202,7 +201,7 @@ const GalleryAdmin = () => {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Laden...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Keine Bilder gefunden.</p>
+        <p className="text-sm text-muted-foreground">Hier sind noch keine Bilder. Lade oben das erste hoch und wähle die passende Kategorie.</p>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
