@@ -5,18 +5,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Pencil, Check, X } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-
-const EPOCH_OPTIONS = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+import { useKategorien } from "@/hooks/useKategorien";
 
 const VisitorHighlightsAdmin = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedEpoch, setSelectedEpoch] = useState("mittelalter");
+  const kategorien = useKategorien();
+  const [gewaehlt, setGewaehlt] = useState("");
+  const selectedEpoch = gewaehlt || kategorien[0]?.value || "";
+  const setSelectedEpoch = setGewaehlt;
   const [newText, setNewText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");

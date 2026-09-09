@@ -7,11 +7,7 @@ import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "luc
 import { Checkbox } from "@/components/ui/checkbox";
 import { convertToWebP } from "@/lib/imageConversion";
 
-const EPOCH_OPTIONS = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+import { useKategorien } from "@/hooks/useKategorien";
 
 const IMAGES_PER_PAGE = 6;
 
