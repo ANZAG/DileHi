@@ -34,6 +34,7 @@ import {
 } from "@/components/event-forms/types";
 import { autoLayout, type TentItem } from "@/components/evaluation/TentVisualizer";
 import EventMapSettings from "@/components/evaluation/EventMapSettings";
+import { useModule, modulAn } from "@/hooks/useModule";
 import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
 import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
@@ -51,6 +52,9 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
   // über eine andere Rolle hat, bekam die erweiterte Ansicht nicht – und eine
   // neue Rolle hätte hier grundsätzlich nie funktioniert.
   const canModerate = hasPermission("events.moderate");
+  // Die vier Bloecke unten stammen aus unserer eigenen Praxis. Ein Verein,
+  // der nicht auf Lagern uebernachtet, schaltet sie ab.
+  const { data: module } = useModule();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -711,16 +715,16 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
 
         <EvalCoverage items={summary.coverage} />
 
-        <EvalCatering
+        {modulAn(module, "verpflegung") && <EvalCatering
           days={summary.cateringDays}
           dietOptions={summary.dietOptions}
           allergies={summary.allergyNotes}
           hasDiet={summary.hasDiet}
-        />
+        />}
 
-        <EvalHelperTasks tasks={summary.helperResults} />
+        {modulAn(module, "helfer") && <EvalHelperTasks tasks={summary.helperResults} />}
 
-        <EvalLogistics
+        {modulAn(module, "fahrgemeinschaften") && <EvalLogistics
           carsCount={summary.carsCount}
           canTowCount={summary.canTowCount}
           trailerCount={summary.trailerCount}
@@ -728,7 +732,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           kitchenHelpers={summary.kitchenHelpers}
           hasTransport={summary.hasTransportFields}
           hasKitchen={summary.hasKitchenFields}
-        />
+        />}
 
         {/* Member tent pool */}
         <div className="border rounded-lg p-4 mb-6 space-y-3">
@@ -778,7 +782,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             Der Rechner darunter zeigt ihn seit jeher an und rechnet mit dem
             Massstab – nur konnte ihn niemand hinterlegen, weil dieser Editor
             nirgends eingebunden war. Eine halb verkabelte Funktion. */}
-        {canModerate && eventId && form?.id && (
+        {modulAn(module, "lagerlogistik") && canModerate && eventId && form?.id && (
           <EventMapSettings
             eventId={eventId}
             formId={form.id}
@@ -788,7 +792,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           />
         )}
 
-        <EvalAreaCalculator
+        {modulAn(module, "lagerlogistik") && <EvalAreaCalculator
           spacing={spacing}
           setSpacing={setSpacing}
           selectedClubTents={selectedClubTents}
@@ -807,7 +811,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           eventTitle={event?.title}
           mapImagePath={(form?.settings as any)?.map_image_path}
           mapScale={(form?.settings as any)?.map_scale}
-        />
+        />}
 
         <EvalResponsesTable
           fields={fields}

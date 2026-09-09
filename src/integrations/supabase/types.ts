@@ -107,6 +107,7 @@ export type Database = {
       }
       app_modules: {
         Row: {
+          art: string
           description: string | null
           enabled: boolean
           key: string
@@ -115,6 +116,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          art?: string
           description?: string | null
           enabled?: boolean
           key: string
@@ -123,6 +125,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          art?: string
           description?: string | null
           enabled?: boolean
           key?: string

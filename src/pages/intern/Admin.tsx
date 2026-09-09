@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare, MailPlus } from "lucide-react";
+import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare, MailPlus, PackageOpen } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -21,10 +21,12 @@ import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
 import AufnahmeantragAdmin from "@/components/admin/AufnahmeantragAdmin";
 import ProfilfelderAdmin from "@/components/admin/ProfilfelderAdmin";
+import ModuleAdmin from "@/components/admin/ModuleAdmin";
+import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
 
 
 const Admin = () => {
@@ -33,6 +35,10 @@ const Admin = () => {
   const canMembers = hasPermission("members.manage");
   const canRoles = hasPermission("roles.manage");
   const canAudit = hasPermission("audit.view");
+  // Ganz oben, nicht erst bei den Kacheln: Unter dieser Zeile steht ein
+  // vorzeitiges return fuer Leute ohne Zugang, und ein Hook dahinter liefe
+  // nicht bei jedem Aufbau.
+  const { data: module } = useModule();
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
@@ -54,9 +60,9 @@ const Admin = () => {
   const alleTabs = [
     ...(canMembers ? [
       { id: "members" as const, gruppe: "personen", label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
-      { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" },
+      { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" , modul: "applications"},
     ] : []),
-    { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
+    { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" , modul: "contact"},
     ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
       { id: "sitepages" as const, gruppe: "website", label: "Seiten", icon: FileText, desc: "Öffentliche Seiten zusammenstellen" },
     ] : []),
@@ -64,7 +70,7 @@ const Admin = () => {
       { id: "menue" as const, gruppe: "website", label: "Menü", icon: ListChecks, desc: "Punkte in der Kopfzeile" },
     ] : []),
     ...(hasPermission("gallery.manage") ? [
-      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder verwalten" },
+      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder verwalten" , modul: "gallery"},
     ] : []),
     ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
       { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Galerien und Quellen" },
@@ -73,28 +79,31 @@ const Admin = () => {
       { id: "siteimages" as const, gruppe: "website", label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
-      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" },
+      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" , modul: "sources"},
     ] : []),
     ...(hasPermission("visitor_highlights.manage") ? [
-      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" },
+      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" , modul: "besucher_highlights"},
     ] : []),
     ...(hasPermission("personas.publish") ? [
-      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Für die Website freigeben" },
+      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Für die Website freigeben" , modul: "personas"},
     ] : []),
     ...(hasPermission("system.integrations") ? [
-      { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" },
+      { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" },
+      { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
     ] : []),
     ...(hasPermission("events.moderate") ? [
-      { id: "formtemplate" as const, gruppe: "intern", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" },
+      { id: "formtemplate" as const, gruppe: "intern", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
-      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" },
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" , modul: "applications"},
       { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: Users, desc: "Welche Bereiche und Felder es hat" },
+    ] : []),
+    ...(hasPermission("system.modules") ? [
+      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Was diese Installation anbietet" },
     ] : []),
     ...(canRoles ? [
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
@@ -104,6 +113,10 @@ const Admin = () => {
     ] : []),
   ];
 
+  // Kacheln abgeschalteter Module fallen hier weg – an einer Stelle, nicht in
+  // jeder Zeile der Liste darueber.
+  const sichtbareTabs = nurAktive(alleTabs, module);
+
   const gruppen: { titel: string; tabs: typeof alleTabs }[] = [];
   for (const [schluessel, titel] of [
     ["personen", "Mitglieder und Anfragen"],
@@ -111,7 +124,7 @@ const Admin = () => {
     ["intern", "Mitgliederbereich"],
     ["system", "System"],
   ] as const) {
-    const tabs = alleTabs.filter((t) => t.gruppe === schluessel);
+    const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
     // Eine Überschrift ohne Kacheln darunter wäre nur Rauschen – wer die
     // Rechte für eine Gruppe nicht hat, sieht sie gar nicht erst.
     if (tabs.length > 0) gruppen.push({ titel, tabs });
@@ -206,6 +219,7 @@ const Admin = () => {
           {activeTab === "vorlagen" && hasPermission("system.settings") && <VorlagenAdmin />}
           {activeTab === "aufnahmeantrag" && hasPermission("system.settings") && <AufnahmeantragAdmin />}
           {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
+          {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}

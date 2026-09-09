@@ -5,6 +5,7 @@ import { bereichAn, freieFelder, type Profilfeld } from "@/hooks/useProfilfelder
 const feld = (p: Partial<Profilfeld>): Profilfeld => ({
   id: p.id ?? "x",
   block_key: p.block_key ?? null,
+  modul: p.modul ?? null,
   type: p.type ?? "text",
   label: p.label ?? "",
   description: null,
@@ -53,7 +54,10 @@ describe("Migration der Profilfelder", () => {
     // abschalten – ohne dass irgendwo etwas rot wird.
     const profil = readFileSync("src/pages/intern/Profile.tsx", "utf-8");
     for (const key of ["ernaehrung", "darstellung", "zelte", "karte", "antrag"]) {
-      expect(profil).toContain(`bereichAn(profilfelder, "${key}")`);
+      // Ohne die schliessende Klammer: Der Aufruf hat inzwischen ein drittes
+      // Argument (die Module), und der Test soll die Verkabelung pruefen,
+      // nicht die Anzahl der Parameter.
+      expect(profil).toContain(`bereichAn(profilfelder, "${key}"`);
       expect(migration).toContain(`'${key}'`);
     }
   });

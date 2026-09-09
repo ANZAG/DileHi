@@ -220,13 +220,19 @@ function AusDemAntrag({ vorhanden, uebernehmen }: {
     const quelle = moeglich.find((f) => f.id === gewaehlt);
     if (!quelle) return;
     uebernehmen({
-      ...quelle,
+      type: quelle.type,
+      label: quelle.label,
+      description: quelle.description,
+      required: quelle.required,
+      options: quelle.options,
+      settings: quelle.settings,
       // Neue Kennung: Es ist ein eigenes Feld, keine Verknuepfung.
       id: `neu-${crypto.randomUUID()}`,
       block_key: null,
+      modul: null,
       is_active: true,
       sort_order: 0,
-    } as Profilfeld);
+    });
     setGewaehlt("");
   };
 
