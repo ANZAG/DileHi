@@ -1,131 +1,55 @@
-# Website für Diu lebendec Histôrje e.V.
+# Prüfung: Baukasten-Seiten (…-neu) gegen die bisherigen Seiten
 
-## Überblick
-Eine moderne Portfolio-Website mit historischen Akzenten für euren Living-History-Verein aus Wiesbaden. Die Seite kombiniert ein zeitloses, wartungsarmes öffentliches Portfolio mit einem geschützten internen Mitgliederbereich.
+Verglichen wurden alle acht vorhandenen Baukasten-Seiten mit ihren Originalen im Browser: sichtbarer Text, Überschriften-Gliederung, Bilder samt Anzeigebreite, Seitenhöhe und die Angaben für Suchmaschinen.
 
-**Design:** Modernes, cleanes Layout mit warmen, erdigen Farbtönen und dezenten historischen Akzenten (z.B. subtile Texturen, Serifenschriften für Überschriften). Die bisherige goldgelbe Farbwelt wird als Akzent aufgegriffen.
+## Ergebnis in Kurzform
 
-**Sprache:** Komplett auf Deutsch.
+Inhaltlich stimmen Startseite, Über uns, Für Veranstalter und die drei Epochenseiten Wort für Wort überein. Bilder, Reihenfolge und Bildbreiten sind identisch. Abweichungen gibt es bei den Suchmaschinen-Angaben, bei zwei Überschriften-Details, bei den Rechtstexten und bei der Kontaktseite.
 
----
+## Gefundene Abweichungen
 
-## Öffentlicher Bereich (Portfolio)
+### 1. Seitentitel bei Suchmaschinen (wichtig)
+Die neuen Seiten bilden den Titel immer als "Seitenname – Diu lebendec Histôrje". Damit gehen die ausformulierten Titel verloren:
 
-### Startseite
-- Hero-Bereich mit großem Bild und dem Vereinsnamen „Diu lebendec Histôrje e.V. – Geschichte erleben"
-- Kurze Vorstellung des Vereins und seines Anspruchs
-- Übersicht der drei dargestellten Epochen als Karten mit Bild und Kurzbeschreibung
+| Seite | bisher | neu |
+| --- | --- | --- |
+| Startseite | Diu lebendec Histôrje – Wiesbadener Living History Verein | Startseite – Diu lebendec Histôrje |
+| Spätmittelalter | Spätmittelalter - Grafschaft Nassau (1290-1310) | Spätmittelalter in Nassau – Diu lebendec Histôrje |
+| Napoleonik | Napoleonik – Nassauer Grenadiere 1815 | Napoleonik in Nassau – Diu lebendec Histôrje |
+| Erster Weltkrieg | Erster Weltkrieg - 1. Nassauisches Pionier-Bataillon Nr. 21 | Erster Weltkrieg – Diu lebendec Histôrje |
 
-### Epochen-Seiten
-Jeweils eine eigene Unterseite für jede Darstellungsepoche:
-1. **1290–1310 – Nassauer Land** (Hochmittelalter, Region Wiesbaden)
-2. **1916/17 – 1. Nassauisches Pionier-Bataillon Nr. 21** (Erster Weltkrieg)
-3. **1815 – 1. Kompanie, 1. Linien-Regiment Grenadiere** (mit Hinweis „im Aufbau")
+Die Kurzbeschreibungen sind dagegen überall identisch.
 
-Jede Seite enthält Platzhalter für Texte, Bilder und Quellenangaben – so könnt ihr die Inhalte nach und nach befüllen.
+### 2. Strukturierte Daten fehlen (wichtig)
+Startseite und alle drei Epochenseiten liefern bisher einen maschinenlesbaren Datenblock (Organisation bzw. Artikel) an Suchmaschinen. Auf den neuen Seiten fehlt er ersatzlos.
 
-### Galerie
-- Bildergalerie mit Lightbox-Ansicht
-- Filterbar nach Epoche
+### 3. Über uns: eine Überschriftenebene verschoben
+"Was ist eigentlich „Living History"?" ist im Original eine Unterüberschrift (H3) innerhalb von "Unser Anspruch", auf der neuen Seite eine Hauptüberschrift (H2).
 
-### Der Verein
-- Vereinsgeschichte und Selbstverständnis
-- Kontaktinformationen und Link zur Facebook-Seite
-- Impressum / Datenschutz (Platzhalter für eure Rechtstexte)
+### 4. Impressum: inhaltlich verändert
+Nicht nur übertragen, sondern neu geschrieben: "§ 5 TMG" wurde zu "§ 5 DDG", "Registergericht:" entfällt, der Abschnitt "Verbraucherstreitbeilegung / Universalschlichtungsstelle" heißt jetzt nur "Verbraucherstreitbeilegung", und drei komplette Abschnitte kamen hinzu (Haftung für Inhalte, Haftung für Links, Urheberrecht). Die Seite ist dadurch rund 480 Pixel länger.
 
----
+### 5. Datenschutz: komplett andere Fassung
+Die neue Seite ist eine andere Erklärung, nicht dieselbe in Bausteinen: andere Gliederung (Präambel, Übersicht der Verarbeitungen, internationale Datentransfers …), gut ein Drittel mehr Text. Enthalten ist außerdem ein Abschnitt "Forum und interne Zusammenarbeit" — das Forum gibt es im Projekt nicht mehr.
 
-## Interner Mitgliederbereich (Login erforderlich)
+### 6. Kontaktseite fehlt
+Für /kontakt gibt es keine Baukasten-Fassung, obwohl der Menüpunkt existiert und ein passender Baustein (Kontaktformular) vorhanden ist.
 
-### Authentifizierung
-- Login per E-Mail und Passwort für eure ~15 Mitglieder
-- Mitglieder werden vom Vorstand angelegt/eingeladen (kein öffentliches Registrierungsformular)
+### 7. Kleinigkeiten
+- Seitenhöhen weichen um 20 bis 350 Pixel ab (Über uns +346, Für Veranstalter +38, Epochenseiten +86 bis +140, Startseite +20). Das sind Abstände zwischen den Abschnitten, im direkten Vergleich kaum sichtbar.
+- Startseite: ein schließendes Anführungszeichen war im Original falsch gesetzt und ist in der neuen Fassung korrekt ("die lebendige Geschichte“).
 
-### Quellensammlung
-- Interner Bereich zum Sammeln und Teilen von Quellen (Links, Texte, hochgeladene Dateien/PDFs)
-- Kategorisierbar nach Epoche
-- Durchsuchbar
+## Vorschlag zum Vorgehen
 
-### Vereins-Pinnwand / Ankündigungen
-- Einladungen zur Mitgliederversammlung (MV) mit Datum und Uhrzeit
-- Möglichkeit, Protokolle als Datei anzuhängen
-- Chronologische Übersicht aller Ankündigungen
+1. Eigenes Feld für den Suchmaschinen-Titel je Seite, gefüllt mit den bisherigen Titeln; nur wenn es leer bleibt, greift das Muster "Seitenname – Verein".
+2. Strukturierte Daten je Seite hinterlegen und ausgeben (Organisation für die Startseite, Artikel für die drei Epochenseiten), inhaltsgleich zu heute.
+3. Über uns: die Living-History-Überschrift wieder als Unterüberschrift.
+4. Impressum und Datenschutz: klären, ob die neuen Fassungen gewollt sind. Falls ja, bleiben sie und der Forum-Abschnitt fliegt raus; falls nein, werden die bisherigen Texte wörtlich übernommen.
+5. Kontaktseite als Baukasten-Fassung anlegen (Überschrift, Einleitungstext, Kontaktformular).
+6. Abstände Abschnitt für Abschnitt an das Original angleichen, beginnend bei Über uns.
 
-### Abstimmungstool (MV)
-- Erstellen von Abstimmungen: Ja/Nein/Enthaltung (für Anträge und Entlastungen) sowie Kandidatenwahlen mit mehreren Optionen
-- **Geheime Abstimmung**: Stimmen werden anonym gespeichert – nur das Ergebnis ist sichtbar, nicht wer wie abgestimmt hat
-- Abstimmungen können vom Vorstand gestartet und beendet werden
-- Ergebnisprotokoll zum Exportieren/Archivieren
-- Nur eingeloggte Mitglieder können abstimmen, jedes Mitglied nur einmal pro Abstimmung
+## Technische Hinweise
 
----
-
-## Internes Forum – Konzept
-
-### Übersicht
-Ein internes Echtzeit-Forum für Vereinsmitglieder, das sich auf dem Handy wie eine native App anfühlt. Benachrichtigungen über drei Kanäle: In-App (Glocke), E-Mail und Web Push (PWA).
-
-### Datenbankstruktur
-
-**Neue Tabellen:**
-
-- `forum_categories` – Kategorien (Allgemein, Mittelalter, 1815, Orga etc.) mit Name, Beschreibung, Slug, Icon, Sortierung
-- `forum_threads` – Threads mit Kategorie-Zuordnung, Pinning, Locking, Post-Count, last_post_at
-- `forum_posts` – Beiträge mit Markdown-Content, Zitat-Referenz (reply_to_id), Bearbeitet-Flag
-- `forum_reactions` – Emoji-Reaktionen auf Posts (unique pro User+Post+Emoji)
-- `forum_read_status` – Lese-Status pro User+Thread für Ungelesen-Tracking
-- `forum_attachments` – Datei-Anhänge an Posts (Storage-Bucket)
-- `notifications` – In-App-Benachrichtigungen (Typ: mention, reply, new_thread)
-- `notification_preferences` – Pro-User Einstellungen für E-Mail/Push
-- `push_subscriptions` – Web Push Subscription-Objekte
-
-**RLS:** Alle Tabellen `is_member()` für SELECT. Posts bearbeiten/löschen: eigene oder `forum.moderate`. Notifications: nur eigene.
-
-**Realtime:** Aktiviert für `forum_posts`, `forum_threads`, `notifications`.
-
-### Routing
-
-```
-/intern/forum                    → Kategorien-Übersicht
-/intern/forum/:categorySlug      → Thread-Liste
-/intern/forum/thread/:threadId   → Thread mit Posts
-/intern/forum/neu/:categorySlug  → Neuer Thread
-```
-
-### UI-Konzept
-
-- **Kategorien:** Karten-Grid mit Icon, Name, Beschreibung, Ungelesen-Badge
-- **Thread-Liste:** Gepinnte oben, Sortierung nach letztem Post, FAB für neuen Thread (Mobile)
-- **Thread-Ansicht:** Eröffnungsbeitrag hervorgehoben, Antworten chronologisch, fixierter Antwort-Editor unten (Messenger-Feeling), Echtzeit-Updates
-- **Benachrichtigungsglocke:** Im Header, Badge mit Ungelesen-Zahl, Dropdown-Liste
-- **Mobile:** Pull-to-Refresh, Bottom-Nav, PWA-installierbar
-
-### Benachrichtigungen
-
-1. **In-App (Glocke):** Realtime auf `notifications`-Tabelle, sofort sichtbar
-2. **E-Mail:** Edge Function bei @-Erwähnung/Antwort, Corporate-Design-Template
-3. **Web Push:** VAPID-Keys, Service Worker, funktioniert auf Android + iOS (PWA)
-4. **Einstellungen:** User können pro Kanal aktivieren/deaktivieren
-
-### Umsetzungsphasen
-
-| Phase | Features |
-|-------|----------|
-| 1 | DB-Schema, Kategorien, Threads, Posts, Markdown, Echtzeit |
-| 2 | Reaktionen, Zitate, Ungelesen-Tracking, Suche |
-| 3 | In-App-Benachrichtigungen, @-Erwähnungen |
-| 4 | E-Mail-Benachrichtigungen, Einstellungen |
-| 5 | Web Push, PWA-Optimierung, Mobile-Feinschliff |
-| 6 | Moderation, Datei-Anhänge |
-
-### DSGVO
-- Datenschutzerklärung um Forum erweitern
-- Push-Subscriptions bei Account-Deaktivierung löschen
-- E-Mail-Benachrichtigungen: Opt-in mit Abmeldemöglichkeit
-
----
-
-## Technische Umsetzung
-- **Frontend:** React mit Tailwind CSS, responsive für Desktop und Mobilgeräte
-- **Backend:** Lovable Cloud (Supabase) für Authentifizierung, Datenbank und Dateispeicher
-- **Kein laufender Wartungsaufwand** für den öffentlichen Teil – Inhalte sind statisch eingebettet und können bei Bedarf aktualisiert werden
+- Titel und strukturierte Daten: `src/pages/SeiteAnzeigen.tsx` setzt heute pauschal `${page.title} – ${branding.org_short_name}` und übergibt kein `jsonLd` an `SEO.tsx`. Nötig sind zwei zusätzliche Spalten in `site_pages` (`seo_title`, `structured_data`) plus Felder im Editor.
+- Der bestehende Prüfer `scripts/seiten-pruefen.mjs` vergleicht Fließtext, Überschriften, Reihenfolge und Bildbreiten und meldet für alle sechs geprüften Seiten "vollständig". Er kennt Impressum, Datenschutz und Kontakt nicht und prüft keine Suchmaschinen-Angaben — beides sollte er künftig abdecken.
+- Die Umstellung der Routen von den React-Seiten auf die Baukasten-Seiten (Slugs ohne "-neu", Wegfall der alten Dateien) ist bewusst nicht Teil dieser Prüfung.
