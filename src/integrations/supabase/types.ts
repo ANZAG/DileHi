@@ -142,6 +142,10 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          bank_bic: string | null
+          bank_iban: string | null
+          bank_recipient: string | null
+          contribution_model: string
           footer_legal_label: string
           footer_navigation_label: string
           board_members: string | null
@@ -181,6 +185,10 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_recipient?: string | null
+          contribution_model?: string
           footer_legal_label?: string
           footer_navigation_label?: string
           board_members?: string | null
@@ -220,6 +228,10 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          bank_bic?: string | null
+          bank_iban?: string | null
+          bank_recipient?: string | null
+          contribution_model?: string
           footer_legal_label?: string
           footer_navigation_label?: string
           board_members?: string | null
@@ -347,6 +359,7 @@ export type Database = {
       }
       contribution_rates: {
         Row: {
+          category: string
           amount: number
           id: string
           updated_at: string
@@ -354,6 +367,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          category?: string
           amount: number
           id?: string
           updated_at?: string
@@ -361,6 +375,7 @@ export type Database = {
           year: number
         }
         Update: {
+          category?: string
           amount?: number
           id?: string
           updated_at?: string
