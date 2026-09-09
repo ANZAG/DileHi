@@ -156,7 +156,7 @@ const SourcesAdmin = () => {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Laden…</p>
       ) : sources.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Keine Quellen für diese Epoche vorhanden.</p>
+        <p className="text-sm text-muted-foreground">Für diese Kategorie ist noch keine Quelle hinterlegt. Trag oben die erste ein.</p>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="sources-list">

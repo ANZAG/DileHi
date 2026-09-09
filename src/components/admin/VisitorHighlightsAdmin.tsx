@@ -142,7 +142,7 @@ const VisitorHighlightsAdmin = () => {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Laden…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Keine Stichpunkte für diese Epoche vorhanden.</p>
+        <p className="text-sm text-muted-foreground">Für diese Kategorie steht noch nichts hier. Trag oben den ersten Stichpunkt ein, er erscheint dann auf der Website.</p>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="visitor-items-list">
