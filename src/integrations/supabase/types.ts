@@ -142,6 +142,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          satzung_document_id: string | null
           satzung_link: boolean
           logo_in_header: boolean
           bank_bic: string | null
@@ -187,6 +188,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          satzung_document_id?: string | null
           satzung_link?: boolean
           logo_in_header?: boolean
           bank_bic?: string | null
@@ -232,6 +234,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          satzung_document_id?: string | null
           satzung_link?: boolean
           logo_in_header?: boolean
           bank_bic?: string | null

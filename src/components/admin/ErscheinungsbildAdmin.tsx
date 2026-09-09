@@ -24,6 +24,7 @@ interface Einstellungen {
   favicon_path: string | null;
   logo_in_header: boolean;
   satzung_link: boolean;
+  satzung_document_id: string | null;
   color_primary: string;
   color_dark: string;
   font_headings: string;
@@ -340,6 +341,8 @@ export default function ErscheinungsbildAdmin() {
             </span>
           </span>
         </label>
+
+        {entwurf.satzung_link && <SatzungWahl entwurf={entwurf} setze={setze} />}
       </Abschnitt>
 
       {/* ── Bankverbindung ───────────────────────────────────────────────── */}
@@ -602,6 +605,53 @@ async function leseFehler(error: unknown): Promise<string> {
   } catch {
     return error instanceof Error ? error.message : "";
   }
+}
+
+/**
+ * Welches Dokument die Satzung ist.
+ *
+ * „Das neueste der Kategorie" reicht nicht: In „Satzung & Ordnungen" liegen
+ * auch Beitrags- und Vorstandsordnung, und die sind praktisch immer neuer.
+ * Der Verweis im Antrag heisst weiterhin „Satzung" – gezeigt haette er die
+ * Beitragsordnung, und niemand haette es gemerkt.
+ */
+function SatzungWahl({ entwurf, setze }: {
+  entwurf: { satzung_document_id: string | null };
+  setze: (patch: { satzung_document_id: string | null }) => void;
+}) {
+  const { data: dokumente = [] } = useQuery({
+    queryKey: ["satzung-auswahl"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("satzung_auswahl" as never);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as { id: string; title: string; created_at: string }[];
+    },
+  });
+
+  return (
+    <div className="mt-3 max-w-md">
+      <Label className="text-sm">Welches Dokument ist die Satzung?</Label>
+      <Select
+        value={entwurf.satzung_document_id ?? "neuestes"}
+        onValueChange={(v) => setze({ satzung_document_id: v === "neuestes" ? null : v })}
+      >
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="neuestes">Neuestes aus „Satzung &amp; Ordnungen"</SelectItem>
+          {dokumente.map((d) => (
+            <SelectItem key={d.id} value={d.id}>
+              {d.title} ({new Date(d.created_at).toLocaleDateString("de-DE")})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-xs text-muted-foreground mt-1">
+        {dokumente.length === 0
+          ? "In der Kategorie „Satzung & Ordnungen" liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
+          : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen – die sind meist neuer als die Satzung. Deshalb hier ausdrücklich wählen."}
+      </p>
+    </div>
+  );
 }
 
 function MailAnleitung({ weg }: { weg: string }) {
