@@ -145,26 +145,24 @@ export type Database = {
       }
       app_settings: {
         Row: {
-          satzung_document_id: string | null
-          satzung_link: boolean
-          logo_in_header: boolean
           bank_bic: string | null
           bank_iban: string | null
           bank_recipient: string | null
-          contribution_model: string
-          footer_legal_label: string
-          footer_navigation_label: string
           board_members: string | null
           calendar_timezone: string
           color_dark: string
           color_primary: string
+          contribution_model: string
           favicon_path: string | null
           font_body: string
           font_headings: string
+          footer_legal_label: string
+          footer_navigation_label: string
           forum_event_thread: string
           hosting_address: string | null
           hosting_provider: string | null
           id: boolean
+          logo_in_header: boolean
           logo_path: string | null
           mail_from_address: string | null
           mail_from_name: string | null
@@ -183,6 +181,8 @@ export type Database = {
           privacy_officer: string | null
           register_court: string | null
           register_number: string | null
+          satzung_document_id: string | null
+          satzung_link: boolean
           seo_description: string | null
           seo_image_path: string | null
           updated_at: string
@@ -191,26 +191,24 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
-          satzung_document_id?: string | null
-          satzung_link?: boolean
-          logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          contribution_model?: string
-          footer_legal_label?: string
-          footer_navigation_label?: string
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          contribution_model?: string
           favicon_path?: string | null
           font_body?: string
           font_headings?: string
+          footer_legal_label?: string
+          footer_navigation_label?: string
           forum_event_thread?: string
           hosting_address?: string | null
           hosting_provider?: string | null
           id?: boolean
+          logo_in_header?: boolean
           logo_path?: string | null
           mail_from_address?: string | null
           mail_from_name?: string | null
@@ -229,6 +227,8 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
+          satzung_document_id?: string | null
+          satzung_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
           updated_at?: string
@@ -237,26 +237,24 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
-          satzung_document_id?: string | null
-          satzung_link?: boolean
-          logo_in_header?: boolean
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          contribution_model?: string
-          footer_legal_label?: string
-          footer_navigation_label?: string
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          contribution_model?: string
           favicon_path?: string | null
           font_body?: string
           font_headings?: string
+          footer_legal_label?: string
+          footer_navigation_label?: string
           forum_event_thread?: string
           hosting_address?: string | null
           hosting_provider?: string | null
           id?: boolean
+          logo_in_header?: boolean
           logo_path?: string | null
           mail_from_address?: string | null
           mail_from_name?: string | null
@@ -275,12 +273,64 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
+          satzung_document_id?: string | null
+          satzung_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
           updated_at?: string
           updated_by?: string | null
           vat_id?: string | null
           website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_satzung_document_fk"
+            columns: ["satzung_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_fields: {
+        Row: {
+          column_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          options: Json
+          required: boolean
+          settings: Json
+          sort_order: number
+          type: string
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          options?: Json
+          required?: boolean
+          settings?: Json
+          sort_order?: number
+          type: string
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          options?: Json
+          required?: boolean
+          settings?: Json
+          sort_order?: number
+          type?: string
         }
         Relationships: []
       }
@@ -369,26 +419,53 @@ export type Database = {
           },
         ]
       }
+      contribution_categories: {
+        Row: {
+          created_at: string
+          hinweis: string | null
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          hinweis?: string | null
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          hinweis?: string | null
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       contribution_rates: {
         Row: {
-          category: string
           amount: number
+          category: string
           id: string
           updated_at: string
           updated_by: string | null
           year: number
         }
         Insert: {
-          category?: string
           amount: number
+          category?: string
           id?: string
           updated_at?: string
           updated_by?: string | null
           year: number
         }
         Update: {
-          category?: string
           amount?: number
+          category?: string
           id?: string
           updated_at?: string
           updated_by?: string | null
@@ -1384,6 +1461,57 @@ export type Database = {
           },
         ]
       }
+      mail_templates: {
+        Row: {
+          betreff: string
+          fussnote: string
+          hinweis: string | null
+          inhalt: string
+          kennzeile: string
+          key: string
+          knopf: string
+          label: string
+          platzhalter: string[]
+          sort_order: number
+          standard: Json
+          ueberschrift: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          betreff?: string
+          fussnote?: string
+          hinweis?: string | null
+          inhalt?: string
+          kennzeile?: string
+          key: string
+          knopf?: string
+          label: string
+          platzhalter?: string[]
+          sort_order?: number
+          standard: Json
+          ueberschrift?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          betreff?: string
+          fussnote?: string
+          hinweis?: string | null
+          inhalt?: string
+          kennzeile?: string
+          key?: string
+          knopf?: string
+          label?: string
+          platzhalter?: string[]
+          sort_order?: number
+          standard?: Json
+          ueberschrift?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       member_personas: {
         Row: {
           created_at: string
@@ -1481,7 +1609,6 @@ export type Database = {
       }
       membership_applications: {
         Row: {
-          extra: Json
           birthdate: string | null
           city: string | null
           contribution_interval: string
@@ -1489,6 +1616,7 @@ export type Database = {
           created_user_id: string | null
           data_processing_accepted: boolean
           email: string
+          extra: Json
           first_name: string
           id: string
           last_name: string
@@ -1504,7 +1632,6 @@ export type Database = {
           zip: string | null
         }
         Insert: {
-          extra?: Json
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string
@@ -1512,6 +1639,7 @@ export type Database = {
           created_user_id?: string | null
           data_processing_accepted?: boolean
           email: string
+          extra?: Json
           first_name: string
           id?: string
           last_name: string
@@ -1527,7 +1655,6 @@ export type Database = {
           zip?: string | null
         }
         Update: {
-          extra?: Json
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string
@@ -1535,6 +1662,7 @@ export type Database = {
           created_user_id?: string | null
           data_processing_accepted?: boolean
           email?: string
+          extra?: Json
           first_name?: string
           id?: string
           last_name?: string
@@ -1620,6 +1748,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_texts: {
+        Row: {
+          hinweis: string | null
+          inhalt: string
+          key: string
+          label: string
+          platzhalter: string[]
+          sort_order: number
+          standard: Json
+          titel: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          hinweis?: string | null
+          inhalt?: string
+          key: string
+          label: string
+          platzhalter?: string[]
+          sort_order?: number
+          standard: Json
+          titel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          hinweis?: string | null
+          inhalt?: string
+          key?: string
+          label?: string
+          platzhalter?: string[]
+          sort_order?: number
+          standard?: Json
+          titel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       permission_catalog: {
         Row: {
           category: string
@@ -1641,9 +1808,53 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_fields: {
+        Row: {
+          block_key: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          modul: string | null
+          options: Json
+          required: boolean
+          settings: Json
+          sort_order: number
+          type: string
+        }
+        Insert: {
+          block_key?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          modul?: string | null
+          options?: Json
+          required?: boolean
+          settings?: Json
+          sort_order?: number
+          type: string
+        }
+        Update: {
+          block_key?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          modul?: string | null
+          options?: Json
+          required?: boolean
+          settings?: Json
+          sort_order?: number
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
-          extra: Json
           allergies: string | null
           birthdate: string | null
           calendar_token: string | null
@@ -1655,6 +1866,7 @@ export type Database = {
           display_name: string
           entry_date: string | null
           exit_date: string | null
+          extra: Json
           first_name: string | null
           forum_signature: string | null
           forum_title: string | null
@@ -1674,7 +1886,6 @@ export type Database = {
           zip: string | null
         }
         Insert: {
-          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
@@ -1686,6 +1897,7 @@ export type Database = {
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
+          extra?: Json
           first_name?: string | null
           forum_signature?: string | null
           forum_title?: string | null
@@ -1705,7 +1917,6 @@ export type Database = {
           zip?: string | null
         }
         Update: {
-          extra?: Json
           allergies?: string | null
           birthdate?: string | null
           calendar_token?: string | null
@@ -1717,6 +1928,7 @@ export type Database = {
           display_name?: string
           entry_date?: string | null
           exit_date?: string | null
+          extra?: Json
           first_name?: string | null
           forum_signature?: string | null
           forum_title?: string | null
@@ -2248,6 +2460,10 @@ export type Database = {
           sort_order: number
         }[]
       }
+      get_contribution_rate: {
+        Args: { _category: string; _year?: number }
+        Returns: number
+      }
       get_current_contribution_rate: { Args: never; Returns: number }
       get_current_satzung_path: { Args: never; Returns: string }
       get_election_results: {
@@ -2345,6 +2561,19 @@ export type Database = {
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
       mark_notifications_read: { Args: { _ids?: string[] }; Returns: number }
       module_enabled: { Args: { _key: string }; Returns: boolean }
+      module_status: {
+        Args: never
+        Returns: {
+          aktiv: boolean
+          art: string
+          description: string
+          enabled: boolean
+          key: string
+          label: string
+          requires: string
+          sort_order: number
+        }[]
+      }
       pending_digests: {
         Args: never
         Returns: {
@@ -2356,18 +2585,17 @@ export type Database = {
       public_branding: {
         Args: never
         Returns: {
-          satzung_link: boolean
-          logo_in_header: boolean
-          footer_legal_label: string
-          footer_navigation_label: string
           board_members: string
           color_dark: string
           color_primary: string
           favicon_path: string
           font_body: string
           font_headings: string
+          footer_legal_label: string
+          footer_navigation_label: string
           hosting_address: string
           hosting_provider: string
+          logo_in_header: boolean
           logo_path: string
           org_city: string
           org_country: string
@@ -2382,10 +2610,18 @@ export type Database = {
           privacy_officer: string
           register_court: string
           register_number: string
+          satzung_link: boolean
           seo_description: string
           seo_image_path: string
           vat_id: string
           website_url: string
+        }[]
+      }
+      public_contribution_settings: {
+        Args: never
+        Returns: {
+          model: string
+          options: Json
         }[]
       }
       push_mark_failure: {
@@ -2399,6 +2635,14 @@ export type Database = {
           endpoint: string
           p256dh: string
           user_id: string
+        }[]
+      }
+      satzung_auswahl: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          title: string
         }[]
       }
       set_persona_public: {
