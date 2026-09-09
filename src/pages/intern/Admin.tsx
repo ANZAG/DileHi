@@ -69,30 +69,22 @@ const Admin = () => {
       { id: "menue" as const, gruppe: "website", label: "Menü", icon: ListChecks, desc: "Punkte in der Kopfzeile" },
     ] : []),
     ...(hasPermission("gallery.manage") ? [
-      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder verwalten" , modul: "gallery"},
-    ] : []),
-    ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
-      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Galerien und Quellen" },
-    ] : []),
-    ...(hasPermission("site_images.manage") ? [
+      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder der Website verwalten" , modul: "gallery"},
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
-      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" , modul: "sources"},
+      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Quellenangaben je Kategorie" , modul: "sources"},
     ] : []),
     ...(hasPermission("visitor_highlights.manage") ? [
-      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte für Besuchersektion" , modul: "besucher_highlights"},
+      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte je Kategorie" , modul: "besucher_highlights"},
     ] : []),
     ...(hasPermission("personas.publish") ? [
-      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Für die Website freigeben" , modul: "personas"},
+      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Steckbriefe für die Website freigeben" , modul: "personas"},
+    ] : []),
+    ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
+      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Bilder, Quellen und Stichpunkte (bei uns die Epochen)" },
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
-    ] : []),
-    ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und Rechte" , modul: "forum"},
-    ] : []),
-    ...(hasPermission("events.moderate") ? [
-      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardvorlage für Anmeldungen" , modul: "event_forms"},
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
@@ -100,14 +92,20 @@ const Admin = () => {
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" , modul: "applications"},
       { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: Users, desc: "Welche Bereiche und Felder es hat" },
     ] : []),
+    ...(hasPermission("forum.categories_manage") ? [
+      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , modul: "forum"},
+    ] : []),
+    ...(hasPermission("events.moderate") ? [
+      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , modul: "event_forms"},
+    ] : []),
     ...(hasPermission("system.modules") ? [
-      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Was diese Installation anbietet" },
+      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche der Verein nutzt" },
     ] : []),
     ...(canRoles ? [
-      { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen & Rechte verwalten" },
+      { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen und ihre Rechte" },
     ] : []),
     ...(canAudit ? [
-      { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: FileText, desc: "Abstimmungsprotokoll einsehen" },
+      { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: FileText, desc: "Nachvollziehen, wer was geändert hat" },
     ] : []),
   ];
 
@@ -119,7 +117,7 @@ const Admin = () => {
   for (const [schluessel, titel] of [
     ["personen", "Mitglieder und Anfragen"],
     ["website", "Öffentliche Website"],
-    ["system", "System und Einrichtung"],
+    ["system", "Allgemeine Einstellungen"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
     // Eine Überschrift ohne Kacheln darunter wäre nur Rauschen – wer die
