@@ -22,6 +22,7 @@ interface Einstellungen {
   website_url: string | null;
   logo_path: string | null;
   favicon_path: string | null;
+  logo_in_header: boolean;
   color_primary: string;
   color_dark: string;
   font_headings: string;
@@ -206,6 +207,26 @@ export default function ErscheinungsbildAdmin() {
             onEntfernen={() => void bildEntfernen("favicon")}
           />
         </div>
+
+        {/* Ein eigener Schalter statt „Logo entfernen": Das Logo bleibt
+            hinterlegt und wird weiterhin auf dem Aufnahmeantrag gedruckt. Ein
+            breites Wappen neben einem langen Namen lässt auf dem Handy sonst
+            nichts mehr übrig. */}
+        <label className="flex items-start gap-2.5 mt-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={entwurf.logo_in_header}
+            onChange={(e) => setze({ logo_in_header: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+          />
+          <span className="text-sm">
+            Logo in der Kopfzeile anzeigen
+            <span className="block text-xs text-muted-foreground">
+              Ausgeschaltet steht dort nur der Vereinsname. Auf dem Aufnahmeantrag
+              erscheint das Logo weiterhin.
+            </span>
+          </span>
+        </label>
       </Abschnitt>
 
       {/* ── Farben ───────────────────────────────────────────────────────── */}

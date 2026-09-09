@@ -165,20 +165,13 @@ function Vorschau({ felder, hervorgehoben }: { felder: Antragsfeld[]; hervorgeho
             key={feld.id}
             className={`rounded-md ${hervorgehoben === feld.id ? "ring-2 ring-primary/40 ring-offset-2 ring-offset-card" : ""}`}
           >
-            {feld.type !== "section" && (
-              <p className="text-sm font-medium mb-1">
-                {feld.label || <span className="text-muted-foreground">(ohne Beschriftung)</span>}
-                {feld.required && " *"}
-              </p>
-            )}
+            {/* Beschriftung und Hilfetext kommen aus dem Renderer – dieselbe
+                Darstellung wie im echten Formular. */}
             <FormFieldRenderer
               field={feld}
               value={werte[feld.id]}
               onChange={(v) => setWerte({ ...werte, [feld.id]: v })}
             />
-            {feld.type !== "section" && feld.description && (
-              <p className="text-xs text-muted-foreground mt-1">{feld.description}</p>
-            )}
           </div>
         ))}
       </div>

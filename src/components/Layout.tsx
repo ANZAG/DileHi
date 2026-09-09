@@ -23,6 +23,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     org_short_name,
     org_tagline,
     logoUrl,
+    logo_in_header,
     footer_navigation_label,
     footer_legal_label,
   } = useBrandingAnwenden();
@@ -49,7 +50,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
-            {logoUrl && <img src={logoUrl} alt="" className="h-7 w-auto" />}
+            {logoUrl && logo_in_header && <img src={logoUrl} alt="" className="h-7 w-auto" />}
             {org_short_name}
           </Link>
 

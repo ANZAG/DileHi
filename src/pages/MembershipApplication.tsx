@@ -304,31 +304,18 @@ const MembershipApplication = () => {
               {felder.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Formular wird geladen …</p>
               ) : (
-                felder.map((feld) =>
-                  feld.type === "section" ? (
-                    <h2
-                      key={feld.id}
-                      className="font-serif text-lg font-semibold border-b border-border pb-2 first:mt-0 mt-2"
-                    >
-                      {feld.label}
-                    </h2>
-                  ) : (
-                    <div key={feld.id} className="space-y-1">
-                      <Label htmlFor={feld.id}>
-                        {feld.label}
-                        {feld.required && " *"}
-                      </Label>
-                      <FormFieldRenderer
-                        field={feld}
-                        value={feldWert(feld)}
-                        onChange={(v) => setzeFeld(feld, v)}
-                      />
-                      {feld.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{feld.description}</p>
-                      )}
-                    </div>
-                  )
-                )
+                // Alles über denselben Renderer, auch die Zwischenüberschriften:
+                // So zeigt die Vorschau in der Verwaltung wirklich das, was hier
+                // steht. Beschriftung, Sternchen und Hilfetext setzt er selbst –
+                // die standen hier ein zweites Mal und damit doppelt auf der Seite.
+                felder.map((feld) => (
+                  <FormFieldRenderer
+                    key={feld.id}
+                    field={feld}
+                    value={feldWert(feld)}
+                    onChange={(v) => setzeFeld(feld, v)}
+                  />
+                ))
               )}
             </section>
 
