@@ -1,21 +1,33 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FIELD_TYPES } from "./types";
 import {
-  Heading, Type, AlignLeft, Hash, List, CheckSquare, ToggleLeft, Calendar, Tent,
+  Heading, Type, AlignLeft, Hash, List, CheckSquare, ToggleLeft, Calendar,
+  CalendarDays, Tent,
 } from "lucide-react";
 
 const ICONS: Record<string, any> = {
-  Heading, Type, AlignLeft, Hash, List, CheckSquare, ToggleLeft, Calendar, Tent,
+  Heading, Type, AlignLeft, Hash, List, CheckSquare, ToggleLeft, Calendar,
+  CalendarDays, Tent,
 };
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (type: string) => void;
+  /**
+   * Nur diese Typen anbieten. Ohne Angabe alle.
+   *
+   * Der Aufnahmeantrag braucht Text, Zahl und Auswahl – aber weder Zelte noch
+   * Helferaufgaben. Eine Frage nach dem Zeltdurchmesser im Aufnahmeantrag
+   * waere kein Fehler, den jemand absichtlich macht; sie waere einer, der
+   * passiert, weil die Auswahl sie anbietet.
+   */
+  nur?: string[];
 }
 
 /** Feldtyp-Auswahl in Klartext mit Erklärung und Beispiel */
-export default function FieldTypePicker({ open, onOpenChange, onSelect }: Props) {
+export default function FieldTypePicker({ open, onOpenChange, onSelect, nur }: Props) {
+  const typen = nur ? FIELD_TYPES.filter((t) => nur.includes(t.value)) : FIELD_TYPES;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -23,7 +35,7 @@ export default function FieldTypePicker({ open, onOpenChange, onSelect }: Props)
           <DialogTitle>Was möchtest du hinzufügen?</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {FIELD_TYPES.map((t) => {
+          {typen.map((t) => {
             const Icon = ICONS[t.icon] || Type;
             return (
               <button

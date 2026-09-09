@@ -10,6 +10,8 @@ import SEO from "@/components/SEO";
 import { useBranding } from "@/hooks/useBranding";
 import { useAntragstexte, fuelleText } from "@/hooks/useAntragstexte";
 import { useBeitragsmodell, beitragsTextSchluessel } from "@/hooks/useBeitragsmodell";
+import { useAntragsfelder, type Antragsfeld } from "@/hooks/useAntragsfelder";
+import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 
 const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-satzung-link`;
 const FALLBACK_RATE = 36;
@@ -120,6 +122,20 @@ const MembershipApplication = () => {
   const { org_name } = useBranding();
   const texte = useAntragstexte();
   const { modell, arten } = useBeitragsmodell();
+  const { data: alleFelder = [] } = useAntragsfelder();
+  const felder = alleFelder.filter((f) => f.is_active !== false);
+
+  /** Antworten auf die Zusatzfelder – nach Feld-Kennung abgelegt. */
+  const [extra, setExtra] = useState<Record<string, unknown>>({});
+
+  // Tragende Felder haben ihre eigene Spalte, alles Weitere landet in `extra`.
+  const feldWert = (feld: Antragsfeld) =>
+    feld.column_name ? (form as Record<string, unknown>)[feld.column_name] : extra[feld.id];
+
+  const setzeFeld = (feld: Antragsfeld, wert: unknown) => {
+    if (feld.column_name) setForm((p) => ({ ...p, [feld.column_name!]: wert as string }));
+    else setExtra((p) => ({ ...p, [feld.id]: wert }));
+  };
 
 
   // „aktiv" ist die mitgelieferte Vorgabe. Benennt ein Verein seine
@@ -164,14 +180,24 @@ const MembershipApplication = () => {
   const halfFmt = (n: number) =>
     (Math.round((n / 2) * 100) / 100).toFixed(2).replace(".", ",") + " \u20AC";
 
+  /**
+   * Pflichtfelder – aus der Verwaltung, nicht aus dieser Liste.
+   *
+   * Vorher standen hier sieben Feldnamen. Wer in der Verwaltung ein Feld auf
+   * „verpflichtend" stellte, hätte einen Antrag ohne dieses Feld trotzdem
+   * absenden können – und wer ein Pflichtfeld abschaltet, hätte das Formular
+   * unabsendbar gemacht.
+   */
+  const fehlt = (feld: Antragsfeld) => {
+    if (!feld.required || feld.type === "section") return false;
+    const wert = feldWert(feld);
+    if (Array.isArray(wert)) return wert.length === 0;
+    if (typeof wert === "boolean") return !wert;
+    return !String(wert ?? "").trim();
+  };
+
   const isValid =
-    form.first_name.trim() &&
-    form.last_name.trim() &&
-    form.email.trim() &&
-    form.street.trim() &&
-    form.zip.trim() &&
-    form.city.trim() &&
-    form.birthdate &&
+    felder.every((f) => !fehlt(f)) &&
     form.statutes_accepted &&
     form.data_processing_accepted;
 
@@ -197,6 +223,14 @@ const MembershipApplication = () => {
           contribution_interval: form.contribution_interval,
           statutes_accepted: form.statutes_accepted,
           data_processing_accepted: form.data_processing_accepted,
+          // Antworten auf die Zusatzfragen, mit Beschriftung – damit sie im
+          // Antrag lesbar sind, auch wenn ein Feld spaeter umbenannt wird.
+          extra: Object.fromEntries(
+            felder
+              .filter((f) => !f.column_name && f.type !== "section")
+              .map((f) => [f.id, { label: f.label, wert: extra[f.id] ?? null }])
+              .filter(([, e]) => (e as { wert: unknown }).wert !== null && (e as { wert: unknown }).wert !== "")
+          ),
         },
       });
       if (err) throw err;
@@ -263,118 +297,39 @@ const MembershipApplication = () => {
           <div className="space-y-6">
 
             {/* ── Persönliche Daten ───────────────────────────────────────────── */}
+            {/* Die Felder kommen aus der Verwaltung, nicht aus dieser Datei.
+                Tragende Felder (Vorname, E-Mail, Anschrift …) landen in ihrer
+                eigenen Spalte, alles Weitere gesammelt in `extra`. */}
             <section className="p-6 rounded-lg border bg-card space-y-4">
-              <h2 className="font-serif text-lg font-semibold border-b border-border pb-2">
-                Persönliche Daten
-              </h2>
-
-              {/* Anrede */}
-              <div className="space-y-1">
-                <Label>Anrede</Label>
-                <RadioGroup
-                  name="salutation"
-                  value={form.salutation}
-                  options={[
-                    { value: "Herr", label: "Herr" },
-                    { value: "Frau", label: "Frau" },
-                  ]}
-                  onChange={(v) => set("salutation", v)}
-                />
-              </div>
-
-              {/* Name */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="first_name">Vorname *</Label>
-                  <Input
-                    id="first_name"
-                    className="mt-1"
-                    value={form.first_name}
-                    onChange={(e) => set("first_name", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="last_name">Nachname *</Label>
-                  <Input
-                    id="last_name"
-                    className="mt-1"
-                    value={form.last_name}
-                    onChange={(e) => set("last_name", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Kontakt */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="email">E-Mail *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    className="mt-1"
-                    value={form.email}
-                    onChange={(e) => set("email", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Telefon / Handy</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    className="mt-1"
-                    value={form.phone}
-                    onChange={(e) => set("phone", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Geburtsdatum */}
-              <div>
-                <Label htmlFor="birthdate">Geburtsdatum *</Label>
-                <Input
-                  id="birthdate"
-                  type="date"
-                  className="mt-1 max-w-[200px] appearance-none [&::-webkit-date-and-time-value]:text-left"
-                  value={form.birthdate}
-                  onChange={(e) => set("birthdate", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Die Mitgliedschaft ist ab 16 Jahren möglich. Bei unter 18-Jährigen
-                  muss der Antrag von einem Erziehungsberechtigten mitunterschrieben
-                  werden – wir kommen in diesem Fall per E-Mail auf dich zu.
-                </p>
-              </div>
-
-              {/* Adresse */}
-              <div>
-                <Label htmlFor="street">Straße und Hausnummer *</Label>
-                <Input
-                  id="street"
-                  className="mt-1"
-                  value={form.street}
-                  onChange={(e) => set("street", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label htmlFor="zip">PLZ *</Label>
-                  <Input
-                    id="zip"
-                    className="mt-1"
-                    value={form.zip}
-                    onChange={(e) => set("zip", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="city">Wohnort *</Label>
-                  <Input
-                    id="city"
-                    className="mt-1"
-                    value={form.city}
-                    onChange={(e) => set("city", e.target.value)}
-                  />
-                </div>
-              </div>
+              {felder.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Formular wird geladen …</p>
+              ) : (
+                felder.map((feld) =>
+                  feld.type === "section" ? (
+                    <h2
+                      key={feld.id}
+                      className="font-serif text-lg font-semibold border-b border-border pb-2 first:mt-0 mt-2"
+                    >
+                      {feld.label}
+                    </h2>
+                  ) : (
+                    <div key={feld.id} className="space-y-1">
+                      <Label htmlFor={feld.id}>
+                        {feld.label}
+                        {feld.required && " *"}
+                      </Label>
+                      <FormFieldRenderer
+                        field={feld}
+                        value={feldWert(feld)}
+                        onChange={(v) => setzeFeld(feld, v)}
+                      />
+                      {feld.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{feld.description}</p>
+                      )}
+                    </div>
+                  )
+                )
+              )}
             </section>
 
             {/* ── Mitgliedschaft ──────────────────────────────────────────────── */}

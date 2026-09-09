@@ -108,6 +108,13 @@ export const FIELD_TYPES = [
     example: "z.B. Anzahl freier Sitzplätze",
   },
   {
+    value: "date",
+    label: "Datum",
+    icon: "CalendarDays",
+    hint: "Ein einzelnes Datum, mit dem Kalender des Geräts.",
+    example: "z.B. Geburtsdatum",
+  },
+  {
     value: "select",
     label: "Auswahl – eine Antwort",
     icon: "List",

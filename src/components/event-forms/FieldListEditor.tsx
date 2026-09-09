@@ -13,6 +13,16 @@ interface Props {
   onChange: (fields: FormField[]) => void;
   activeId: string | null;
   onActiveChange: (id: string | null) => void;
+  /** Nur diese Feldtypen anbieten. Ohne Angabe alle. */
+  nurTypen?: string[];
+  /**
+   * Entscheidet, ob ein Feld geloescht und dupliziert werden darf.
+   *
+   * Im Aufnahmeantrag sind einige Felder tragend: Aus Vorname, Nachname und
+   * E-Mail entsteht das Konto. Wer sie loescht, macht die Aufnahme
+   * unbrauchbar – und merkt es erst beim naechsten Antrag.
+   */
+  darfEntfernen?: (field: FormField) => boolean;
 }
 
 export function makeField(type: string, sortOrder: number): FormField {
@@ -29,7 +39,9 @@ export function makeField(type: string, sortOrder: number): FormField {
 }
 
 /** Fragenliste mit Inline-Bearbeitung, Umsortieren und Duplizieren */
-export default function FieldListEditor({ fields, onChange, activeId, onActiveChange }: Props) {
+export default function FieldListEditor({
+  fields, onChange, activeId, onActiveChange, nurTypen, darfEntfernen,
+}: Props) {
   const [showPicker, setShowPicker] = useState(false);
 
   const typeLabel = (type: string) => FIELD_TYPES.find((f) => f.value === type)?.label || type;
@@ -129,24 +141,32 @@ export default function FieldListEditor({ fields, onChange, activeId, onActiveCh
                             )}
                           </button>
                           <div className="flex items-center gap-0.5 shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              title="Duplizieren"
-                              onClick={() => duplicateField(field)}
-                            >
-                              <Copy size={13} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              title="Löschen"
-                              onClick={() => removeField(field.id)}
-                            >
-                              <Trash2 size={13} className="text-destructive" />
-                            </Button>
+                            {(darfEntfernen?.(field) ?? true) ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  title="Duplizieren"
+                                  onClick={() => duplicateField(field)}
+                                >
+                                  <Copy size={13} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  title="Löschen"
+                                  onClick={() => removeField(field.id)}
+                                >
+                                  <Trash2 size={13} className="text-destructive" />
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground px-1.5 whitespace-nowrap">
+                                fest
+                              </span>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -182,7 +202,7 @@ export default function FieldListEditor({ fields, onChange, activeId, onActiveCh
         <Plus size={16} className="mr-1" /> Frage oder Abschnitt hinzufügen
       </Button>
 
-      <FieldTypePicker open={showPicker} onOpenChange={setShowPicker} onSelect={addField} />
+      <FieldTypePicker open={showPicker} onOpenChange={setShowPicker} onSelect={addField} nur={nurTypen} />
     </div>
   );
 }
