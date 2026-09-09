@@ -155,11 +155,18 @@ interface AntragsTexte {
  * `{{beitrag}}` und `{{verein}}` stehen kann statt einer Zahl, die jemand
  * jaehrlich von Hand nachziehen muesste.
  */
-async function antragsTexte(rate: number): Promise<AntragsTexte> {
-  const werte = { beitrag: rate.toFixed(2).replace(".", ",") };
-  const [titel, erklaerung, datenschutz, zustimmungen, fussnote] = await Promise.all([
+async function antragsTexte(betrag: number, modell: Beitragsmodell): Promise<AntragsTexte> {
+  const werte = { beitrag: betrag.toFixed(2).replace(".", ",") };
+  // Der Satz zum Beitrag haengt am Modell: „Derzeit betraegt der jaehrliche
+  // Beitragssatz …" waere falsch, wenn es gar keinen gibt.
+  const beitragsSchluessel = modell === "umlage" ? "beitrag_umlage"
+    : modell === "keiner" ? "beitrag_keiner"
+    : "beitrag_fest";
+
+  const [titel, erklaerung, beitragsSatz, datenschutz, zustimmungen, fussnote] = await Promise.all([
     pdfText("titel", werte),
     pdfText("erklaerung", werte),
+    pdfText(beitragsSchluessel, werte),
     pdfText("datenschutz", werte),
     pdfText("zustimmungen", werte),
     pdfText("fussnote", werte),
@@ -168,10 +175,44 @@ async function antragsTexte(rate: number): Promise<AntragsTexte> {
 ").map((z) => z.trim()).filter(Boolean);
   return {
     titel: titel.inhalt,
-    erklaerung: { titel: erklaerung.titel, zeilen: zeilen(erklaerung.inhalt) },
+    erklaerung: {
+      titel: erklaerung.titel,
+      zeilen: [...zeilen(erklaerung.inhalt), ...zeilen(beitragsSatz.inhalt)],
+    },
     datenschutz: { titel: datenschutz.titel, text: datenschutz.inhalt },
     zustimmungen: zeilen(zustimmungen.inhalt),
     fussnote: zeilen(fussnote.inhalt),
+  };
+}
+
+type Beitragsmodell = "fest" | "umlage" | "keiner";
+
+interface Beitragsangaben {
+  modell: Beitragsmodell;
+  arten: { key: string; label: string; amount: number | null }[];
+}
+
+/** Modell und Mitgliedsarten – dieselbe Abfrage, die auch das Formular nutzt. */
+async function beitragsangaben(client: ReturnType<typeof createClient>): Promise<Beitragsangaben> {
+  const { data } = await client.rpc("public_contribution_settings");
+  const zeile = (data as { model: string; options: unknown }[] | null)?.[0];
+  const arten = Array.isArray(zeile?.options)
+    ? (zeile!.options as { key: string; label: string; amount: unknown }[]).map((a) => ({
+        key: a.key,
+        label: a.label,
+        amount: a.amount === null || a.amount === undefined ? null : Number(a.amount),
+      }))
+    : [];
+  const modell = (["fest", "umlage", "keiner"] as const).includes(zeile?.model as Beitragsmodell)
+    ? (zeile!.model as Beitragsmodell)
+    : "fest";
+  // Ohne gepflegte Kategorien bleibt es bei dem, was frueher fest im Code stand.
+  return {
+    modell,
+    arten: arten.length > 0
+      ? arten
+      : [{ key: "aktiv", label: "Aktives Mitglied", amount: null },
+         { key: "foerder", label: "Fördermitglied", amount: null }],
   };
 }
 
@@ -180,7 +221,8 @@ async function buildApplicationPdf(
   rate: number,
   officials: Official[],
   m: Marke,
-  texte: AntragsTexte
+  texte: AntragsTexte,
+  beitrag: Beitragsangaben
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]); // A4
@@ -305,29 +347,44 @@ async function buildApplicationPdf(
   at("MITGLIEDSCHAFT & BEITRAG", L, y, 7.5, bold, AMBER);
   y -= 4; hline(y); y -= 14;
 
+  // Die Mitgliedsarten kommen aus der Verwaltung, nicht aus einer Liste im
+  // Code. Sie brauchen mehr Platz als die frueheren zwei, sobald ein Verein
+  // „Student" und „Rentner" ergaenzt – deshalb Umbruch statt einer Zeile.
   at("Art der Mitgliedschaft:", L, y, 9, bold, GRAY);
   let cx = L + 148;
-  for (const [val, label] of [["aktiv", "Aktives Mitglied"], ["foerder", "Fördermitglied"]] as const) {
-    checkbox(cx, y, app.membership_type === val);
-    at(label, cx + 14, y, 10, font, DARK);
-    cx += 14 + font.widthOfTextAtSize(label, 10) + 20;
+  for (const art of beitrag.arten) {
+    const beschriftung = beitrag.modell === "fest" && art.amount !== null
+      ? `${art.label} (${art.amount.toFixed(2).replace(".", ",")} €)`
+      : art.label;
+    const breite = 14 + font.widthOfTextAtSize(beschriftung, 10) + 20;
+    if (cx + breite > R) { cx = L + 148; y -= 15; }
+    checkbox(cx, y, app.membership_type === art.key);
+    at(beschriftung, cx + 14, y, 10, font, DARK);
+    cx += breite;
   }
   y -= 18;
 
-  const rateStr   = rate.toFixed(2).replace(".", ",");
-  const halfRate  = (rate / 2).toFixed(2).replace(".", ",");
-  at("Beitragseinzug:", L, y, 9, bold, GRAY);
-  cx = L + 148;
-  for (const [val, label, sub] of [
-    ["jaehrlich",     "Jährlich",    rateStr + " € / Jahr"],
-    ["halbjaehrlich", "Halbjährlich", halfRate + " € / Halbjahr"],
-  ] as const) {
-    checkbox(cx, y, app.contribution_interval === val);
-    at(label, cx + 14, y, 10, font, DARK);
-    at("(" + sub + ")", cx + 14 + font.widthOfTextAtSize(label, 10) + 5, y, 8, italic, GRAY);
-    cx += 175;
+  const rateStr  = rate.toFixed(2).replace(".", ",");
+  const halfRate = (rate / 2).toFixed(2).replace(".", ",");
+
+  // Ein Zahlungsrhythmus ergibt nur beim festen Beitrag Sinn: Bei einer Umlage
+  // gibt es eine Abrechnung im Jahr, ohne Beitrag gar keine.
+  if (beitrag.modell === "fest") {
+    at("Beitragseinzug:", L, y, 9, bold, GRAY);
+    cx = L + 148;
+    for (const [val, label, sub] of [
+      ["jaehrlich",     "Jährlich",    rateStr + " € / Jahr"],
+      ["halbjaehrlich", "Halbjährlich", halfRate + " € / Halbjahr"],
+    ] as const) {
+      checkbox(cx, y, app.contribution_interval === val);
+      at(label, cx + 14, y, 10, font, DARK);
+      at("(" + sub + ")", cx + 14 + font.widthOfTextAtSize(label, 10) + 5, y, 8, italic, GRAY);
+      cx += 175;
+    }
+    y -= 26;
+  } else {
+    y -= 8;
   }
-  y -= 26;
 
   // ── ERKLARUNG ─────────────────────────────────────────────────────────────
   at(texte.erklaerung.titel, L, y, 7.5, bold, AMBER);
@@ -487,8 +544,12 @@ Deno.serve(async (req) => {
       try {
         const rate = await getCurrentRate(adminClient);
         const officials = await getOfficials(adminClient);
+        const beitrag = await beitragsangaben(adminClient);
+        // Der gedruckte Betrag ist der der gewaehlten Mitgliedsart, nicht ein
+        // Satz fuer alle.
+        const satz = beitrag.arten.find((a) => a.key === app.membership_type)?.amount ?? rate;
         const pdfBytes = await buildApplicationPdf(
-          app, rate, officials, await marke(), await antragsTexte(rate)
+          app, satz, officials, await marke(), await antragsTexte(satz, beitrag.modell), beitrag
         );
         const fileName = `Mitgliedsantrag_${app.last_name}_${app.first_name}.pdf`.replace(/[^a-zA-Z0-9._-]/g, "_");
         const storagePath = `membership/${userId}/${Date.now()}_${fileName}`;

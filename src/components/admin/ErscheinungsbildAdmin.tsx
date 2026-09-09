@@ -32,6 +32,7 @@ interface Einstellungen {
   mail_reply_to: string | null;
   mail_transport: string;
   calendar_timezone: string;
+  contribution_model: string;
   bank_recipient: string | null;
   bank_iban: string | null;
   bank_bic: string | null;
@@ -260,6 +261,39 @@ export default function ErscheinungsbildAdmin() {
         <p className="text-xs text-muted-foreground mt-2">
           Die Schrift wird erst nach dem Speichern und Neuladen sichtbar.
         </p>
+      </Abschnitt>
+
+      {/* ── Beiträge ─────────────────────────────────────────────────────── */}
+      <Abschnitt
+        titel="Beiträge"
+        hinweis="Bestimmt, was im Aufnahmeantrag zum Beitrag steht – und ob dort überhaupt etwas steht."
+      >
+        <div className="max-w-md">
+          <Label className="text-sm">Wie wird der Beitrag erhoben?</Label>
+          <Select
+            value={entwurf.contribution_model}
+            onValueChange={(v) => setze({ contribution_model: v })}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fest">Fester Beitragssatz</SelectItem>
+              <SelectItem value="umlage">Anteil an den Unkosten des Jahres</SelectItem>
+              <SelectItem value="keiner">Kein Beitrag</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-2">
+            {entwurf.contribution_model === "fest" &&
+              "Je Mitgliedsart ein Betrag pro Jahr – etwa regulär, Student, Rentner. Die Sätze werden im Bereich Beiträge gepflegt."}
+            {entwurf.contribution_model === "umlage" &&
+              "Kein Betrag im Voraus. Die Mitglieder verpflichten sich, sich anteilig an den Unkosten zu beteiligen; die Höhe steht erst nach der Abrechnung fest."}
+            {entwurf.contribution_model === "keiner" &&
+              "Im Antrag steht kein Betrag und kein Zahlungsrhythmus. Wer den Bereich Beiträge gar nicht braucht, schaltet zusätzlich das Modul ab."}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Der zugehörige Satz in der Erklärung des Aufnahmeantrags steht unter
+            Textvorlagen → Aufnahmeantrag.
+          </p>
+        </div>
       </Abschnitt>
 
       {/* ── Bankverbindung ───────────────────────────────────────────────── */}

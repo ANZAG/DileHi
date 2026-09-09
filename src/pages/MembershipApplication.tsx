@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { useBranding } from "@/hooks/useBranding";
 import { useAntragstexte, fuelleText } from "@/hooks/useAntragstexte";
+import { useBeitragsmodell, beitragsTextSchluessel } from "@/hooks/useBeitragsmodell";
 
 const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-satzung-link`;
 const FALLBACK_RATE = 36;
@@ -118,7 +119,19 @@ const MembershipApplication = () => {
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
   const { org_name } = useBranding();
   const texte = useAntragstexte();
+  const { modell, arten } = useBeitragsmodell();
 
+
+  // „aktiv" ist die mitgelieferte Vorgabe. Benennt ein Verein seine
+  // Mitgliedsarten um oder schaltet sie ab, zeigt das Formular sonst eine
+  // Auswahl an, in der nichts markiert ist – und schickt einen Schlüssel mit,
+  // den es nicht mehr gibt.
+  useEffect(() => {
+    if (arten.length === 0) return;
+    if (!arten.some((a) => a.key === form.membership_type)) {
+      set("membership_type", arten[0].key);
+    }
+  }, [arten, form.membership_type]);
 
   useEffect(() => {
     supabase.rpc("get_current_contribution_rate").then(({ data }) => {
@@ -131,13 +144,20 @@ const MembershipApplication = () => {
   // Die Textbausteine des Antrags mit den aktuellen Werten. Sie stehen
   // wortgleich auf dem PDF, das daraus entsteht. Fehlen sie, bleibt der
   // Abschnitt leer statt kaputt.
-  const werte = { verein: org_name, beitrag: rate.toFixed(2).replace(".", ",") };
+  // Der Betrag richtet sich nach der gewählten Mitgliedsart. Ohne eigenen Satz
+  // gilt der Rückfall aus der Datenbank – derselbe, der auch im PDF steht.
+  const gewaehlteArt = arten.find((a) => a.key === form.membership_type);
+  const betrag = gewaehlteArt?.amount ?? rate;
+  const werte = { verein: org_name, beitrag: betrag.toFixed(2).replace(".", ",") };
   const zeilen = (key: string) =>
     fuelleText(texte[key]?.inhalt ?? "", werte)
       .split("\n")
       .map((z) => z.trim())
       .filter(Boolean);
-  const erklaerung = zeilen("erklaerung");
+  // Der Satz zum Beitrag haengt am Modell und steht deshalb in einer eigenen
+  // Vorlage: „Derzeit betraegt der jaehrliche Beitragssatz …" ist falsch, wenn
+  // es gar keinen gibt.
+  const erklaerung = [...zeilen("erklaerung"), ...zeilen(beitragsTextSchluessel(modell))];
   const zustimmungen = zeilen("zustimmungen");
   const datenschutz = zeilen("datenschutz").join(" ");
 
@@ -363,40 +383,71 @@ const MembershipApplication = () => {
                 Mitgliedschaft
               </h2>
 
-              <div className="space-y-1">
-                <Label>Art der Mitgliedschaft *</Label>
-                <RadioGroup
-                  name="membership_type"
-                  value={form.membership_type}
-                  options={[
-                    { value: "aktiv", label: "Aktives Mitglied" },
-                    { value: "foerder", label: "Fördermitglied" },
-                  ]}
-                  onChange={(v) => set("membership_type", v)}
-                />
-              </div>
+              {/* Die Mitgliedsarten kommen aus der Verwaltung. „Student" und
+                  „Rentner" sind dort einfach zwei weitere Einträge; die
+                  Beträge stehen nur beim festen Beitrag dabei. Ankreuzen darf
+                  der Antragstellende selbst – ob die Kategorie noch passt,
+                  prüft der Verein ohnehin regelmäßig. */}
+              {arten.length > 1 && (
+                <div className="space-y-1">
+                  <Label>Art der Mitgliedschaft *</Label>
+                  <RadioGroup
+                    name="membership_type"
+                    value={form.membership_type}
+                    options={arten.map((a) => ({
+                      value: a.key,
+                      label: modell === "fest" && a.amount !== null
+                        ? `${a.label} (${fmt(a.amount)})`
+                        : a.label,
+                    }))}
+                    onChange={(v) => set("membership_type", v)}
+                  />
+                  {gewaehlteArt?.hinweis && (
+                    <p className="text-xs text-muted-foreground mt-1">{gewaehlteArt.hinweis}</p>
+                  )}
+                </div>
+              )}
 
-              <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
-                Jahresbeitrag{" "}
-                <strong className="text-foreground">{fmt(rate)}</strong>
-              </div>
+              {modell === "fest" && (
+                <>
+                  <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
+                    Jahresbeitrag <strong className="text-foreground">{fmt(betrag)}</strong>
+                  </div>
 
-              <div className="space-y-1">
-                <Label>Beitragseinzug *</Label>
-                <RadioGroup
-                  name="contribution_interval"
-                  value={form.contribution_interval}
-                  options={[
-                    { value: "jaehrlich", label: `Jährlich (${fmt(rate)})` },
-                    { value: "halbjaehrlich", label: `Halbjährlich (2 × ${halfFmt(rate)})` },
-                  ]}
-                  onChange={(v) => set("contribution_interval", v)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Nach Genehmigung deines Antrags teilen wir dir die Zahlungsmodalitäten
-                  per E-Mail mit.
+                  <div className="space-y-1">
+                    <Label>Beitragseinzug *</Label>
+                    <RadioGroup
+                      name="contribution_interval"
+                      value={form.contribution_interval}
+                      options={[
+                        { value: "jaehrlich", label: `Jährlich (${fmt(betrag)})` },
+                        { value: "halbjaehrlich", label: `Halbjährlich (2 × ${halfFmt(betrag)})` },
+                      ]}
+                      onChange={(v) => set("contribution_interval", v)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Nach Genehmigung deines Antrags teilen wir dir die Zahlungsmodalitäten
+                      per E-Mail mit.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Bei der Umlage gibt es keinen Betrag zu nennen – nur die
+                  Verpflichtung, und die steht in der Erklärung weiter unten.
+                  Ein leerer Kasten „Jahresbeitrag 0,00 €" wäre irreführend. */}
+              {modell === "umlage" && (
+                <p className="text-sm text-muted-foreground">
+                  Ein fester Beitrag wird nicht erhoben. Die Mitglieder beteiligen sich
+                  anteilig an den Unkosten des Jahres.
                 </p>
-              </div>
+              )}
+
+              {modell === "keiner" && (
+                <p className="text-sm text-muted-foreground">
+                  Ein Mitgliedsbeitrag wird nicht erhoben.
+                </p>
+              )}
             </section>
 
             {/* ── Einverständnis ──────────────────────────────────────────────── */}

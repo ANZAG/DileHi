@@ -22,6 +22,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+export interface Mitgliedsart {
+  key: string;
+  label: string;
+  hinweis: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** Die Mitgliedsarten mit eigenem Beitragssatz. */
+function useMitgliedsarten() {
+  const { data } = useQuery({
+    queryKey: ["contribution-categories"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
+        .from("contribution_categories").select("*").order("sort_order");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Mitgliedsart[];
+    },
+  });
+  return data ?? [];
+}
+
 /** Kontodaten aus den Vereinsangaben – nur für Mitglieder lesbar. */
 function useVereinskonto() {
   const { data } = useQuery({
@@ -98,10 +120,13 @@ const BankInfoCard = () => {
 
 const RateEditor = ({
   year,
+  category,
   rate,
   canEdit,
 }: {
   year: number;
+  /** Seit es mehrere Mitgliedsarten gibt, haengt ein Satz an Jahr UND Art. */
+  category: string;
   rate: number | null;
   canEdit: boolean;
 }) => {
@@ -116,10 +141,13 @@ const RateEditor = ({
       // here instead of receiving it as a prop. Fine for now, but could be a prop.
       const { data: { user } } = await supabase.auth.getUser();
       // Upsert pattern: try update first to avoid duplicate key errors
+      // Ohne die Kategorie liefert die Abfrage seit der Aufteilung mehrere
+      // Zeilen, und maybeSingle wirft dann einen Fehler.
       const { data: existing } = await supabase
         .from("contribution_rates")
         .select("id")
         .eq("year", year)
+        .eq("category", category)
         .maybeSingle();
 
       if (existing) {
@@ -131,7 +159,7 @@ const RateEditor = ({
       } else {
         const { error } = await supabase
           .from("contribution_rates")
-          .insert({ year, amount, updated_by: user!.id });
+          .insert({ year, category, amount, updated_by: user!.id });
         if (error) throw error;
       }
     },
@@ -196,7 +224,7 @@ const Contributions = () => {
       const userIds = [...new Set(roles?.map((r) => r.user_id) || [])];
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, first_name, last_name, is_active, contribution_interval")
+        .select("id, display_name, first_name, last_name, is_active, contribution_interval, membership_type")
         .in("id", userIds);
       if (error) throw error;
       return data.filter((p) => p.is_active !== false);
@@ -237,7 +265,7 @@ const Contributions = () => {
       if (!user?.id) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("entry_date")
+        .select("entry_date, membership_type")
         .eq("id", user.id)
         .maybeSingle();
       return data;
@@ -257,17 +285,33 @@ const Contributions = () => {
     },
   });
 
-  const currentRate = rates.find((r: any) => r.year === parseInt(selectedYear));
+  /**
+   * Der Satz eines Jahres für eine Mitgliedsart.
+   *
+   * Ohne eigenen Satz gilt der erste des Jahres – so wie es war, als es nur
+   * einen für alle gab. Sonst stünde bei einer frisch angelegten Art „kein
+   * Beitrag", obwohl nur noch niemand einen eingetragen hat.
+   */
+  const satzFuer = (jahr: number, art: string | null | undefined) => {
+    const desJahres = rates.filter((r: any) => r.year === jahr);
+    const eigener = desJahres.find((r: any) => (r.category ?? "aktiv") === (art ?? "aktiv"));
+    return eigener ?? desJahres[0];
+  };
 
   const upsertMutation = useMutation({
-    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string; paidAt?: string | null }) => {
+    mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string; paidAt?: string | null; membershipType?: string | null }) => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       
       // Determine status: if amount provided and less than rate → teilzahlung
+      //
+      // Massgeblich ist der Satz der Mitgliedsart dieses Mitglieds. Mit einem
+      // Satz fuer alle waere eine volle Zahlung eines Studenten faelschlich
+      // als Teilzahlung erschienen.
+      const satz = satzFuer(parseInt(selectedYear), params.membershipType);
       let resolvedStatus = params.status;
-      if (params.status === "bezahlt" && params.amount && currentRate) {
+      if (params.status === "bezahlt" && params.amount && satz) {
         const amt = parseFloat(params.amount);
-        if (amt > 0 && amt < Number(currentRate.amount)) {
+        if (amt > 0 && amt < Number(satz.amount)) {
           resolvedStatus = "teilzahlung";
         }
       }
@@ -304,6 +348,7 @@ const Contributions = () => {
       const contrib = contributions.find((c: any) => c.user_id === p.id);
       return {
         userId: p.id,
+        membershipType: p.membership_type ?? null,
         name: p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.display_name,
         status: contrib?.status || "offen",
         amount: contrib?.amount,
@@ -335,7 +380,7 @@ const Contributions = () => {
               const entryYear = myProfile?.entry_date ? parseInt(String(myProfile.entry_date).slice(0, 4)) : null;
               return entryYear ? y >= entryYear : true;
             }).map((y) => {
-              const yearRate = rates.find((r: any) => r.year === y);
+              const yearRate = satzFuer(y, (myProfile as any)?.membership_type);
               const myContrib = myContribs.find((c: any) => c.year === y);
               const status = myContrib?.status || "offen";
               return (
@@ -389,10 +434,11 @@ const Contributions = () => {
           <p className="text-sm text-muted-foreground">
             {paidCount} von {memberRows.length} bezahlt
           </p>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Beitragssatz {selectedYear}:</span>
-            <RateEditor year={parseInt(selectedYear)} rate={currentRate?.amount ?? null} canEdit={canEdit} />
-          </div>
+          <Beitragssaetze
+            jahr={parseInt(selectedYear)}
+            saetze={rates}
+            canEdit={canEdit}
+          />
         </div>
 
         <div className="space-y-2">
@@ -451,6 +497,7 @@ const Contributions = () => {
                         className="h-8 text-xs"
                         onClick={() => upsertMutation.mutate({
                           userId: m.userId,
+                          membershipType: m.membershipType,
                           status: "bezahlt",
                           amount: editAmount,
                           notes: editNotes,
@@ -503,3 +550,96 @@ const Contributions = () => {
 };
 
 export default Contributions;
+
+/**
+ * Die Beitragssätze eines Jahres – einer je Mitgliedsart.
+ *
+ * Bis eben gab es genau einen Satz für alle. Eine Interessengemeinschaft
+ * nimmt aber oft von Studenten und Rentnern weniger, und wer sich anteilig an
+ * den Unkosten beteiligt, hat gar keinen Satz. Deshalb hier die Liste – und
+ * die Möglichkeit, eine Art anzulegen, ohne die Sätze woanders zu suchen.
+ */
+function Beitragssaetze({ jahr, saetze, canEdit }: {
+  jahr: number;
+  saetze: { year: number; category?: string; amount: number }[];
+  canEdit: boolean;
+}) {
+  const arten = useMitgliedsarten();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [neuOffen, setNeuOffen] = useState(false);
+  const [neuLabel, setNeuLabel] = useState("");
+
+  const anlegen = useMutation({
+    mutationFn: async () => {
+      const label = neuLabel.trim();
+      // Der Schlüssel wird aus der Beschriftung gebildet – er steht später in
+      // profiles.membership_type und soll dort lesbar sein.
+      const key = label.toLowerCase()
+        .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+        .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
+      if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
+      const { error } = await (supabase as unknown as { from: (t: string) => any })
+        .from("contribution_categories")
+        .insert({ key, label, sort_order: (arten[arten.length - 1]?.sort_order ?? 0) + 10 });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      setNeuOffen(false);
+      setNeuLabel("");
+      qc.invalidateQueries({ queryKey: ["contribution-categories"] });
+      toast({ title: "Mitgliedsart angelegt" });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Nicht angelegt", description: err.message, variant: "destructive" }),
+  });
+
+  const aktive = arten.filter((a) => a.is_active);
+  if (aktive.length === 0) return null;
+
+  return (
+    <div className="text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 justify-end">
+        <span className="text-muted-foreground">Beitragssätze {jahr}:</span>
+        {aktive.map((art) => (
+          <span key={art.key} className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">{art.label}</span>
+            <RateEditor
+              year={jahr}
+              category={art.key}
+              rate={saetze.find((r) => r.year === jahr && (r.category ?? "aktiv") === art.key)?.amount ?? null}
+              canEdit={canEdit}
+            />
+          </span>
+        ))}
+        {canEdit && !neuOffen && (
+          <button
+            type="button"
+            onClick={() => setNeuOffen(true)}
+            className="text-xs text-primary hover:underline"
+          >
+            + Mitgliedsart
+          </button>
+        )}
+      </div>
+
+      {neuOffen && (
+        <div className="flex flex-wrap items-center gap-2 mt-2 justify-end">
+          <Input
+            autoFocus
+            value={neuLabel}
+            onChange={(e) => setNeuLabel(e.target.value)}
+            placeholder="z. B. Student"
+            className="h-8 w-44"
+          />
+          <Button size="sm" disabled={!neuLabel.trim() || anlegen.isPending} onClick={() => anlegen.mutate()}>
+            Anlegen
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setNeuOffen(false); setNeuLabel(""); }}>
+            Abbrechen
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -33,6 +33,7 @@ import {
   type HelperTask,
 } from "@/components/event-forms/types";
 import { autoLayout, type TentItem } from "@/components/evaluation/TentVisualizer";
+import EventMapSettings from "@/components/evaluation/EventMapSettings";
 import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
 import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
@@ -772,6 +773,20 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             )}
           </div>
         </div>
+
+        {/* Der Lageplan hinter dem Zeltplan.
+            Der Rechner darunter zeigt ihn seit jeher an und rechnet mit dem
+            Massstab – nur konnte ihn niemand hinterlegen, weil dieser Editor
+            nirgends eingebunden war. Eine halb verkabelte Funktion. */}
+        {canModerate && eventId && form?.id && (
+          <EventMapSettings
+            eventId={eventId}
+            formId={form.id}
+            mapImagePath={(form?.settings as any)?.map_image_path}
+            mapScale={(form?.settings as any)?.map_scale}
+            onChange={(patch) => doSaveSettings(patch)}
+          />
+        )}
 
         <EvalAreaCalculator
           spacing={spacing}
