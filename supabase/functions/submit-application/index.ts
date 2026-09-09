@@ -26,6 +26,35 @@ const BodySchema = z.object({
   data_processing_accepted: z.literal(true),
 });
 
+/**
+ * Die Antworten auf die frei zusammengestellten Zusatzfragen.
+ *
+ * Was hereinkommt, wird nicht geglaubt: Der Antrag ist oeffentlich, und in
+ * `extra` koennte alles stehen. Deshalb Deckel drauf – begrenzte Zahl von
+ * Eintraegen, begrenzte Laenge, nur einfache Werte. Ohne das liesse sich die
+ * Tabelle ueber ein oeffentliches Formular vollschreiben.
+ */
+function zusatzAngaben(roh: unknown): Record<string, { label: string; wert: unknown }> {
+  if (!roh || typeof roh !== "object" || Array.isArray(roh)) return {};
+  const kurz = (s: unknown) => String(s ?? "").slice(0, 500);
+  const raus: Record<string, { label: string; wert: unknown }> = {};
+
+  for (const [id, eintrag] of Object.entries(roh as Record<string, unknown>).slice(0, 50)) {
+    if (!eintrag || typeof eintrag !== "object") continue;
+    const { label, wert } = eintrag as { label?: unknown; wert?: unknown };
+    if (wert === null || wert === undefined || wert === "") continue;
+    raus[String(id).slice(0, 40)] = {
+      label: kurz(label),
+      wert: Array.isArray(wert)
+        ? wert.slice(0, 30).map(kurz)
+        : typeof wert === "boolean" || typeof wert === "number"
+        ? wert
+        : kurz(wert),
+    };
+  }
+  return raus;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -89,6 +118,7 @@ Deno.serve(async (req) => {
       contribution_interval: data.contribution_interval,
       statutes_accepted: data.statutes_accepted,
       data_processing_accepted: data.data_processing_accepted,
+      extra: zusatzAngaben(data.extra),
       status: "pending",
     });
 

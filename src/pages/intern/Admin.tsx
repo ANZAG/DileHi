@@ -19,10 +19,11 @@ import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
+import AntragsfelderAdmin from "@/components/admin/AntragsfelderAdmin";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen";
+type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "antragsfelder";
 
 
 const Admin = () => {
@@ -53,6 +54,7 @@ const Admin = () => {
     ...(canMembers ? [
       { id: "members" as const, gruppe: "personen", label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
       { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" },
+      { id: "antragsfelder" as const, gruppe: "personen", label: "Antragsfelder", icon: ListChecks, desc: "Was der Aufnahmeantrag abfragt" },
     ] : []),
     { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" },
     ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
@@ -194,6 +196,7 @@ const Admin = () => {
         <div className="p-5 rounded-lg border bg-card">
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
+          {activeTab === "antragsfelder" && canMembers && <AntragsfelderAdmin />}
           {activeTab === "messages" && <ContactMessages />}
           {activeTab === "sitepages" && (hasPermission("site.content_edit") || hasPermission("site.layout_edit")) && <SitePagesAdmin />}
           {activeTab === "menue" && hasPermission("site.layout_edit") && <MenueAdmin />}

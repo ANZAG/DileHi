@@ -1469,6 +1469,7 @@ export type Database = {
       }
       membership_applications: {
         Row: {
+          extra: Json
           birthdate: string | null
           city: string | null
           contribution_interval: string
@@ -1491,6 +1492,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          extra?: Json
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string
@@ -1513,6 +1515,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          extra?: Json
           birthdate?: string | null
           city?: string | null
           contribution_interval?: string

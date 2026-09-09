@@ -25,6 +25,8 @@ type Application = {
   contribution_interval: string;
   statutes_accepted: boolean;
   data_processing_accepted: boolean;
+  /** Antworten auf die frei zusammengestellten Zusatzfragen. */
+  extra: Record<string, { label: string; wert: unknown }> | null;
   created_at: string;
 };
 
@@ -383,6 +385,29 @@ async function buildApplicationPdf(
     }
     y -= 26;
   } else {
+    y -= 8;
+  }
+
+  // ── WEITERE ANGABEN ───────────────────────────────────────────────────────
+  //
+  // Was der Verein ueber die Kernfelder hinaus gefragt hat. Die Beschriftung
+  // steht mit in der Antwort: Wird eine Frage spaeter umformuliert, bleibt
+  // trotzdem lesbar, worauf jemand geantwortet hat.
+  const zusatz = Object.values(app.extra ?? {}).filter((e) => e && e.wert !== null && e.wert !== "");
+  if (zusatz.length > 0) {
+    at("WEITERE ANGABEN", L, y, 7.5, bold, AMBER);
+    y -= 4; hline(y); y -= 14;
+
+    for (const eintrag of zusatz) {
+      const wert = Array.isArray(eintrag.wert)
+        ? eintrag.wert.join(", ")
+        : typeof eintrag.wert === "boolean"
+        ? (eintrag.wert ? "ja" : "nein")
+        : String(eintrag.wert);
+      at(safe(eintrag.label), L, y, 9, bold, GRAY);
+      y = textBlock(safe(wert), L + 148, y, 10, font, DARK, W - 148);
+      y -= 6;
+    }
     y -= 8;
   }
 

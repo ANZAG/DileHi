@@ -26,6 +26,9 @@ type Application = {
   contribution_interval: string;
   statutes_accepted: boolean;
   data_processing_accepted: boolean;
+  /** Antworten auf die Zusatzfragen. Aus der Datenbank kommt schlichtes JSON –
+   *  die Form wird erst beim Anzeigen geprueft. */
+  extra: unknown;
   status: string;
   reviewed_at: string | null;
   review_notes: string | null;
@@ -43,6 +46,14 @@ const statusBadge = (status: string) => {
       return <Badge variant="outline">{status}</Badge>;
   }
 };
+
+/** Die Zusatzantworten in einer Form, die sich anzeigen laesst. */
+function zusatzAngaben(roh: unknown): [string, { label: string; wert: unknown }][] {
+  if (!roh || typeof roh !== "object" || Array.isArray(roh)) return [];
+  return Object.entries(roh as Record<string, unknown>)
+    .filter(([, e]) => e && typeof e === "object" && "wert" in (e as object))
+    .map(([id, e]) => [id, e as { label: string; wert: unknown }]);
+}
 
 const formatDate = (d: string | null) => {
   if (!d) return "–";
@@ -253,6 +264,31 @@ const MemberApplicationsAdmin = () => {
                   <span>{selected.street}, {selected.zip} {selected.city}</span>
                 </div>
               </div>
+
+              {/* Zusatzfragen – nur wenn welche gestellt und beantwortet wurden.
+                  Sie stehen sonst erst im gedruckten Antrag, und wer hier
+                  entscheidet, sieht sie gar nicht. */}
+              {zusatzAngaben(selected.extra).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Weitere Angaben
+                  </h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {zusatzAngaben(selected.extra).map(([id, eintrag]) => (
+                      <div key={id} className="contents">
+                        <span className="text-muted-foreground">{eintrag.label}</span>
+                        <span className="break-words">
+                          {Array.isArray(eintrag.wert)
+                            ? eintrag.wert.join(", ")
+                            : typeof eintrag.wert === "boolean"
+                            ? (eintrag.wert ? "ja" : "nein")
+                            : String(eintrag.wert ?? "")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Membership */}
               <div>

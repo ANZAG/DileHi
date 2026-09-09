@@ -89,6 +89,18 @@ export default function FormFieldRenderer({ field, value, onChange, eventStartDa
           />
         );
 
+      case "date":
+        return (
+          // Schmaler als die volle Zeile: Ein Datumsfeld, das sich ueber die
+          // ganze Breite zieht, sieht aus, als erwarte es mehr als ein Datum.
+          <Input
+            type="date"
+            className="max-w-[200px] appearance-none [&::-webkit-date-and-time-value]:text-left"
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        );
+
       case "textarea":
         return (
           <Textarea
