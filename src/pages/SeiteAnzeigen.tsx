@@ -54,9 +54,11 @@ function strukturierteDaten(
   };
 }
 
-export default function SeiteAnzeigen() {
+export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
   const { "*": pfad } = useParams();
-  const slug = (pfad ?? "").replace(/^\/+|\/+$/g, "");
+  // Die Startseite hat keinen Namen in der Adresse und bekommt ihn deshalb
+  // mitgegeben.
+  const slug = fest ?? (pfad ?? "").replace(/^\/+|\/+$/g, "");
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["site-page-slug", slug],

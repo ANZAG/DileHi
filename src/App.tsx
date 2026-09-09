@@ -57,21 +57,13 @@ const lazyPage = <P extends object>(load: () => Promise<{ default: React.Compone
 
 // Startseite und Fehlerseite bleiben im Haupt-Bundle: Die eine ist der
 // häufigste Einstieg, die andere muss immer sofort verfügbar sein.
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
 // Alle übrigen Seiten werden erst beim Aufruf nachgeladen. Das hält vor allem
 // den Mitgliederbereich aus dem ersten Laden heraus – dort hängen Leaflet
 // (Mitgliederkarte), Drag-and-drop (Formular-Baukasten, Verwaltung) und der
 // Markdown-Renderer (Pinnwand) dran, die ein Gast nie braucht.
-const EpochMedieval        = lazyPage(() => import("./pages/EpochMedieval"));
-const EpochWW1             = lazyPage(() => import("./pages/EpochWW1"));
-const Epoch1815            = lazyPage(() => import("./pages/Epoch1815"));
-const About                = lazyPage(() => import("./pages/About"));
 const Kontakt              = lazyPage(() => import("./pages/Kontakt"));
-const FuerVeranstalter     = lazyPage(() => import("./pages/FuerVeranstalter"));
-const Impressum            = lazyPage(() => import("./pages/Impressum"));
-const Datenschutz          = lazyPage(() => import("./pages/Datenschutz"));
 const Login                = lazyPage(() => import("./pages/Login"));
 const ResetPassword        = lazyPage(() => import("./pages/ResetPassword"));
 const EventRegistration    = lazyPage(() => import("./pages/EventRegistration"));
@@ -132,16 +124,10 @@ const App = () => (
           <Layout>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/epochen/mittelalter" element={<EpochMedieval />} />
-                <Route path="/epochen/wk1" element={<EpochWW1 />} />
-                <Route path="/epochen/1815" element={<Epoch1815 />} />
-                <Route path="/fuer-veranstalter" element={<FuerVeranstalter />} />
-
-                <Route path="/verein" element={<About />} />
+                {/* Auch die Startseite kommt aus dem Editor. Die Sammelroute
+                    unten kann sie nicht bedienen: „/" hat keinen Namen. */}
+                <Route path="/" element={<SeiteAnzeigen slug="startseite" />} />
                 <Route path="/kontakt" element={<Kontakt />} />
-                <Route path="/impressum" element={<Impressum />} />
-                <Route path="/datenschutz" element={<Datenschutz />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/passwort-zuruecksetzen" element={<ResetPassword />} />
                 <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -6,7 +6,6 @@ import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
 import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
-import SiteImagesAdmin from "@/components/admin/SiteImagesAdmin";
 import MemberRegistry from "@/components/admin/MemberRegistry";
 import ContactMessages from "@/components/admin/ContactMessages";
 import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
@@ -26,7 +25,7 @@ import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 
-type AdminTab = "members" | "applications" | "gallery" | "siteimages" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
 
 
 const Admin = () => {
@@ -76,7 +75,6 @@ const Admin = () => {
       { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Galerien und Quellen" },
     ] : []),
     ...(hasPermission("site_images.manage") ? [
-      { id: "siteimages" as const, gruppe: "website", label: "Seitenbilder", icon: Image, desc: "Bilder auf allen Seiten pflegen" },
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
       { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Epochen-Quellenangaben pflegen" , modul: "sources"},
@@ -220,7 +218,6 @@ const Admin = () => {
           {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
-          {activeTab === "siteimages" && hasPermission("site_images.manage") && <SiteImagesAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
