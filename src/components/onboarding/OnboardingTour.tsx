@@ -54,8 +54,8 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: ClipboardList,
     title: "An Veranstaltungen teilnehmen",
-    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus – deine Profildaten (z.B. Ernährung & Zelte) sind dort bereits vorausgefüllt. Über den Bearbeitungslink kannst du deine Anmeldung später jederzeit ändern. Ohne Anmeldeformular meldest du dich mit einem Klick auf „Teilnehmen“ direkt an bzw. wieder ab.",
-    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen – beim Erstellen lässt sich direkt ein Anmeldeformular hinzufügen und die Felder frei gestalten.",
+    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus. Deine Angaben aus dem Profil, etwa Ernährung und Zelte, stehen dort schon drin. Über den Bearbeitungslink kannst du deine Anmeldung jederzeit ändern. Ohne Anmeldeformular reicht ein Klick auf „Teilnehmen“, und genauso meldest du dich wieder ab.",
+    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen. Beim Erstellen lässt sich gleich ein Anmeldeformular hinzufügen.",
     route: "/intern/veranstaltungen",
   },
   {
