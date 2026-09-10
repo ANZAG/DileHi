@@ -159,30 +159,40 @@ export default function TentVisualizer({
   const vbW = bounds.maxX - bounds.minX;
   const vbH = bounds.maxY - bounds.minY;
 
-  const getSVGPoint = (e: React.MouseEvent<SVGSVGElement> | React.MouseEvent) => {
+  /**
+   * Der Punkt unter dem Zeiger, im Koordinatensystem der Zeichnung.
+   *
+   * Zeigerereignisse statt Mausereignisse: Sie kommen von Maus, Finger und
+   * Stift gleichermaßen. Vorher hörte der Zeltplan nur auf die Maus, und auf
+   * einem Tablet liess sich kein Zelt verschieben. Genau dort wird er aber
+   * gebraucht, wenn jemand auf dem Platz steht und umplant.
+   */
+  const getSVGPoint = (e: React.PointerEvent) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
-    const x = (((e as React.MouseEvent).clientX - rect.left) / rect.width) * vbW + bounds.minX;
-    const y = (((e as React.MouseEvent).clientY - rect.top) / rect.height) * vbH + bounds.minY;
+    const x = ((e.clientX - rect.left) / rect.width) * vbW + bounds.minX;
+    const y = ((e.clientY - rect.top) / rect.height) * vbH + bounds.minY;
     return { x, y };
   };
 
-  const handleMouseDown = (id: string, e: React.MouseEvent) => {
+  const beginneZiehen = (id: string, e: React.PointerEvent) => {
     e.preventDefault();
+    // Der Finger bleibt am Zelt, auch wenn er die Flaeche kurz verlaesst.
+    (e.target as Element).setPointerCapture?.(e.pointerId);
     const pt = getSVGPoint(e);
     const pos = positions[id] || { x: 0, y: 0 };
     setDragOffset({ dx: pt.x - pos.x, dy: pt.y - pos.y });
     setDragging({ id, mode: "move" });
   };
 
-  const handleRotateDown = (id: string, e: React.MouseEvent) => {
+  const beginneDrehen = (id: string, e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragging({ id, mode: "rotate" });
   };
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  const beimZiehen = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!dragging) return;
     const pt = getSVGPoint(e);
     const shiftKey = e.shiftKey;
@@ -206,7 +216,7 @@ export default function TentVisualizer({
     });
   };
 
-  const handleMouseUp = () => {
+  const endeZiehen = () => {
     if (dragging && onPositionsChange) {
       onPositionsChange(positions);
     }
@@ -222,10 +232,12 @@ export default function TentVisualizer({
         ref={svgRef}
         viewBox={`${bounds.minX} ${bounds.minY} ${vbW} ${vbH}`}
         className="w-full border rounded bg-muted/30 cursor-crosshair select-none tent-visualizer-svg"
-        style={{ maxHeight }}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        // touch-none: Ohne das scrollt die Seite mit, statt das Zelt zu ziehen.
+        style={{ maxHeight, touchAction: dragging ? "none" : undefined }}
+        onPointerMove={beimZiehen}
+        onPointerUp={endeZiehen}
+        onPointerLeave={endeZiehen}
+        onPointerCancel={endeZiehen}
       >
         <rect
           x={bounds.minX} y={bounds.minY} width={vbW} height={vbH}
@@ -288,7 +300,7 @@ export default function TentVisualizer({
             <g
               key={item.id}
               transform={groupTransform}
-              onMouseDown={(e) => handleMouseDown(item.id, e)}
+              onPointerDown={(e) => beginneZiehen(item.id, e)}
               style={{ cursor: isDragged ? "grabbing" : "grab" }}
             >
               {item.shape === "circle" ? (
@@ -390,7 +402,7 @@ export default function TentVisualizer({
 
               {canRotate && (
                 <g
-                  onMouseDown={(e) => handleRotateDown(item.id, e)}
+                  onPointerDown={(e) => beginneDrehen(item.id, e)}
                   style={{ cursor: "grab" }}
                 >
                   {/* Griff-Linie von der Mitte nach oben */}

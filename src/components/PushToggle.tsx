@@ -134,7 +134,7 @@ export default function PushToggle() {
           {state === "abgelehnt" && (
             <p className="text-xs text-muted-foreground mt-0.5">
               Du hast Meldungen für diese Seite blockiert. Das lässt sich nur in den
-              Browsereinstellungen zurücknehmen – bei den Berechtigungen für dilehi.de.
+              Browsereinstellungen zurücknehmen, bei den Berechtigungen für diese Seite.
             </p>
           )}
 
@@ -154,7 +154,7 @@ export default function PushToggle() {
           {state === "an" && (
             <>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Aktiv. Gilt nur für dieses Gerät – auf anderen musst du es dort einschalten.
+                Aktiv. Gilt nur für dieses Gerät. Auf anderen musst du es dort einschalten.
               </p>
               <Button size="sm" variant="outline" className="mt-2" onClick={disable} disabled={busy}>
                 {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : null}

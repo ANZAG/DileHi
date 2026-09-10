@@ -82,7 +82,7 @@ const PersonaEditor = () => {
   const saveDraft = async () => {
     if (!user || !draft) return;
     if (!draft.period || !draft.portrayal.trim()) {
-      toast({ title: "Bitte Zeitperiode und Darstellung angeben", variant: "destructive" });
+      toast({ title: "Bitte Zeitstellung und Darstellung angeben", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -201,7 +201,7 @@ const PersonaEditor = () => {
       {draft && (
         <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
           <div>
-            <Label className="text-sm">Zeitperiode</Label>
+            <Label className="text-sm">Zeitstellung</Label>
             <Select value={draft.period} onValueChange={(v) => setDraft({ ...draft, period: v })}>
               <SelectTrigger><SelectValue placeholder="Epoche wählen" /></SelectTrigger>
               <SelectContent>

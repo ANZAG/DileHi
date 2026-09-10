@@ -137,7 +137,7 @@ export default function PollComposer({
           {!isList && (
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox checked={anonym} onCheckedChange={(v) => setAnonym(v === true)} />
-              <span className="text-sm">Anonym – nur Zahlen zeigen</span>
+              <span className="text-sm">Anonym: nur Zahlen zeigen</span>
             </label>
           )}
         </div>

@@ -306,7 +306,7 @@ export default function ErscheinungsbildAdmin() {
           </Select>
           <p className="text-xs text-muted-foreground mt-2">
             {entwurf.contribution_model === "fest" &&
-              "Je Mitgliedsart ein Betrag pro Jahr – etwa regulär, Student, Rentner. Die Sätze werden im Bereich Beiträge gepflegt."}
+              "Je Mitgliedsart ein Betrag pro Jahr, etwa regulär, Student oder Rentner. Die Sätze selbst stehen im Bereich Beiträge."}
             {entwurf.contribution_model === "umlage" &&
               "Kein Betrag im Voraus. Die Mitglieder verpflichten sich, sich anteilig an den Unkosten zu beteiligen; die Höhe steht erst nach der Abrechnung fest."}
             {entwurf.contribution_model === "keiner" &&
@@ -362,7 +362,7 @@ export default function ErscheinungsbildAdmin() {
           <Feld label="BIC (optional)" wert={entwurf.bank_bic ?? ""} setze={(v) => setze({ bank_bic: v })} />
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Ein Lastschrifteinzug findet nicht statt – Bankdaten von Mitgliedern
+          Ein Lastschrifteinzug findet nicht statt. Bankdaten von Mitgliedern
           werden nirgends erhoben.
         </p>
       </Abschnitt>
@@ -576,7 +576,7 @@ function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
         </Button>
         <p className="text-xs text-muted-foreground">
           Geht an die Adresse, mit der du angemeldet bist.
-          {ungespeichert && " Erst speichern – geprüft wird der gespeicherte Stand."}
+          {ungespeichert && " Bitte erst speichern. Geprüft wird der gespeicherte Stand."}
         </p>
       </div>
       {ergebnis && (
@@ -648,7 +648,7 @@ function SatzungWahl({ entwurf, setze }: {
       <p className="text-xs text-muted-foreground mt-1">
         {dokumente.length === 0
           ? "In der Kategorie „Satzung & Ordnungen“ liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
-          : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen – die sind meist neuer als die Satzung. Deshalb hier ausdrücklich wählen."}
+          : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen. Die sind meist neuer als die Satzung, deshalb wird sie hier ausdrücklich gewählt."}
       </p>
     </div>
   );
@@ -674,7 +674,7 @@ function MailAnleitung({ weg }: { weg: string }) {
               Unter „API-Berechtigungen" die Anwendungsberechtigung <code>Mail.Send</code> hinzufügen
               und als Administrator bestätigen.
             </li>
-            <li>Unter „Zertifikate &amp; Geheimnisse" ein neues Geheimnis erzeugen und sofort kopieren – es wird nur einmal angezeigt.</li>
+            <li>Unter „Zertifikate &amp; Geheimnisse" ein neues Geheimnis erzeugen und sofort kopieren. Es wird nur einmal angezeigt.</li>
             <li>Die vier Werte beim Backend als Secrets hinterlegen:</li>
           </ol>
           <ul className="ml-5 space-y-0.5 font-mono text-xs">
@@ -689,14 +689,14 @@ function MailAnleitung({ weg }: { weg: string }) {
             Absenderadresse aus diesem Formular verwendet.
           </p>
           <p>
-            Der Absendername ändert nur die Anzeige – verschickt wird immer aus dem Postfach
+            Der Absendername ändert nur die Anzeige. Verschickt wird immer aus dem Postfach
             oben. Eine fremde Absenderadresse verlangt in Microsoft 365 gesonderte Rechte.
           </p>
         </div>
       ) : (
         <div className="mt-3 space-y-2 text-muted-foreground">
           <p>
-            Der einfache Weg: Es reicht, was jeder Mailanbieter mitgibt – Serveradresse, Benutzername
+            Der einfache Weg: Es reicht, was jeder Mailanbieter mitgibt, also Serveradresse, Benutzername
             und Passwort. Am besten ein eigenes Postfach für die Anwendung, damit ein geändertes
             Passwort nicht die halbe Website lahmlegt.
           </p>
@@ -706,7 +706,7 @@ function MailAnleitung({ weg }: { weg: string }) {
           </ol>
           <ul className="ml-5 space-y-0.5 font-mono text-xs">
             <li>SMTP_HOST</li>
-            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL – ohne Angabe 587)</li>
+            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL; ohne Angabe wird 587 benutzt)</li>
             <li>SMTP_USER</li>
             <li>SMTP_PASSWORD</li>
           </ul>
@@ -716,7 +716,7 @@ function MailAnleitung({ weg }: { weg: string }) {
           </ol>
           <p>
             Das Passwort gehört zu den Secrets und nicht in dieses Formular: Die tägliche
-            Sicherung schreibt alle Tabellen nach GitHub – ein hier eingetragenes Passwort läge
+            Sicherung schreibt alle Tabellen nach GitHub, und ein hier eingetragenes Passwort läge
             in jeder Sicherungsdatei.
           </p>
           <p>

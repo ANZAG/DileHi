@@ -24,7 +24,7 @@ const RIGHTS = [
   { key: "can_view" as const, label: "Sehen", icon: Eye, hint: "Die Rubrik erscheint überhaupt." },
   { key: "can_reply" as const, label: "Antworten", icon: MessageSquare, hint: "Auf Themen antworten." },
   { key: "can_start" as const, label: "Eröffnen", icon: PenLine, hint: "Neue Themen anlegen." },
-  { key: "is_moderator" as const, label: "Moderieren", icon: Shield, hint: "Anheften, schließen, entfernen – nur hier." },
+  { key: "is_moderator" as const, label: "Moderieren", icon: Shield, hint: "Anheften, schließen und entfernen. Gilt nur für diese Rubrik." },
 ];
 
 /**
@@ -93,7 +93,7 @@ export default function ForumCategoriesAdmin() {
       <div>
         <h2 className="font-serif text-lg font-semibold">Forum-Rubriken</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Mitglieder können Rubriken vorschlagen – freigegeben werden sie hier. Die Rechte gelten je
+          Mitglieder können Rubriken vorschlagen, freigegeben werden sie hier. Die Rechte gelten je
           Rubrik und Rolle.
         </p>
       </div>

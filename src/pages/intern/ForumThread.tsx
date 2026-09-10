@@ -138,7 +138,7 @@ export default function ForumThread() {
   if (!thread && !isLoading) {
     return (
       <div className="container py-16 text-center max-w-lg px-4">
-        <p className="text-muted-foreground">Dieses Thema gibt es nicht – oder es ist für dich nicht sichtbar.</p>
+        <p className="text-muted-foreground">Dieses Thema gibt es nicht, oder es ist für dich nicht sichtbar.</p>
         <Button variant="outline" className="mt-4" asChild><Link to="/intern/forum">Zum Forum</Link></Button>
       </div>
     );

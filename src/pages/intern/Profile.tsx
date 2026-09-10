@@ -576,7 +576,7 @@ const Profile = () => {
 
               {showAddTent && (
                 <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-sm">Name</Label>
                       <Input value={tentName} onChange={(e) => setTentName(e.target.value)} placeholder="z.B. Mein Speichenrad" />

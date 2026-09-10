@@ -60,9 +60,9 @@ const MEMBER_STEPS: TourStep[] = [
   },
   {
     icon: Megaphone,
-    title: "Versammlungen & Pinnwand",
+    title: "Versammlungen",
     body: "Ankündigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beiträge antworten.",
-    route: "/intern/pinnwand",
+    route: "/intern/versammlungen",
   },
   {
     icon: Vote,

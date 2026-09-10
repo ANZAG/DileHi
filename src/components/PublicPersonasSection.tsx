@@ -24,9 +24,19 @@ interface PublicPersona {
  * Raster, andere Bildformate, keine Gruppierung nach Zeitstellung – und wäre
  * damit über kurz oder lang von dieser hier abgewichen.
  */
+/**
+ * Der Einleitungssatz, wenn keiner eingetragen ist.
+ *
+ * Steht hier und nicht zusaetzlich im Baukasten: Er stand an beiden Stellen
+ * wortgleich, und zwei Fassungen desselben Satzes laufen auseinander.
+ */
+export const DARSTELLUNGEN_EINLEITUNG =
+  "Welche Epochen und Handwerke wir zeigen können, nach Zeitstellung geordnet. " +
+  "Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.";
+
 export default function PublicPersonasSection({
   ueberschrift = "Unsere Darstellungen",
-  einleitung = "Welche Epochen und Handwerke wir zeigen können – nach Zeitstellung geordnet. Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.",
+  einleitung = DARSTELLUNGEN_EINLEITUNG,
   kategorie,
   rahmen,
 }: {

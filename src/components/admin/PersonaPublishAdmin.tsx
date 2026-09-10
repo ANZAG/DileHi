@@ -135,7 +135,7 @@ export default function PersonaPublishAdmin() {
           id="persona-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Nach Person, Epoche oder Kenntnis suchen…"
+          placeholder="Nach Person, Zeitstellung oder Kenntnis suchen…"
         />
       </div>
 
@@ -158,7 +158,7 @@ export default function PersonaPublishAdmin() {
               <p className="text-xs text-muted-foreground">
                 {PERIOD_OPTIONS.includes(p.period as (typeof PERIOD_OPTIONS)[number])
                   ? p.period
-                  : p.period || "Epoche offen"}
+                  : p.period || "Zeitstellung offen"}
                 {p.images?.length ? ` · ${p.images.length} Bild(er)` : ""}
               </p>
               {p.expertise && (

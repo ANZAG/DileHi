@@ -112,8 +112,13 @@ export default function KategorienAdmin() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h2 className="font-serif text-lg font-semibold">Kategorien</h2>
-          <p className="text-sm text-muted-foreground">
-            Ordnen Galerien, Quellen und Besucher-Highlights. Bei uns sind das die Epochen.
+          <p className="text-sm text-muted-foreground max-w-prose">
+            Ordnen Galerien, Quellen und Besucher-Highlights.
+            {/* Statt „bei uns sind das die Epochen" die tatsaechlichen Namen:
+                Das stimmt in jeder Installation und sagt mehr. */}
+            {kategorien.length > 0 && (
+              <> Bei euch: {kategorien.map((k) => k.label).join(", ")}.</>
+            )}
           </p>
         </div>
         {!neuOffen && (

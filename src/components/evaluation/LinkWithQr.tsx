@@ -56,7 +56,7 @@ export default function LinkWithQr({
         // Firefox kann Bilder nicht in die Zwischenablage schreiben.
         toast({
           title: "Kopieren nicht möglich",
-          description: "Dieser Browser erlaubt keine Bilder in der Zwischenablage – nutze „Speichern“.",
+          description: "Dieser Browser erlaubt keine Bilder in der Zwischenablage. Nutze stattdessen „Speichern“.",
         });
       }
     });

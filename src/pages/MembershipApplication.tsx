@@ -122,7 +122,7 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
-  const { org_name, satzung_link } = useBranding();
+  const { org_name, org_short_name, satzung_link } = useBranding();
   const texte = useAntragstexte();
   const { modell, arten } = useBeitragsmodell();
   const { data: alleFelder = [] } = useAntragsfelder();
@@ -277,8 +277,8 @@ const MembershipApplication = () => {
   return (
     <>
       <SEO
-        title="Mitglied werden – DileHi"
-        description="Jetzt Mitglied bei Diu lebendec Histôrje e.V. werden."
+        title={`Mitglied werden bei ${org_short_name}`}
+        description={`Jetzt Mitglied bei ${org_name} werden.`}
       />
 
       <div className="container py-10 max-w-xl px-4">

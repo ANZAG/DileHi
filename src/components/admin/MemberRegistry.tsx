@@ -308,7 +308,7 @@ const MemberRegistry = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       setSelectedMember(null);
-      toast({ title: "Mitglied deaktiviert – Zugang entzogen" });
+      toast({ title: "Mitglied deaktiviert", description: "Der Zugang zum Mitgliederbereich ist gesperrt." });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
@@ -325,7 +325,7 @@ const MemberRegistry = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       setSelectedMember(null);
-      toast({ title: "Mitglied reaktiviert – Zugang wiederhergestellt" });
+      toast({ title: "Mitglied reaktiviert", description: "Der Zugang zum Mitgliederbereich steht wieder offen." });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
@@ -646,7 +646,10 @@ const MemberRegistry = () => {
                       ))}
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Untereinander auf dem Handy: zwei Datumsfelder
+                      nebeneinander sind dort je 150 px breit, und das reicht
+                      fuer TT.MM.JJJJ samt Kalendersymbol nicht. */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label htmlFor="mr-join-date" className="text-xs text-muted-foreground">Eintrittsdatum</label>
                       <Input id="mr-join-date"

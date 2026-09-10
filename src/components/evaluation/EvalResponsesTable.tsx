@@ -175,7 +175,7 @@ export default function EvalResponsesTable({
                                 ) : (
                                   <>
                                     <UserPlus size={12} className="text-muted-foreground shrink-0" />
-                                    <span className="text-muted-foreground">Gast – zuordnen</span>
+                                    <span className="text-muted-foreground">Gast, noch nicht zugeordnet</span>
                                   </>
                                 )}
                               </Button>
@@ -254,7 +254,7 @@ export default function EvalResponsesTable({
               fließen nicht mehr in die Auswertung oder Logistik-Planung ein.
               <br /><br />
               Diese Aktion kann nicht rückgängig gemacht werden. Bitte stelle vorab sicher, dass die
-              Anmeldung wirklich entfernt werden soll – z.B. weil sie doppelt erfasst wurde (Mitglied + Gast).
+              Anmeldung wirklich entfernt werden soll, etwa weil sie doppelt erfasst wurde (Mitglied und Gast).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

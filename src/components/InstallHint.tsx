@@ -76,7 +76,7 @@ export default function InstallHint() {
           {promptEvent ? (
             <>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Öffnet sich dann wie eine App – und du bekommst Benachrichtigungen aufs Gerät.
+                Öffnet sich dann wie eine App, und du bekommst Benachrichtigungen aufs Gerät.
               </p>
               <div className="flex gap-2 mt-3">
                 <Button
@@ -95,7 +95,7 @@ export default function InstallHint() {
           ) : (
             <>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Auf dem iPhone gibt es Benachrichtigungen nur so – im Browser-Tab bleibt es still.
+                Auf dem iPhone gibt es Benachrichtigungen nur so. Im Browser-Tab bleibt es still.
               </p>
               <ol className="text-xs text-muted-foreground mt-2 space-y-1">
                 <li className="flex items-center gap-1.5">
