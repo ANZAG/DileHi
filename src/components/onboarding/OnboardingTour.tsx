@@ -91,7 +91,7 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: MapPin,
     title: "Mitgliederkarte",
-    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden – alles auf einer Karte.",
+    body: "Auf einer Karte siehst du, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden.",
     hint: "Tipp: Aktiviere die Karten-Funktion in deinem Profil, um auch sichtbar zu sein.",
     route: "/intern/karte",
   },
