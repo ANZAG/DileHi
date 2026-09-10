@@ -157,7 +157,7 @@ const GalleryAdmin = () => {
             onChange={(e) => setSelectedEpoch(e.target.value)}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
-            {EPOCH_OPTIONS.map((e) => (
+            {kategorien.map((e) => (
               <option key={e.value} value={e.value}>{e.label}</option>
             ))}
           </select>
@@ -188,7 +188,7 @@ const GalleryAdmin = () => {
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
           <option value="alle">Alle Kategorien</option>
-          {EPOCH_OPTIONS.map((e) => (
+          {kategorien.map((e) => (
             <option key={e.value} value={e.value}>{e.label}</option>
           ))}
         </select>
@@ -266,7 +266,7 @@ const GalleryAdmin = () => {
                       onChange={(e) => updateEpoch.mutate({ id: img.id, epoch: e.target.value })}
                       className="flex-1 h-7 rounded border border-input bg-background px-1 text-xs"
                     >
-                      {EPOCH_OPTIONS.map((e) => (
+                      {kategorien.map((e) => (
                         <option key={e.value} value={e.value}>{e.label}</option>
                       ))}
                     </select>
