@@ -38,19 +38,34 @@ grant all on schema public to postgres;
 --
 -- Sie liegen ausserhalb von public und überleben Schritt 1. Die Regeln darauf
 -- legt der Ausgangsstand neu an und stolperte sonst über die vorhandenen.
+--
+-- Fehler werden hier abgefangen und nur gemeldet. Grund: Der SQL-Editor führt
+-- alles in einem Zug aus und macht bei der ersten scheiternden Anweisung
+-- *alles* rückgängig — auch die Schritte davor. Beim ersten Anlauf war genau
+-- das passiert: Es sah aus, als sei geleert worden, und es war nichts geleert.
+-- Der Speicher gehört einer eigenen Rolle; ob man daran darf, hängt vom
+-- Projekt ab. Das darf den Rest nicht mitreissen.
 do $$
 declare r record;
 begin
-  for r in
-    select policyname from pg_policies
-    where schemaname = 'storage' and tablename = 'objects'
-  loop
-    execute format('drop policy %I on storage.objects', r.policyname);
-  end loop;
-end $$;
+  begin
+    for r in
+      select policyname from pg_policies
+      where schemaname = 'storage' and tablename = 'objects'
+    loop
+      execute format('drop policy %I on storage.objects', r.policyname);
+    end loop;
+  exception when others then
+    raise notice 'Speicherregeln blieben stehen: %', sqlerrm;
+  end;
 
-delete from storage.objects;
-delete from storage.buckets;
+  begin
+    delete from storage.objects;
+    delete from storage.buckets;
+  exception when others then
+    raise notice 'Ablagen blieben stehen: %', sqlerrm;
+  end;
+end $$;
 
 -- 4. Das Verzeichnis der eingespielten Migrationen.
 --

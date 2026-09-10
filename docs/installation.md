@@ -160,13 +160,16 @@ findet, und hört auf, sobald eine nicht durchläuft. Zurück bleibt eine halb
 aufgebaute Datenbank und ein Verzeichnis voller Versionen, die es so nicht mehr
 gibt.
 
-Der Weg zurück, solange noch keine Mitglieder angelegt sind:
+Der Ausrollen-Knopf sieht als Erstes nach und schreibt in die Zusammenfassung
+des Durchlaufs, was er vorfindet: Tabellen, Einträge im Verzeichnis der
+Migrationen, Konten, Ablagen. Danach richtet sich, was zu tun ist.
 
-1. In Supabase unter **Integrations** die Verbindung zu GitHub trennen.
-2. Im **SQL Editor** [`docs/projekt-leeren.sql`](projekt-leeren.sql) ausführen.
-   Das Skript prüft am Ende selbst nach und gibt vier Zahlen aus; alle bis auf
-   die Ablagen müssen null sein.
-3. **Actions → Supabase ausrollen** neu starten.
+| Was dasteht | Was zu tun ist |
+| --- | --- |
+| Tabellen `0`, Einträge `> 0` | Der Schalter **Verzeichnis der Migrationen zurücksetzen** im Ausrollen-Knopf. Er räumt die Einträge weg — aber nur, wenn wirklich weder Tabellen noch Konten da sind |
+| Tabellen `> 0`, Konten `0` | Erst leeren: [`docs/projekt-leeren.sql`](projekt-leeren.sql) im **SQL Editor**, dann wie oben |
+| Konten `> 0` | Kein leeres Projekt. Nichts löschen — hier gibt es Menschen und Daten |
 
-Sind schon Mitglieder angelegt, ist es kein leeres Projekt mehr. Dann nicht
-leeren, sondern melden — der Weg ist dann ein anderer.
+Und in Supabase unter **Integrations** die Verbindung zu GitHub trennen, falls
+sie besteht. Sonst baut sie beim nächsten Push wieder ein, was gerade
+weggeräumt wurde.
