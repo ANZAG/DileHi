@@ -41,14 +41,22 @@ const RolesPermissionsPanel = () => {
   const isLoading = rpLoading || rcLoading || pcLoading;
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ role, permission, granted }: { role: "herold" | "mitglied" | "schatzmeister" | "officiatus_1" | "officiatus_2"; permission: string; granted: boolean }) => {
+    // Der Rollenschluessel ist seit dem Umbau ein freier Text: Welche Rollen es
+    // gibt, entscheidet der Verein. Vorher stand hier eine Aufzaehlung unserer
+    // sechs Aemter, die jede neue Rolle abgelehnt haette.
+    mutationFn: async ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) => {
+      // Die erzeugte types.ts fuehrt role_permissions.role noch als
+      // Aufzaehlungstyp – der ist in der Datenbank inzwischen weg. Bis zur
+      // naechsten Neugenerierung der Typen die Zusicherung, sonst lehnt der
+      // Compiler jede selbst angelegte Rolle ab.
+      const db = supabase as unknown as { from: (t: string) => any };
       if (granted) {
-        const { error } = await supabase
+        const { error } = await db
           .from("role_permissions")
           .insert({ role, permission, granted: true });
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await db
           .from("role_permissions")
           .delete()
           .eq("role", role)
@@ -152,7 +160,7 @@ const RolesPermissionsPanel = () => {
                             checked={granted}
                             disabled={isPending}
                             onCheckedChange={(checked) =>
-                              toggleMutation.mutate({ role: role.key as "herold" | "mitglied" | "schatzmeister" | "officiatus_1" | "officiatus_2", permission: perm.key, granted: checked })
+                              toggleMutation.mutate({ role: role.key, permission: perm.key, granted: checked })
                             }
                           />
                         </td>

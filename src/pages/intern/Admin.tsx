@@ -7,6 +7,7 @@ import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
+  UserCog2,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -31,10 +32,11 @@ import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
+import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen";
 
 
 const Admin = () => {
@@ -130,7 +132,8 @@ const Admin = () => {
       { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche der Verein nutzt" },
     ] : []),
     ...(canRoles ? [
-      { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen und ihre Rechte" },
+      { id: "rollen" as const, gruppe: "system", label: "Rollen", icon: UserCog2, desc: "Welche Rollen es im Verein gibt" },
+      { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Was eine Rolle darf" },
     ] : []),
     ...(canAudit ? [
       { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: History, desc: "Wer hat was geändert" },
@@ -260,6 +263,7 @@ const Admin = () => {
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
           {activeTab === "forum" && hasPermission("forum.categories_manage") && <ForumCategoriesAdmin />}
+          {activeTab === "rollen" && canRoles && <RollenAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
           {activeTab === "formtemplate" && hasPermission("events.moderate") && <FormTemplateAdmin />}

@@ -8,14 +8,45 @@ Abschnitt „Was der andere Verein zusätzlich braucht".
 
 | Punkt | Stand |
 | --- | --- |
-| `app_role`-Enum auflösen, eigene Rollen | **offen** |
+| `app_role`-Enum auflösen, eigene Rollen | erledigt |
 | Modulschalter im Adminbereich | erledigt |
 | Technischer Administrator | erledigt |
 | SMTP statt Microsoft Graph | erledigt |
 | Installationsroutine | **offen** |
 | Umzug von WordPress | offen, betrifft nur den ersten Fremdverein |
 
-### `app_role` ist noch ein Enum
+### `app_role` — erledigt
+
+Der Aufzählungstyp ist weg. `user_roles.role`, `role_permissions.role` und
+`forum_category_roles.role` sind Text mit Fremdschlüssel auf `role_catalog(key)`,
+mit `ON UPDATE CASCADE`: Eine Rolle lässt sich umbenennen, ohne Zuordnungen zu
+verlieren. Unter Verwaltung → Rollen legt man eigene an.
+
+Der Umbau war kleiner als befürchtet — der Schema-Dump zeigte, dass der Typ an
+genau drei Spalten hing und **keine** Zugriffsregel direkt gegen ihn verglich.
+Ohne den Dump hätte ich das raten müssen.
+
+Zwei Funktionen zählten die Rollennamen allerdings fest auf:
+
+* `is_member()` prüfte auf „eine der sechs Rollen" — gemeint war: irgendeine
+  Rolle. Genau das steht jetzt da.
+* `is_vorstand()` prüfte auf vorstand, officiatus_1, officiatus_2 und wird in
+  fünfzehn Zugriffsregeln ausgewertet. Das ist jetzt die Eigenschaft
+  `is_leitung` am Rollenkatalog.
+
+**Nicht** zusammengelegt mit dem vorhandenen `is_board`, obwohl es verlockend
+war: `is_board` ist der Vorstand im Vereinsrechtssinn und schliesst nach unserer
+Satzung den Schatzmeister ein, `is_vorstand()` tut das absichtlich nicht.
+Zusammenlegen hätte dem Schatzmeister schlagartig die Rechte aus fünfzehn Regeln
+gegeben.
+
+**Was offen bleibt:** `is_herold()` und `is_schatzmeister()` vergleichen weiter
+gegen feste Schlüssel und stecken in rund zehn älteren Zugriffsregeln. Sie
+funktionieren, solange die Schlüssel existieren — benennt ein Verein sie um,
+greifen die Regeln ins Leere. Diese Regeln auf `has_permission()` umzustellen
+ist der nächste Schritt und ein eigener.
+
+### Frühere Lage
 
 `user_roles.role` hängt an `CREATE TYPE public.app_role AS ENUM (...)` mit fünf
 festen Werten: vorstand, mitglied, herold, schatzmeister, officiatus_1/2. Ein
