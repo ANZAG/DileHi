@@ -85,7 +85,7 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: BookOpen,
     title: "Quellensammlung",
-    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
+    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Kategorie sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
     route: "/intern/quellen",
   },
   {
