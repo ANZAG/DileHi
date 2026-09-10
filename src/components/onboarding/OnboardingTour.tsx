@@ -97,6 +97,23 @@ export default function OnboardingTour() {
      */
     window.dispatchEvent(new CustomEvent("tour-anker", { detail: { anker } }));
 
+    /*
+     * Messen, ohne sich selbst im Kreis zu jagen.
+     *
+     * Die erste Fassung rief bei jedem Scroll-Ereignis `messen()` auf, und
+     * `messen()` rief `scrollIntoView` mit weichem Scrollen auf, sobald das
+     * Ziel nicht im Bild war. Weiches Scrollen erzeugt aber Dutzende
+     * Scroll-Ereignisse – jedes loeste die naechste Messung und die naechste
+     * Scroll-Anforderung aus. Das Ergebnis waren Seitenwechsel, die
+     * halbe Minuten dauerten.
+     *
+     * Jetzt gilt: Gescrollt wird hoechstens einmal je Schritt, und die
+     * Messung waehrend des Scrollens laeuft ueber requestAnimationFrame, also
+     * hoechstens einmal je Bild.
+     */
+    let gescrollt = false;
+    let bild = 0;
+
     const messen = (): boolean => {
       const el = document.querySelector<HTMLElement>(`[data-tour="${anker}"]`);
       if (!el) {
@@ -104,13 +121,23 @@ export default function OnboardingTour() {
         return false;
       }
       const r = el.getBoundingClientRect();
-      // Ausserhalb des Sichtbereichs: erst hinscrollen, dann noch einmal messen.
-      if (r.top < 8 || r.bottom > window.innerHeight - 8) {
+      if ((r.top < 8 || r.bottom > window.innerHeight - 8) && !gescrollt) {
+        gescrollt = true;
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         return false;
       }
       if (!abgebrochen) {
-        setLoch({ top: r.top, left: r.left, breite: r.width, hoehe: r.height });
+        setLoch((vorher) =>
+          vorher &&
+          Math.round(vorher.top) === Math.round(r.top) &&
+          Math.round(vorher.left) === Math.round(r.left) &&
+          Math.round(vorher.breite) === Math.round(r.width) &&
+          Math.round(vorher.hoehe) === Math.round(r.height)
+            // Unveraendert: dasselbe Objekt zurueckgeben, damit React nicht
+            // bei jedem Scroll-Bild neu zeichnet.
+            ? vorher
+            : { top: r.top, left: r.left, breite: r.width, hoehe: r.height }
+        );
       }
       return true;
     };
@@ -126,12 +153,19 @@ export default function OnboardingTour() {
       }, 120);
     }
 
-    const neuMessen = () => { messen(); };
+    const neuMessen = () => {
+      if (bild) return;
+      bild = window.requestAnimationFrame(() => {
+        bild = 0;
+        messen();
+      });
+    };
     window.addEventListener("resize", neuMessen);
     window.addEventListener("scroll", neuMessen, true);
     return () => {
       abgebrochen = true;
       if (uhr) window.clearInterval(uhr);
+      if (bild) window.cancelAnimationFrame(bild);
       window.removeEventListener("resize", neuMessen);
       window.removeEventListener("scroll", neuMessen, true);
     };

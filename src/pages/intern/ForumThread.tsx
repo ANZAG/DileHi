@@ -19,7 +19,7 @@ import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
 import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
 import { buildQuote } from "@/components/forum/quote";
 import ThreadModeration from "@/components/forum/ThreadModeration";
-import { SEITE_LESEN } from "@/lib/layout";
+import { SEITE } from "@/lib/layout";
 
 interface Member { id: string; display_name: string }
 
@@ -146,7 +146,7 @@ export default function ForumThread() {
   }
 
   return (
-    <div className={SEITE_LESEN}>
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-start gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück" className="shrink-0">

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
+import { flaechenfarben, hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
 import { ladeSchriften } from "@/lib/schriften";
 
 export interface Branding {
@@ -15,6 +15,7 @@ export interface Branding {
   /** Verlinkt {{satzung}} im Aufnahmeantrag auf das hinterlegte Dokument. */
   satzung_link: boolean;
   color_primary: string;
+  color_surface: string;
   color_dark: string;
   seo_description: string | null;
   seo_image_path: string | null;
@@ -53,6 +54,8 @@ const VORGABE: Branding = {
   logo_in_header: true,
   satzung_link: true,
   color_primary: "#dd9933",
+  // Genau das Grau aus index.css, damit sich ohne Einstellung nichts aendert.
+  color_surface: "#f4f2ee",
   color_dark: "#1c1917",
   seo_description: null,
   seo_image_path: null,
@@ -127,7 +130,7 @@ export function useBranding() {
  */
 export function useBrandingAnwenden() {
   const branding = useBranding();
-  const { color_primary, color_dark, faviconUrl, org_name, font_headings, font_body } = branding;
+  const { color_primary, color_dark, color_surface, faviconUrl, org_name, font_headings, font_body } = branding;
 
   useEffect(() => {
     const wurzel = document.documentElement;
@@ -150,11 +153,46 @@ export function useBrandingAnwenden() {
     // im dunklen der Hintergrund. Ist sie nicht dunkel, bleibt sie unbenutzt –
     // eine helle „dunkle Farbe" macht die Seite sonst unlesbar, und das merkt
     // man erst, wenn der fremde Verein sie schon eingestellt hat.
+    /*
+     * Die Schriftfarbe haengt von BEIDEN Einstellungen ab.
+     *
+     * Der dunkle Ton ist die Schrift im hellen Modus. Waehlt jemand aber eine
+     * dunkle Farbe fuer die Kaesten, steht diese Schrift auf dunklem Grund und
+     * ist unlesbar – und das merkt man erst beim fremden Verein. Deshalb gilt
+     * der eigene Ton nur, solange er sich von der Flaeche abhebt; sonst
+     * entscheidet die Flaeche.
+     */
     const dunkel = hexToHsl(color_dark);
-    if (dunkel && istDunkel(color_dark)) {
+    const flaecheIstDunkel = istDunkel(color_surface);
+    if (dunkel && istDunkel(color_dark) && !flaecheIstDunkel) {
       wurzel.style.setProperty("--foreground", hslToTokens(dunkel));
+    } else if (flaecheIstDunkel) {
+      wurzel.style.setProperty("--foreground", lesbareSchrift(color_surface));
+      wurzel.style.setProperty("--muted-foreground", lesbareSchrift(color_surface));
     }
-  }, [color_primary, color_dark]);
+
+    /*
+     * Die Flaechen.
+     *
+     * Eine Angabe, daraus Kasten, Grund, gedaempfte Flaeche und Rahmen. Der
+     * dunkle Modus staffelt in die andere Richtung, sonst waeren dort die
+     * Kaesten heller als der Grund und die Seite saehe aus wie ein Negativ.
+     */
+    const istDunklerModus = wurzel.classList.contains("dark");
+    const flaechen = flaechenfarben(color_surface, istDunklerModus);
+    if (flaechen) {
+      for (const [name, wert] of Object.entries(flaechen)) {
+        wurzel.style.setProperty(name, wert);
+      }
+      // Schrift auf den Flaechen: Was auf dem Kasten lesbar ist, ist es auch
+      // auf dem Grund – die beiden liegen nur zwei Helligkeitsstufen
+      // auseinander.
+      const schrift = lesbareSchrift(color_surface);
+      for (const name of ["--card-foreground", "--popover-foreground", "--secondary-foreground"]) {
+        wurzel.style.setProperty(name, schrift);
+      }
+    }
+  }, [color_primary, color_dark, color_surface]);
 
   useEffect(() => {
     ladeSchriften([font_headings, font_body]);

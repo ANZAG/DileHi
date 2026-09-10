@@ -113,12 +113,8 @@ export default function KategorienAdmin() {
         <div>
           <h2 className="font-serif text-lg font-semibold">Kategorien</h2>
           <p className="text-sm text-muted-foreground max-w-prose">
-            Ordnen Galerien, Quellen und Besucher-Highlights.
-            {/* Statt „bei uns sind das die Epochen" die tatsaechlichen Namen:
-                Das stimmt in jeder Installation und sagt mehr. */}
-            {kategorien.length > 0 && (
-              <> Bei euch: {kategorien.map((k) => k.label).join(", ")}.</>
-            )}
+            Ordnen Galerien, Quellen und Besucher-Highlights. Auf der Website
+            stehen sie als Themen der einzelnen Seiten.
           </p>
         </div>
         {!neuOffen && (
