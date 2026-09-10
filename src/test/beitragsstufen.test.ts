@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { AUSGANGSSTAND } from "./hilfe/datenbank";
 import { describe, expect, it } from "vitest";
 import { stufenFuerJahr, type BeitragsstufeStatus } from "@/hooks/useBeitragsstufen";
 import { beschreibung, meldung, nachfrageText } from "@/components/beitraege/meldungen";
@@ -98,10 +99,14 @@ describe("Texte zum Entfernen", () => {
  * dort für immer stehen.
  */
 describe("Verkabelung der Beitragsstufen", () => {
-  const migration = readFileSync(
-    "supabase/migrations/20260909250000_beitragsstufen_entfernen.sql",
-    "utf-8"
-  );
+  /*
+   * Geprueft wird am Ausgangsstand, nicht mehr an einer Migration.
+   *
+   * Der Unterschied ist nicht nur der Pfad: Eine Migration beschreibt eine
+   * Aenderung, der Ausgangsstand das Ergebnis. Was hier zaehlt, sind die
+   * Funktionsruempfe – und die stehen dort im Wortlaut, wie die Datenbank sie
+   * heute kennt.
+   */
 
   it("stellt die Auswahl im Profil aus der Datenbank zusammen", () => {
     const profil = readFileSync("src/pages/intern/Profile.tsx", "utf-8");
@@ -112,25 +117,25 @@ describe("Verkabelung der Beitragsstufen", () => {
   });
 
   it("prüft den Löschvermerk auch im öffentlichen Aufnahmeantrag", () => {
-    const stelle = migration.slice(migration.indexOf("public_contribution_settings"));
+    const stelle = AUSGANGSSTAND.slice(AUSGANGSSTAND.indexOf("FUNCTION public.public_contribution_settings"));
     expect(stelle).toContain("beitragsstufe_angeboten(c.is_active, c.geloescht_ab)");
   });
 
   it("kennt alle vier Ausgänge des Entfernens", () => {
     for (const wort of ["'mitglieder'", "'letzte'", "'geloescht'", "'stillgelegt'", "'vermerkt'"]) {
-      expect(migration).toContain(wort);
+      expect(AUSGANGSSTAND).toContain(wort);
     }
   });
 
   it("liest die Aufbewahrungsfrist aus den Einstellungen", () => {
-    expect(migration).toContain("beitrag_aufbewahrung_jahre");
+    expect(AUSGANGSSTAND).toContain("beitrag_aufbewahrung_jahre");
     const admin = readFileSync("src/components/admin/ErscheinungsbildAdmin.tsx", "utf-8");
     expect(admin).toContain("beitrag_aufbewahrung_jahre");
   });
 
   it("löscht die letzte verbliebene Stufe nicht", () => {
     // Ohne diese Sperre stuende im Aufnahmeantrag eine leere Auswahl.
-    expect(migration).toContain("<= 1");
-    expect(migration).toContain("'letzte'");
+    expect(AUSGANGSSTAND).toContain("<= 1");
+    expect(AUSGANGSSTAND).toContain("'letzte'");
   });
 });

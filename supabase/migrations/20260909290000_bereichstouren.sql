@@ -1,3 +1,21 @@
+-- NACHTRAG: Diese Migration wurde nie eingespielt.
+--
+-- Aufgefallen beim Bauen des Ausgangsstands: Er enthält 16 Schritte – den
+-- Rundgang und die vier Aufgaben im Profil – aber keinen einzigen der
+-- Bereichstouren. In der laufenden Installation fehlen sie damit ebenfalls:
+-- Der Streifen „Neu hier?" erscheint in Veranstaltungen, Abstimmungen und
+-- Verwaltung nicht, und das Fragezeichen im Kopf bleibt aus.
+--
+-- Zu sehen war das nicht. Beide Bausteine verstecken sich, wenn es nichts zu
+-- zeigen gibt – genau wie vorgesehen, und genau deshalb still.
+--
+-- Sie bleibt als eigene Migration stehen, statt in den Ausgangsstand
+-- eingearbeitet zu werden: Der Ausgangsstand ist ein Abzug der Datenbank, kein
+-- von Hand gepflegter Text. Sobald sie eingespielt ist, kann sie beim nächsten
+-- Abzug darin aufgehen.
+--
+-- ON CONFLICT ergänzt, damit ein zweiter Lauf nichts kaputt macht.
+
 -- Die Bereichstouren
 --
 -- Der Rundgang sagt, wo etwas liegt. Diese Touren sagen, wie man dort
@@ -165,7 +183,8 @@ VALUES
    'Entwurf sichern heisst nicht veröffentlichen',
    'Du kannst in Ruhe probieren: „Entwurf sichern“ merkt sich deinen Stand, ohne dass ihn jemand sieht. Öffentlich wird die Seite erst, wenn du sie veröffentlichst.',
    'Eine veröffentlichte Seite lässt sich auch wieder zurückziehen. Sie ist dann für Besucher weg, die Inhalte bleiben.',
-   NULL, 'knopf-entwurf', 'site.content_edit', NULL, NULL, 520);
+   NULL, 'knopf-entwurf', 'site.content_edit', NULL, NULL, 520)
+ON CONFLICT (key) DO NOTHING;
 
 UPDATE public.onboarding_schritte
 SET standard = jsonb_build_object('titel', titel, 'text', text, 'tipp', tipp)
