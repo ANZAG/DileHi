@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding } from "@/hooks/useBranding";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,24 @@ const Login = () => {
    * ins Leere zeigender Verweis ist schlechter als keiner.
    */
   const { org_email } = useBranding();
+
+  /*
+   * Eine frische Installation hat noch kein Konto – niemand kann sich hier
+   * anmelden, und niemand ahnt warum. Der Hinweis zeigt den Weg.
+   *
+   * Er verschwindet, sobald ein Konto eine Rolle hat. Bis dahin ist der
+   * Zustand ohnehin von aussen sichtbar: eine Website ohne Inhalt.
+   */
+  const { data: einrichtungNoetig } = useQuery({
+    queryKey: ["setup-needed"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("setup_needed" as never);
+      if (error) return false;
+      return data as unknown as boolean;
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
   const anWen = org_email ? `wende dich an ${org_email}` : "wende dich an den Vorstand";
 
   useEffect(() => {
@@ -140,6 +159,18 @@ const Login = () => {
             Der interne Bereich ist nur für Vereinsmitglieder zugänglich.
           </p>
         </div>
+        {einrichtungNoetig && (
+          <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+            <p className="font-medium mb-1">Diese Installation ist noch nicht eingerichtet.</p>
+            <p className="text-muted-foreground">
+              Es gibt noch kein Konto.{" "}
+              <Link to="/einrichtung" className="text-primary underline">
+                Ersten Zugang anlegen
+              </Link>
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6 rounded-lg border bg-card space-y-4">
           <div>
             <label htmlFor="login-email" className="text-sm font-medium mb-1.5 block">E-Mail</label>

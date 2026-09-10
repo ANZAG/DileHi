@@ -1,0 +1,73 @@
+name: Supabase ausrollen
+
+# Migrationen einspielen und Edge Functions bereitstellen – ohne dass jemand
+# eine Kommandozeile öffnen muss.
+#
+# Warum das hier liegt und nicht in einer Anleitung: Wer einen Verein führt,
+# hat kein Docker und keinen Supabase-CLI auf dem Rechner, und soll beides auch
+# nicht installieren müssen. Ein Knopf auf der Actions-Seite reicht.
+#
+# Zwei Geheimnisse sind vorher zu hinterlegen (Settings → Secrets → Actions):
+#
+#   SUPABASE_ACCESS_TOKEN   Persönlicher Zugriffsschlüssel aus dem
+#                           Supabase-Konto (Account → Access Tokens)
+#   SUPABASE_PROJECT_REF    Die Kennung des Projekts, steht in seiner Adresse:
+#                           https://<REF>.supabase.co
+#   SUPABASE_DB_PASSWORD    Nur für die Migrationen. Beim Anlegen des Projekts
+#                           vergeben.
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrationen:
+        description: "Ausstehende Migrationen einspielen"
+        type: boolean
+        default: true
+      funktionen:
+        description: "Edge Functions bereitstellen"
+        type: boolean
+        default: true
+
+jobs:
+  ausrollen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Projekt verbinden
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # Spielt genau die Migrationen ein, die noch fehlen. Was schon lief,
+      # steht in der Datenbank und wird übersprungen – das ist der eigentliche
+      # Gewinn gegenüber dem Einfügen von Hand.
+      - name: Migrationen
+        if: ${{ inputs.migrationen }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+      # Alle auf einmal. Welche ohne Anmeldung erreichbar sein müssen, steht in
+      # supabase/config.toml und wird dabei übernommen.
+      - name: Edge Functions
+        if: ${{ inputs.funktionen }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy
+
+      - name: Was gelaufen ist
+        run: |
+          echo "### Ausgerollt" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Migrationen: ${{ inputs.migrationen }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Edge Functions: ${{ inputs.funktionen }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Die Geheimnisse der Funktionen (Mailversand, VAPID, SETUP_SECRET)" >> $GITHUB_STEP_SUMMARY
+          echo "werden hier **nicht** gesetzt. Sie stehen im Supabase-Projekt" >> $GITHUB_STEP_SUMMARY
+          echo "unter Edge Functions → Secrets." >> $GITHUB_STEP_SUMMARY
