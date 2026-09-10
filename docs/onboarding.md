@@ -141,6 +141,13 @@ Zwei Sätze dort, wo die Frage entsteht. Gibt es zum Schlüssel keinen Text,
 erscheint gar nichts: Ein Fragezeichen, das nichts erklärt, ist schlimmer als
 keines.
 
+Der Unterschied zur Einführung: Eine Einführung ruft man beim fünften Mal nicht
+mehr auf. Das Fragezeichen steht dort, wo die Frage entsteht, und bleibt dort.
+
+Ein Test prüft beide Richtungen — jedes Fragezeichen hat einen Text, und jeder
+Text wird auch irgendwo gezeigt. Sonst gibt es entweder ein Fragezeichen, das
+sich nicht öffnet, oder einen Text, den nur die Verwaltung kennt.
+
 ## Was gemerkt wird, und wo
 
 Alles in `user_tours`, also in der Datenbank und nicht im Browser. Ein

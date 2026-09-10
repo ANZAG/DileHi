@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import type { Election, ElectionResult } from "./types";
+import { Hilfe } from "@/components/Hilfe";
 
 interface Props {
   election: Election;
@@ -375,7 +376,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
       {canVote && (
         <div className="space-y-3 mt-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Deine Stimmen verteilen:</p>
+            <p className="text-sm font-medium">Deine Stimmen verteilen:<Hilfe k="stimmenanzahl" /></p>
             <span
               className={`text-sm font-medium ${
                 allocatedTotal === remainingVotes

@@ -254,3 +254,62 @@ describe("Bereichstouren", () => {
     expect(bereiche).not.toContain("'/intern");
   });
 });
+
+/**
+ * Die Hilfetexte am Feld.
+ *
+ * Zwei stille Fehler: ein Fragezeichen ohne Text (dann erscheint gar nichts,
+ * und niemand merkt, dass die Erklaerung fehlt) und ein Text ohne
+ * Fragezeichen (dann steht er in der Verwaltung und wird nie gezeigt).
+ */
+describe("Hilfe am Feld", () => {
+  /*
+   * Nur der Teil ab dem INSERT in onboarding_hilfe.
+   *
+   * Die Datei von 260000 legt auch die Schritte an, und deren Zeilen sehen
+   * genauso aus. Ohne den Schnitt gelten „willkommen" und „profil" als
+   * Hilfetexte, und der Test verlangt Fragezeichen fuer Tourschritte.
+   */
+  const abHilfe = (datei: string) => {
+    const inhalt = lies(datei);
+    const i = inhalt.indexOf("INSERT INTO public.onboarding_hilfe");
+    return i < 0 ? "" : inhalt.slice(i);
+  };
+
+  const hilfen =
+    abHilfe("supabase/migrations/20260909260000_onboarding.sql") +
+    abHilfe("supabase/migrations/20260909300000_hilfetexte.sql");
+
+  const alleDateien = (ordner: string): string[] =>
+    readdirSync(ordner, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory()
+        ? alleDateien(`${ordner}/${e.name}`)
+        : e.name.endsWith(".tsx")
+          ? [`${ordner}/${e.name}`]
+          : []
+    );
+  const quellen = alleDateien("src").map((f) => readFileSync(f, "utf-8")).join("\n");
+
+  /** Die Schluessel aus den beiden INSERT-Bloecken. */
+  const vorhanden = [...new Set(
+    [...hilfen.matchAll(/\n {2}\('([a-z_]+)', '[^']/g)].map((m) => m[1])
+  )];
+
+  /** Die Schluessel, die im Markup benutzt werden. */
+  const benutzt = [...new Set(
+    [...quellen.matchAll(/Hilfe k="([a-z_]+)"/g)].map((m) => m[1])
+  )];
+
+  it("findet beide Seiten", () => {
+    expect(vorhanden.length).toBeGreaterThan(8);
+    expect(benutzt.length).toBeGreaterThan(8);
+  });
+
+  it("hat zu jedem Fragezeichen einen Text", () => {
+    expect(benutzt.filter((k) => !vorhanden.includes(k))).toEqual([]);
+  });
+
+  it("zeigt jeden Text auch irgendwo an", () => {
+    expect(vorhanden.filter((k) => !benutzt.includes(k))).toEqual([]);
+  });
+});

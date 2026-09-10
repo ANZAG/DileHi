@@ -106,6 +106,12 @@ const ContactMessages = () => {
 
   return (
     <div className="space-y-3">
+      <p className="text-sm text-muted-foreground max-w-prose">
+        Was über das Kontaktformular der Website hereinkommt. Antworten kannst du
+        direkt hier – die Mail geht dann im Namen des Vereins raus, nicht von
+        deiner eigenen Adresse.
+      </p>
+
       {contactMessages.map((msg) => {
         const parsed = parseMessage(msg.message);
         const isStructured = parsed.isStructured;

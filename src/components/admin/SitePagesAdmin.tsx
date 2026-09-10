@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Hilfe } from "@/components/Hilfe";
 import {
   createPage, deletePage, fetchPages, slugify, updatePageMeta, type SitePage,
 } from "@/components/sitebuilder/api";
@@ -342,6 +343,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
         />
         Nicht in Suchmaschinen aufnehmen
       </label>
+      <Hilfe k="seite_versteckt" />
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onAbbrechen}>Abbrechen</Button>

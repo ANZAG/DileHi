@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Hilfe } from "@/components/Hilfe";
 import {
   Select,
   SelectContent,
@@ -444,9 +445,18 @@ const MemberRegistry = () => {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground max-w-prose">
+        Das Register aller Mitglieder. Die Liste sieht aus wie eine Tabelle, ist
+        aber eine Kartei: Ein Klick auf eine Zeile öffnet das Mitglied mit allen
+        Daten, seiner Rolle, dem Eintrittsdatum und dem Aufnahmeantrag. Dort wird
+        auch geändert.
+      </p>
+
       {/* Invite form */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-sm">Neues Mitglied einladen</h3>
+        <h3 className="font-semibold text-sm">
+          Neues Mitglied einladen<Hilfe k="einladung_rolle" />
+        </h3>
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
             type="email"
