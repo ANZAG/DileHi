@@ -4,7 +4,7 @@ import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
-import { GRUPPEN, useOnboarding, type Schritt } from "./useOnboarding";
+import { useOnboarding, type Schritt } from "./useOnboarding";
 import { zeichen } from "./icons";
 
 /**
@@ -43,7 +43,7 @@ const KARTE_BREIT = 384;
 export default function OnboardingTour() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { fuehrung, merken } = useOnboarding();
+  const { schritteFuer, merken } = useOnboarding();
 
   const [liste, setListe] = useState<Schritt[]>([]);
   const [index, setIndex] = useState(0);
@@ -61,15 +61,16 @@ export default function OnboardingTour() {
     [navigate, location.pathname]
   );
 
-  // Nur auf Aufforderung. Kein automatischer Start mehr.
+  // Nur auf Aufforderung: über den Streifen „Neu hier?", das Fragezeichen im
+  // Kopf eines Bereichs oder den Knopf im Profil.
   useEffect(() => {
     const starten = (e: Event) => {
-      const key = (e as CustomEvent<{ key?: string }>).detail?.key;
-      zeigen(fuehrung, key);
+      const { tour, key } = (e as CustomEvent<{ tour?: string; key?: string }>).detail ?? {};
+      zeigen(schritteFuer(tour ?? "start"), key);
     };
     window.addEventListener("start-onboarding", starten);
     return () => window.removeEventListener("start-onboarding", starten);
-  }, [fuehrung, zeigen]);
+  }, [schritteFuer, zeigen]);
 
   const aktuell = liste[index] ?? null;
   const anker = aktuell?.anker ?? null;
@@ -345,7 +346,7 @@ function Karte({
             </div>
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground font-medium">
-                {GRUPPEN[schritt.gruppe]} · Schritt {index + 1} von {gesamt}
+                Schritt {index + 1} von {gesamt}
               </p>
               <h3 className="font-serif text-base font-semibold leading-tight">
                 {schritt.titel}

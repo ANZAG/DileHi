@@ -5,29 +5,32 @@ import { useModule, modulAn } from "@/hooks/useModule";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Der Stand der Einführung für die angemeldete Person.
+ * Die Einführung im Mitgliederbereich.
  *
- * Eine Stelle für beides: die Aufgabenliste auf der Startseite und die
- * Führung mit der Hervorhebung. Sie zeigen dieselben Schritte an, also fragen
- * sie auch dasselbe.
+ * ── Zwei Ebenen ────────────────────────────────────────────────────────────
  *
- * ── Warum eine Aufgabe sich selbst abhakt ──────────────────────────────────
+ * Der Rundgang (`start`) zeigt einmal die Startseite: was liegt wo. Die
+ * Bereichstouren erklären, wie man in einem Bereich arbeitet. Beides steht in
+ * `onboarding_schritte`, unterschieden durch die Spalte `tour`.
  *
- * Ein Schritt mit `aufgabe` ist etwas, das jemand tut, nicht etwas, das
- * jemand liest. Ob es getan ist, weiss die Datenbank: Das Profil ist
- * ausgefüllt, ein Zelt ist eingetragen, es gibt eine Zusage. Deshalb gibt es
- * dafür kein Kästchen zum Anklicken – ein Kästchen, das man abhaken kann,
- * ohne die Sache getan zu haben, wäre nur eine höflichere Diashow.
+ * ── Wer was sieht ──────────────────────────────────────────────────────────
  *
- * Wen eine Aufgabe nicht betrifft (kein Zelt, kein Interesse am Steckbrief),
- * der blendet sie aus. Das steht in user_tours mit dem Präfix „aufgabe:".
+ * `recht` und `modul` an jedem Schritt. Keine Rollenabfrage: Wer einer eigenen
+ * Rolle das passende Recht gibt, bekommt den Schritt.
+ *
+ * ── Was gemerkt wird ───────────────────────────────────────────────────────
+ *
+ * Alles in `user_tours`, also in der Datenbank und nicht im Browser. Ein
+ * Gerätewechsel soll weder die Einführung zurückholen noch sie verlieren.
+ *
+ *   <key>              Diesen Schritt hat die Person gesehen.
+ *   aufgabe:<key>      Diese Aufgabe betrifft sie nicht.
+ *   streifen:<tour>    Das Angebot „Neu hier?" in diesem Bereich ist weg.
  */
-
-export type Gruppe = "start" | "mitmachen" | "verwalten" | "einrichten";
 
 export interface Schritt {
   key: string;
-  gruppe: Gruppe;
+  tour: string;
   icon: string;
   titel: string;
   text: string;
@@ -43,12 +46,9 @@ export interface Schritt {
   is_active: boolean;
 }
 
-export const GRUPPEN: Record<Gruppe, string> = {
-  start: "Zum Anfang",
-  mitmachen: "Mitmachen",
-  verwalten: "Verwalten",
-  einrichten: "Einrichten",
-};
+export interface Aufgabe extends Schritt {
+  fertig: boolean;
+}
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -100,7 +100,7 @@ export function useOnboarding() {
     staleTime: 5 * 60 * 1000,
   });
 
-  /** Was für diese Person gilt: Rechte und Module. */
+  /** Alles, was für diese Person gilt – über alle Touren. */
   const gueltig = useMemo(
     () =>
       (schritteQuery.data ?? []).filter(
@@ -116,8 +116,36 @@ export function useOnboarding() {
   const erledigt = useMemo(() => new Set(erledigtQuery.data ?? []), [erledigtQuery.data]);
   const merkzettel = useMemo(() => new Set(merkzettelQuery.data ?? []), [merkzettelQuery.data]);
 
-  /** Die echten Aufgaben, mit ihrem Stand. */
-  const aufgaben = useMemo(
+  const bereit =
+    !!user && permissionsLoaded && !!module &&
+    schritteQuery.isSuccess && erledigtQuery.isSuccess && merkzettelQuery.isSuccess;
+
+  /** Die Schritte einer Tour, in Reihenfolge. */
+  const schritteFuer = useCallback(
+    (tour: string) => gueltig.filter((s) => s.tour === tour && !s.aufgabe),
+    [gueltig]
+  );
+
+  /**
+   * Bietet sich diese Tour gerade an?
+   *
+   * Nur, wenn es überhaupt etwas zu zeigen gibt, noch kein Schritt gesehen
+   * wurde und das Angebot nicht schon weggeklickt ist. Wer die Tour einmal
+   * begonnen hat, bekommt den Streifen nicht wieder – er hat sie gefunden.
+   */
+  const streifenOffen = useCallback(
+    (tour: string) => {
+      if (!bereit) return false;
+      if (merkzettel.has(`streifen:${tour}`)) return false;
+      const schritte = schritteFuer(tour);
+      if (schritte.length === 0) return false;
+      return !schritte.some((s) => merkzettel.has(s.key));
+    },
+    [bereit, merkzettel, schritteFuer]
+  );
+
+  /** Die Aufgaben im Profil, mit ihrem Stand. */
+  const aufgaben: Aufgabe[] = useMemo(
     () =>
       gueltig
         .filter((s) => !!s.aufgabe)
@@ -125,9 +153,6 @@ export function useOnboarding() {
         .map((s) => ({ ...s, fertig: erledigt.has(s.aufgabe!) })),
     [gueltig, erledigt, merkzettel]
   );
-
-  /** Die Führung: alles, was gilt, in Reihenfolge. */
-  const fuehrung = gueltig;
 
   const merken = useCallback(
     async (keys: string[]) => {
@@ -141,44 +166,24 @@ export function useOnboarding() {
     [user, queryClient]
   );
 
-  /** Eine Aufgabe betrifft mich nicht. */
-  const ausblenden = useCallback((key: string) => merken([`aufgabe:${key}`]), [merken]);
-
-  const einblenden = useCallback(
-    async (key: string) => {
-      if (!user) return;
-      await supabase
-        .from("user_tours")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("tour_key", `aufgabe:${key}`);
-      queryClient.invalidateQueries({ queryKey: ["user_tours", user.id] });
-    },
-    [user, queryClient]
-  );
-
   return {
-    fuehrung,
+    bereit,
+    schritteFuer,
+    streifenOffen,
+    /** Das Angebot in diesem Bereich nicht mehr zeigen. */
+    streifenSchliessen: (tour: string) => merken([`streifen:${tour}`]),
     aufgaben,
-    /** Wieviele Aufgaben erledigt sind. */
     fortschritt: {
       fertig: aufgaben.filter((a) => a.fertig).length,
       gesamt: aufgaben.length,
     },
-    bereit:
-      !!user && permissionsLoaded && !!module &&
-      schritteQuery.isSuccess && erledigtQuery.isSuccess && merkzettelQuery.isSuccess,
-    gesehen: merkzettel,
     merken,
-    ausblenden,
-    einblenden,
-    /** Nach einer Änderung neu nachsehen, was erledigt ist. */
-    neuPruefen: () =>
-      queryClient.invalidateQueries({ queryKey: ["onboarding-erledigt", user?.id] }),
+    /** Diese Aufgabe betrifft mich nicht. */
+    ausblenden: (key: string) => merken([`aufgabe:${key}`]),
   };
 }
 
-/** Die Führung öffnen, wahlweise bei einem bestimmten Schritt. */
-export function fuehrungStarten(key?: string) {
-  window.dispatchEvent(new CustomEvent("start-onboarding", { detail: { key } }));
+/** Eine Tour öffnen, wahlweise bei einem bestimmten Schritt. */
+export function fuehrungStarten(tour: string, key?: string) {
+  window.dispatchEvent(new CustomEvent("start-onboarding", { detail: { tour, key } }));
 }

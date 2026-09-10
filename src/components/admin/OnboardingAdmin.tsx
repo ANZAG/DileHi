@@ -25,7 +25,7 @@ import { zeichen } from "@/components/onboarding/icons";
 
 interface Schritt {
   key: string;
-  gruppe: string;
+  tour: string;
   icon: string;
   titel: string;
   text: string;
@@ -45,11 +45,20 @@ interface Hilfetext {
 
 const db = supabase as unknown as { from: (t: string) => any };
 
-const GRUPPEN_TITEL: Record<string, string> = {
-  start: "Zum Anfang",
-  mitmachen: "Mitmachen",
-  verwalten: "Verwalten",
-  einrichten: "Einrichten",
+/**
+ * Die Touren mit Namen.
+ *
+ * Ein Schluessel, den diese Liste noch nicht kennt, wird trotzdem angezeigt –
+ * unter seinem eigenen Namen. Sonst verschwaende eine neue Tour hier
+ * stillschweigend.
+ */
+const TOUR_TITEL: Record<string, string> = {
+  start: "Der Rundgang über die Startseite",
+  profil: "Aufgaben im Profil",
+  veranstaltungen: "Veranstaltungen",
+  abstimmungen: "Abstimmungen",
+  verwaltung: "Verwaltung",
+  seiten: "Seiteneditor",
 };
 
 export default function OnboardingAdmin() {
@@ -134,10 +143,10 @@ export default function OnboardingAdmin() {
     );
   }
 
-  const nachGruppe = ["start", "mitmachen", "verwalten", "einrichten"].map((g) => ({
-    gruppe: g,
-    schritte: schritte.filter((s) => s.gruppe === g),
-  })).filter((g) => g.schritte.length > 0);
+  const touren = [...new Set(schritte.map((s) => s.tour))].map((t) => ({
+    tour: t,
+    schritte: schritte.filter((s) => s.tour === t),
+  }));
 
   return (
     <div>
@@ -156,10 +165,10 @@ export default function OnboardingAdmin() {
         </Button>
       </div>
 
-      {nachGruppe.map(({ gruppe, schritte: liste }) => (
-        <section key={gruppe} className="mb-8">
+      {touren.map(({ tour, schritte: liste }) => (
+        <section key={tour} className="mb-8">
           <h3 className="font-serif text-base font-semibold mb-3">
-            {GRUPPEN_TITEL[gruppe] ?? gruppe}
+            {TOUR_TITEL[tour] ?? tour}
           </h3>
           <div className="space-y-4">
             {liste.map((s) => {

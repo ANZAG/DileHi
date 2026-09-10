@@ -95,19 +95,19 @@ const Admin = () => {
       { id: "menue" as const, gruppe: "website", label: "Menü", icon: MenuIcon, desc: "Punkte in der Kopfzeile" },
     ] : []),
     ...(hasPermission("gallery.manage") ? [
-      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder der Website verwalten" , modul: "gallery"},
+      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder für den Galerie-Baustein" , modul: "gallery"},
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
-      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Quellenangaben je Kategorie" , modul: "sources"},
+      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Inhalt des Quellen-Bausteins" , modul: "sources"},
     ] : []),
     ...(hasPermission("visitor_highlights.manage") ? [
-      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte je Kategorie" , modul: "besucher_highlights"},
+      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Inhalt des Highlight-Bausteins" , modul: "besucher_highlights"},
     ] : []),
     ...(hasPermission("personas.publish") ? [
-      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Steckbriefe für die Website" , modul: "personas"},
+      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Inhalt des Darstellungs-Bausteins" , modul: "personas"},
     ] : []),
     ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
-      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: Tags, desc: "Ordnen Bilder, Quellen und Stichpunkte" },
+      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: Tags, desc: "Ordnen die Inhalte dieser Bausteine" },
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
