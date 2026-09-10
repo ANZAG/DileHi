@@ -3444,4 +3444,17 @@ INSERT INTO public.app_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.site_pages (slug, title, is_published, is_system, content)
 VALUES ('startseite', 'Startseite', true, true, '{"content":[],"root":{}}'::jsonb)
 ON CONFLICT (slug) DO NOTHING;
+-- == Was der Abzug nicht sieht ==
+-- backup_schema_ddl() liest nur Trigger auf Tabellen in public. Dieser haengt
+-- an auth.users und fehlte deshalb im ersten Ausgangsstand: Die Funktion war
+-- da, aber nichts rief sie auf. Ein neues Konto bekam kein Profil – schon der
+-- erste Zugang ueber /einrichtung nicht.
+--
+-- DROP vorweg, weil ein Projekt, das schon einmal etwas abbekommen hat, den
+-- Trigger noch tragen kann. Er zeigt dann auf eine alte Fassung der Funktion.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 RESET check_function_bodies;

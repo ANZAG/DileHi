@@ -44,6 +44,21 @@ SELECT
   -- 1. Aufbau: Typen, Tabellen, Bedingungen, Indizes, Funktionen, Trigger, Regeln
   public.backup_schema_ddl() || E'\n\n' ||
 
+  -- 1a. Trigger ausserhalb von public, die auf unsere Funktionen zeigen.
+  --     backup_schema_ddl() sieht nur public. Im ersten Abzug fehlte deshalb
+  --     on_auth_user_created, und neue Konten bekamen kein Profil.
+  E'-- == Trigger ausserhalb von public ==\n' || COALESCE((
+    SELECT string_agg(
+             format('DROP TRIGGER IF EXISTS %I ON %s;', t.tgname, t.tgrelid::regclass) || E'\n' ||
+             pg_get_triggerdef(t.oid) || ';', E'\n' ORDER BY t.tgname)
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid = t.tgrelid
+    JOIN pg_proc p ON p.oid = t.tgfoid
+    WHERE NOT t.tgisinternal
+      AND c.relnamespace::regnamespace::text <> 'public'
+      AND p.pronamespace::regnamespace::text = 'public'
+  ), '') || E'\n\n' ||
+
   -- 2. Rechte
   E'-- == Rechte ==\n' || COALESCE((
     SELECT string_agg(zeile, E'\n' ORDER BY rang, zeile) FROM (
