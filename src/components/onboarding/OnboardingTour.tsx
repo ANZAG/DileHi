@@ -40,7 +40,7 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Ernährung (z.B. vegetarisch/vegan) und deine Zelte eintragen – beides wird dann bei Anmeldeformularen automatisch vorgeschlagen.",
+    body: "Hinterlege deinen Namen, deine Adresse und wenn du magst dein Geburtsdatum. Trage hier auch ein, wie du dich ernährst (zum Beispiel vegetarisch oder vegan) und welche Zelte du hast. Beides wird bei Anmeldungen zu Veranstaltungen automatisch vorgeschlagen.",
     hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
