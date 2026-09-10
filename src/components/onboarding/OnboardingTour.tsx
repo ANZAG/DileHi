@@ -115,7 +115,7 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: Settings,
     title: "Verwaltung",
-    body: "Über den Bereich „Verwaltung“ verwaltest du den gesamten Verein: Mitglieder, Berechtigungen, Galerie, Inhalte der Website und mehr – gebündelt an einem Ort.",
+    body: "Im Bereich „Verwaltung“ liegt alles an einer Stelle: Mitglieder, Berechtigungen, Galerie und die Inhalte der Website.",
     route: "/intern/verwaltung",
   },
   {
