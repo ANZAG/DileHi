@@ -76,7 +76,7 @@ rausgeht.
 Unter **Actions → Supabase ausrollen → Run workflow**, beides angehakt.
 
 Das legt den gesamten Aufbau an — Tabellen, Zugriffsregeln, Funktionen, Rechte,
-Rollen, Vorlagen, Menü, Ablagen — und stellt die zwanzig Edge Functions bereit.
+Rollen, Vorlagen, Menü, Ablagen — und stellt alle Edge Functions bereit.
 Ein Knopf, rund zwei Minuten.
 
 > Warum ein Ausgangsstand und nicht achtzig Migrationen: Die Migrationen sind
