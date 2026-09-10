@@ -124,7 +124,7 @@ export default function PersonaPublishAdmin() {
       <div>
         <h2 className="font-serif text-lg font-semibold">Darstellungen veröffentlichen</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Öffentlich erscheinen Epoche, Darstellung, Kenntnisse und Bilder – <strong>ohne Namen</strong>.
+          Öffentlich erscheinen Kategorie, Darstellung, Kenntnisse und Bilder, <strong>ohne Namen</strong>.
           Derzeit freigegeben: {publicCount} von {personas.length}.
         </p>
       </div>

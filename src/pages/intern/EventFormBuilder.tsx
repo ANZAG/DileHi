@@ -352,7 +352,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Leer lassen heißt unbegrenzt. Der Zeitraum gilt zusätzlich zum Schalter –
+                Leer lassen heißt unbegrenzt. Der Zeitraum gilt zusätzlich zum Schalter,
                 ist er abgelaufen, schließt sich das Formular von selbst.
               </p>
             </div>

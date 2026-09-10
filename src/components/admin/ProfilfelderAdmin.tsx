@@ -120,7 +120,7 @@ export default function ProfilfelderAdmin() {
         <h3 className="font-serif text-base font-semibold">Bereiche</h3>
         <p className="text-sm text-muted-foreground mb-3 max-w-prose">
           Fertige Blöcke der Profilseite. Abgeschaltet verschwinden sie samt
-          ihrer Bedienung – die bereits eingetragenen Angaben bleiben in der
+          ihrer Bedienung. Die bereits eingetragenen Angaben bleiben in der
           Datenbank und kommen beim Wiedereinschalten zurück.
         </p>
         <ul className="divide-y rounded-lg border bg-card overflow-hidden">

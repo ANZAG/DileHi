@@ -74,7 +74,7 @@ export default function FieldEditor({ field, allFields, onChange }: Props) {
               <SelectItem value="none">Nur sammeln, nicht auswerten</SelectItem>
               {availableRoles.map((r) => (
                 <SelectItem key={r.key} value={r.key} disabled={usedRoles.has(r.key) && r.key !== currentRole}>
-                  {r.label}{usedRoles.has(r.key) && r.key !== currentRole ? " – schon vergeben" : ""}
+                  {r.label}{usedRoles.has(r.key) && r.key !== currentRole ? " (schon vergeben)" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -92,7 +92,7 @@ export default function FieldEditor({ field, allFields, onChange }: Props) {
           <Label className="text-sm">Aufgaben</Label>
           <p className="text-xs text-muted-foreground mb-2">
             Der Termin steht später hinter der Aufgabe. Die Mindestanzahl ist die Zahl der
-            Personen, die gleichzeitig gebraucht werden – die Auswertung zeigt dann, ob genug
+            Personen, die gleichzeitig gebraucht werden. Die Auswertung zeigt dann, ob genug
             zusammenkommen.
           </p>
           <div className="space-y-2">

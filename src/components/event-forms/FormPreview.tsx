@@ -51,7 +51,7 @@ export default function FormPreview({
 
         {fields.length === 0 && (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Noch keine Fragen – füge links die erste Frage hinzu.
+            Noch keine Fragen. Füge links die erste Frage hinzu.
           </p>
         )}
 
