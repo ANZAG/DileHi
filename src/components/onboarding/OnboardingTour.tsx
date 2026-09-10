@@ -1,396 +1,102 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  X, ChevronRight, ChevronLeft, MapPin, CalendarDays, FileText, Megaphone, Vote,
-  BookOpen, User, Sparkles, Coins, Bell, ClipboardList, Settings, Users, Shield,
-  ScrollText, Image, Crown, Wallet, Mail, Star, UserPlus, ImagePlus,
-} from "lucide-react";
+import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { GRUPPEN, type Schritt } from "./schritte";
+import { useTour } from "./useTour";
 
-interface TourStep {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-  hint?: string;
-  route?: string;
-}
-
-interface TourDef {
-  key: string;
-  /** Returns true if this tour applies to a user holding the given roles. */
-  applies: (roles: string[]) => boolean;
-  steps: TourStep[];
-}
-
-const VORSTAND_ROLES = ["vorstand", "officiatus_1", "officiatus_2"];
-
-// ---------------------------------------------------------------------------
-// Allgemeine Mitglieder-Tour
-// ---------------------------------------------------------------------------
-const MEMBER_STEPS: TourStep[] = [
-  {
-    icon: Sparkles,
-    title: "Willkommen im Mitgliederbereich!",
-    body: "Schön, dass du dabei bist! Diese kurze Tour zeigt dir die wichtigsten Funktionen und was du als Erstes einrichten solltest.",
-  },
-  {
-    icon: User,
-    title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und wenn du magst dein Geburtsdatum. Trage hier auch ein, wie du dich ernährst (zum Beispiel vegetarisch oder vegan) und welche Zelte du hast. Beides wird bei Anmeldungen zu Veranstaltungen automatisch vorgeschlagen.",
-    hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
-    route: "/intern/profil",
-  },
-  {
-    icon: CalendarDays,
-    title: "Veranstaltungen",
-    body: "Hier findest du alle Vereinstermine. Du kannst dich für Veranstaltungen an- und abmelden und deinen Kalender per Abo synchronisieren, um Termine automatisch zu sehen.",
-    hint: "Tipp: Schau regelmäßig nach neuen Terminen und melde dich frühzeitig an.",
-    route: "/intern/veranstaltungen",
-  },
-  {
-    icon: ClipboardList,
-    title: "An Veranstaltungen teilnehmen",
-    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus. Deine Angaben aus dem Profil, etwa Ernährung und Zelte, stehen dort schon drin. Über den Bearbeitungslink kannst du deine Anmeldung jederzeit ändern. Ohne Anmeldeformular reicht ein Klick auf „Teilnehmen“, und genauso meldest du dich wieder ab.",
-    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen. Beim Erstellen lässt sich gleich ein Anmeldeformular hinzufügen.",
-    route: "/intern/veranstaltungen",
-  },
-  {
-    icon: Megaphone,
-    title: "Versammlungen",
-    body: "Ankündigungen, Einladungen zur Mitgliederversammlung und Protokolle findest du hier. Du kannst auch auf Beiträge antworten.",
-    route: "/intern/versammlungen",
-  },
-  {
-    icon: Vote,
-    title: "Abstimmungen",
-    body: "Wahlen und Beschlüsse der Mitgliederversammlung werden hier digital durchgeführt. Du erhältst eine Benachrichtigung, wenn eine Abstimmung offen ist.",
-    route: "/intern/abstimmungen",
-  },
-  {
-    icon: FileText,
-    title: "Dokumente",
-    body: "Satzung, Ordnungen und Tätigkeitsberichte stehen dir hier zum Download und zur Vorschau bereit.",
-    route: "/intern/dokumente",
-  },
-  {
-    icon: Coins,
-    title: "Beiträge",
-    body: "Hier siehst du den Status deiner Mitgliedsbeiträge und ob noch offene Zahlungen ausstehen.",
-    route: "/intern/beitraege",
-  },
-  {
-    icon: BookOpen,
-    title: "Quellensammlung",
-    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Kategorie sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
-    route: "/intern/quellen",
-  },
-  {
-    icon: MapPin,
-    title: "Mitgliederkarte",
-    body: "Auf einer Karte siehst du, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden.",
-    hint: "Tipp: Aktiviere die Karten-Funktion in deinem Profil, um auch sichtbar zu sein.",
-    route: "/intern/karte",
-  },
-  {
-    icon: Sparkles,
-    title: "Alles bereit!",
-    body: "Du kannst die Tour jederzeit über dein Profil erneut starten. Viel Spaß im Verein!",
-    hint: "Empfohlen: Pflege jetzt als Erstes dein Profil und trage deine Zelte ein.",
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Rollen-spezifische Touren
-// ---------------------------------------------------------------------------
-const VORSTAND_STEPS: TourStep[] = [
-  {
-    icon: Crown,
-    title: "Willkommen im Vorstand!",
-    body: "Du hast jetzt erweiterte Rechte. Diese kurze Tour zeigt dir, welche zusätzlichen Funktionen dir nun zur Verfügung stehen.",
-  },
-  {
-    icon: Settings,
-    title: "Verwaltung",
-    body: "Im Bereich „Verwaltung“ liegt alles an einer Stelle: Mitglieder, Berechtigungen, Galerie und die Inhalte der Website.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Users,
-    title: "Mitglieder verwalten",
-    body: "Du kannst Mitgliederprofile einsehen und bearbeiten, neue Registrierungen genehmigen und Mitglieder verwalten.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: UserPlus,
-    title: "Aufnahmeanträge",
-    body: "Eingegangene Aufnahmeanträge prüfst du hier. Du kannst die Angaben einsehen, den Antrag als PDF öffnen und ihn genehmigen oder ablehnen.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Mail,
-    title: "Kontaktanfragen",
-    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Image,
-    title: "Galerie",
-    body: "Lade Bilder hoch, schreibe eine kurze Beschreibung dazu und ordne sie der passenden Kategorie zu.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: ImagePlus,
-    title: "Seitenbilder",
-    body: "Tausche die Bilder der öffentlichen Seiten (z.B. Startseite und Epochenseiten) bequem aus.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: BookOpen,
-    title: "Quellen",
-    body: "Pflege die Quellen der Epochenseiten und ergänze Belege für unsere historische Arbeit.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Star,
-    title: "Besucher-Highlights",
-    body: "Verwalte die Besucher-Highlights der Epochenseiten, die Gästen die wichtigsten Punkte hervorheben.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Shield,
-    title: "Rollen & Berechtigungen",
-    body: "Lege fest, welche Rolle welche Funktionen nutzen darf, und weise Mitgliedern Rollen zu. Gehe sorgsam mit diesen Rechten um.",
-    route: "/intern/verwaltung/berechtigungen",
-  },
-  {
-    icon: Vote,
-    title: "Abstimmungen leiten",
-    body: "Als Vorstand kannst du Abstimmungen und Wahlen anlegen, Stellvertretungen verwalten und die Ergebnisse auswerten und abschließen.",
-    route: "/intern/abstimmungen",
-  },
-  {
-    icon: ClipboardList,
-    title: "Auswertungen",
-    body: "Sieh dir die Anmeldungen und die Logistik (z.B. Zeltplanung) aller Veranstaltungen an und behalte den Überblick.",
-    route: "/intern/auswertungen",
-  },
-  {
-    icon: ScrollText,
-    title: "Audit Log",
-    body: "Im Audit Log ist festgehalten, wer wichtige Dinge geändert hat, zum Beispiel eine gelöschte Abstimmung. So bleibt alles nachvollziehbar.",
-    route: "/intern/verwaltung/protokoll",
-  },
-  {
-    icon: Crown,
-    title: "Bereit für den Vorstand!",
-    body: "Du kennst jetzt deine zusätzlichen Werkzeuge. Bei Fragen findest du diese Tour jederzeit erneut in deinem Profil.",
-  },
-];
-
-const SCHATZMEISTER_STEPS: TourStep[] = [
-  {
-    icon: Wallet,
-    title: "Willkommen, Schatzmeister!",
-    body: "Du verwaltest jetzt die Finanzen des Vereins. Diese kurze Tour zeigt dir deine zusätzlichen Funktionen.",
-  },
-  {
-    icon: Coins,
-    title: "Beiträge verwalten",
-    body: "Im Bereich „Beiträge“ siehst du für alle Mitglieder den Zahlungsstatus, kannst Beiträge als bezahlt markieren, Teilzahlungen erfassen und die Beitragssätze pflegen.",
-    route: "/intern/beitraege",
-  },
-  {
-    icon: FileText,
-    title: "Mitgliedsunterlagen",
-    body: "Du kommst an die Unterlagen, die du für die Beitragsabrechnung brauchst: Aufnahmeanträge und die Stammdaten der Mitglieder.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Wallet,
-    title: "Bereit für die Kasse!",
-    body: "Du kennst jetzt deine Werkzeuge für die Finanzverwaltung. Diese Tour findest du jederzeit erneut in deinem Profil.",
-  },
-];
-
-const HEROLD_STEPS: TourStep[] = [
-  {
-    icon: Image,
-    title: "Willkommen, Herold!",
-    body: "Du pflegst jetzt die öffentliche Außendarstellung des Vereins. Diese kurze Tour zeigt dir deine zusätzlichen Funktionen.",
-  },
-  {
-    icon: Settings,
-    title: "Verwaltung",
-    body: "Über den Bereich „Verwaltung“ erreichst du alle Werkzeuge für die Öffentlichkeitsarbeit gebündelt an einem Ort.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Mail,
-    title: "Kontaktanfragen",
-    body: "Anfragen über das Kontaktformular der Website siehst du in der Verwaltung und kannst direkt darauf antworten.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Image,
-    title: "Galerie",
-    body: "Lade Bilder hoch, schreibe eine kurze Beschreibung dazu und ordne sie der passenden Kategorie zu.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: ImagePlus,
-    title: "Seitenbilder",
-    body: "Tausche die Bilder der öffentlichen Seiten (z.B. Startseite und Epochenseiten) bequem aus.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: BookOpen,
-    title: "Quellen",
-    body: "Pflege die Quellen der Epochenseiten und ergänze Belege für unsere historische Arbeit.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Star,
-    title: "Besucher-Highlights",
-    body: "Verwalte die Besucher-Highlights der Epochenseiten, die Gästen die wichtigsten Punkte hervorheben.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: CalendarDays,
-    title: "Veranstaltungen freigeben",
-    body: "Du kannst Veranstaltungen für die öffentliche Website freigeben, damit Gäste sie sehen.",
-    route: "/intern/verwaltung",
-  },
-  {
-    icon: Image,
-    title: "Bereit als Herold!",
-    body: "Du kennst jetzt deine Werkzeuge für die Außendarstellung. Diese Tour findest du jederzeit erneut in deinem Profil.",
-  },
-];
-
-const TOURS: TourDef[] = [
-  { key: "member", applies: () => true, steps: MEMBER_STEPS },
-  { key: "vorstand", applies: (r) => r.some((x) => VORSTAND_ROLES.includes(x)), steps: VORSTAND_STEPS },
-  { key: "schatzmeister", applies: (r) => r.includes("schatzmeister"), steps: SCHATZMEISTER_STEPS },
-  { key: "herold", applies: (r) => r.includes("herold"), steps: HEROLD_STEPS },
-];
-
-const getTour = (key: string) => TOURS.find((t) => t.key === key);
-
+/**
+ * Die Einführungstour.
+ *
+ * Diese Datei zeigt nur an. Was gezeigt wird, steht in schritte.ts – ein
+ * Schritt mehr ist dort ein Objekt mehr, hier ändert sich nichts.
+ *
+ * Gemerkt wird je Schritt, nicht je Tour. Das ist der ganze Unterschied zur
+ * ersten Fassung: Wer die Tour vor einem halben Jahr durchhatte und heute
+ * einen neu hinzugekommenen Bereich bekommt, sieht genau diesen einen Schritt
+ * – nicht wieder alle zwölf, und auch nicht gar nichts.
+ */
 export default function OnboardingTour() {
-  const [step, setStep] = useState(0);
-  const [activeTourKey, setActiveTourKey] = useState<string | null>(null);
-  const [queue, setQueue] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, roles, loading } = useAuth();
-  const checkedRef = useRef(false);
+  const { moeglich, offen, bereit, merken } = useTour();
 
-  // Determine pending tours from the database (once per session/login).
+  /** Die Schritte, die gerade laufen. Leer heisst: keine Tour offen. */
+  const [liste, setListe] = useState<Schritt[]>([]);
+  const [index, setIndex] = useState(0);
+  const angeboten = useRef(false);
+
+  const zeigen = useCallback(
+    (schritte: Schritt[], ab?: string) => {
+      if (schritte.length === 0) return;
+      const start = ab ? Math.max(0, schritte.findIndex((s) => s.key === ab)) : 0;
+      setListe(schritte);
+      setIndex(start);
+      const ziel = schritte[start].route;
+      if (ziel && ziel !== location.pathname) navigate(ziel);
+    },
+    [navigate, location.pathname]
+  );
+
+  // Einmal je Sitzung: Was noch aussteht, von selbst anbieten.
   useEffect(() => {
-    if (loading || !user) return;
+    if (!bereit) return;
     if (!location.pathname.startsWith("/intern")) return;
-    // Wait until roles have loaded so role-specific tours aren't missed
-    // (a logged-in member always holds at least one role).
-    if (roles.length === 0) return;
-    if (checkedRef.current) return;
-    checkedRef.current = true;
-
-    (async () => {
-      const { data, error } = await supabase
-        .from("user_tours")
-        .select("tour_key")
-        .eq("user_id", user.id);
-      if (error) return;
-      const done = new Set((data ?? []).map((d) => d.tour_key));
-      const pending = TOURS.filter((t) => t.applies(roles) && !done.has(t.key)).map((t) => t.key);
-      if (pending.length > 0) {
-        const first = pending[0];
-        setQueue(pending.slice(1));
-        setStep(0);
-        setActiveTourKey(first);
-        const firstStep = getTour(first)?.steps[0];
-        if (firstStep?.route) navigate(firstStep.route);
-      }
-    })();
+    if (angeboten.current) return;
+    angeboten.current = true;
+    zeigen(offen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user, roles, location.pathname]);
+  }, [bereit, location.pathname]);
 
-  // Listen for manual restart from Profile page (re-runs the member tour).
+  // Neustart über den Knopf im Profil oder aus der Liste auf der Startseite.
+  // Mit einem Schlüssel im Ereignis fängt die Tour dort an.
   useEffect(() => {
-    const handler = () => {
-      setQueue([]);
-      setStep(0);
-      setActiveTourKey("member");
-      navigate("/intern");
+    const starten = (e: Event) => {
+      const key = (e as CustomEvent<{ key?: string }>).detail?.key;
+      zeigen(moeglich, key);
     };
-    window.addEventListener("start-onboarding", handler);
-    return () => window.removeEventListener("start-onboarding", handler);
-  }, [navigate]);
+    window.addEventListener("start-onboarding", starten);
+    return () => window.removeEventListener("start-onboarding", starten);
+  }, [moeglich, zeigen]);
 
-  const markComplete = useCallback(async (key: string) => {
-    if (!user) return;
-    await supabase
-      .from("user_tours")
-      .upsert({ user_id: user.id, tour_key: key }, { onConflict: "user_id,tour_key", ignoreDuplicates: true });
-  }, [user]);
+  const beenden = useCallback(
+    (rest: string[]) => {
+      // Abbrechen heisst nicht „später nochmal“: Wer wegklickt, will die Tour
+      // nicht. Deshalb gilt auch der Rest als gesehen.
+      merken(rest);
+      setListe([]);
+      setIndex(0);
+    },
+    [merken]
+  );
 
-  const finishCurrent = useCallback(() => {
-    if (activeTourKey) markComplete(activeTourKey);
-    const [nextKey, ...rest] = queue;
-    if (nextKey) {
-      setQueue(rest);
-      setStep(0);
-      setActiveTourKey(nextKey);
-      const firstStep = getTour(nextKey)?.steps[0];
-      navigate(firstStep?.route ?? "/intern");
-    } else {
-      setActiveTourKey(null);
-      if (location.pathname !== "/intern") navigate("/intern");
+  if (liste.length === 0) return null;
+
+  const aktuell = liste[index];
+  const Icon = aktuell.icon;
+  const letzter = index === liste.length - 1;
+
+  const weiter = () => {
+    merken([aktuell.key]);
+    if (letzter) {
+      beenden([]);
+      return;
     }
-  }, [activeTourKey, queue, markComplete, navigate, location.pathname]);
-
-  const tour = activeTourKey ? getTour(activeTourKey) : null;
-  const steps = tour?.steps ?? [];
-
-  const close = useCallback(() => {
-    // Closing counts as completing the current tour (and skips the rest of the queue).
-    if (activeTourKey) markComplete(activeTourKey);
-    queue.forEach((k) => markComplete(k));
-    setQueue([]);
-    setActiveTourKey(null);
-    if (location.pathname !== "/intern") navigate("/intern");
-  }, [activeTourKey, queue, markComplete, navigate, location.pathname]);
-
-  const next = () => {
-    if (step < steps.length - 1) {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      if (steps[nextStep].route) navigate(steps[nextStep].route!);
-    } else {
-      finishCurrent();
-    }
+    const naechster = liste[index + 1];
+    setIndex(index + 1);
+    if (naechster.route) navigate(naechster.route);
   };
 
-  const prev = () => {
-    if (step > 0) {
-      const prevStep = step - 1;
-      setStep(prevStep);
-      if (steps[prevStep].route) navigate(steps[prevStep].route!);
-      else navigate("/intern");
-    }
+  const zurueck = () => {
+    if (index === 0) return;
+    const vorheriger = liste[index - 1];
+    setIndex(index - 1);
+    if (vorheriger.route) navigate(vorheriger.route);
   };
 
-  if (!tour || steps.length === 0) return null;
-
-  const current = steps[step];
-  const Icon = current.icon;
-  const progress = ((step + 1) / steps.length) * 100;
-  const isLast = step === steps.length - 1;
-  const isFirst = step === 0;
+  const schliessen = () => beenden(liste.slice(index).map((s) => s.key));
 
   return (
     <AnimatePresence>
@@ -400,20 +106,20 @@ export default function OnboardingTour() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-4"
-        onClick={(e) => { if (e.target === e.currentTarget) close(); }}
+        onClick={(e) => { if (e.target === e.currentTarget) schliessen(); }}
       >
         <motion.div
-          key={`${activeTourKey}-${step}`}
+          key={aktuell.key}
           initial={{ opacity: 0, y: 16, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.97 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-full max-w-md bg-card rounded-xl border shadow-xl overflow-hidden mb-safe"
         >
-          <Progress value={progress} className="h-1 rounded-none" />
+          <Progress value={((index + 1) / liste.length) * 100} className="h-1 rounded-none" />
 
           <button
-            onClick={close}
+            onClick={schliessen}
             className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Tour schließen"
           >
@@ -421,42 +127,35 @@ export default function OnboardingTour() {
           </button>
 
           <div className="p-5 sm:p-6 pt-4 sm:pt-5">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-start gap-3 mb-3 pr-6">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
                 <Icon size={20} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground font-medium">
-                  Schritt {step + 1} von {steps.length}
+                  {GRUPPEN[aktuell.gruppe]} · Schritt {index + 1} von {liste.length}
                 </p>
-                <h3 className="font-serif text-base sm:text-lg font-semibold leading-tight">{current.title}</h3>
+                <h3 className="font-serif text-base sm:text-lg font-semibold leading-tight">
+                  {aktuell.titel}
+                </h3>
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-              {current.body}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{aktuell.text}</p>
 
-            {current.hint && (
-              <p className="text-xs text-primary/80 bg-primary/5 rounded-md px-3 py-2 mt-2">
-                {current.hint}
+            {aktuell.tipp && (
+              <p className="text-xs text-primary/80 bg-primary/5 rounded-md px-3 py-2 mt-3">
+                {aktuell.tipp}
               </p>
             )}
           </div>
 
           <div className="flex items-center justify-between px-5 sm:px-6 pb-4 sm:pb-5 pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={prev}
-              disabled={isFirst}
-              className="gap-1"
-            >
+            <Button variant="ghost" size="sm" onClick={zurueck} disabled={index === 0} className="gap-1">
               <ChevronLeft size={14} /> Zurück
             </Button>
-
-            <Button size="sm" onClick={next} className="gap-1">
-              {isLast ? "Fertig" : "Weiter"} {!isLast && <ChevronRight size={14} />}
+            <Button size="sm" onClick={weiter} className="gap-1">
+              {letzter ? "Fertig" : "Weiter"} {!letzter && <ChevronRight size={14} />}
             </Button>
           </div>
         </motion.div>
@@ -465,11 +164,3 @@ export default function OnboardingTour() {
   );
 }
 
-/**
- * Manueller Neustart der Mitglieder-Tour (vom Profil aus).
- * Der eigentliche Reset passiert über das "start-onboarding"-Event –
- * die Tour wird angezeigt, ohne den DB-Status zu löschen.
- */
-export function resetOnboardingTour() {
-  // Kept for backwards compatibility; tour state now lives in the database.
-}

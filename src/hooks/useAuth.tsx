@@ -13,6 +13,15 @@ interface AuthContextType {
   /** True if the user holds any role (= is an active member) */
   isMember: boolean;
   permissions: string[];
+  /**
+   * Sind Rollen und Rechte fertig geladen?
+   *
+   * `loading` sagt nur, ob die Sitzung steht – die Rechte kommen einen
+   * Wimpernschlag spaeter nach. Wer sich danach richtet, was jemand darf,
+   * braucht diese Angabe: `permissions.length > 0` taugt nicht, denn eine
+   * Rolle ganz ohne Rechte ist erlaubt und waere dann fuer immer „laedt noch".
+   */
+  permissionsLoaded: boolean;
   hasPermission: (permission: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -32,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [realPermissions, setRealPermissions] = useState<string[]>([]);
   const [impersonatingRole, setImpersonatingRole] = useState<string | null>(null);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   const isMember = roles.length > 0;
 
@@ -75,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setPermissions(perms);
       setRealPermissions(perms);
     }
+    setPermissionsLoaded(true);
   };
 
   const startImpersonation = useCallback(async (role: string) => {
@@ -112,6 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setRoles([]);
           setRoleLabels({});
           setPermissions([]);
+          setPermissionsLoaded(false);
         }
         setLoading(false);
         initialized = true;
@@ -187,6 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         roleLabels,
         isMember,
         permissions,
+        permissionsLoaded,
         hasPermission,
         signIn,
         signOut,

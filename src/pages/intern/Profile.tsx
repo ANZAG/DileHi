@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PushToggle from "@/components/PushToggle";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
+import { tourStarten } from "@/components/onboarding/useTour";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { resetOnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PersonaEditor from "@/components/personas/PersonaEditor";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder";
@@ -330,7 +330,7 @@ const Profile = () => {
             <ArrowLeft size={16} /> Zurück
           </Link>
           <button
-            onClick={() => { resetOnboardingTour(); window.dispatchEvent(new CustomEvent("start-onboarding")); }}
+            onClick={() => tourStarten()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <HelpCircle size={14} /> Tour starten
