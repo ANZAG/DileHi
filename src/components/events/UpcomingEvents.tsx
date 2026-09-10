@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { ChevronDown, Users, Check, Globe } from "lucide-react";
@@ -54,6 +55,25 @@ export default function UpcomingEvents({
 
   // Ein aufgeklappter Termin bleibt sichtbar, auch wenn er hinter der Grenze
   // liegt – sonst verschwindet er beim Anklicken aus dem Kalender.
+  /*
+   * Die Einführung zeigt auf die Knopfleiste eines Termins – die gibt es aber
+   * nur aufgeklappt. Also sagt die Führung vorher an, worauf sie zielt, und
+   * hier wird der oberste Termin geöffnet. Dieselbe Verabredung wie bei den
+   * Kacheln der Verwaltung; die Führung braucht dafür keinen Sonderfall.
+   */
+  useEffect(() => {
+    // `Event` ist in dieser Datei der Vereinstermin, deshalb ausdruecklich
+    // das Browser-Ereignis.
+    const hoeren = (e: globalThis.Event) => {
+      const anker = (e as CustomEvent<{ anker?: string }>).detail?.anker;
+      if (anker !== "termin-aktionen" && anker !== "termin-erster") return;
+      const erster = upcoming[0];
+      if (erster) setExpandedId(erster.id);
+    };
+    window.addEventListener("tour-anker", hoeren);
+    return () => window.removeEventListener("tour-anker", hoeren);
+  }, [upcoming, setExpandedId]);
+
   const expandedIndex = upcoming.findIndex((e) => e.id === expandedId);
   const grenze = showAllUpcoming ? upcoming.length : Math.max(showInitial, expandedIndex + 1);
   const displayed = upcoming.slice(0, grenze);
@@ -66,7 +86,7 @@ export default function UpcomingEvents({
       ) : (
         <>
           <div className="space-y-2">
-            {displayed.map((ev) => {
+            {displayed.map((ev, i) => {
               const att = eventAttendees(ev.id);
               const attending = isAttending(ev.id);
               const offen = expandedId === ev.id;
@@ -74,6 +94,11 @@ export default function UpcomingEvents({
                 <div
                   key={ev.id}
                   id={`termin-${ev.id}`}
+                  // Ziel der Einführung. Erklärt wird am obersten echten
+                  // Termin und nicht an einem Bild: Ein Bild veraltet, zeigt
+                  // fremde Farben und fremde Beispieldaten. Der Termin hier
+                  // ist immer aktuell und immer der des eigenen Vereins.
+                  data-tour={i === 0 ? "termin-erster" : undefined}
                   className={`border rounded-lg transition-colors ${offen ? "bg-card" : "hover:bg-accent/50"}`}
                 >
                   <button

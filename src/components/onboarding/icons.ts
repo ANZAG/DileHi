@@ -1,8 +1,8 @@
 import {
-  Banknote, BookOpen, CalendarDays, ClipboardList, Coins, FileText, Image,
-  ImagePlus, Mail, MailPlus, MapPin, Megaphone, MessagesSquare, PackageOpen,
-  Palette, ScrollText, Settings, Shield, Sparkles, Star, Tent, User, UserPlus,
-  Users, Vote, type LucideIcon,
+  Banknote, BookOpen, CalendarDays, Check, ClipboardList, Coins, Copy, FileText,
+  Image, ImagePlus, ListChecks, Mail, MailPlus, MapPin, Megaphone,
+  MessagesSquare, PackageOpen, Palette, Plus, ScrollText, Settings, Shield,
+  Sparkles, Star, Tags, Tent, User, UserPlus, Users, Vote, type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -16,10 +16,10 @@ import {
  * Verwaltung soll keinen leeren Kasten hinterlassen.
  */
 const ZEICHEN: Record<string, LucideIcon> = {
-  Banknote, BookOpen, CalendarDays, ClipboardList, Coins, FileText, Image,
-  ImagePlus, Mail, MailPlus, MapPin, Megaphone, MessagesSquare, PackageOpen,
-  Palette, ScrollText, Settings, Shield, Sparkles, Star, Tent, User, UserPlus,
-  Users, Vote,
+  Banknote, BookOpen, CalendarDays, Check, ClipboardList, Coins, Copy, FileText,
+  Image, ImagePlus, ListChecks, Mail, MailPlus, MapPin, Megaphone,
+  MessagesSquare, PackageOpen, Palette, Plus, ScrollText, Settings, Shield,
+  Sparkles, Star, Tags, Tent, User, UserPlus, Users, Vote,
 };
 
 export const ZEICHEN_NAMEN = Object.keys(ZEICHEN);

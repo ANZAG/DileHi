@@ -22,9 +22,37 @@ Kopfschmerzen. Der letzte Schritt springt ins Profil, weil das der erste
 sinnvolle Handgriff ist.
 
 **Die Bereichstouren** erklären, wie man in einem Bereich arbeitet, und laufen
-nur dort. Was selbsterklärend ist — Forum, Versammlungen, Dokumente,
-Quellensammlung, Mitgliederkarte — wird im Rundgang genannt und bekommt keine
-eigene Tour.
+nur dort:
+
+| Tour              | Wo                        | Für wen                       |
+| ----------------- | ------------------------- | ----------------------------- |
+| `veranstaltungen` | Veranstaltungen           | alle                          |
+| `anmeldeformular` | Formularbauer             | `events.moderate`             |
+| `auswertung`      | Anmeldungen               | `events.moderate`             |
+| `abstimmungen`    | Abstimmungen              | `elections.manage`            |
+| `verwaltung`      | Verwaltung                | `admin.access` und mehr       |
+| `seiten`          | Seiteneditor              | `site.content_edit`           |
+
+Was selbsterklärend ist — Forum, Versammlungen, Dokumente, Quellensammlung,
+Mitgliederkarte — wird im Rundgang genannt und bekommt keine eigene Tour.
+
+Ihre Schritte haben **keine Route**. Eine Bereichstour läuft dort, wo sie
+gestartet wurde; mit einer Route hätte der Schritt über die Speicherleiste den
+Formularbauer verlassen, in dem er gerade erklärt, worauf man beim Speichern
+achten muss. Navigieren ist Sache des Rundgangs, und selbst der tut es nur
+einmal, ganz am Ende.
+
+## Erklärt wird am Bildschirm, nicht an Bildern
+
+Die Veranstaltungstour öffnet den obersten echten Termin und erklärt daran.
+Ein Bildschirmfoto wäre einfacher gewesen und dreimal falsch: Es veraltet mit
+der nächsten Änderung, zeigt unsere Farben statt der des Vereins und unsere
+Beispieldaten statt seiner.
+
+Damit ein Anker sichtbar wird, der hinter einem Reiter oder in einem
+zugeklappten Eintrag liegt, sagt die Führung vorher an, worauf sie zielt (siehe
+unten). Die Terminliste hört zu und klappt den obersten Termin auf, die
+Verwaltung öffnet den passenden Reiter.
 
 Die erste Fassung hatte beides in einer Kette: dreißig Schritte quer durch die
 Anwendung. Schritt 2 war eine Aufgabe im Profil, Schritt 3 eine

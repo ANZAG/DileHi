@@ -100,7 +100,7 @@ export default function EventBody({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 justify-end">
+      <div data-tour="termin-aktionen" className="flex flex-wrap items-center gap-2 justify-end">
         {canEdit && (
           <div className="mr-auto flex gap-1">
             <Button variant="ghost" size="icon" asChild title="Anmeldeformular">

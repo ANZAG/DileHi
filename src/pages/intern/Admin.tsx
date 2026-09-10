@@ -32,6 +32,7 @@ import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
 import { SEITE } from "@/lib/layout";
+import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 
 type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte";
 
@@ -175,7 +176,13 @@ const Admin = () => {
             <ArrowLeft size={16} /> Zurück
           </Link>
           <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
+          <TourKnopf tour="verwaltung" />
         </div>
+
+        <NeuHier
+          tour="verwaltung"
+          text="Zum ersten Mal in der Verwaltung? Kurz gezeigt, was hier wo liegt."
+        />
 
         {/* Die Gruppen als Reiter. Nach dem Gruppieren standen dreizehn Kacheln
             untereinander und schoben den eigentlichen Inhalt weit nach unten –
