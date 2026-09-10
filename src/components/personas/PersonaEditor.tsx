@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, ImagePlus, Loader2, Pencil, X, ScrollText } from "lucide-react";
 import { MAX_PERSONA_IMAGES, PERIOD_OPTIONS, type MemberPersona } from "./constants";
+import { Hilfe } from "@/components/Hilfe";
 import { useSignedImages } from "./useSignedImages";
 
 interface DraftState {
@@ -120,11 +121,12 @@ const PersonaEditor = () => {
   };
 
   return (
-    <div className="p-6 rounded-lg border bg-card space-y-4">
+    <div data-tour="profil-darstellung" className="p-6 rounded-lg border bg-card space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
             <ScrollText size={18} /> Darstellungssteckbrief
+            <Hilfe k="darstellung" />
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Nur für angemeldete Mitglieder sichtbar. Du kannst mehrere Darstellungen anlegen.

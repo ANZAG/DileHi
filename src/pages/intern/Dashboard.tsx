@@ -104,6 +104,7 @@ const Dashboard = () => {
             {canAdmin && (
               <Link
                 to="/intern/verwaltung"
+                data-tour="knopf-verwaltung"
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
               >
                 <Settings size={16} /> Verwaltung
@@ -140,6 +141,7 @@ const Dashboard = () => {
             >
               <Link
                 to={card.path}
+                data-tour={card.modul ? `kachel-${card.modul}` : undefined}
                 className="flex flex-col p-3 sm:p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full overflow-hidden"
               >
                 <card.icon size={24} className="text-primary mb-2 shrink-0" />

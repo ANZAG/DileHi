@@ -74,11 +74,10 @@ Bringt das Modul einen eigenen Feldtyp für Formulare mit, bekommt er in
 
 ## Und die Tour?
 
-Kein Pflichtschritt, aber der Ort dafür: In
-`src/components/onboarding/schritte.ts` kann ein Schritt mit
-`modul: "inventar"` stehen. Er erscheint dann nur, wenn das
-Modul eingeschaltet ist, und verschwindet mit ihm – ohne eine weitere Abfrage.
-Siehe [onboarding.md](onboarding.md).
+Kein Pflichtschritt, aber der Ort dafür: eine Zeile in `onboarding_schritte`
+mit `modul = 'inventar'`. Sie erscheint dann nur, wenn das Modul eingeschaltet
+ist, und verschwindet mit ihm – ohne eine weitere Abfrage. Siehe
+[onboarding.md](onboarding.md).
 
 ## Was der Test prüft
 
