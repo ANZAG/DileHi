@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PushToggle from "@/components/PushToggle";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
-import { tourStarten } from "@/components/onboarding/useTour";
+import { fuehrungStarten } from "@/components/onboarding/useOnboarding";
+import { Hilfe } from "@/components/Hilfe";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -359,10 +360,10 @@ const Profile = () => {
             <ArrowLeft size={16} /> Zurück
           </Link>
           <button
-            onClick={() => tourStarten()}
+            onClick={() => fuehrungStarten()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
-            <HelpCircle size={14} /> Tour starten
+            <HelpCircle size={14} /> Führung starten
           </button>
         </div>
         <h1 className="font-serif text-2xl font-bold mb-6">Mein Profil</h1>
@@ -383,7 +384,7 @@ const Profile = () => {
           */}
         <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
           {/* Personal info */}
-          <div className="p-6 rounded-lg border bg-card space-y-4">
+          <div data-tour="profil-daten" className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Persönliche Daten</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -482,11 +483,11 @@ const Profile = () => {
           </div>
 
           {/* Membership info */}
-          <div className="p-6 rounded-lg border bg-card space-y-4">
+          <div data-tour="profil-mitgliedschaft" className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="profile-membership" className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft</label>
+                <label htmlFor="profile-membership" className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft<Hilfe k="mitgliedsart" /></label>
                 <select
                   id="profile-membership"
                   value={form.membershipType}
@@ -502,7 +503,7 @@ const Profile = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="profile-payment" className="text-sm font-medium mb-1.5 block">Beitragseinzug</label>
+                <label htmlFor="profile-payment" className="text-sm font-medium mb-1.5 block">Beitragseinzug<Hilfe k="beitragsintervall" /></label>
                 <select
                   id="profile-payment"
                   value={form.contributionInterval}
@@ -549,7 +550,7 @@ const Profile = () => {
           {bereichAn(profilfelder, "ernaehrung", module) && (
   <div className="p-6 rounded-lg border bg-card space-y-4">
               <div>
-                <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
+                <h2 className="font-serif text-lg font-semibold">Ernährung<Hilfe k="ernaehrung" /></h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
                 </p>
@@ -585,10 +586,10 @@ const Profile = () => {
 
           {/* Tents */}
           {bereichAn(profilfelder, "zelte", module) && (
-  <div className="p-6 rounded-lg border bg-card space-y-4">
+  <div data-tour="profil-zelte" className="p-6 rounded-lg border bg-card space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
-                  <Tent size={18} /> Meine Zelte
+                  <Tent size={18} /> Meine Zelte<Hilfe k="zeltmasse" />
                 </h2>
                 <Button variant="outline" size="sm" onClick={() => setShowAddTent(true)}>
                   <Plus size={14} className="mr-1" /> Zelt
@@ -718,7 +719,7 @@ const Profile = () => {
           {bereichAn(profilfelder, "karte", module) && (
   <div className="p-6 rounded-lg border bg-card space-y-3">
               <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
-                <MapPin size={18} /> Mitgliederkarte
+                <MapPin size={18} /> Mitgliederkarte<Hilfe k="karte_sichtbar" />
               </h2>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input

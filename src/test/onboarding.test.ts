@@ -1,106 +1,120 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SCHRITTE, passendeSchritte, GRUPPEN } from "@/components/onboarding/schritte";
+import { ZEICHEN_NAMEN, zeichen } from "@/components/onboarding/icons";
 
-describe("Erste Schritte", () => {
-  it("hat eindeutige Schlüssel", () => {
-    // Zwei gleiche Schlüssel hiessen: Der zweite Schritt gilt als gesehen,
-    // sobald jemand den ersten weggeklickt hat.
-    const keys = SCHRITTE.map((s) => s.key);
-    expect(keys.length).toBe(new Set(keys).size);
+const migration = readFileSync(
+  "supabase/migrations/20260909260000_onboarding.sql",
+  "utf-8"
+);
+
+describe("Zeichen der Schritte", () => {
+  it("liefert für einen unbekannten Namen etwas Brauchbares", () => {
+    // Ein Tippfehler in der Verwaltung soll keinen leeren Kasten hinterlassen.
+    expect(zeichen("GibtEsNicht")).toBeTruthy();
+    expect(zeichen(null)).toBeTruthy();
   });
 
-  it("kennt jede benutzte Gruppe", () => {
-    for (const s of SCHRITTE) expect(GRUPPEN[s.gruppe]).toBeTruthy();
-  });
-
-  it("zeigt einem einfachen Mitglied nichts aus der Verwaltung", () => {
-    const tour = passendeSchritte(() => false, () => true);
-    expect(tour.every((s) => !s.recht)).toBe(true);
-    expect(tour.map((s) => s.key)).toContain("profil");
-  });
-
-  it("lässt Schritte abgeschalteter Module weg", () => {
-    const ohneForum = passendeSchritte(() => true, (m) => m !== "forum");
-    expect(ohneForum.map((s) => s.key)).not.toContain("forum");
-    expect(ohneForum.map((s) => s.key)).toContain("profil");
-  });
-
-  it("zeigt einem Verein ohne Module und ohne Rechte trotzdem einen Anfang", () => {
-    // Der Extremfall: frische Installation, alles aus. Eine leere Tour wäre
-    // ein leeres Fenster.
-    const minimal = passendeSchritte(() => false, () => false);
-    expect(minimal.length).toBeGreaterThan(0);
+  it("kennt jedes Zeichen, das die Migration vergibt", () => {
+    const benutzt = [...migration.matchAll(/\n {2}\('[a-z_]+', '\w+', '(\w+)',/g)].map((m) => m[1]);
+    expect(benutzt.length).toBeGreaterThan(15);
+    expect(benutzt.filter((n) => !ZEICHEN_NAMEN.includes(n))).toEqual([]);
   });
 });
 
 /**
  * Die Verkabelung.
  *
- * Ein Schritt mit einem Recht oder Modul, das es nicht gibt, ist unsichtbar –
- * und niemand merkt es. Genau deshalb steht das hier.
+ * Ein Anker ohne Gegenstück im Markup fällt niemandem auf: Die Führung zeigt
+ * dann einfach ein Fenster in der Mitte, so wie vorher. Genau deshalb steht
+ * das hier.
  */
-describe("Verkabelung der Schritte", () => {
-  const migrationen = readdirSync("supabase/migrations")
-    .filter((f) => f.endsWith(".sql"))
-    .map((f) => readFileSync(`supabase/migrations/${f}`, "utf-8"))
-    .join("\n");
-
-  const quellen = ["src/pages/intern/Admin.tsx", "src/pages/intern/Dashboard.tsx", "src/App.tsx"]
+describe("Anker der Führung", () => {
+  const quellen = [
+    ...readdirSync("src/pages/intern").map((f) => `src/pages/intern/${f}`),
+    "src/components/personas/PersonaEditor.tsx",
+  ]
+    .filter((f) => f.endsWith(".tsx"))
     .map((f) => readFileSync(f, "utf-8"))
     .join("\n");
 
-  it("benutzt nur Rechte, die es auch anderswo gibt", () => {
-    const rechte = [...new Set(SCHRITTE.map((s) => s.recht).filter(Boolean))] as string[];
-    expect(rechte.length).toBeGreaterThan(5);
-    const fehlend = rechte.filter(
-      (r) => !quellen.includes(`"${r}"`) && !migrationen.includes(`'${r}'`)
-    );
-    expect(fehlend).toEqual([]);
-  });
-
-  it("benutzt nur Module, die die Datenbank kennt", () => {
-    const module = [...new Set(SCHRITTE.map((s) => s.modul).filter(Boolean))] as string[];
-    expect(module.length).toBeGreaterThan(5);
-    const fehlend = module.filter((m) => !migrationen.includes(`'${m}'`));
-    expect(fehlend).toEqual([]);
-  });
-
-  it("trägt in der Migration nur Schlüssel nach, die es gibt", () => {
-    // Die Migration markiert alte Touren als gesehen. Ein Tippfehler dort
-    // hiesse: Der Schritt gilt weiter als offen und wird allen noch einmal
-    // gezeigt, obwohl sie ihn kennen.
-    const sql = readFileSync(
-      "supabase/migrations/20260909240000_erste_schritte.sql",
-      "utf-8"
-    );
-    const bekannt = new Set(SCHRITTE.map((s) => s.key));
-    const nachgetragen = [...sql.matchAll(/'([a-z_]+)'/g)]
+  const anker = [...new Set(
+    [...migration.matchAll(/'([a-z]+-[a-z_]+)', (?:'[a-z_.]+'|NULL), (?:'[a-z_]+'|NULL)/g)]
       .map((m) => m[1])
-      .filter((k) => !["member", "vorstand", "schatzmeister", "herold"].includes(k));
-    const unbekannt = [...new Set(nachgetragen)].filter((k) => !bekannt.has(k));
-    expect(unbekannt).toEqual([]);
+  )];
+
+  it("findet überhaupt Anker in der Migration", () => {
+    expect(anker.length).toBeGreaterThan(8);
+  });
+
+  it("hat zu jedem Anker ein Element im Markup", () => {
+    const fehlend = anker.filter((a) => {
+      // Kacheln werden aus dem Schluessel gebaut: data-tour={`kachel-${...}`}
+      if (a.startsWith("kachel-")) return !quellen.includes("data-tour={`kachel-");
+      return !quellen.includes(`data-tour="${a}"`);
+    });
+    expect(fehlend).toEqual([]);
   });
 });
 
-/**
- * Overlay und Liste zeigen dasselbe an – also fragen sie auch dasselbe.
- *
- * Zwei Umsetzungen derselben Sache, die auseinanderlaufen, hatten wir in
- * diesem Projekt schon mehrfach. Hier waere die Folge: Der Kasten auf der
- * Startseite zeigt einen Schritt als offen, den die Tour laengst abgehakt hat.
- */
-describe("Eine Quelle für beide Ansichten", () => {
-  const dateien = [
-    "src/components/onboarding/OnboardingTour.tsx",
-    "src/components/onboarding/ErsteSchritte.tsx",
-  ];
+describe("Aufgaben", () => {
+  it("prüft jede Aufgabe in der Datenbank nach", () => {
+    // Eine Aufgabe ohne Zweig in onboarding_erledigt() liesse sich nie
+    // abhaken – die Liste bliebe fuer immer stehen.
+    const vergeben = [...new Set(
+      [...migration.matchAll(/(?:'[a-z_]+'|NULL), ('[a-z_]+'|NULL), \d+\),?\n/g)]
+        .map((m) => m[1])
+        .filter((x) => x !== "NULL")
+        .map((x) => x.replace(/'/g, ""))
+    )];
+    expect(vergeben.length).toBeGreaterThan(5);
+    const funktion = migration.slice(
+      migration.indexOf("FUNCTION public.onboarding_erledigt"),
+      migration.indexOf("GRANT EXECUTE ON FUNCTION public.onboarding_erledigt")
+    );
+    expect(vergeben.filter((a) => !funktion.includes(`'${a}'`))).toEqual([]);
+  });
+});
 
-  it("holt den Stand nur über useTour", () => {
-    for (const datei of dateien) {
-      const inhalt = readFileSync(datei, "utf-8");
-      expect(inhalt).toContain('from "./useTour"');
-      expect(inhalt).not.toContain('from("user_tours")');
-    }
+describe("Die drei Fehler der Vorgängerfassung", () => {
+  const tour = readFileSync("src/components/onboarding/OnboardingTour.tsx", "utf-8");
+  const karte = readFileSync("src/components/onboarding/ErsteSchritte.tsx", "utf-8");
+
+  it("startet nicht mehr von selbst", () => {
+    // Vorher schob die Tour Leute quer durch die Anwendung, sobald sie den
+    // Mitgliederbereich betraten. Jetzt nur auf Aufforderung.
+    expect(tour).toContain("start-onboarding");
+    expect(tour).not.toContain("angeboten.current");
+  });
+
+  it("verbrennt beim Schliessen nicht den Rest", () => {
+    // Der alte Fehler war ein merken() ueber alle restlichen Schritte.
+    expect(tour).not.toContain("liste.slice(index).map");
+    expect(tour).toContain("merken([aktuell.key]);");
+  });
+
+  it("hakt Aufgaben nicht von Hand ab", () => {
+    // Ein Haekchen, das man setzen kann, ohne die Sache getan zu haben, waere
+    // nur eine hoeflichere Diashow.
+    expect(karte).toContain("a.fertig");
+    expect(karte).not.toContain('merken([');
+  });
+});
+
+describe("Inhalte sind pflegbar", () => {
+  it("holt die Schritte aus der Datenbank, nicht aus dem Quelltext", () => {
+    const hook = readFileSync("src/components/onboarding/useOnboarding.ts", "utf-8");
+    expect(hook).toContain('from("onboarding_schritte")');
+  });
+
+  it("hat einen Platz in der Verwaltung", () => {
+    const admin = readFileSync("src/pages/intern/Admin.tsx", "utf-8");
+    expect(admin).toContain("OnboardingAdmin");
+    expect(admin).toContain('"erstesschritte"');
+  });
+
+  it("hält den Auslieferungszustand fest", () => {
+    expect(migration).toContain("SET standard = jsonb_build_object");
+    const admin = readFileSync("src/components/admin/OnboardingAdmin.tsx", "utf-8");
+    expect(admin).toContain("Auslieferungszustand");
   });
 });

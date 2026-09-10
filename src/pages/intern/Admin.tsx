@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
-  Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen,
+  Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -30,9 +30,10 @@ import ModuleAdmin from "@/components/admin/ModuleAdmin";
 import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
+import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
 import { SEITE, SEITE_WEIT } from "@/lib/layout";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte";
 
 
 const Admin = () => {
@@ -50,6 +51,24 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
   // Welcher Reiter offen ist. null heisst „der, in dem das Geöffnete liegt".
   const [offeneGruppeTitel, setOffeneGruppeTitel] = useState<string | null>(null);
+
+  /*
+   * Die Führung zeigt auf eine Kachel, die hinter einem Reiter liegt.
+   *
+   * Sie sagt vorher an, worauf sie zielt („tour-anker"). Liegt das Ziel hier,
+   * wird der Reiter geöffnet, damit es überhaupt im Dokument steht – sonst
+   * suchte die Hervorhebung ein Element, das es gerade nicht gibt.
+   */
+  useEffect(() => {
+    const hoeren = (e: Event) => {
+      const anker = (e as CustomEvent<{ anker?: string }>).detail?.anker;
+      if (!anker?.startsWith("kachel-")) return;
+      setActiveTab(anker.slice("kachel-".length) as AdminTab);
+      setOffeneGruppeTitel(null);
+    };
+    window.addEventListener("tour-anker", hoeren);
+    return () => window.removeEventListener("tour-anker", hoeren);
+  }, []);
 
   if (!canAdmin) return <Navigate to="/intern" replace />;
 
@@ -98,6 +117,7 @@ const Admin = () => {
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder und Texte des Antrags" , modul: "applications"},
       { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
+      { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
       { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , modul: "forum"},
@@ -192,6 +212,10 @@ const Admin = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     aria-current={activeTab === tab.id ? "page" : undefined}
+                    // Ziel der Hervorhebung in der Fuehrung. Die Kachel liegt
+                    // hinter einem Reiter, deshalb oeffnet die Fuehrung die
+                    // Gruppe selbst, bevor sie sucht (siehe unten).
+                    data-tour={`kachel-${tab.id}`}
                     className={`flex flex-col p-3 sm:p-4 rounded-lg border text-left transition-all ${
                       activeTab === tab.id
                         ? "bg-primary/5 border-primary shadow-sm"
@@ -222,6 +246,7 @@ const Admin = () => {
           {activeTab === "aufnahmeantrag" && hasPermission("system.settings") && <AufnahmeantragAdmin />}
           {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
+          {activeTab === "erstesschritte" && hasPermission("system.settings") && <OnboardingAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
           {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
