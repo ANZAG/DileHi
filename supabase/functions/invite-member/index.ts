@@ -173,8 +173,7 @@ async function antragsTexte(betrag: number, modell: Beitragsmodell): Promise<Ant
     pdfText("zustimmungen", werte),
     pdfText("fussnote", werte),
   ]);
-  const zeilen = (t: string) => t.split("
-").map((z) => z.trim()).filter(Boolean);
+  const zeilen = (t: string) => t.split("\n").map((z) => z.trim()).filter(Boolean);
   return {
     titel: titel.inhalt,
     erklaerung: {
