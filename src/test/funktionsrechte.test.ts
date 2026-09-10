@@ -116,4 +116,30 @@ describe("Vollständigkeit des Ausgangsstands", () => {
   it("kann den ersten Zugang anlegen", () => {
     expect(AUSGANGSSTAND).toContain("FUNCTION public.setup_needed");
   });
+
+  it("bindet jede Triggerfunktion auch an einen Trigger", () => {
+    // Eine Triggerfunktion ohne Trigger tut nichts, und niemand merkt es.
+    // So fehlte im ersten Ausgangsstand on_auth_user_created: Der Abzug las
+    // nur Trigger auf Tabellen in public, dieser haengt an auth.users. Ein
+    // neues Konto bekam kein Profil.
+    //
+    // Der Abzug schreibt die Funktion im Trigger ohne „public." – das Muster
+    // muss beides lesen. Die erste Fassung dieser Pruefung konnte das nicht
+    // und meldete null von vierzehn.
+    const triggerfunktionen = [...AUSGANGSSTAND.matchAll(
+      /CREATE OR REPLACE FUNCTION public\.(\w+)\(\)\s*RETURNS trigger/g
+    )].map((m) => m[1]);
+    const angebunden = new Set([...AUSGANGSSTAND.matchAll(
+      /CREATE TRIGGER[^;]*EXECUTE (?:FUNCTION|PROCEDURE) (?:public\.)?(\w+)\(/g
+    )].map((m) => m[1]));
+
+    expect(triggerfunktionen.length).toBeGreaterThan(10);
+    expect(triggerfunktionen.filter((f) => !angebunden.has(f))).toEqual([]);
+  });
+
+  it("legt beim neuen Konto ein Profil an", () => {
+    expect(AUSGANGSSTAND).toMatch(
+      /CREATE TRIGGER on_auth_user_created\s+AFTER INSERT ON auth\.users[\s\S]{0,80}handle_new_user/
+    );
+  });
 });
