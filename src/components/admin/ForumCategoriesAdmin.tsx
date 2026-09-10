@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Hilfe } from "@/components/Hilfe";
 import {
   deleteCategory, fetchCategories, fetchCategoryRights, saveCategory, setCategoryRight,
   type CategoryStatus, type ForumCategory,
@@ -129,7 +130,7 @@ export default function ForumCategoriesAdmin() {
               variant="outline" size="sm"
               onClick={() => setExpanded(expanded === c.id ? null : c.id)}
             >
-              Rechte
+              Rechte<Hilfe k="forum_rechte" />
             </Button>
 
             {/* Der Platz für die Tonne bleibt auch dann stehen, wenn es keine

@@ -285,7 +285,19 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
               )}
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <>
+              {/*
+                * Der Dialog war ein reines Namensregister: eine Liste, eine
+                * Spalte „Vertretung für", und nirgends stand, was das
+                * eigentlich bewirkt. Der Satz hilft auch beim fünften Mal, eine
+                * Einführung nur beim ersten.
+                */}
+              <p className="text-sm text-muted-foreground mb-3">
+                Wer nicht da sein kann, überträgt seine Stimme an ein anwesendes
+                Mitglied. Die Vertretung stimmt dann zusätzlich zu ihrer eigenen
+                Stimme mit ab. Jede Änderung landet im Protokoll oben rechts.
+              </p>
+              <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-2 font-medium">Name</th>
@@ -381,7 +393,8 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </>
           )}
         </div>
       </div>

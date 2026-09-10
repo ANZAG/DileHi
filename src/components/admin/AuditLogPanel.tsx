@@ -44,8 +44,11 @@ const AuditLogPanel = () => {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground mb-4">
-        Hier werden gelöschte, geschlossene Abstimmungen mit ihrem Ergebnis protokolliert.
+      <p className="text-sm text-muted-foreground max-w-prose mb-4">
+        Wird eine abgeschlossene Abstimmung gelöscht, bleibt sie hier mit ihrem
+        Ergebnis stehen. Das schützt vor allem die, die nichts falsch gemacht
+        haben: Ein Ergebnis, das spurlos verschwinden kann, ist hinterher schwer
+        zu verteidigen.
       </p>
       {entries.map((entry) => {
         const snapshot = entry.result_snapshot as Array<{ candidate: string; votes: number }> | null;

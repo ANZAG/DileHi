@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AntragsfelderAdmin from "./AntragsfelderAdmin";
 import { Antragstexte } from "./VorlagenAdmin";
+import SatzungEinstellung from "./SatzungEinstellung";
 
 /**
  * Alles, was den Aufnahmeantrag ausmacht – Felder und Texte in einer Maske.
@@ -15,7 +16,7 @@ import { Antragstexte } from "./VorlagenAdmin";
  * Anträge prüfen und Mitglieder pflegen bleibt drüben.
  */
 export default function AufnahmeantragAdmin() {
-  const [bereich, setBereich] = useState<"felder" | "texte">("felder");
+  const [bereich, setBereich] = useState<"felder" | "texte" | "satzung">("felder");
 
   return (
     <div>
@@ -31,6 +32,7 @@ export default function AufnahmeantragAdmin() {
         {([
           ["felder", "Felder"],
           ["texte", "Texte"],
+          ["satzung", "Satzung"],
         ] as const).map(([id, titel]) => (
           <button
             key={id}
@@ -48,7 +50,9 @@ export default function AufnahmeantragAdmin() {
         ))}
       </div>
 
-      {bereich === "felder" ? <AntragsfelderAdmin /> : <Antragstexte />}
+      {bereich === "felder" && <AntragsfelderAdmin />}
+      {bereich === "texte" && <Antragstexte />}
+      {bereich === "satzung" && <SatzungEinstellung />}
     </div>
   );
 }

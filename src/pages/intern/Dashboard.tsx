@@ -8,7 +8,7 @@ import {
   FileText, Coins, MapPin, ClipboardList, ScrollText,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
-import ErsteSchritte from "@/components/onboarding/ErsteSchritte";
+import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
 import { SEITE } from "@/lib/layout";
 
@@ -84,7 +84,10 @@ const Dashboard = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex flex-col gap-4 mb-8">
           <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
+            <div className="flex items-center gap-1 flex-wrap">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
+              <TourKnopf tour="start" titel="Rundgang" />
+            </div>
             <div className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-x-1 gap-y-1.5">
               <span className="break-all sm:break-normal">Angemeldet als {user?.email}</span>
               {roles.map((r) => (
@@ -97,6 +100,7 @@ const Dashboard = () => {
           <div className="flex gap-2 flex-wrap">
             <Link
               to="/intern/profil"
+              data-tour="knopf-profil"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
               <User size={16} /> Profil
@@ -113,6 +117,7 @@ const Dashboard = () => {
             {modulAn(module, "contributions") && (
             <Link
               to="/intern/beitraege"
+              data-tour="knopf-beitraege"
               className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
               <Coins size={16} /> Beiträge
@@ -127,9 +132,9 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <BirthdayBanner />
+        <NeuHier tour="start" />
 
-        <ErsteSchritte />
+        <BirthdayBanner />
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mt-6">
           {cards.map((card: any, i) => (

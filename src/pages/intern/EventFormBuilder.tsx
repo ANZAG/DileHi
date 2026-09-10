@@ -18,7 +18,8 @@ import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import { useFormSettings } from "@/components/event-forms/formSettings";
-import { SEITE_WEIT } from "@/lib/layout";
+import { SEITE } from "@/lib/layout";
+import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 
 /** Stabile Referenz – siehe Kommentar am Entwurfs-Effekt. */
 const EMPTY_FIELDS: FormField[] = [];
@@ -252,15 +253,24 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
     embedded ? (
       <>{children}</>
     ) : (
-      <div className={SEITE_WEIT}>
+      <div className={SEITE}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
+              <div className="flex items-center gap-1 flex-wrap">
+                <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
+                <TourKnopf tour="anmeldeformular" />
+              </div>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
             </div>
           </div>
+
+          <NeuHier
+            tour="anmeldeformular"
+            text="Zum ersten Mal ein Formular gebaut? Zwei Minuten, dann weisst du, worauf es ankommt."
+          />
+
           {children}
         </motion.div>
       </div>
@@ -358,14 +368,14 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div data-tour="knopf-vorlage" className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={loadTemplate}>
                 <Copy size={14} className="mr-1" /> Vorlage laden
               </Button>
             </div>
 
             {/* Speicherleiste */}
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+            <div data-tour="speicherleiste" className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
               <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
                 {dirty
                   ? "Du hast ungespeicherte Änderungen."

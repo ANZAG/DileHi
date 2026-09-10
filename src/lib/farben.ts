@@ -98,3 +98,41 @@ export function istDunkel(hex: string): boolean {
   const y = leuchtdichte(hex);
   return y !== null && y <= SCHWELLE;
 }
+
+/**
+ * Die Flächenfarben aus einer einzigen Angabe.
+ *
+ * Der Verein wählt die Farbe der Kästen. Alles, was dazugehört, wird daraus
+ * abgeleitet, indem die Helligkeit gestaffelt wird: Der Seitengrund liegt
+ * etwas heller als die Kästen (im dunklen Modus etwas dunkler), die gedämpfte
+ * Fläche eine Stufe in die Gegenrichtung, der Rahmen deutlich weiter.
+ *
+ * Warum nicht drei Farbwähler: Weil sich damit zuverlässig eine Seite
+ * einstellen lässt, auf der ein Kasten vom Grund nicht mehr zu unterscheiden
+ * ist. Der Abstand ist wichtiger als die Freiheit, ihn selbst zu bestimmen.
+ *
+ * Die Sättigung wird für Rahmen und gedämpfte Flächen leicht angehoben, sonst
+ * wirken sie neben einer farbigen Fläche schmutzig.
+ */
+export function flaechenfarben(hex: string, dunkel = false): Record<string, string> | null {
+  const basis = hexToHsl(hex);
+  if (!basis) return null;
+
+  const stufe = (l: number) => Math.min(100, Math.max(0, l));
+  const richtung = dunkel ? 1 : -1;
+
+  const kasten = basis;
+  const grund = { ...basis, l: stufe(basis.l - richtung * 2) };
+  const gedaempft = { ...basis, l: stufe(basis.l + richtung * 4) };
+  const rahmen = { ...basis, s: Math.min(100, basis.s + 4), l: stufe(basis.l + richtung * 8) };
+
+  return {
+    "--background": hslToTokens(grund),
+    "--card": hslToTokens(kasten),
+    "--popover": hslToTokens(kasten),
+    "--muted": hslToTokens(gedaempft),
+    "--secondary": hslToTokens(gedaempft),
+    "--border": hslToTokens(rahmen),
+    "--input": hslToTokens(rahmen),
+  };
+}

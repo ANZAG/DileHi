@@ -90,6 +90,13 @@ const RolesPermissionsPanel = () => {
 
   return (
     <div>
+      <p className="text-sm text-muted-foreground max-w-prose mb-6">
+        Eine Rolle ist ein Bündel von Rechten, und ein Recht erlaubt genau eine
+        Sache. Hier steht, welche Rolle was darf; wer welche Rolle hat, steht im
+        Mitgliederregister. Geh damit sparsam um: Wer Rechte vergeben darf, kann
+        sie auch sich selbst geben.
+      </p>
+
       {/* Impersonation buttons */}
       <div className="mb-6 p-4 rounded-lg border bg-muted/30">
         <p className="text-sm font-semibold mb-2 flex items-center gap-2">

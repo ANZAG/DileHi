@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Hilfe } from "@/components/Hilfe";
 
 interface Props {
   title: string; setTitle: (v: string) => void;
@@ -81,6 +82,7 @@ export default function EventFormDialog({
             <label htmlFor={`isPublic-${isEdit ? 'edit' : 'create'}`} className="text-sm font-medium cursor-pointer">
               Öffentlich sichtbar
             </label>
+            <Hilfe k="termin_oeffentlich" />
           </div>
         )}
       </div>

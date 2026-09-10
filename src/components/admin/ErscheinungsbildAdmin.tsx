@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
-import { hexToHsl, lesbareSchrift } from "@/lib/farben";
+import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 
 interface Einstellungen {
   org_name: string;
@@ -26,6 +26,7 @@ interface Einstellungen {
   satzung_link: boolean;
   satzung_document_id: string | null;
   color_primary: string;
+  color_surface: string;
   color_dark: string;
   font_headings: string;
   font_body: string;
@@ -163,9 +164,21 @@ export default function ErscheinungsbildAdmin() {
     pfad ? supabase.storage.from("gallery").getPublicUrl(pfad).data.publicUrl : null;
 
   return (
-    <div className="space-y-8">
+    /*
+     * Zweispaltig ab dem grossen Bildschirm, dieselbe Loesung wie im Profil.
+     *
+     * Sieben Abschnitte untereinander in einer Spalte hiessen: Wer den
+     * Mailversand einstellen will, scrollt an Logo, Farben und Schriften
+     * vorbei. `columns` und kein Raster, damit die Aufteilung sich von selbst
+     * ausgleicht.
+     *
+     * Die Reihenfolge im Quelltext ist die auf dem Handy und zugleich die
+     * Lesereihenfolge am Desktop: erst wer der Verein ist, dann wie er
+     * aussieht, dann was er verwaltet.
+     */
+    <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
       {/* ── Verein ───────────────────────────────────────────────────────── */}
-      <Abschnitt titel="Verein" hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
+      <Abschnitt titel="Der Verein" hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
         <div className="grid sm:grid-cols-2 gap-3">
           <Feld label="Name (vollständig)" wert={entwurf.org_name} setze={(v) => setze({ org_name: v })} />
           <Feld label="Kurzform (Kopfzeile)" wert={entwurf.org_short_name} setze={(v) => setze({ org_short_name: v })} />
@@ -183,8 +196,14 @@ export default function ErscheinungsbildAdmin() {
         </div>
       </Abschnitt>
 
-      {/* ── Logo und Favicon ─────────────────────────────────────────────── */}
-      <Abschnitt titel="Logo und Symbol" hinweis="Das Logo steht in der Kopfzeile, das Symbol im Browsertab.">
+      {/* ── Aussehen ─────────────────────────────────────────────────────── */}
+      <Abschnitt
+        titel="Aussehen"
+        hinweis="Logo, Farben und Schriften. Was hier steht, gilt auf der öffentlichen Seite und im Mitgliederbereich."
+      >
+        <div>
+          <h4 className="text-sm font-medium mb-1">Logo und Symbol</h4>
+          <p className="text-sm text-muted-foreground mb-3">Das Logo steht in der Kopfzeile, das Symbol im Browsertab.</p>
         <div className="grid sm:grid-cols-2 gap-6">
           {/* Beide zeigen, was gerade wirkt – nicht „leer". Das Favicon liegt
               als Datei im Projekt und ist da, auch wenn in der Datenbank
@@ -233,13 +252,12 @@ export default function ErscheinungsbildAdmin() {
             </span>
           </span>
         </label>
-      </Abschnitt>
+      
+        </div>
 
-      {/* ── Farben ───────────────────────────────────────────────────────── */}
-      <Abschnitt
-        titel="Farben"
-        hinweis="Die Vereinsfarbe zieht sich durch die ganze Seite: Knöpfe, Links und Hervorhebungen."
-      >
+        <div className="pt-5 mt-5 border-t">
+          <h4 className="text-sm font-medium mb-1">Farben</h4>
+          <p className="text-sm text-muted-foreground mb-3">Die Vereinsfarbe zieht sich durch die ganze Seite: Knöpfe, Links und Hervorhebungen.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <Farbwahl
             label="Vereinsfarbe"
@@ -252,11 +270,20 @@ export default function ErscheinungsbildAdmin() {
             setze={(v) => setze({ color_dark: v })}
             hinweis="Wird nur übernommen, wenn er wirklich dunkel ist."
           />
+          <Farbwahl
+            label="Kästen"
+            wert={entwurf.color_surface}
+            setze={(v) => setze({ color_surface: v })}
+            hinweis="Die Flächen, auf denen Inhalte liegen. Seitengrund und Rahmen ergeben sich daraus."
+            vorschau="flaeche"
+          />
         </div>
-      </Abschnitt>
+      
+        </div>
 
-      {/* ── Schriften ────────────────────────────────────────────────────── */}
-      <Abschnitt titel="Schriften" hinweis="Alle Schriften stehen unter einer freien Lizenz.">
+        <div className="pt-5 mt-5 border-t">
+          <h4 className="text-sm font-medium mb-1">Schriften</h4>
+          <p className="text-sm text-muted-foreground mb-3">Alle Schriften stehen unter einer freien Lizenz.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm">Überschriften</Label>
@@ -288,6 +315,8 @@ export default function ErscheinungsbildAdmin() {
         <p className="text-xs text-muted-foreground mt-2">
           Die Schrift wird erst nach dem Speichern und Neuladen sichtbar.
         </p>
+      
+        </div>
       </Abschnitt>
 
       {/* ── Beiträge ─────────────────────────────────────────────────────── */}
@@ -322,6 +351,33 @@ export default function ErscheinungsbildAdmin() {
           </p>
         </div>
 
+        {/* Die Bankverbindung stand bis eben als eigener Abschnitt weit
+            darunter. Sie gehoert hierher: Sie taucht an genau zwei Stellen auf,
+            im Beitragsbereich und auf dem Aufnahmeantrag. */}
+        <div className="pt-5 mt-5 border-t">
+          <h4 className="text-sm font-medium mb-1">Bankverbindung</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Steht im Beitragsbereich, damit Mitglieder wissen, wohin sie überweisen.
+            Ohne IBAN erscheint der Kasten dort gar nicht.
+          </p>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
+            <Feld
+              label="Empfänger"
+              wert={entwurf.bank_recipient ?? ""}
+              setze={(v) => setze({ bank_recipient: v })}
+            />
+          </div>
+          <Feld label="IBAN" wert={entwurf.bank_iban ?? ""} setze={(v) => setze({ bank_iban: v })} />
+          <Feld label="BIC (optional)" wert={entwurf.bank_bic ?? ""} setze={(v) => setze({ bank_bic: v })} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Ein Lastschrifteinzug findet nicht statt. Bankdaten von Mitgliedern
+          werden nirgends erhoben.
+        </p>
+        </div>
+
         <div className="max-w-md mt-6">
           <Label htmlFor="aufbewahrung" className="text-sm">
             Beitragsunterlagen aufbewahren
@@ -348,54 +404,6 @@ export default function ErscheinungsbildAdmin() {
             passt.
           </p>
         </div>
-      </Abschnitt>
-
-      {/* ── Aufnahmeantrag ───────────────────────────────────────────────── */}
-      <Abschnitt
-        titel="Aufnahmeantrag"
-        hinweis="Die Felder und Texte stehen unter Aufnahmeantrag. Hier nur, was den Verweis auf die Satzung angeht."
-      >
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={entwurf.satzung_link}
-            onChange={(e) => setze({ satzung_link: e.target.checked })}
-            className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
-          />
-          <span className="text-sm">
-            Satzung im Antrag verlinken
-            <span className="block text-xs text-muted-foreground">
-              Verweist auf das neueste Dokument der Kategorie „Satzung &amp; Ordnungen"
-              aus dem Bereich Dokumente. Der Verweis ist ohne Anmeldung erreichbar –
-              er muss es sein, denn wer einen Antrag stellt, hat noch kein Konto.
-              Ausgeschaltet steht in der Zustimmung nur das Wort „Satzung".
-            </span>
-          </span>
-        </label>
-
-        {entwurf.satzung_link && <SatzungWahl entwurf={entwurf} setze={setze} />}
-      </Abschnitt>
-
-      {/* ── Bankverbindung ───────────────────────────────────────────────── */}
-      <Abschnitt
-        titel="Bankverbindung"
-        hinweis="Steht im Beitragsbereich, damit Mitglieder wissen, wohin sie überweisen. Ohne IBAN erscheint der Kasten dort gar nicht."
-      >
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="sm:col-span-2">
-            <Feld
-              label="Empfänger"
-              wert={entwurf.bank_recipient ?? ""}
-              setze={(v) => setze({ bank_recipient: v })}
-            />
-          </div>
-          <Feld label="IBAN" wert={entwurf.bank_iban ?? ""} setze={(v) => setze({ bank_iban: v })} />
-          <Feld label="BIC (optional)" wert={entwurf.bank_bic ?? ""} setze={(v) => setze({ bank_bic: v })} />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Ein Lastschrifteinzug findet nicht statt. Bankdaten von Mitgliedern
-          werden nirgends erhoben.
-        </p>
       </Abschnitt>
 
       {/* ── E-Mail ───────────────────────────────────────────────────────── */}
@@ -446,7 +454,7 @@ function Abschnitt({ titel, hinweis, children }: {
   titel: string; hinweis?: string; children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="p-5 rounded-lg border bg-card">
       <h3 className="font-serif text-base font-semibold">{titel}</h3>
       {hinweis && <p className="text-sm text-muted-foreground mb-3">{hinweis}</p>}
       {children}
@@ -471,8 +479,10 @@ function Feld({ label, wert, setze }: { label: string; wert: string; setze: (v: 
  * schön, und merkt erst auf der fertigen Seite, dass die Beschriftung darauf
  * nicht zu lesen ist.
  */
-function Farbwahl({ label, wert, setze, hinweis }: {
+function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
   label: string; wert: string; setze: (v: string) => void; hinweis?: string;
+  /** Was die Vorschau zeigen soll: einen Knopf oder eine Fläche mit Rahmen. */
+  vorschau?: "knopf" | "flaeche";
 }) {
   const gueltig = hexToHsl(wert) !== null;
   return (
@@ -488,7 +498,26 @@ function Farbwahl({ label, wert, setze, hinweis }: {
         />
         <Input value={wert} onChange={(e) => setze(e.target.value)} className="font-mono" />
       </div>
-      {gueltig ? (
+      {gueltig && vorschau === "flaeche" ? (
+        // Bei der Flächenfarbe zeigt ein Knopf nichts Nützliches. Gebraucht
+        // wird der Abstand zwischen Grund, Kasten und Rahmen – genau der lässt
+        // sich falsch einstellen.
+        <div
+          className="mt-2 rounded-md p-3"
+          style={{ background: `hsl(${flaechenfarben(wert)?.["--background"]})` }}
+        >
+          <div
+            className="rounded-md border px-3 py-2 text-sm"
+            style={{
+              background: `hsl(${flaechenfarben(wert)?.["--card"]})`,
+              borderColor: `hsl(${flaechenfarben(wert)?.["--border"]})`,
+              color: `hsl(${lesbareSchrift(wert)})`,
+            }}
+          >
+            So sieht ein Kasten aus
+          </div>
+        </div>
+      ) : gueltig ? (
         <div
           className="mt-2 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium"
           style={{ background: wert, color: `hsl(${lesbareSchrift(wert)})` }}
@@ -636,53 +665,6 @@ async function leseFehler(error: unknown): Promise<string> {
   } catch {
     return error instanceof Error ? error.message : "";
   }
-}
-
-/**
- * Welches Dokument die Satzung ist.
- *
- * „Das neueste der Kategorie" reicht nicht: In „Satzung & Ordnungen" liegen
- * auch Beitrags- und Vorstandsordnung, und die sind praktisch immer neuer.
- * Der Verweis im Antrag heisst weiterhin „Satzung" – gezeigt haette er die
- * Beitragsordnung, und niemand haette es gemerkt.
- */
-function SatzungWahl({ entwurf, setze }: {
-  entwurf: { satzung_document_id: string | null };
-  setze: (patch: { satzung_document_id: string | null }) => void;
-}) {
-  const { data: dokumente = [] } = useQuery({
-    queryKey: ["satzung-auswahl"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("satzung_auswahl" as never);
-      if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; title: string; created_at: string }[];
-    },
-  });
-
-  return (
-    <div className="mt-3 max-w-md">
-      <Label className="text-sm">Welches Dokument ist die Satzung?</Label>
-      <Select
-        value={entwurf.satzung_document_id ?? "neuestes"}
-        onValueChange={(v) => setze({ satzung_document_id: v === "neuestes" ? null : v })}
-      >
-        <SelectTrigger><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="neuestes">Neuestes aus „Satzung &amp; Ordnungen"</SelectItem>
-          {dokumente.map((d) => (
-            <SelectItem key={d.id} value={d.id}>
-              {d.title} ({new Date(d.created_at).toLocaleDateString("de-DE")})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <p className="text-xs text-muted-foreground mt-1">
-        {dokumente.length === 0
-          ? "In der Kategorie „Satzung & Ordnungen“ liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
-          : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen. Die sind meist neuer als die Satzung, deshalb wird sie hier ausdrücklich gewählt."}
-      </p>
-    </div>
-  );
 }
 
 function MailAnleitung({ weg }: { weg: string }) {

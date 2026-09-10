@@ -4,7 +4,7 @@ import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate, useLocation } from "react-router-dom";
-import { GRUPPEN, useOnboarding, type Schritt } from "./useOnboarding";
+import { useOnboarding, type Schritt } from "./useOnboarding";
 import { zeichen } from "./icons";
 
 /**
@@ -43,7 +43,7 @@ const KARTE_BREIT = 384;
 export default function OnboardingTour() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { fuehrung, merken } = useOnboarding();
+  const { schritteFuer, merken } = useOnboarding();
 
   const [liste, setListe] = useState<Schritt[]>([]);
   const [index, setIndex] = useState(0);
@@ -61,15 +61,16 @@ export default function OnboardingTour() {
     [navigate, location.pathname]
   );
 
-  // Nur auf Aufforderung. Kein automatischer Start mehr.
+  // Nur auf Aufforderung: über den Streifen „Neu hier?", das Fragezeichen im
+  // Kopf eines Bereichs oder den Knopf im Profil.
   useEffect(() => {
     const starten = (e: Event) => {
-      const key = (e as CustomEvent<{ key?: string }>).detail?.key;
-      zeigen(fuehrung, key);
+      const { tour, key } = (e as CustomEvent<{ tour?: string; key?: string }>).detail ?? {};
+      zeigen(schritteFuer(tour ?? "start"), key);
     };
     window.addEventListener("start-onboarding", starten);
     return () => window.removeEventListener("start-onboarding", starten);
-  }, [fuehrung, zeigen]);
+  }, [schritteFuer, zeigen]);
 
   const aktuell = liste[index] ?? null;
   const anker = aktuell?.anker ?? null;
@@ -97,6 +98,23 @@ export default function OnboardingTour() {
      */
     window.dispatchEvent(new CustomEvent("tour-anker", { detail: { anker } }));
 
+    /*
+     * Messen, ohne sich selbst im Kreis zu jagen.
+     *
+     * Die erste Fassung rief bei jedem Scroll-Ereignis `messen()` auf, und
+     * `messen()` rief `scrollIntoView` mit weichem Scrollen auf, sobald das
+     * Ziel nicht im Bild war. Weiches Scrollen erzeugt aber Dutzende
+     * Scroll-Ereignisse – jedes loeste die naechste Messung und die naechste
+     * Scroll-Anforderung aus. Das Ergebnis waren Seitenwechsel, die
+     * halbe Minuten dauerten.
+     *
+     * Jetzt gilt: Gescrollt wird hoechstens einmal je Schritt, und die
+     * Messung waehrend des Scrollens laeuft ueber requestAnimationFrame, also
+     * hoechstens einmal je Bild.
+     */
+    let gescrollt = false;
+    let bild = 0;
+
     const messen = (): boolean => {
       const el = document.querySelector<HTMLElement>(`[data-tour="${anker}"]`);
       if (!el) {
@@ -104,13 +122,23 @@ export default function OnboardingTour() {
         return false;
       }
       const r = el.getBoundingClientRect();
-      // Ausserhalb des Sichtbereichs: erst hinscrollen, dann noch einmal messen.
-      if (r.top < 8 || r.bottom > window.innerHeight - 8) {
+      if ((r.top < 8 || r.bottom > window.innerHeight - 8) && !gescrollt) {
+        gescrollt = true;
         el.scrollIntoView({ block: "center", behavior: "smooth" });
         return false;
       }
       if (!abgebrochen) {
-        setLoch({ top: r.top, left: r.left, breite: r.width, hoehe: r.height });
+        setLoch((vorher) =>
+          vorher &&
+          Math.round(vorher.top) === Math.round(r.top) &&
+          Math.round(vorher.left) === Math.round(r.left) &&
+          Math.round(vorher.breite) === Math.round(r.width) &&
+          Math.round(vorher.hoehe) === Math.round(r.height)
+            // Unveraendert: dasselbe Objekt zurueckgeben, damit React nicht
+            // bei jedem Scroll-Bild neu zeichnet.
+            ? vorher
+            : { top: r.top, left: r.left, breite: r.width, hoehe: r.height }
+        );
       }
       return true;
     };
@@ -126,12 +154,19 @@ export default function OnboardingTour() {
       }, 120);
     }
 
-    const neuMessen = () => { messen(); };
+    const neuMessen = () => {
+      if (bild) return;
+      bild = window.requestAnimationFrame(() => {
+        bild = 0;
+        messen();
+      });
+    };
     window.addEventListener("resize", neuMessen);
     window.addEventListener("scroll", neuMessen, true);
     return () => {
       abgebrochen = true;
       if (uhr) window.clearInterval(uhr);
+      if (bild) window.cancelAnimationFrame(bild);
       window.removeEventListener("resize", neuMessen);
       window.removeEventListener("scroll", neuMessen, true);
     };
@@ -311,7 +346,7 @@ function Karte({
             </div>
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground font-medium">
-                {GRUPPEN[schritt.gruppe]} · Schritt {index + 1} von {gesamt}
+                Schritt {index + 1} von {gesamt}
               </p>
               <h3 className="font-serif text-base font-semibold leading-tight">
                 {schritt.titel}

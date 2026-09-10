@@ -39,7 +39,8 @@ import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
 import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
 import EvalResponsesTable from "@/components/evaluation/EvalResponsesTable";
-import { SEITE_WEIT } from "@/lib/layout";
+import { SEITE } from "@/lib/layout";
+import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 
 interface ProgramItem {
   point: string;
@@ -588,12 +589,15 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     embedded ? (
       <>{children}</>
     ) : (
-      <div className={SEITE_WEIT}>
+      <div className={SEITE}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-xl sm:text-2xl font-bold">Anmeldungen</h1>
+              <div className="flex items-center gap-1 flex-wrap">
+                <h1 className="font-serif text-xl sm:text-2xl font-bold">Anmeldungen</h1>
+                <TourKnopf tour="auswertung" />
+              </div>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
             </div>
           </div>
@@ -606,7 +610,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     <Shell>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Button data-tour="knopf-csv" variant="outline" size="sm" onClick={exportCSV}>
               <Download size={14} className="mr-1" /> CSV
             </Button>
           </div>

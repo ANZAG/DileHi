@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Hilfe } from "@/components/Hilfe";
 import {
   Select,
   SelectContent,
@@ -104,17 +105,13 @@ const MemberRegistry = () => {
 
       // Also fetch inactive profiles that may no longer have a user_roles row
       // (happens when they were deactivated and their role entry was removed)
-      const [profilesResult, inactiveProfilesResult, emailsResult] = await Promise.all([
+      const [profilesResult, inactiveProfilesResult] = await Promise.all([
         supabase.from("profiles").select("*").in("id", userIds),
         supabase.from("profiles").select("*").eq("is_active", false),
-        supabase.functions.invoke("manage-member", {
-          body: { action: "get_emails", userIds },
-        }).catch(() => ({ data: null })),
       ]);
 
       const profiles = profilesResult.data ?? [];
       const inactiveProfiles = inactiveProfilesResult.data ?? [];
-      const emailMap: Record<string, string> = emailsResult.data ?? {};
 
       // Members coming from user_roles (the normal path)
       const fromRoles: MemberData[] = roles.map((r) => {
@@ -126,7 +123,7 @@ const MemberRegistry = () => {
           display_name: p?.display_name ?? "–",
           first_name: p?.first_name ?? "",
           last_name: p?.last_name ?? "",
-          email: emailMap[r.user_id] ?? "",
+          email: "",
           phone: p?.phone ?? "",
           salutation: p?.salutation ?? "",
           street: p?.street ?? "",
@@ -152,7 +149,7 @@ const MemberRegistry = () => {
           display_name: p.display_name ?? "–",
           first_name: p.first_name ?? "",
           last_name: p.last_name ?? "",
-          email: emailMap[p.id] ?? "",
+          email: "",
           phone: p.phone ?? "",
           salutation: p.salutation ?? "",
           street: p.street ?? "",
@@ -169,6 +166,38 @@ const MemberRegistry = () => {
       return [...fromRoles, ...orphans];
     },
   });
+
+  /*
+   * Die E-Mail-Adressen kommen aus einer Edge Function – sie stehen in der
+   * Anmeldung, nicht im Profil.
+   *
+   * Frueher hing die ganze Liste daran: Die Funktion lief in demselben
+   * Promise.all wie die Profile, und ihr Kaltstart dauert die ersten
+   * Sekunden. Solange sah man einen Ladebalken, obwohl Namen, Rollen und
+   * Status laengst da waren.
+   *
+   * Jetzt steht die Liste sofort, und die Adressen tragen sich nach. Faellt
+   * die Funktion ganz aus, fehlt eine Spalte statt der ganzen Seite.
+   */
+  const { data: emailMap = {} } = useQuery({
+    queryKey: ["member-emails"],
+    queryFn: async (): Promise<Record<string, string>> => {
+      const userIds = members.map((m) => m.user_id);
+      if (userIds.length === 0) return {};
+      const { data } = await supabase.functions.invoke("manage-member", {
+        body: { action: "get_emails", userIds },
+      });
+      return (data ?? {}) as Record<string, string>;
+    },
+    enabled: members.length > 0,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+
+  const mitgliederMitMail = useMemo(
+    () => members.map((m) => ({ ...m, email: emailMap[m.user_id] ?? "" })),
+    [members, emailMap]
+  );
 
   // Membership files
   const { data: membershipFiles = [] } = useQuery({
@@ -207,7 +236,7 @@ const MemberRegistry = () => {
     </button>
   );
 
-  const filteredMembers = members
+  const filteredMembers = mitgliederMitMail
     .filter((m) => {
       const q = search.toLowerCase();
       const matchesSearch =
@@ -416,9 +445,18 @@ const MemberRegistry = () => {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground max-w-prose">
+        Das Register aller Mitglieder. Die Liste sieht aus wie eine Tabelle, ist
+        aber eine Kartei: Ein Klick auf eine Zeile öffnet das Mitglied mit allen
+        Daten, seiner Rolle, dem Eintrittsdatum und dem Aufnahmeantrag. Dort wird
+        auch geändert.
+      </p>
+
       {/* Invite form */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-sm">Neues Mitglied einladen</h3>
+        <h3 className="font-semibold text-sm">
+          Neues Mitglied einladen<Hilfe k="einladung_rolle" />
+        </h3>
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
             type="email"
