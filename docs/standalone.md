@@ -10,7 +10,7 @@ Abschnitt „Was der andere Verein zusätzlich braucht".
 | --- | --- |
 | `app_role`-Enum auflösen, eigene Rollen | **offen** |
 | Modulschalter im Adminbereich | erledigt |
-| Technischer Administrator | **offen** |
+| Technischer Administrator | erledigt |
 | SMTP statt Microsoft Graph | erledigt |
 | Installationsroutine | **offen** |
 | Umzug von WordPress | offen, betrifft nur den ersten Fremdverein |
@@ -32,12 +32,31 @@ hängt das Verhalten an drei fest benannten Rollen.
 Das ist der grösste verbliebene Brocken und der Grund, warum eine zweite
 Installation heute noch unsere Rollennamen erbt.
 
-### Technischer Administrator
+### Technischer Administrator — erledigt
 
-Der Ordner `supabase/functions/setup-first-admin` war leer — die Funktion
-existiert nicht. Ohne sie gibt es keinen Weg, in einer frischen Installation
-das erste Konto mit Verwaltungsrechten anzulegen; man müsste in der Datenbank
-von Hand eine Zeile in `user_roles` schreiben.
+`supabase/functions/setup-first-admin` legt das erste Konto einer frischen
+Installation an. Dreifach abgesichert, denn wer sie missbraucht, bekommt die
+vollständige Kontrolle:
+
+1. Sie braucht das Geheimnis `SETUP_SECRET`. Ohne das tut sie nichts — kein
+   Standardwert, keine Ausnahme. Bei fehlendem und bei falschem Geheimnis
+   antwortet sie gleich, sonst verriete die Antwort, ob der Weg offen ist.
+2. Sie arbeitet nur, solange es **kein einziges** Konto mit Rolle gibt. Danach
+   ist sie für immer stumm, ohne dass jemand sie abschalten muss.
+3. Sie vergibt nicht „vorstand", sondern die Rolle, die im Rechtekatalog
+   `roles.manage` trägt — in einer Installation mit eigenen Rollennamen gibt es
+   „vorstand" womöglich gar nicht. Fehlt eine solche Rolle, bricht sie ab statt
+   sich etwas auszudenken.
+
+Der Einladungslink steht auch in der Antwort: In einer frischen Installation
+ist der Mailweg oft noch nicht eingerichtet.
+
+Aufruf:
+
+```
+POST /functions/v1/setup-first-admin
+{ "email": "vorstand@verein.de", "secret": "<SETUP_SECRET>", "name": "Vorname Nachname" }
+```
 
 ### Installationsroutine
 
@@ -88,6 +107,33 @@ Sie zu löschen hiesse: Diese eine Datenbank läuft weiter, und eine zweite läs
 sich nie wieder aufbauen.
 
 ### Nachtrag: die Historie ist unvollständig
+
+**Stand nach dem Nachtragen der Funktionen:** Die fünf Funktionen stehen jetzt
+mit ihren echten Definitionen in `20260909320000_fehlende_funktionen.sql`. Was
+bleibt, sind zwei Tabellen: `role_catalog` und `permission_catalog` werden
+befüllt und abgefragt, aber nirgends angelegt.
+
+Damit ist klar, dass Einzelstücke nachzutragen nicht der richtige Weg ist. Was
+fehlt, ist ein **Ausgangsstand aus der laufenden Datenbank** – und das ist
+zugleich die Antwort auf die Frage nach dem „Squash": Beides ist dieselbe
+Aufgabe.
+
+Das Werkzeug dafür gibt es schon im Projekt:
+
+```sql
+SELECT public.backup_schema_ddl();
+```
+
+Die Funktion gibt Typen, Tabellen, Bedingungen, Indizes, Funktionen, Trigger
+und Zugriffsregeln als SQL aus. Daraus entsteht
+`00000000000000_ausgangsstand.sql`; die bisherigen Migrationen wandern ins
+Archiv. Bewiesen ist der Ausgangsstand erst, wenn eine leere Datenbank damit
+vollständig entsteht – dafür braucht es ein zweites, leeres Supabase-Projekt.
+
+---
+
+#### Wie es dazu kam
+
 
 Beim Aufräumen der Ausführungsrechte ist aufgefallen, dass diese Aussage heute
 noch nicht ganz stimmt. Fünf Funktionen werden benutzt, aber in keiner

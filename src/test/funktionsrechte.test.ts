@@ -74,28 +74,18 @@ describe("Bestand der Datenbankfunktionen", () => {
   });
 
   /**
-   * Funktionen, die es in der laufenden Datenbank gibt, aber in keiner
-   * Migration.
+   * Funktionen, die benutzt, aber in keiner Migration angelegt werden.
    *
-   * Sie wurden vor der eingecheckten Historie oder von Hand angelegt. Die
-   * Anwendung ruft sie auf – `get_role_catalog` und `get_permission_catalog`
-   * sogar direkt aus dem Programm.
+   * Fünf standen hier: get_member_directory, get_member_ids,
+   * get_permission_catalog, get_role_catalog, touch_election_on_vote. Sie sind
+   * mit ihren echten Definitionen aus der laufenden Datenbank nachgetragen
+   * (20260909320000), deshalb ist die Liste leer.
    *
-   * Das heisst: Die Migrationen allein ergeben noch keine lauffähige
-   * Datenbank. Für diese Installation ist das folgenlos, für eine zweite
-   * nicht. Siehe docs/standalone.md.
-   *
-   * Diese Liste darf schrumpfen, sobald die Definitionen nachgetragen sind.
-   * Wachsen darf sie nicht – dann wäre eine weitere Funktion am
-   * Migrationsweg vorbei entstanden.
+   * Leer soll sie bleiben. Wächst sie, ist wieder eine Funktion am
+   * Migrationsweg vorbei entstanden – und eine zweite Installation bekäme sie
+   * nicht.
    */
-  const AUSSERHALB_DER_HISTORIE = [
-    "get_member_directory",
-    "get_member_ids",
-    "get_permission_catalog",
-    "get_role_catalog",
-    "touch_election_on_vote",
-  ];
+  const AUSSERHALB_DER_HISTORIE: string[] = [];
 
   it("spricht keine Funktion an, die es nicht mehr gibt", () => {
     // Der Fehler von heute: REVOKE auf eine Funktion, die im Mai geloescht
@@ -154,5 +144,42 @@ describe("Die Rechte-Migration", () => {
     // pg_proc, also ueber das, was wirklich da ist.
     expect(migration).toContain("FROM pg_proc p");
     expect(migration).toContain("p.proname = ANY(v_namen)");
+  });
+});
+
+/**
+ * Die Lücke, die bleibt: drei Tabellen.
+ *
+ * `role_catalog` und `permission_catalog` werden befüllt, verändert und
+ * abgefragt – angelegt werden sie nirgends. Wer die Migrationen
+ * der Reihe nach einspielt, bekommt eine Datenbank, in der die
+ * Rechteverwaltung nicht lädt.
+ *
+ * Das ist kein Schönheitsfehler, sondern der Grund, warum es einen
+ * Ausgangsstand aus der laufenden Datenbank braucht (siehe docs/standalone.md).
+ * Der Test hält fest, dass die Liste nicht wächst.
+ */
+describe("Tabellen ohne CREATE in der Historie", () => {
+  // role_permissions wird angelegt, die beiden Kataloge nicht.
+  const BEKANNTE_LUECKE = ["permission_catalog", "role_catalog"];
+
+  const angelegteTabellen = new Set(
+    [...alles.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\.(\w+)/g)].map((m) => m[1])
+  );
+
+  /** Tabellen, in die eine Migration schreibt oder die sie verändert. */
+  const benutzteTabellen = new Set(
+    [...alles.matchAll(/(?:INSERT INTO|ALTER TABLE|UPDATE|DELETE FROM)\s+public\.(\w+)/g)]
+      .map((m) => m[1])
+  );
+
+  it("findet überhaupt Tabellen", () => {
+    expect(angelegteTabellen.size).toBeGreaterThan(40);
+    expect(benutzteTabellen.size).toBeGreaterThan(20);
+  });
+
+  it("lässt die Lücke nicht wachsen", () => {
+    const fehlend = [...benutzteTabellen].filter((t) => !angelegteTabellen.has(t)).sort();
+    expect(fehlend).toEqual(BEKANNTE_LUECKE);
   });
 });

@@ -49,3 +49,9 @@ verify_jwt = false
 # Suchmaschinen haben keine Sitzung. Liefert nur, was ohnehin oeffentlich ist:
 # die Adressen veroeffentlichter Seiten.
 verify_jwt = false
+
+[functions.setup-first-admin]
+# Das erste Konto einer frischen Installation – es gibt naturgemaess noch
+# niemanden, der sich anmelden koennte. Abgesichert ueber SETUP_SECRET und
+# darueber, dass die Funktion verstummt, sobald ein Konto mit Rolle existiert.
+verify_jwt = false
