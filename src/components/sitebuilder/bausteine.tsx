@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import DOMPurify from "dompurify";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -121,10 +122,34 @@ export function Titelbild({
  * beiden waeren zwei Abschnitte mit je eigenem Abstand, und das farbige Band
  * risse zwischen ihnen auf.
  */
+/**
+ * Die Oberzeile über einer Überschrift.
+ *
+ * Ein kurzes Schlagwort in Kapitälchen, darunter die Überschrift. Kostet zwei
+ * Zeilen und trägt viel: Es gliedert eine lange Seite in Kapitel, ohne dass
+ * dafür eine zweite Überschriftenebene nötig wäre.
+ *
+ * Leer bleibt leer – kein Platzhalter, keine Lücke.
+ */
+function Oberzeile({ text, mitte }: { text?: string; mitte?: boolean }) {
+  if (!text?.trim()) return null;
+  return (
+    <p
+      className={`text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2 ${
+        mitte ? "text-center" : ""
+      }`}
+    >
+      {text}
+    </p>
+  );
+}
+
 export function Seitenkopf({
-  ueberschrift, text, ausrichtung, breite, abstandOben, abstandUnten, abstand,
+  oberzeile, ueberschrift, text, ausrichtung, breite, abstandOben, abstandUnten, abstand,
   hintergrund, flaeche, textfarbe,
-}: Gemeinsam & { ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte" }) {
+}: Gemeinsam & {
+  oberzeile?: string; ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte";
+}) {
   const mitte = ausrichtung === "mitte";
   const inneres = (
     <motion.div
@@ -133,6 +158,7 @@ export function Seitenkopf({
       transition={{ duration: 0.6 }}
       className={mitte ? "text-center" : ""}
     >
+      <Oberzeile text={oberzeile} mitte={mitte} />
       <h1 className={`font-serif text-3xl md:text-4xl font-bold ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
         {ueberschrift}
       </h1>
@@ -222,8 +248,11 @@ export function Textabschnitt({
 // ── Überschrift allein ──────────────────────────────────────────────────────
 
 export function Ueberschrift({
-  text, groesse, ausrichtung, ...rest
-}: Gemeinsam & { text: string; groesse: "gross" | "mittel" | "klein"; ausrichtung: "links" | "mitte" }) {
+  oberzeile, text, groesse, ausrichtung, ...rest
+}: Gemeinsam & {
+  oberzeile?: string; text: string;
+  groesse: "gross" | "mittel" | "klein"; ausrichtung: "links" | "mitte";
+}) {
   const Tag = groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
   const groessen = {
     gross: "text-3xl md:text-4xl",
@@ -232,6 +261,7 @@ export function Ueberschrift({
   };
   return (
     <Rahmen {...rest}>
+      <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} />
       <Tag
         className={`font-serif font-bold ${groessen[groesse] ?? groessen.mittel} ${
           ausrichtung === "mitte" ? "text-center" : ""
@@ -658,13 +688,16 @@ function LogoBild({ bildSchluessel, name, ziel, hoehe }: {
  * Terminabschnitt ist genau das schon einmal passiert.
  */
 export function Darstellungen({
-  kategorie, ueberschrift, einleitung, breite, abstandOben, abstandUnten, abstand,
-}: Gemeinsam & { kategorie?: string; ueberschrift?: string; einleitung?: string }) {
+  kategorie, ueberschrift, einleitung, namenZeigen, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & {
+  kategorie?: string; ueberschrift?: string; einleitung?: string; namenZeigen?: boolean;
+}) {
   return (
     <PublicPersonasSection
       kategorie={kategorie}
       ueberschrift={ueberschrift}
       einleitung={einleitung}
+      namenZeigen={namenZeigen}
       rahmen={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}
     />
   );
@@ -690,21 +723,32 @@ interface OeffentlicherTermin {
  * Überschrift.
  */
 export function Termine({
-  ueberschrift, unterzeile, anzahl, breite, abstandOben, abstandUnten, abstand,
-}: Gemeinsam & { ueberschrift?: string; unterzeile?: string; anzahl: number }) {
+  ueberschrift, unterzeile, anzahl, rueckschau, breite, abstandOben, abstandUnten, abstand,
+}: Gemeinsam & {
+  ueberschrift?: string; unterzeile?: string; anzahl: number;
+  /** Wie viele Jahre zurück zusätzlich gezeigt werden. 0 = nur Kommendes. */
+  rueckschau?: number;
+}) {
   const jahr = new Date().getFullYear();
+  const zurueck = Math.max(0, Math.min(20, rueckschau ?? 0));
 
   const { data: termine = [], isLoading } = useQuery({
-    queryKey: ["public-events", jahr],
+    queryKey: ["public-events", jahr, zurueck],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const abfrage = supabase
         .from("events")
         .select("id, title, start_date, end_date, location, all_day")
         .eq("is_public", true)
-        .gte("start_date", `${jahr}-01-01`)
-        .lte("start_date", `${jahr + 1}-12-31`)
-        .gte("start_date", new Date().toISOString())
-        .order("start_date", { ascending: true });
+        .lte("start_date", `${jahr + 1}-12-31`);
+
+      // Ohne Rückschau nur, was noch kommt – das ist der Normalfall. Mit
+      // Rückschau alles ab dem gewählten Jahr, absteigend, damit das Nächste
+      // oben steht und die Archivjahre darunter.
+      const gefiltert = zurueck > 0
+        ? abfrage.gte("start_date", `${jahr - zurueck}-01-01`)
+        : abfrage.gte("start_date", new Date().toISOString());
+
+      const { data, error } = await gefiltert.order("start_date", { ascending: true });
       if (error) throw error;
       return (data ?? []) as OeffentlicherTermin[];
     },
@@ -740,10 +784,21 @@ export function Termine({
           <p className="text-sm text-muted-foreground text-center mb-10">{unterzeile}</p>
         )}
 
+        {/*
+          * Mit Rückschau nach Jahr gruppiert, sonst eine schlichte Liste.
+          * Ohne die Gruppierung stünden vierzig Termine ungegliedert
+          * untereinander, und man fände das nächste Jahr nicht.
+          */}
         <div className="space-y-3">
-          {termine.slice(0, anzahl || 99).map((t) => (
+          {termine.slice(0, anzahl || 99).map((t, i, alle) => (
+            <Fragment key={t.id}>
+              {zurueck > 0 &&
+                (i === 0 || t.start_date.slice(0, 4) !== alle[i - 1].start_date.slice(0, 4)) && (
+                  <h3 className="font-serif text-lg font-semibold text-primary pt-4 first:pt-0">
+                    {t.start_date.slice(0, 4)}
+                  </h3>
+                )}
             <div
-              key={t.id}
               className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
             >
               <div className="flex-shrink-0 w-12 text-center">
@@ -771,6 +826,7 @@ export function Termine({
                 </div>
               </div>
             </div>
+            </Fragment>
           ))}
         </div>
       </motion.div>

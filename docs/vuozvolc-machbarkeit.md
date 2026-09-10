@@ -123,10 +123,23 @@ Der Aufwand liegt nicht im Baukasten, sondern im Abtippen — wie ich es in der
 [Machbarkeitsanalyse](machbarkeit-oeffentliche-seiten.md) schon vermutet hatte:
 „Der Umzug ist der unangenehme Teil, nicht der Editor."
 
+## Stand: die vier Vorarbeiten sind erledigt
+
+| Arbeit | Wie umgesetzt |
+| --- | --- |
+| Oberzeile | Feld an „Seitenkopf" und „Überschrift". Leer bleibt leer, kein Platzhalter |
+| Namen an den Darstellungen | **Zwei** Schalter: die Person stimmt im eigenen Steckbrief zu, der Verein schaltet es am Baustein ein. Beides muss zutreffen |
+| Vergangene Termine | Auswahl am Termin-Baustein: nur Kommendes, oder ein bis zehn Jahre zurück. Mit Rückschau nach Jahr gruppiert |
+| Antic Didone | In der Schriftauswahl, selbst ausgeliefert wie die übrigen |
+
+Zum zweiten Punkt: Ein Name im Netz ist die Entscheidung der Person, nicht des
+Vereins. Ein Schalter am Baustein allein hätte gereicht, um die Seite zu bauen
+— und hätte dreissig Namen veröffentlicht, ohne dass jemand gefragt wurde. Die
+Vorgabe ist „nein"; wer nichts tut, steht nicht mit Namen im Netz.
+
 ## Vorschlag zum Vorgehen
 
-1. **Die drei Schalter und die Schrift bauen.** Danach ist der Baukasten
-   vollständig für diesen Fall.
+1. ~~Die drei Schalter und die Schrift bauen.~~ Erledigt.
 2. **Zwei Seiten bauen**, die verschiedenste: die Startseite und „Die Ernährung
    im 13./14. Jahrhundert". Das ist der eigentliche Test — was dabei fehlt,
    fehlt wirklich.

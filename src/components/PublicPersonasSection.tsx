@@ -7,6 +7,8 @@ interface PublicPersona {
   portrayal: string;
   expertise: string;
   images: string[];
+  /** Nur gesetzt, wenn die Person dem selbst zugestimmt hat. */
+  name: string | null;
 }
 
 /**
@@ -39,6 +41,7 @@ export default function PublicPersonasSection({
   einleitung = DARSTELLUNGEN_EINLEITUNG,
   kategorie,
   rahmen,
+  namenZeigen,
 }: {
   ueberschrift?: string;
   einleitung?: string;
@@ -47,6 +50,8 @@ export default function PublicPersonasSection({
   /** Klassen für den umgebenden Abschnitt; der Baustein setzt hier Breite und
    *  Abstand aus seinen eigenen Feldern ein. */
   rahmen?: string;
+  /** Namen zeigen, sofern die jeweilige Person zugestimmt hat. */
+  namenZeigen?: boolean;
 } = {}) {
   const { data: personas = [] } = useQuery({
     queryKey: ["public-personas"],
@@ -102,6 +107,16 @@ export default function PublicPersonasSection({
                       />
                     )}
                     <div className="p-4">
+                      {/*
+                        * Der Name steht nur da, wenn zwei Dinge zutreffen: Die
+                        * Person hat in ihrem Profil zugestimmt, und der Verein
+                        * hat es fuer diese Seite eingeschaltet. Ein Name im Netz
+                        * ist die Entscheidung der Person, nicht des Vereins –
+                        * deshalb reicht ein Schalter nicht.
+                        */}
+                      {namenZeigen && p.name && (
+                        <p className="text-sm font-medium text-primary">{p.name}</p>
+                      )}
                       <h4 className="font-semibold">{p.portrayal}</h4>
                       {p.expertise && (
                         <p className="text-sm text-muted-foreground mt-1.5 whitespace-pre-line">

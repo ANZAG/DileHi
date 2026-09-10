@@ -18,6 +18,8 @@ export interface MemberPersona {
   period: string;
   portrayal: string;
   expertise: string;
+  /** Darf der Name der Person oeffentlich dazu stehen? */
+  show_name?: boolean;
   images: string[];
   sort_order: number;
 }
