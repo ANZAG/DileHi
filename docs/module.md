@@ -72,6 +72,14 @@ Bringt das Modul einen eigenen Feldtyp für Formulare mit, bekommt er in
 { modul: "inventar", value: "ausleihe", label: "Ausleihe", … }
 ```
 
+## Und die Tour?
+
+Kein Pflichtschritt, aber der Ort dafür: In
+`src/components/onboarding/schritte.ts` kann ein Schritt mit
+`modul: "inventar"` stehen. Er erscheint dann nur, wenn das
+Modul eingeschaltet ist, und verschwindet mit ihm – ohne eine weitere Abfrage.
+Siehe [onboarding.md](onboarding.md).
+
 ## Was der Test prüft
 
 `src/test/module.test.ts` vergleicht die im Code benutzten Modulschlüssel mit
