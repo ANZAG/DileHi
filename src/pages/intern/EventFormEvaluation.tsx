@@ -39,6 +39,7 @@ import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
 import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
 import EvalResponsesTable from "@/components/evaluation/EvalResponsesTable";
+import { SEITE_WEIT } from "@/lib/layout";
 
 interface ProgramItem {
   point: string;
@@ -587,7 +588,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     embedded ? (
       <>{children}</>
     ) : (
-      <div className="container py-8 max-w-6xl px-4">
+      <div className={SEITE_WEIT}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>

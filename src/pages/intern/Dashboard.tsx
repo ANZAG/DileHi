@@ -10,6 +10,7 @@ import {
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 import ErsteSchritte from "@/components/onboarding/ErsteSchritte";
 import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
+import { SEITE } from "@/lib/layout";
 
 /**
  * Die Kacheln des Mitgliederbereichs.
@@ -79,7 +80,7 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex flex-col gap-4 mb-8">
           <div>

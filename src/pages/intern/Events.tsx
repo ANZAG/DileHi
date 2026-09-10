@@ -13,6 +13,7 @@ import EventFormDialog from "@/components/events/EventFormDialog";
 import UpcomingEvents from "@/components/events/UpcomingEvents";
 import EventDetailDialog from "@/components/events/EventDetailDialog";
 import CalendarSyncDialog from "@/components/events/CalendarSyncDialog";
+import { SEITE } from "@/lib/layout";
 
 const EventsPage = () => {
   const ev = useEvents();
@@ -62,7 +63,7 @@ const EventsPage = () => {
   };
 
   return (
-    <div className="container py-8 sm:py-12 max-w-5xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">

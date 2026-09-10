@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
 import { useBeitragsstufenStatus, stufenFuerJahr } from "@/hooks/useBeitragsstufen";
+import { SEITE } from "@/lib/layout";
 
 /** Kontodaten aus den Vereinsangaben – nur für Mitglieder lesbar. */
 function useVereinskonto() {
@@ -348,7 +349,7 @@ const Contributions = () => {
   if (!canEdit) {
     const myContribs = myAllContribs;
     return (
-      <div className="container py-8 sm:py-12 max-w-3xl px-4">
+      <div className={SEITE}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft size={16} /> Zurück
@@ -392,7 +393,7 @@ const Contributions = () => {
   }
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück

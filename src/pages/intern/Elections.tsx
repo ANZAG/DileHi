@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import ElectionCard from "@/components/elections/ElectionCard";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
+import { SEITE } from "@/lib/layout";
 
 const Elections = () => {
   const { user, hasPermission } = useAuth();
@@ -260,7 +261,7 @@ const Elections = () => {
   const representationGroup = groups.find((g) => g.id === representationGroupId);
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
