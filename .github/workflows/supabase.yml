@@ -21,6 +21,10 @@ name: Supabase ausrollen
 on:
   workflow_dispatch:
     inputs:
+      verzeichnis:
+        description: "Verzeichnis der Migrationen zurücksetzen (nur bei leerer Datenbank)"
+        type: boolean
+        default: false
       migrationen:
         description: "Ausstehende Migrationen einspielen"
         type: boolean
@@ -39,6 +43,80 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      # ── Erst nachsehen, dann anfassen ──────────────────────────────────────
+      #
+      # Ohne diesen Schritt raten wir. „Remote migration versions not found"
+      # sagt nicht, in welcher Datenbank sie stehen, und ein SQL-Editor in
+      # einem anderen Browsertab sagt nicht, ob es dieselbe ist.
+      #
+      # Gefragt wird über die Verwaltungsschnittstelle von Supabase – derselbe
+      # Weg, den der SQL-Editor im Dashboard geht. Kein Datenbankpasswort, kein
+      # Wissen über Regionen oder Anschlüsse nötig.
+      - name: Datenbank ansehen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          echo "Projekt: $REF"
+          cat > /tmp/frage.sql <<'SQL'
+          select
+            (select count(*) from information_schema.tables where table_schema = 'public') as tabellen,
+            (select count(*) from supabase_migrations.schema_migrations) as migrationseintraege,
+            (select min(version) from supabase_migrations.schema_migrations) as aelteste,
+            (select max(version) from supabase_migrations.schema_migrations) as juengste,
+            (select count(*) from auth.users) as konten,
+            (select count(*) from storage.buckets) as ablagen;
+          SQL
+          curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$(jq -n --rawfile q /tmp/frage.sql '{query: $q}')" | tee /tmp/stand.json
+          echo ""
+          echo "### Stand der Datenbank" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/stand.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # ── Das Verzeichnis der eingespielten Migrationen leeren ───────────────
+      #
+      # Supabase führt Buch darüber, was schon lief. Steht dort etwas, das es
+      # im Projekt nicht mehr gibt – etwa weil achtzig Migrationen zu einem
+      # Ausgangsstand zusammengefasst wurden –, verweigert `db push` die
+      # Arbeit. Zu Recht: Es kann nicht wissen, ob da noch etwas steht.
+      #
+      # Gelöscht wird nur, wenn beides zutrifft: keine Konten und keine
+      # Tabellen. Die Bedingung steht in der Anweisung selbst, nicht in einer
+      # Warnung darüber. Ein Fehlgriff löscht dann nichts, statt das Falsche.
+      - name: Verzeichnis der Migrationen zurücksetzen
+        if: ${{ inputs.verzeichnis }}
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          cat > /tmp/leeren.sql <<'SQL'
+          with geloescht as (
+            delete from supabase_migrations.schema_migrations
+            where not exists (select 1 from auth.users)
+              and not exists (
+                select 1 from information_schema.tables where table_schema = 'public'
+              )
+            returning version
+          )
+          select
+            (select count(*) from geloescht) as entfernt,
+            (select count(*) from supabase_migrations.schema_migrations) as verblieben;
+          SQL
+          curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$(jq -n --rawfile q /tmp/leeren.sql '{query: $q}')" | tee /tmp/leeren.json
+          echo ""
+          if grep -q '"entfernt":0' /tmp/leeren.json; then
+            echo "Nichts entfernt. Entweder war das Verzeichnis schon leer, oder in"
+            echo "der Datenbank stehen Tabellen oder Konten – dann ist sie nicht leer"
+            echo "und das Zurücksetzen wäre der falsche Schritt."
+          fi
 
       - name: Projekt verbinden
         env:
@@ -96,9 +174,11 @@ jobs:
         run: supabase functions deploy
 
       - name: Was gelaufen ist
+        if: always()
         run: |
           echo "### Ausgerollt" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Verzeichnis zurückgesetzt: ${{ inputs.verzeichnis }}" >> $GITHUB_STEP_SUMMARY
           echo "- Migrationen: ${{ inputs.migrationen }}" >> $GITHUB_STEP_SUMMARY
           echo "- Edge Functions: ${{ inputs.funktionen }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
