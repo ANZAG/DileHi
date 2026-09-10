@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PersonaEditor from "@/components/personas/PersonaEditor";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder";
+import { useBeitragsmodell } from "@/hooks/useBeitragsmodell";
+import { useBeitragsstufen } from "@/hooks/useBeitragsstufen";
 import { useModule } from "@/hooks/useModule";
 
 const TENT_TYPE_OPTIONS = [
@@ -94,6 +96,32 @@ const Profile = () => {
 
   const { data: profilfelder = [] } = useProfilfelder();
   const { data: module } = useModule();
+
+  /**
+   * Die Beitragsstufen zur Auswahl.
+   *
+   * Standen bis eben als „Aktives Mitglied“ und „Fördermitglied“ fest im Code –
+   * eine selbst angelegte Stufe tauchte hier nie auf, und eine entfernte blieb
+   * für immer stehen. Welche angeboten werden, beantwortet die Datenbank.
+   *
+   * Die eigene Stufe bleibt in der Liste, auch wenn sie ausgelaufen ist. Sonst
+   * würde das Formular sie beim nächsten Speichern stillschweigend auf eine
+   * andere ändern.
+   */
+  const { arten } = useBeitragsmodell();
+  const alleStufen = useBeitragsstufen();
+  const mitgliedsarten = useMemo(() => {
+    const liste = arten.map((a) => ({ key: a.key, label: a.label, ausgelaufen: false }));
+    const eigene = form.membershipType;
+    if (eigene && !liste.some((a) => a.key === eigene)) {
+      liste.push({
+        key: eigene,
+        label: alleStufen.find((s) => s.key === eigene)?.label ?? eigene,
+        ausgelaufen: true,
+      });
+    }
+    return liste;
+  }, [arten, alleStufen, form.membershipType]);
 
   /** Antworten auf die frei zusammengestellten Profilfelder. */
   const [extra, setExtra] = useState<Record<string, unknown>>({});
@@ -491,8 +519,12 @@ const Profile = () => {
                   onChange={(e) => setField("membershipType", e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="aktiv">Aktives Mitglied</option>
-                  <option value="foerder">Fördermitglied</option>
+                  {mitgliedsarten.map((a) => (
+                    <option key={a.key} value={a.key}>
+                      {a.label}
+                      {a.ausgelaufen ? " (wird nicht mehr angeboten)" : ""}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>

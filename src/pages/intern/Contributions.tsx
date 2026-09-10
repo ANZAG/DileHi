@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ArrowLeft, Check, X, Pencil, Banknote, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Check, X, Pencil, Banknote, CalendarIcon, LayoutGrid, List, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,28 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export interface Mitgliedsart {
-  key: string;
-  label: string;
-  hinweis: string | null;
-  sort_order: number;
-  is_active: boolean;
-}
-
-/** Die Mitgliedsarten mit eigenem Beitragssatz. */
-function useMitgliedsarten() {
-  const { data } = useQuery({
-    queryKey: ["contribution-categories"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
-        .from("contribution_categories").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      return (data ?? []) as Mitgliedsart[];
-    },
-  });
-  return data ?? [];
-}
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
+import { useBeitragsstufenStatus, stufenFuerJahr } from "@/hooks/useBeitragsstufen";
 
 /** Kontodaten aus den Vereinsangaben – nur für Mitglieder lesbar. */
 function useVereinskonto() {
@@ -212,10 +196,8 @@ const Contributions = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editAmount, setEditAmount] = useState("");
-  const [editNotes, setEditNotes] = useState("");
-  const [editPaidAt, setEditPaidAt] = useState<Date | undefined>(undefined);
+  const [bearbeitet, setBearbeitet] = useState<Eintrag | null>(null);
+  const [ansicht, setzeAnsicht] = useAnsicht();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["contribution-profiles"],
@@ -338,12 +320,12 @@ const Contributions = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contributions", selectedYear] });
-      setEditingId(null);
+      setBearbeitet(null);
       toast({ title: "Gespeichert" });
     },
   });
 
-  const memberRows = useMemo(() => {
+  const memberRows: Eintrag[] = useMemo(() => {
     return profiles.map((p: any) => {
       const contrib = contributions.find((c: any) => c.user_id === p.id);
       return {
@@ -410,7 +392,7 @@ const Contributions = () => {
   }
 
   return (
-    <div className="container py-8 sm:py-12 max-w-3xl px-4">
+    <div className="container py-8 sm:py-12 max-w-4xl px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
@@ -418,14 +400,17 @@ const Contributions = () => {
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="font-serif text-2xl sm:text-3xl font-bold">Beitragsübersicht</h1>
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {YEARS.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <AnsichtSchalter ansicht={ansicht} setzeAnsicht={setzeAnsicht} />
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {YEARS.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <BankInfoCard />
@@ -441,109 +426,44 @@ const Contributions = () => {
           />
         </div>
 
-        <div className="space-y-2">
+        <div
+          className={
+            ansicht === "kacheln"
+              ? "grid grid-cols-2 lg:grid-cols-3 gap-3"
+              : "space-y-2"
+          }
+        >
           {memberRows.map((m) => (
-            <div key={m.userId} className="p-3 rounded-lg border bg-card space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium truncate">{m.name}</p>
-                    <IntervalBadge interval={m.interval} />
-                  </div>
-              {(m.amount || m.paidAt) && (
-                    <p className="text-xs text-muted-foreground">
-                      {m.amount ? `${Number(m.amount).toFixed(2)} €` : ""}
-                      {m.paidAt ? ` · ${format(new Date(m.paidAt + "T00:00:00"), "dd.MM.yyyy")}` : ""}
-                      {m.notes ? ` · ${m.notes}` : ""}
-                    </p>
-                  )}
-                </div>
-                <StatusBadge status={m.status} />
-              </div>
-              <div className="flex gap-2 flex-wrap">
-              {editingId === m.userId ? (
-                  <div className="flex flex-col gap-2 w-full">
-                    <div className="flex gap-2 flex-wrap items-center">
-                      <Input
-                        type="number"
-                        placeholder="Betrag"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                        className="w-24 h-8 text-xs"
-                      />
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("h-8 text-xs w-36 justify-start", !editPaidAt && "text-muted-foreground")}>
-                            <CalendarIcon size={12} className="mr-1" />
-                            {editPaidAt ? format(editPaidAt, "dd.MM.yyyy") : "Zahldatum"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={editPaidAt}
-                            onSelect={setEditPaidAt}
-                            locale={de}
-                            disabled={(date) => date > new Date()}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => upsertMutation.mutate({
-                          userId: m.userId,
-                          membershipType: m.membershipType,
-                          status: "bezahlt",
-                          amount: editAmount,
-                          notes: editNotes,
-                          paidAt: editPaidAt ? `${editPaidAt.getFullYear()}-${String(editPaidAt.getMonth() + 1).padStart(2, '0')}-${String(editPaidAt.getDate()).padStart(2, '0')}` : undefined,
-                        })}
-                      >
-                        <Check size={14} className="mr-1" /> OK
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingId(null)}>
-                        <X size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {m.status !== "bezahlt" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => {
-                          setEditingId(m.userId);
-                          setEditAmount(m.amount ? String(m.amount) : "");
-                          setEditNotes(m.notes || "");
-                          setEditPaidAt(m.paidAt ? new Date(m.paidAt + "T00:00:00") : undefined);
-                        }}
-                      >
-                        <Pencil size={12} className="mr-1" /> Bezahlt
-                      </Button>
-                    )}
-                    {(m.status === "bezahlt" || m.status === "teilzahlung") && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={() => upsertMutation.mutate({ userId: m.userId, status: "offen", paidAt: null })}
-                      >
-                        Zurücksetzen
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+            <BeitragEintrag
+              key={m.userId}
+              m={m}
+              kachel={ansicht === "kacheln"}
+              onBearbeiten={() => setBearbeitet(m)}
+              onZuruecksetzen={() =>
+                upsertMutation.mutate({ userId: m.userId, status: "offen", paidAt: null })
+              }
+            />
           ))}
         </div>
+
+        <ZahlungDialog
+          eintrag={bearbeitet}
+          satz={bearbeitet ? satzFuer(parseInt(selectedYear), bearbeitet.membershipType)?.amount ?? null : null}
+          jahr={parseInt(selectedYear)}
+          laeuft={upsertMutation.isPending}
+          onSchliessen={() => setBearbeitet(null)}
+          onSpeichern={(werte) =>
+            bearbeitet &&
+            upsertMutation.mutate({
+              userId: bearbeitet.userId,
+              membershipType: bearbeitet.membershipType,
+              status: "bezahlt",
+              amount: werte.betrag,
+              notes: werte.notiz,
+              paidAt: werte.datum,
+            })
+          }
+        />
       </motion.div>
     </div>
   );
@@ -551,95 +471,341 @@ const Contributions = () => {
 
 export default Contributions;
 
+/** Eine Zeile der Beitragsübersicht: ein Mitglied und sein Stand im Jahr. */
+interface Eintrag {
+  userId: string;
+  membershipType: string | null;
+  name: string;
+  status: string;
+  amount: number | null;
+  paidAt: string | null;
+  notes: string | null;
+  contribId?: string;
+  interval: string | null;
+}
+
 /**
- * Die Beitragssätze eines Jahres – einer je Mitgliedsart.
+ * Liste oder Kacheln.
  *
- * Bis eben gab es genau einen Satz für alle. Eine Interessengemeinschaft
- * nimmt aber oft von Studenten und Rentnern weniger, und wer sich anteilig an
- * den Unkosten beteiligt, hat gar keinen Satz. Deshalb hier die Liste – und
- * die Möglichkeit, eine Art anzulegen, ohne die Sätze woanders zu suchen.
+ * Bei fünfzehn Mitgliedern ist die Liste angenehm, bei achtzig scrollt man
+ * sich einen Wolf. Die Wahl bleibt im Browser stehen, damit sie nicht bei
+ * jedem Aufruf neu getroffen werden muss.
+ */
+type Ansicht = "liste" | "kacheln";
+
+function useAnsicht(): [Ansicht, (a: Ansicht) => void] {
+  const [ansicht, setzen] = useState<Ansicht>(() => {
+    try {
+      return localStorage.getItem("beitraege-ansicht") === "kacheln" ? "kacheln" : "liste";
+    } catch {
+      // Privates Fenster, blockierte Speicherung: dann eben die Liste.
+      return "liste";
+    }
+  });
+  const merken = (a: Ansicht) => {
+    setzen(a);
+    try {
+      localStorage.setItem("beitraege-ansicht", a);
+    } catch {
+      // Nicht schlimm – die Wahl gilt dann nur für diesen Besuch.
+    }
+  };
+  return [ansicht, merken];
+}
+
+function AnsichtSchalter({
+  ansicht,
+  setzeAnsicht,
+}: {
+  ansicht: Ansicht;
+  setzeAnsicht: (a: Ansicht) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Ansicht">
+      {([
+        { wert: "liste" as const, icon: List, titel: "Liste" },
+        { wert: "kacheln" as const, icon: LayoutGrid, titel: "Kacheln" },
+      ]).map((o) => (
+        <button
+          key={o.wert}
+          type="button"
+          onClick={() => setzeAnsicht(o.wert)}
+          aria-pressed={ansicht === o.wert}
+          title={o.titel}
+          className={cn(
+            "px-2 py-1.5 rounded transition-colors",
+            ansicht === o.wert
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+        >
+          <o.icon size={15} />
+          <span className="sr-only">{o.titel}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Ein Mitglied in der Beitragsübersicht.
+ *
+ * Liste und Kacheln zeigen dasselbe, nur anders angeordnet – deshalb eine
+ * Komponente mit einem Schalter und nicht zwei, die auseinanderlaufen.
+ */
+function BeitragEintrag({
+  m,
+  kachel,
+  onBearbeiten,
+  onZuruecksetzen,
+}: {
+  m: Eintrag;
+  kachel: boolean;
+  onBearbeiten: () => void;
+  onZuruecksetzen: () => void;
+}) {
+  const bezahlt = m.status === "bezahlt" || m.status === "teilzahlung";
+  const details = [
+    m.amount ? `${Number(m.amount).toFixed(2)} €` : null,
+    m.paidAt ? format(new Date(m.paidAt + "T00:00:00"), "dd.MM.yyyy") : null,
+    m.notes || null,
+  ].filter(Boolean).join(" · ");
+
+  const aktionen = (
+    <div className="flex gap-1 flex-wrap">
+      {m.status !== "bezahlt" && (
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onBearbeiten}>
+          <Pencil size={12} className="mr-1" /> Bezahlt
+        </Button>
+      )}
+      {bezahlt && (
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onZuruecksetzen}>
+          Zurücksetzen
+        </Button>
+      )}
+    </div>
+  );
+
+  if (kachel) {
+    return (
+      <div className="p-3 rounded-lg border bg-card flex flex-col gap-2 h-full">
+        <div className="min-w-0">
+          <p className="text-sm font-medium break-words hyphens-auto" lang="de">{m.name}</p>
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+            <StatusBadge status={m.status} />
+            <IntervalBadge interval={m.interval} />
+          </div>
+        </div>
+        {details && <p className="text-xs text-muted-foreground break-words">{details}</p>}
+        <div className="mt-auto pt-1">{aktionen}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 rounded-lg border bg-card flex items-center justify-between gap-3 flex-wrap">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-medium truncate">{m.name}</p>
+          <IntervalBadge interval={m.interval} />
+        </div>
+        {details && <p className="text-xs text-muted-foreground">{details}</p>}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {aktionen}
+        <StatusBadge status={m.status} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Eine Zahlung erfassen.
+ *
+ * Vorher stand dieses Formular aufgeklappt in der Zeile. In einer Kachel wäre
+ * dafür kein Platz, und zwei Formulare für dasselbe würden auseinanderlaufen.
+ * Der Betrag ist mit dem Satz der Beitragsstufe vorbelegt – der Normalfall ist
+ * „hat den vollen Beitrag überwiesen".
+ */
+function ZahlungDialog({
+  eintrag,
+  satz,
+  jahr,
+  laeuft,
+  onSchliessen,
+  onSpeichern,
+}: {
+  eintrag: Eintrag | null;
+  satz: number | null;
+  jahr: number;
+  laeuft: boolean;
+  onSchliessen: () => void;
+  onSpeichern: (werte: { betrag: string; datum: string; notiz: string }) => void;
+}) {
+  const [betrag, setBetrag] = useState("");
+  const [datum, setDatum] = useState<Date | undefined>(undefined);
+  const [notiz, setNotiz] = useState("");
+  const [vorbelegt, setVorbelegt] = useState<string | null>(null);
+
+  // Beim Öffnen einmal füllen. Ein useEffect wäre hier ein Umweg: Der Dialog
+  // bleibt gemountet, und der Wechsel des Eintrags ist genau das Signal.
+  if (eintrag && vorbelegt !== eintrag.userId) {
+    setVorbelegt(eintrag.userId);
+    setBetrag(eintrag.amount ? String(eintrag.amount) : satz != null ? String(satz) : "");
+    setDatum(eintrag.paidAt ? new Date(eintrag.paidAt + "T00:00:00") : new Date());
+    setNotiz(eintrag.notes || "");
+  }
+
+  const alsDatum = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  return (
+    <Dialog open={!!eintrag} onOpenChange={(o) => { if (!o) { setVorbelegt(null); onSchliessen(); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Zahlung erfassen</DialogTitle>
+        </DialogHeader>
+
+        <p className="text-sm text-muted-foreground -mt-2">
+          {eintrag?.name} · Beitragsjahr {jahr}
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="zahlung-betrag" className="text-sm font-medium mb-1.5 block">Betrag</label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="zahlung-betrag"
+                type="number"
+                step="0.01"
+                value={betrag}
+                onChange={(e) => setBetrag(e.target.value)}
+                className="h-9"
+              />
+              <span className="text-sm text-muted-foreground">€</span>
+            </div>
+            {satz != null && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Satz dieser Stufe: {Number(satz).toFixed(2)} €. Ein kleinerer Betrag
+                wird als Teilzahlung verbucht.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Zahldatum</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("h-9 w-full justify-start font-normal", !datum && "text-muted-foreground")}
+                >
+                  <CalendarIcon size={14} className="mr-2" />
+                  {datum ? format(datum, "dd.MM.yyyy") : "Datum wählen"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={datum}
+                  onSelect={setDatum}
+                  locale={de}
+                  disabled={(d) => d > new Date()}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <label htmlFor="zahlung-notiz" className="text-sm font-medium mb-1.5 block">
+              Notiz <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Textarea
+              id="zahlung-notiz"
+              rows={2}
+              value={notiz}
+              onChange={(e) => setNotiz(e.target.value)}
+              placeholder="z. B. bar bei der Versammlung"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => { setVorbelegt(null); onSchliessen(); }}>
+            Abbrechen
+          </Button>
+          <Button
+            disabled={!betrag || laeuft}
+            onClick={() => {
+              setVorbelegt(null);
+              onSpeichern({
+                betrag,
+                datum: datum ? alsDatum(datum) : alsDatum(new Date()),
+                notiz,
+              });
+            }}
+          >
+            <Check size={14} className="mr-1" /> Speichern
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Die Beitragssätze eines Jahres – einer je Beitragsstufe.
+ *
+ * Gezeigt werden die Stufen, die in diesem Jahr gelten, und zusätzlich jede,
+ * für die es in diesem Jahr einen Satz gibt. Ohne das Zweite verschwände beim
+ * Blick auf 2024 der Satz einer inzwischen ausgelaufenen Stufe, obwohl die
+ * Zahlungen von damals genau daran hängen.
  */
 function Beitragssaetze({ jahr, saetze, canEdit }: {
   jahr: number;
   saetze: { year: number; category?: string; amount: number }[];
   canEdit: boolean;
 }) {
-  const arten = useMitgliedsarten();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [neuOffen, setNeuOffen] = useState(false);
-  const [neuLabel, setNeuLabel] = useState("");
+  const { data: stufen = [] } = useBeitragsstufenStatus(canEdit);
+  const [verwaltung, setVerwaltung] = useState(false);
 
-  const anlegen = useMutation({
-    mutationFn: async () => {
-      const label = neuLabel.trim();
-      // Der Schlüssel wird aus der Beschriftung gebildet – er steht später in
-      // profiles.membership_type und soll dort lesbar sein.
-      const key = label.toLowerCase()
-        .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-        .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
-      if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
-      const { error } = await (supabase as unknown as { from: (t: string) => any })
-        .from("contribution_categories")
-        .insert({ key, label, sort_order: (arten[arten.length - 1]?.sort_order ?? 0) + 10 });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      setNeuOffen(false);
-      setNeuLabel("");
-      qc.invalidateQueries({ queryKey: ["contribution-categories"] });
-      toast({ title: "Mitgliedsart angelegt" });
-    },
-    onError: (err: Error) =>
-      toast({ title: "Nicht angelegt", description: err.message, variant: "destructive" }),
-  });
+  const satzVon = (key: string) =>
+    saetze.find((r) => r.year === jahr && (r.category ?? "aktiv") === key)?.amount ?? null;
 
-  const aktive = arten.filter((a) => a.is_active);
-  if (aktive.length === 0) return null;
+  const sichtbar = stufenFuerJahr(stufen, jahr, (key) => satzVon(key) != null);
+
+  if (stufen.length === 0) return null;
 
   return (
     <div className="text-sm">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 justify-end">
         <span className="text-muted-foreground">Beitragssätze {jahr}:</span>
-        {aktive.map((art) => (
-          <span key={art.key} className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">{art.label}</span>
+        {sichtbar.map((stufe) => (
+          <span key={stufe.key} className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">{stufe.label}</span>
             <RateEditor
               year={jahr}
-              category={art.key}
-              rate={saetze.find((r) => r.year === jahr && (r.category ?? "aktiv") === art.key)?.amount ?? null}
+              category={stufe.key}
+              rate={satzVon(stufe.key)}
               canEdit={canEdit}
             />
           </span>
         ))}
-        {canEdit && !neuOffen && (
-          <button
-            type="button"
-            onClick={() => setNeuOffen(true)}
-            className="text-xs text-primary hover:underline"
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs"
+            onClick={() => setVerwaltung(true)}
           >
-            + Mitgliedsart
-          </button>
+            <Settings2 size={13} className="mr-1" /> Stufen
+          </Button>
         )}
       </div>
 
-      {neuOffen && (
-        <div className="flex flex-wrap items-center gap-2 mt-2 justify-end">
-          <Input
-            autoFocus
-            value={neuLabel}
-            onChange={(e) => setNeuLabel(e.target.value)}
-            placeholder="z. B. Student"
-            className="h-8 w-44"
-          />
-          <Button size="sm" disabled={!neuLabel.trim() || anlegen.isPending} onClick={() => anlegen.mutate()}>
-            Anlegen
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setNeuOffen(false); setNeuLabel(""); }}>
-            Abbrechen
-          </Button>
-        </div>
-      )}
+      <BeitragsstufenDialog offen={verwaltung} onOpenChange={setVerwaltung} />
     </div>
   );
 }
