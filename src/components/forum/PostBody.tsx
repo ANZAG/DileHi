@@ -102,7 +102,7 @@ export default function PostBody({ html, className = "" }: { html: string; class
 
   return (
     <div
-      className={`forum-content prose prose-sm dark:prose-invert max-w-none break-words
+      className={`forum-content prose prose-sm dark:prose-invert max-w-[68ch] break-words
         prose-p:my-1.5 prose-headings:font-serif prose-h1:text-lg prose-h2:text-base
         prose-a:text-primary
         prose-blockquote:border-l-primary/40 prose-blockquote:not-italic ${className}`}

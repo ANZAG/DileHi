@@ -2,10 +2,17 @@ import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ZEICHEN_NAMEN, zeichen } from "@/components/onboarding/icons";
 
+/*
+ * Zeilenenden vereinheitlichen.
+ *
+ * Git legt die Datei unter Windows mit CRLF im Arbeitsverzeichnis ab. Ein
+ * Muster, das auf einen Zeilenumbruch prueft, traf danach nichts mehr, und
+ * der Test wurde rot, ohne dass sich am Inhalt etwas geaendert hatte.
+ */
 const migration = readFileSync(
   "supabase/migrations/20260909260000_onboarding.sql",
   "utf-8"
-);
+).replace(/\r\n/g, "\n");
 
 describe("Zeichen der Schritte", () => {
   it("liefert für einen unbekannten Namen etwas Brauchbares", () => {

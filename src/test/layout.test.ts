@@ -1,15 +1,23 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SEITE, SEITE_LESEN, SEITE_WEIT } from "@/lib/layout";
+import { LESEBREITE, SEITE } from "@/lib/layout";
 
 const seiten = readdirSync("src/pages/intern")
   .filter((f) => f.endsWith(".tsx"))
   .map((f) => ({ name: f, inhalt: readFileSync(`src/pages/intern/${f}`, "utf-8") }));
 
 describe("Seitenbreiten", () => {
-  it("kennt drei Breiten und keine vierte", () => {
-    expect([SEITE, SEITE_WEIT, SEITE_LESEN].every((k) => k.includes("max-w-"))).toBe(true);
-    expect(new Set([SEITE, SEITE_WEIT, SEITE_LESEN]).size).toBe(3);
+  it("kennt genau eine Breite", () => {
+    expect(SEITE).toContain("max-w-");
+  });
+
+  it("hält lange Fliesstexte trotzdem lesbar", () => {
+    // Der Rahmen ist fuer alle gleich, sonst springt er beim Seitenwechsel.
+    // Ein Forumsbeitrag ueber die volle Breite waere aber unlesbar, also
+    // begrenzt der Text sich selbst.
+    const beitrag = readFileSync("src/components/forum/PostBody.tsx", "utf-8");
+    expect(beitrag).toContain(LESEBREITE.replace("max-w-", "max-w-"));
+    expect(beitrag).not.toContain("max-w-none");
   });
 
   it("findet die Seiten überhaupt", () => {

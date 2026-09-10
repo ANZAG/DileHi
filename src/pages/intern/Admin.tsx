@@ -31,7 +31,7 @@ import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
-import { SEITE, SEITE_WEIT } from "@/lib/layout";
+import { SEITE } from "@/lib/layout";
 
 type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte";
 
@@ -115,7 +115,7 @@ const Admin = () => {
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
-      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder und Texte des Antrags" , modul: "applications"},
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , modul: "applications"},
       { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
       { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },
     ] : []),
@@ -168,7 +168,7 @@ const Admin = () => {
   };
 
   return (
-    <div className={activeTab === "formtemplate" ? SEITE_WEIT : SEITE}>
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-4 mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

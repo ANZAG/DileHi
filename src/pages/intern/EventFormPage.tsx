@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import EventFormBuilder from "./EventFormBuilder";
 import EventFormEvaluation from "./EventFormEvaluation";
-import { SEITE_WEIT } from "@/lib/layout";
+import { SEITE } from "@/lib/layout";
 
 type Tab = "formular" | "anmeldungen";
 
@@ -79,7 +79,7 @@ export default function EventFormPage({ initialTab }: { initialTab: Tab }) {
   ];
 
   return (
-    <div className={SEITE_WEIT}>
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-4">
           <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Zurück">
