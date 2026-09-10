@@ -36,6 +36,7 @@ interface Einstellungen {
   mail_transport: string;
   calendar_timezone: string;
   contribution_model: string;
+  beitrag_aufbewahrung_jahre: number;
   bank_recipient: string | null;
   bank_iban: string | null;
   bank_bic: string | null;
@@ -81,6 +82,9 @@ export default function ErscheinungsbildAdmin() {
       // die alte Farbe stehen, bis jemand neu lädt.
       queryClient.invalidateQueries({ queryKey: ["app-settings"] });
       queryClient.invalidateQueries({ queryKey: ["branding"] });
+      // Die Aufbewahrungsfrist bestimmt, ab wann eine Beitragsstufe endgueltig
+      // weg darf – die Verwaltung zeigt diese Jahreszahl an.
+      queryClient.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -315,6 +319,33 @@ export default function ErscheinungsbildAdmin() {
           <p className="text-xs text-muted-foreground mt-2">
             Der zugehörige Satz in der Erklärung des Aufnahmeantrags steht unter
             Textvorlagen → Aufnahmeantrag.
+          </p>
+        </div>
+
+        <div className="max-w-md mt-6">
+          <Label htmlFor="aufbewahrung" className="text-sm">
+            Beitragsunterlagen aufbewahren
+          </Label>
+          <div className="flex items-center gap-2 mt-1.5">
+            <Input
+              id="aufbewahrung"
+              type="number"
+              min={1}
+              max={30}
+              className="w-24"
+              value={entwurf.beitrag_aufbewahrung_jahre ?? 5}
+              onChange={(e) =>
+                setze({ beitrag_aufbewahrung_jahre: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })
+              }
+            />
+            <span className="text-sm text-muted-foreground">Jahre</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Bestimmt, ab wann eine ausgelaufene Beitragsstufe endgültig gelöscht
+            werden darf. Steuerlich sind für Unterlagen der Beitragsverwaltung
+            meist zehn Jahre üblich; welche Frist für euch gilt, klärt der
+            Vorstand. Achtet darauf, dass die Angabe zur Datenschutzerklärung
+            passt.
           </p>
         </div>
       </Abschnitt>
