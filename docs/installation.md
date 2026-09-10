@@ -3,7 +3,7 @@
 Für jemanden, der einen Verein führt und keine Software baut. Kein Docker,
 keine Kommandozeile, kein Datenbankwissen.
 
-Sechs Schritte, gut zwei Stunden. Was jeweils dahintersteckt, steht am Ende
+Sechs Schritte, gut eine Stunde. Kein SQL-Editor, keine Kommandozeile. Was jeweils dahintersteckt, steht am Ende
 des Schritts — überspringbar, aber lesbar, wenn etwas klemmt.
 
 ---
@@ -29,21 +29,20 @@ Zwei Dinge aus dem fertigen Projekt notieren, beide unter *Settings → API*:
 > Schlüssels. Der `service_role`-Schlüssel daneben ist das Gegenteil: Er umgeht
 > alle Regeln und gehört nirgendwo hin ausser in die Servereinstellungen.
 
-## 2. Aufbau einspielen
+## 2. Zugänge für den Ausrollen-Knopf
 
-Im Supabase-Projekt links auf **SQL Editor**, dann der Reihe nach den Inhalt
-dieser vier Dateien einfügen und ausführen:
+Im GitHub-Projekt unter **Settings → Secrets and variables → Actions** drei
+Geheimnisse anlegen:
 
-1. `supabase/ausgangsstand/01_schema.sql` — Tabellen, Regeln, Funktionen
-2. `supabase/ausgangsstand/02_rechte.sql` — wer was darf
-3. `supabase/ausgangsstand/03_startdaten.sql` — Rollen, Rechte, Vorlagen, Menü
-4. `supabase/ausgangsstand/04_speicher.sql` — Ablage für Bilder und Dokumente
+| Name | Woher |
+| --- | --- |
+| `SUPABASE_ACCESS_TOKEN` | Supabase-Konto → Account → Access Tokens |
+| `SUPABASE_PROJECT_REF` | Der Teil vor `.supabase.co` aus der Project URL |
+| `SUPABASE_DB_PASSWORD` | Das Passwort aus Schritt 1 |
 
-Die Reihenfolge zählt. Jede Datei einzeln ausführen und die Meldung abwarten.
-
-> Warum vier Dateien und keine achtzig Migrationen: Die Migrationen sind die
-> Geschichte dieser einen Installation, mit Umwegen und Korrekturen. Für eine
-> neue Datenbank zählt nur, wo man herauskommt.
+> Der Zugriffsschlüssel gehört zum Konto, nicht zum Projekt — mit ihm könnte
+> jemand alle eure Supabase-Projekte verändern. Er gehört in die
+> GitHub-Geheimnisse und in keine Datei.
 
 ## 3. Geheimnisse hinterlegen
 
@@ -66,23 +65,20 @@ rausgeht.
 > die Adresse hat, kann sich den ersten Zugang mit allen Rechten nehmen —
 > solange es noch keinen gibt. Danach ist der Weg von selbst zu.
 
-## 4. Funktionen bereitstellen
+## 4. Alles ausrollen
 
-Im GitHub-Projekt unter **Settings → Secrets and variables → Actions** drei
-Geheimnisse anlegen:
+Unter **Actions → Supabase ausrollen → Run workflow**, beides angehakt.
 
-| Name | Woher |
-| --- | --- |
-| `SUPABASE_ACCESS_TOKEN` | Supabase-Konto → Account → Access Tokens |
-| `SUPABASE_PROJECT_REF` | Der Teil vor `.supabase.co` aus der Project URL |
-| `SUPABASE_DB_PASSWORD` | Das Passwort aus Schritt 1 |
+Das legt den gesamten Aufbau an — Tabellen, Zugriffsregeln, Funktionen, Rechte,
+Rollen, Vorlagen, Menü, Ablagen — und stellt die zwanzig Edge Functions bereit.
+Ein Knopf, rund zwei Minuten.
 
-Dann unter **Actions → Supabase ausrollen → Run workflow**. Migrationen
-abwählen (der Aufbau steht ja schon), Funktionen anlassen.
-
-> Ohne diesen Schritt gibt es keine Einladungen, keine Mails, keinen
-> Aufnahmeantrag und keinen ersten Zugang — die Funktionen erledigen alles, was
-> nicht im Browser passieren darf.
+> Warum ein Ausgangsstand und nicht achtzig Migrationen: Die Migrationen sind
+> die Geschichte dieser einen Installation, mit Umwegen und Korrekturen. Für
+> eine neue Datenbank zählt nur, wo man herauskommt.
+>
+> Die Funktionen erledigen alles, was nicht im Browser passieren darf:
+> Einladungen, Mails, Aufnahmeanträge, den ersten Zugang.
 
 ## 5. Website veröffentlichen
 
@@ -143,4 +139,4 @@ Module verstecken Einstellungen, die man sonst vergeblich sucht.
 | „Nicht möglich" beim ersten Zugang | `SETUP_SECRET` fehlt oder stimmt nicht |
 | Keine Mail | SMTP-Angaben fehlen. Der Einladungslink steht auf der Seite |
 | Website weiss und leer | `VITE_SUPABASE_URL` oder der Schlüssel fehlen beim Hoster |
-| „Keine Rolle hat das Recht roles.manage" | Schritt 2, Datei 3 wurde nicht eingespielt |
+| „Keine Rolle hat das Recht roles.manage" | Der Ausrollen-Knopf lief nicht durch. Sieh im Protokoll der Action nach |
