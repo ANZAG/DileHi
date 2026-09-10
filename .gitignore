@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Zugang zur Datenbank fuer die Entwicklung. Enthaelt kein Geheimnis,
+# steht aber auf dem eigenen Rechner und zeigt auf ein bestimmtes Projekt.
+.mcp.json
