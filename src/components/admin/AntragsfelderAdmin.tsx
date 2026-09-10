@@ -109,11 +109,10 @@ export default function AntragsfelderAdmin() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-sm text-muted-foreground max-w-prose">
-            Was im Antrag abgefragt wird. Mit „fest" gekennzeichnete Felder
-            tragen die Aufnahme – sie lassen sich umbenennen und umsortieren,
-            aber nicht entfernen. Mitgliedsart, Beitrag und die Zustimmungen
-            stehen nicht hier: Sie hängen am Beitragsmodell und an den
-            Textvorlagen.
+            Was im Antrag abgefragt wird. Felder mit dem Vermerk „fest" tragen
+            die Aufnahme. Sie lassen sich umbenennen und umsortieren, aber nicht
+            entfernen. Mitgliedsart, Beitrag und die Zustimmungen stehen nicht
+            hier: Sie hängen am Beitragsmodell und an den Textvorlagen.
           </p>
         </div>
         <Button

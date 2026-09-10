@@ -34,7 +34,7 @@ export default function ModulRoute({ k, children }: { k: string; children: React
       </h1>
       <p className="text-muted-foreground mb-6">
         {wegenAnderem
-          ? `Der Bereich gehört zu „${wegenAnderem.label}" – und das ist abgeschaltet.`
+          ? `Der Bereich gehört zu „${wegenAnderem.label}", und das ist abgeschaltet.`
           : "Die Systemverwaltung kann ihn unter Verwaltung → Module wieder einschalten."}
         {" "}
         Vorhandene Daten bleiben erhalten.

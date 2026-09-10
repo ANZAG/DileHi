@@ -179,7 +179,7 @@ export default function ThreadModeration({ thread }: { thread: ForumThread }) {
         <p className="text-xs text-muted-foreground px-1.5 pt-1.5">
           Gehört zu einer Veranstaltung.{" "}
           {terminVorbei
-            ? "Der Termin ist vorbei – archivieren ist jetzt möglich."
+            ? "Der Termin ist vorbei. Das Thema lässt sich jetzt archivieren."
             : "Löschen und Archivieren laufen über den Termin selbst."}
         </p>
       )}

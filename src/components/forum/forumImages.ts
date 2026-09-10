@@ -36,7 +36,7 @@ export async function uploadForumImage(
   }
   if (file.size > MAX_IMAGE_BYTES) {
     throw new Error(
-      `Das Bild ist ${(file.size / 1024 / 1024).toFixed(1)} MB groß – mehr als 8 MB gehen nicht.`
+      `Das Bild ist ${(file.size / 1024 / 1024).toFixed(1)} MB groß. Mehr als 8 MB gehen nicht.`
     );
   }
 

@@ -118,7 +118,7 @@ export const TEXT_SCHRIFTEN: Schriftart[] = [
   { name: "Lato", beschreibung: "Etwas wärmer" },
   { name: "Nunito Sans", beschreibung: "Rund und freundlich" },
   { name: "Work Sans", beschreibung: "Modern, klar" },
-  { name: "Lora", beschreibung: "Mit Serifen – wie ein Buch" },
+  { name: "Lora", beschreibung: "Mit Serifen, wie in einem Buch" },
 ];
 
 const geladen = new Set<string>();

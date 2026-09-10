@@ -22,7 +22,7 @@ export default function AufnahmeantragAdmin() {
       <div className="mb-4">
         <h2 className="font-serif text-lg font-semibold">Aufnahmeantrag</h2>
         <p className="text-sm text-muted-foreground">
-          Was der Antrag abfragt und was darin steht – im Webformular wie auf
+          Was der Antrag abfragt und was darin steht, im Webformular wie auf
           dem PDF, das daraus entsteht.
         </p>
       </div>

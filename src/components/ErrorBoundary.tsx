@@ -97,7 +97,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               {error.message}
             </pre>
             <p className="text-xs text-muted-foreground mt-2">
-              Diese Meldung hilft beim Beheben – bitte mitschicken.
+              Diese Meldung hilft beim Beheben. Bitte mitschicken.
             </p>
           </details>
         )}

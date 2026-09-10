@@ -84,7 +84,9 @@ export default function EventFormDialog({
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      {/* Auf dem Handy untereinander: Ein Datumsfeld braucht rund 180 px,
+          in zwei Spalten blieben davon 150. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="efd-start-date" className="text-sm font-medium">Startdatum *</label>
           <Input id="efd-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -96,7 +98,7 @@ export default function EventFormDialog({
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="efd-end-date" className="text-sm font-medium">Enddatum</label>
           <Input id="efd-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />

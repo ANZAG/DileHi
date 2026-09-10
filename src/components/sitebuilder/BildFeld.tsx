@@ -179,7 +179,7 @@ export default function BildFeld({
           />
           <p className="mt-1 text-[11px] text-muted-foreground">
             {altGespeichert
-              ? "Beschreibt, was zu sehen ist – gehört zum Bild, nicht zur Seite."
+              ? "Beschreibt, was zu sehen ist. Die Angabe gehört zum Bild, nicht zur Seite."
               : "Wird gespeichert, sobald du das Feld verlässt."}
           </p>
         </div>

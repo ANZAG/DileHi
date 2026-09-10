@@ -125,7 +125,7 @@ export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
 
       {!page.is_published && (
         <div className="bg-amber-500 text-amber-950 text-center py-2 px-4 text-sm font-semibold">
-          Vorschau – diese Seite ist noch nicht veröffentlicht.
+          Vorschau: Diese Seite ist noch nicht veröffentlicht.
         </div>
       )}
 

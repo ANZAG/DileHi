@@ -24,7 +24,7 @@ const EpochSources = ({ epoch }: EpochSourcesProps) => {
       <h2 className="font-serif text-2xl font-semibold mb-6">Unsere Quellen</h2>
       <div className="text-muted-foreground leading-relaxed space-y-4">
         <p>
-          Unsere Darstellung stützt sich auf eine Vielzahl von Quellen – archäologische Funde, zeitgenössische Abbildungen und wissenschaftliche Literatur. Eine Auswahl:
+          Unsere Darstellung stützt sich auf eine Vielzahl von Quellen: archäologische Funde, zeitgenössische Abbildungen und wissenschaftliche Literatur. Eine Auswahl:
         </p>
         {sources.length > 0 ? (
           <ul className="space-y-3 ml-1 text-sm">

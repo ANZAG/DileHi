@@ -20,7 +20,7 @@ import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
 const baseCards = [
   { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen", modul: "events" },
   { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum", modul: "forum" },
-  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/pinnwand", modul: "announcements" },
+  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/versammlungen", modul: "announcements" },
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen", modul: "elections" },
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", modul: "documents" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", modul: "sources" },

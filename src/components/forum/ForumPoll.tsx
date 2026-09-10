@@ -159,7 +159,7 @@ export default function ForumPoll({
 
       <p className="text-xs text-muted-foreground mt-2">
         {payload.anonym
-          ? "Anonym – es werden nur Zahlen angezeigt."
+          ? "Anonym. Es werden nur Zahlen angezeigt."
           : payload.mehrfach
             ? "Mehrfachauswahl möglich."
             : "Eine Auswahl."}

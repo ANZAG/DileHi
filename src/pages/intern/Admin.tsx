@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Users, Image, BookOpen, Mail, Eye, Shield, FileText, ClipboardList, ListChecks, ScrollText, Code2, MessagesSquare, MailPlus, PackageOpen } from "lucide-react";
+// Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
+// beim Suchen zaehlt die Form, bevor man den Text liest.
+import {
+  ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
+  Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
+  Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen,
+} from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
@@ -66,7 +72,7 @@ const Admin = () => {
       { id: "sitepages" as const, gruppe: "website", label: "Seiten", icon: FileText, desc: "Öffentliche Seiten zusammenstellen" },
     ] : []),
     ...(hasPermission("site.layout_edit") ? [
-      { id: "menue" as const, gruppe: "website", label: "Menü", icon: ListChecks, desc: "Punkte in der Kopfzeile" },
+      { id: "menue" as const, gruppe: "website", label: "Menü", icon: MenuIcon, desc: "Punkte in der Kopfzeile" },
     ] : []),
     ...(hasPermission("gallery.manage") ? [
       { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder der Website verwalten" , modul: "gallery"},
@@ -78,19 +84,19 @@ const Admin = () => {
       { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Stichpunkte je Kategorie" , modul: "besucher_highlights"},
     ] : []),
     ...(hasPermission("personas.publish") ? [
-      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Steckbriefe für die Website freigeben" , modul: "personas"},
+      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Steckbriefe für die Website" , modul: "personas"},
     ] : []),
     ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
-      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: BookOpen, desc: "Ordnen Bilder, Quellen und Stichpunkte (bei uns die Epochen)" },
+      { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: Tags, desc: "Ordnen Bilder, Quellen und Stichpunkte" },
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
     ] : []),
     ...(hasPermission("system.settings") ? [
-      { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Image, desc: "Name, Logo, Farben, Schriften, E-Mail" },
+      { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
-      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: ClipboardList, desc: "Felder und Texte des Antrags" , modul: "applications"},
-      { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: Users, desc: "Welche Bereiche und Felder es hat" },
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder und Texte des Antrags" , modul: "applications"},
+      { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
       { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , modul: "forum"},
@@ -105,7 +111,7 @@ const Admin = () => {
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Rollen und ihre Rechte" },
     ] : []),
     ...(canAudit ? [
-      { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: FileText, desc: "Nachvollziehen, wer was geändert hat" },
+      { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: History, desc: "Wer hat was geändert" },
     ] : []),
   ];
 

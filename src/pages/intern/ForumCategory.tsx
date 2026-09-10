@@ -70,7 +70,7 @@ export default function ForumCategory() {
   if (!category) {
     return (
       <div className="container py-16 text-center max-w-lg px-4">
-        <p className="text-muted-foreground">Diese Rubrik gibt es nicht – oder sie ist für dich nicht sichtbar.</p>
+        <p className="text-muted-foreground">Diese Rubrik gibt es nicht, oder sie ist für dich nicht sichtbar.</p>
         <Button variant="outline" className="mt-4" asChild><Link to="/intern/forum">Zum Forum</Link></Button>
       </div>
     );
@@ -139,7 +139,7 @@ export default function ForumCategory() {
             <p className="text-sm text-muted-foreground">
               {category.only_auto_threads
                 ? "Hier erscheint zu jeder Veranstaltung eine Absprache, sobald ein Termin angelegt wird."
-                : "Noch kein Thema. Fang gern an – so bleibt es nicht leer."}
+                : "Noch kein Thema. Fang gern an, so bleibt es nicht leer."}
             </p>
           </div>
         ) : (

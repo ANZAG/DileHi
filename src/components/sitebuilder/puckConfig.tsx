@@ -8,6 +8,7 @@ import {
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten, KASTEN_STILE, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
 import { Vereinsangaben } from "./Vereinsangaben";
+import { DARSTELLUNGEN_EINLEITUNG } from "@/components/PublicPersonasSection";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
@@ -615,7 +616,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       defaultProps: {
         ...layoutVorgaben, breite: "breit", kategorie: "",
         ueberschrift: "Unsere Darstellungen",
-        einleitung: "Welche Epochen und Handwerke wir zeigen können – nach Zeitstellung geordnet. Sprechen Sie uns gern an, wenn Sie etwas Bestimmtes suchen.",
+        einleitung: DARSTELLUNGEN_EINLEITUNG,
         abstandOben: "weit", abstandUnten: "weit",
       },
       render: Darstellungen,

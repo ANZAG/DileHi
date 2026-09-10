@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
@@ -62,7 +62,7 @@ import NotFound from "./pages/NotFound";
 // Alle übrigen Seiten werden erst beim Aufruf nachgeladen. Das hält vor allem
 // den Mitgliederbereich aus dem ersten Laden heraus – dort hängen Leaflet
 // (Mitgliederkarte), Drag-and-drop (Formular-Baukasten, Verwaltung) und der
-// Markdown-Renderer (Pinnwand) dran, die ein Gast nie braucht.
+// Markdown-Renderer (Versammlungen) dran, den ein Gast nie braucht.
 const Kontakt              = lazyPage(() => import("./pages/Kontakt"));
 const Login                = lazyPage(() => import("./pages/Login"));
 const ResetPassword        = lazyPage(() => import("./pages/ResetPassword"));
@@ -136,7 +136,10 @@ const App = () => (
                 <Route path="/intern/forum" element={<ModulRoute k="forum"><ProtectedRoute><Forum /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/forum/thema/:threadId" element={<ModulRoute k="forum"><ProtectedRoute><ForumThread /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/forum/:slug" element={<ModulRoute k="forum"><ProtectedRoute><ForumCategory /></ProtectedRoute></ModulRoute>} />
-                <Route path="/intern/pinnwand" element={<ModulRoute k="announcements"><ProtectedRoute><Announcements /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/versammlungen" element={<ModulRoute k="announcements"><ProtectedRoute><Announcements /></ProtectedRoute></ModulRoute>} />
+                {/* Die Seite hiess frueher Pinnwand. Wer den alten Link
+                    gespeichert hat, landet weiterhin richtig. */}
+                <Route path="/intern/pinnwand" element={<Navigate to="/intern/versammlungen" replace />} />
                 <Route path="/intern/veranstaltungen" element={<ModulRoute k="events"><ProtectedRoute><EventsPage /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/abstimmungen" element={<ModulRoute k="elections"><ProtectedRoute><Elections /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/verwaltung" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
