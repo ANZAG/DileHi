@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { startdaten } from "./hilfe/datenbank";
 import { describe, expect, it } from "vitest";
 import { ANTRAG_FELDTYPEN, istKernfeld } from "@/hooks/useAntragsfelder";
 import { FIELD_TYPES } from "@/components/event-forms/types";
@@ -11,19 +11,19 @@ import { FIELD_TYPES } from "@/components/event-forms/types";
  * Antrag – lange nachdem jemand das Feld geloescht hat.
  */
 describe("Felder des Aufnahmeantrags", () => {
-  const migration = readFileSync(
-    "supabase/migrations/20260909140000_antragsfelder.sql",
-    "utf-8"
-  );
+  /** Die Felder, die eine neue Installation mitbekommt. */
+  const felder = startdaten("application_fields");
 
   it("legt jedes tragende Feld an, das die Aufnahme braucht", () => {
     // Die Liste stammt aus invite-member (Konto und Profil) und aus
     // submit-application (Pflichtangaben beim Speichern).
+    expect(felder.length).toBeGreaterThan(5);
+    const schluessel = felder.map((f) => f.column_name);
     for (const spalte of [
       "salutation", "first_name", "last_name", "email",
       "phone", "birthdate", "street", "zip", "city",
     ]) {
-      expect(migration).toContain(`'${spalte}'`);
+      expect(schluessel, spalte).toContain(spalte);
     }
   });
 
@@ -47,9 +47,11 @@ describe("Felder des Aufnahmeantrags", () => {
     expect(istKernfeld({ column_name: null })).toBe(false);
   });
 
-  it("legt die Felder nur an, wenn noch keine da sind", () => {
-    // Sonst kaeme bei jedem erneuten Lauf der Migration die ganze Liste ein
-    // zweites Mal dazu – und der Antrag fragte alles doppelt.
-    expect(migration).toContain("WHERE NOT EXISTS (SELECT 1 FROM public.application_fields)");
+  it("legt jedes Feld nur einmal an", () => {
+    // Sonst fragte der Antrag beim zweiten Aufsetzen alles doppelt. Frueher
+    // hing das an einem WHERE NOT EXISTS in der Migration; im Ausgangsstand
+    // zaehlt, dass keine Spalte zweimal vorkommt.
+    const namen = felder.map((f) => f.column_name).filter(Boolean);
+    expect(namen.length).toBe(new Set(namen).size);
   });
 });

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { AUSGANGSSTAND } from "./hilfe/datenbank";
 import { describe, expect, it } from "vitest";
 import { beitragsTextSchluessel, type Beitragsmodell } from "@/hooks/useBeitragsmodell";
 
@@ -25,23 +25,15 @@ describe("Beitragsmodell", () => {
   }
 
   it("legt für jedes Modell eine Vorlage an", () => {
-    const migration = readFileSync(
-      "supabase/migrations/20260909130000_beitragsmodelle.sql",
-      "utf-8"
-    );
     for (const schluessel of Object.values(erwartet)) {
-      expect(migration).toContain(`'${schluessel}'`);
+      expect(AUSGANGSSTAND).toContain(`'${schluessel}'`);
     }
   });
 
   it("erlaubt in der Datenbank genau die drei Modelle", () => {
-    const migration = readFileSync(
-      "supabase/migrations/20260909130000_beitragsmodelle.sql",
-      "utf-8"
-    );
     // Die Prüfbedingung ist die letzte Verteidigungslinie: Ein Modell, das der
     // Code kennt und die Datenbank nicht, lässt sich gar nicht erst speichern.
-    expect(migration).toContain("CHECK (contribution_model IN ('fest', 'umlage', 'keiner'))");
+    expect(AUSGANGSSTAND).toContain("CHECK ((contribution_model = ANY (ARRAY['fest'::text, 'umlage'::text, 'keiner'::text])))");
   });
 
   it("faellt bei unbekanntem Modell auf den festen Beitrag zurueck", () => {

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { startdaten } from "./hilfe/datenbank";
 import { describe, expect, it } from "vitest";
 import { bereichAn, freieFelder, type Profilfeld } from "@/hooks/useProfilfelder";
 
@@ -43,10 +44,7 @@ describe("Bereiche des Mitgliederprofils", () => {
 });
 
 describe("Migration der Profilfelder", () => {
-  const migration = readFileSync(
-    "supabase/migrations/20260909180000_profilfelder.sql",
-    "utf-8"
-  );
+  const felder = startdaten("profile_fields");
 
   it("legt jeden Bereich an, den die Profilseite abfragt", () => {
     // Die Schluessel stehen in Profile.tsx. Ein Tippfehler hiesse: Der Bereich
@@ -58,11 +56,14 @@ describe("Migration der Profilfelder", () => {
       // Argument (die Module), und der Test soll die Verkabelung pruefen,
       // nicht die Anzahl der Parameter.
       expect(profil).toContain(`bereichAn(profilfelder, "${key}"`);
-      expect(migration).toContain(`'${key}'`);
+      expect(felder.map((f) => f.block_key)).toContain(key);
     }
   });
 
-  it("legt die Bereiche nur an, wenn noch keine da sind", () => {
-    expect(migration).toContain("WHERE NOT EXISTS (SELECT 1 FROM public.profile_fields)");
+  it("legt jeden Bereich nur einmal an", () => {
+    // Frueher haing das an einem WHERE NOT EXISTS in der Migration; im
+    // Ausgangsstand zaehlt, dass kein Bereich doppelt vorkommt.
+    const bereiche = felder.map((f) => f.block_key).filter(Boolean);
+    expect(bereiche.length).toBe(new Set(bereiche).size);
   });
 });

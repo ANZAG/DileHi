@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { startdaten } from "./hilfe/datenbank";
 import { describe, expect, it } from "vitest";
 import { modulAn, nurAktive, type Modulstand } from "@/hooks/useModule";
 
@@ -70,10 +71,8 @@ describe("Module", () => {
  * zweimal beschaeftigt.
  */
 describe("Verkabelung", () => {
-  const migrationen = [
-    "supabase/migrations/20260907170000_app_settings_und_module.sql",
-    "supabase/migrations/20260909200000_module.sql",
-  ].map((f) => readFileSync(f, "utf-8")).join("\n");
+  /** Die Module, die eine neue Installation mitbekommt. */
+  const angelegt = startdaten("app_modules").map((m) => m.key);
 
   const benutzt = (datei: string, muster: RegExp) => {
     const inhalt = readFileSync(datei, "utf-8");
@@ -89,7 +88,8 @@ describe("Verkabelung", () => {
   ]);
 
   it("kennt jedes benutzte Modul in der Datenbank", () => {
-    const fehlend = [...schluessel].filter((k) => !migrationen.includes(`'${k}'`));
+    expect(angelegt.length).toBeGreaterThan(10);
+    const fehlend = [...schluessel].filter((k) => !angelegt.includes(k));
     expect(fehlend).toEqual([]);
   });
 
