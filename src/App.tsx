@@ -65,6 +65,7 @@ import NotFound from "./pages/NotFound";
 // Markdown-Renderer (Versammlungen) dran, den ein Gast nie braucht.
 const Kontakt              = lazyPage(() => import("./pages/Kontakt"));
 const Login                = lazyPage(() => import("./pages/Login"));
+const Einrichtung          = lazyPage(() => import("./pages/Einrichtung"));
 const ResetPassword        = lazyPage(() => import("./pages/ResetPassword"));
 const EventRegistration    = lazyPage(() => import("./pages/EventRegistration"));
 const MembershipApplication = lazyPage(() => import("./pages/MembershipApplication"));
@@ -129,6 +130,9 @@ const App = () => (
                 <Route path="/" element={<SeiteAnzeigen slug="startseite" />} />
                 <Route path="/kontakt" element={<Kontakt />} />
                 <Route path="/login" element={<Login />} />
+                {/* Nur in einer frischen Installation erreichbar – die Seite
+                    leitet zur Anmeldung um, sobald ein Konto eine Rolle hat. */}
+                <Route path="/einrichtung" element={<Einrichtung />} />
                 <Route path="/passwort-zuruecksetzen" element={<ResetPassword />} />
                 <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

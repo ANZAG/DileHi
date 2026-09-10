@@ -42,6 +42,20 @@ unvollständige Historie, von der man es weiss.
 
 ## Was noch zu tun ist
 
+Die drei fehlenden Dateien entstehen aus drei Abfragen. Sie stehen fertig in
+[EXPORT.md](EXPORT.md) und geben jeweils **eine Zelle** zurück, deren Inhalt
+schon die fertige Datei ist — kopieren, einfügen, fertig.
+
+Danach: auf einem leeren Supabase-Projekt durchspielen, siehe
+[../../docs/installation.md](../../docs/installation.md). Erst dann ist der
+Ausgangsstand mehr als eine gut aussehende Behauptung, und erst dann wandern
+die bisherigen Migrationen ins Archiv.
+
+<details>
+<summary>Die Abfragen im Wortlaut (ausführlich, in EXPORT.md besser lesbar)</summary>
+
+
+
 **1. Rechte exportieren.** Der Schema-Dump kennt sie nicht. Ohne sie steht in
 einer neuen Datenbank jede Funktion PUBLIC offen — genau der Fehler, der
 gerade behoben wurde.
@@ -92,3 +106,5 @@ Erst danach ist der Ausgangsstand mehr als eine gut aussehende Behauptung.
 
 **4. Tauschen.** Die bisherigen Migrationen nach `docs/archiv-migrationen/`,
 den Ausgangsstand nach `migrations/`.
+
+</details>
