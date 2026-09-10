@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Trash2, Paperclip, ChevronDown, ChevronRight, Send, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { SEITE } from "@/lib/layout";
 
 const Announcements = () => {
   const { user, hasPermission } = useAuth();
@@ -179,7 +180,7 @@ const Announcements = () => {
     replies.filter((r: any) => r.announcement_id === announcementId);
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück

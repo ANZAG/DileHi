@@ -30,6 +30,7 @@ import ModuleAdmin from "@/components/admin/ModuleAdmin";
 import { useModule, nurAktive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
+import { SEITE, SEITE_WEIT } from "@/lib/layout";
 
 type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module";
 
@@ -147,7 +148,7 @@ const Admin = () => {
   };
 
   return (
-    <div className={`container py-8 sm:py-12 px-4 ${activeTab === "formtemplate" ? "max-w-6xl" : "max-w-4xl"}`}>
+    <div className={activeTab === "formtemplate" ? SEITE_WEIT : SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-4 mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

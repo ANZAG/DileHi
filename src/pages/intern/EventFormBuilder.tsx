@@ -18,6 +18,7 @@ import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import { useFormSettings } from "@/components/event-forms/formSettings";
+import { SEITE_WEIT } from "@/lib/layout";
 
 /** Stabile Referenz – siehe Kommentar am Entwurfs-Effekt. */
 const EMPTY_FIELDS: FormField[] = [];
@@ -251,7 +252,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
     embedded ? (
       <>{children}</>
     ) : (
-      <div className="container py-8 max-w-6xl px-4">
+      <div className={SEITE_WEIT}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>

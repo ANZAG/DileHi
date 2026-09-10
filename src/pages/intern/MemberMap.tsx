@@ -12,6 +12,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
+import { SEITE } from "@/lib/layout";
 
 // Fix default marker icon issue with bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -362,7 +363,7 @@ const MemberMap = () => {
   }, [members, events, isLoading, hasData, navigate]);
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Link
           to="/intern"

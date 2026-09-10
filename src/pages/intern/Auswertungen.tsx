@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { useState } from "react";
+import { SEITE } from "@/lib/layout";
 
 const Auswertungen = () => {
   const { user, hasPermission } = useAuth();
@@ -107,7 +108,7 @@ const Auswertungen = () => {
   );
 
   return (
-    <div className="container py-8 sm:py-12 max-w-3xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex items-center gap-3 mb-8">
           <Button variant="ghost" size="icon" asChild>

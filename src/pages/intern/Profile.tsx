@@ -18,6 +18,7 @@ import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder
 import { useBeitragsmodell } from "@/hooks/useBeitragsmodell";
 import { useBeitragsstufen } from "@/hooks/useBeitragsstufen";
 import { useModule } from "@/hooks/useModule";
+import { SEITE } from "@/lib/layout";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -351,7 +352,7 @@ const Profile = () => {
   const selectedTentShape = TENT_TYPE_OPTIONS.find((t) => t.value === tentType)?.shape || "circle";
 
   return (
-    <div className="container py-8 sm:py-12 max-w-lg px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -366,7 +367,21 @@ const Profile = () => {
         </div>
         <h1 className="font-serif text-2xl font-bold mb-6">Mein Profil</h1>
 
-        <div className="space-y-6">
+        {/*
+          * Zweispaltig ab dem grossen Bildschirm.
+          *
+          * Das Profil stand in einer Spalte von 32rem – auf einem gewoehnlichen
+          * Monitor blieben zwei Drittel der Flaeche leer, und man scrollte an
+          * zehn Kaesten vorbei. `columns` statt eines Rasters, weil die Kaesten
+          * einzeln wegfallen koennen: Ein Raster mit fest zugeteilten Spalten
+          * haette bei abgeschalteten Bereichen eine leere Haelfte.
+          *
+          * Die Reihenfolge im Quelltext ist die Reihenfolge auf dem Handy und
+          * zugleich die Lesereihenfolge am Desktop (erst linke Spalte, dann
+          * rechte). Sie ist nach Wichtigkeit sortiert: erst wer man ist, dann
+          * was man mitbringt, zuletzt Einstellungen und Unterlagen.
+          */}
+        <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
           {/* Personal info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Persönliche Daten</h2>
@@ -466,47 +481,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Dietary preferences – pre-fill event registration forms automatically */}
-          {bereichAn(profilfelder, "ernaehrung", module) && (
-  <div className="p-6 rounded-lg border bg-card space-y-4">
-              <div>
-                <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="profile-diet" className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
-                  <select
-                    id="profile-diet"
-                    value={form.diet}
-                    onChange={(e) => setField("diet", e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">– keine Angabe –</option>
-                    <option value="Keine Einschränkung">Keine Einschränkung</option>
-                    <option value="Vegetarisch">Vegetarisch</option>
-                    <option value="Vegan">Vegan</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="profile-allergies" className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
-                  <input
-                    id="profile-allergies"
-                    value={form.allergies}
-                    onChange={(e) => setField("allergies", e.target.value)}
-                    placeholder="z.B. Nüsse, Laktose …"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Darstellungssteckbrief – nur intern sichtbar */}
-          {bereichAn(profilfelder, "darstellung", module) && <PersonaEditor />}
-
           {/* Membership info */}
           <div className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
@@ -570,6 +544,44 @@ const Profile = () => {
               <p className="text-sm text-destructive font-medium">Mitgliedschaft beendet</p>
             )}
           </div>
+
+          {/* Dietary preferences – pre-fill event registration forms automatically */}
+          {bereichAn(profilfelder, "ernaehrung", module) && (
+  <div className="p-6 rounded-lg border bg-card space-y-4">
+              <div>
+                <h2 className="font-serif text-lg font-semibold">Ernährung</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Wird bei Veranstaltungsanmeldungen automatisch vorausgefüllt.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="profile-diet" className="text-sm font-medium mb-1.5 block">Ernährungspräferenz</label>
+                  <select
+                    id="profile-diet"
+                    value={form.diet}
+                    onChange={(e) => setField("diet", e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">– keine Angabe –</option>
+                    <option value="Keine Einschränkung">Keine Einschränkung</option>
+                    <option value="Vegetarisch">Vegetarisch</option>
+                    <option value="Vegan">Vegan</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="profile-allergies" className="text-sm font-medium mb-1.5 block">Allergien / Unverträglichkeiten</label>
+                  <input
+                    id="profile-allergies"
+                    value={form.allergies}
+                    onChange={(e) => setField("allergies", e.target.value)}
+                    placeholder="z.B. Nüsse, Laktose …"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tents */}
           {bereichAn(profilfelder, "zelte", module) && (
@@ -656,6 +668,9 @@ const Profile = () => {
               )}
             </div>
           )}
+
+          {/* Darstellungssteckbrief – nur intern sichtbar */}
+          {bereichAn(profilfelder, "darstellung", module) && <PersonaEditor />}
 
           {/* Frei zusammengestellte Felder.
               Der Block erscheint nur, wenn es welche gibt – ein leerer Kasten

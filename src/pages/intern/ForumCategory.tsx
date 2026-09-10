@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ForumEditor from "@/components/forum/ForumEditor";
 import { createThread, fetchCategories, fetchThreads } from "@/components/forum/api";
 import { supabase } from "@/integrations/supabase/client";
+import { SEITE } from "@/lib/layout";
 
 export default function ForumCategory() {
   const { slug } = useParams<{ slug: string }>();
@@ -77,7 +78,7 @@ export default function ForumCategory() {
   }
 
   return (
-    <div className="container py-8 sm:py-12 max-w-4xl px-4">
+    <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück">
