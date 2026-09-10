@@ -40,7 +40,7 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: User,
     title: "Dein Profil pflegen",
-    body: "Hinterlege deinen Namen, deine Adresse und optional dein Geburtsdatum. Außerdem kannst du hier deine Ernährung (z.B. vegetarisch/vegan) und deine Zelte eintragen – beides wird dann bei Anmeldeformularen automatisch vorgeschlagen.",
+    body: "Hinterlege deinen Namen, deine Adresse und wenn du magst dein Geburtsdatum. Trage hier auch ein, wie du dich ernährst (zum Beispiel vegetarisch oder vegan) und welche Zelte du hast. Beides wird bei Anmeldungen zu Veranstaltungen automatisch vorgeschlagen.",
     hint: "Tipp: Aktiviere \u201eAuf Karte anzeigen\u201c, damit dein Wohnort auf der Mitgliederkarte erscheint.",
     route: "/intern/profil",
   },
@@ -54,8 +54,8 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: ClipboardList,
     title: "An Veranstaltungen teilnehmen",
-    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus – deine Profildaten (z.B. Ernährung & Zelte) sind dort bereits vorausgefüllt. Über den Bearbeitungslink kannst du deine Anmeldung später jederzeit ändern. Ohne Anmeldeformular meldest du dich mit einem Klick auf „Teilnehmen“ direkt an bzw. wieder ab.",
-    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen – beim Erstellen lässt sich direkt ein Anmeldeformular hinzufügen und die Felder frei gestalten.",
+    body: "Klicke unter „Veranstaltungen“ auf einen Termin, um die Details zu öffnen. Gibt es ein Anmeldeformular, klickst du auf „Anmelden“ und füllst es aus. Deine Angaben aus dem Profil, etwa Ernährung und Zelte, stehen dort schon drin. Über den Bearbeitungslink kannst du deine Anmeldung jederzeit ändern. Ohne Anmeldeformular reicht ein Klick auf „Teilnehmen“, und genauso meldest du dich wieder ab.",
+    hint: "Tipp: Du kannst auch selbst eine Veranstaltung anlegen. Beim Erstellen lässt sich gleich ein Anmeldeformular hinzufügen.",
     route: "/intern/veranstaltungen",
   },
   {
@@ -85,13 +85,13 @@ const MEMBER_STEPS: TourStep[] = [
   {
     icon: BookOpen,
     title: "Quellensammlung",
-    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Epoche sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
+    body: "Unsere gemeinsame Recherche-Bibliothek: historische Quellen nach Kategorie sortiert. Du kannst eigene Quellen hinzufügen und Ordner anlegen.",
     route: "/intern/quellen",
   },
   {
     icon: MapPin,
     title: "Mitgliederkarte",
-    body: "Sieh, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden – alles auf einer Karte.",
+    body: "Auf einer Karte siehst du, wo die anderen Mitglieder wohnen und wo unsere nächsten Veranstaltungen stattfinden.",
     hint: "Tipp: Aktiviere die Karten-Funktion in deinem Profil, um auch sichtbar zu sein.",
     route: "/intern/karte",
   },
@@ -115,7 +115,7 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: Settings,
     title: "Verwaltung",
-    body: "Über den Bereich „Verwaltung“ verwaltest du den gesamten Verein: Mitglieder, Berechtigungen, Galerie, Inhalte der Website und mehr – gebündelt an einem Ort.",
+    body: "Im Bereich „Verwaltung“ liegt alles an einer Stelle: Mitglieder, Berechtigungen, Galerie und die Inhalte der Website.",
     route: "/intern/verwaltung",
   },
   {
@@ -139,7 +139,7 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: Image,
     title: "Galerie",
-    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    body: "Lade Bilder hoch, schreibe eine kurze Beschreibung dazu und ordne sie der passenden Kategorie zu.",
     route: "/intern/verwaltung",
   },
   {
@@ -181,7 +181,7 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: ScrollText,
     title: "Audit Log",
-    body: "Im Audit Log siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
+    body: "Im Audit Log ist festgehalten, wer wichtige Dinge geändert hat, zum Beispiel eine gelöschte Abstimmung. So bleibt alles nachvollziehbar.",
     route: "/intern/verwaltung/protokoll",
   },
   {
@@ -206,7 +206,7 @@ const SCHATZMEISTER_STEPS: TourStep[] = [
   {
     icon: FileText,
     title: "Mitgliedsunterlagen",
-    body: "Du hast Zugriff auf die Mitgliedsunterlagen – Aufnahmeanträge und Stammdaten –, die du für die Beitragsabrechnung brauchst.",
+    body: "Du kommst an die Unterlagen, die du für die Beitragsabrechnung brauchst: Aufnahmeanträge und die Stammdaten der Mitglieder.",
     route: "/intern/verwaltung",
   },
   {
@@ -237,7 +237,7 @@ const HEROLD_STEPS: TourStep[] = [
   {
     icon: Image,
     title: "Galerie",
-    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    body: "Lade Bilder hoch, schreibe eine kurze Beschreibung dazu und ordne sie der passenden Kategorie zu.",
     route: "/intern/verwaltung",
   },
   {

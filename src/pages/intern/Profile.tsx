@@ -267,7 +267,7 @@ const Profile = () => {
       if (geocodeFailed) {
         toast({
           title: "Profil gespeichert",
-          description: "Wohnort konnte nicht auf der Karte eingetragen werden – bitte PLZ und Ort prüfen.",
+          description: "Der Wohnort konnte nicht auf der Karte eingetragen werden. Bitte prüfe Postleitzahl und Ort.",
           variant: "destructive",
         });
       } else {
@@ -658,7 +658,7 @@ const Profile = () => {
               <div>
                 <span className="text-sm font-medium">Tägliche Zusammenfassung per E-Mail</span>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Eine Mail am Abend, wenn es Neues gibt – gesammelt, nicht einzeln.
+                  Eine Mail am Abend, wenn es Neues gibt. Gesammelt, nicht einzeln.
                   Die Glocke oben in der Leiste bleibt davon unberührt.
                 </p>
               </div>

@@ -7,7 +7,7 @@ type Resource = "events" | "personas" | "gallery";
 
 const RESOURCES: { key: Resource; label: string; desc: string }[] = [
   { key: "events", label: "Nächste Veranstaltungen", desc: "Alle öffentlich freigegebenen Termine ab heute." },
-  { key: "personas", label: "Unsere Darstellungen", desc: "Vom Herold freigegebene Darstellungen – ohne Namen." },
+  { key: "personas", label: "Unsere Darstellungen", desc: "Vom Herold freigegebene Darstellungen, ohne Namen." },
   { key: "gallery", label: "Galerie", desc: "Die neuesten Bilder aus der Galerie." },
 ];
 
@@ -36,7 +36,7 @@ export default function EmbedAdmin() {
     {
       id: "iframe",
       label: "Für Baukastensysteme",
-      hint: "Wenn nur ein iframe erlaubt ist – etwa bei Jimdo, Wix oder WordPress ohne Script-Rechte.",
+      hint: "Wenn nur ein iframe erlaubt ist, etwa bei Jimdo, Wix oder WordPress ohne Script-Rechte.",
       code: `<iframe src="${base}.html?limit=${limit}" style="width:100%;height:420px;border:0" loading="lazy" title="Einbindung"></iframe>`,
     },
     {
@@ -60,7 +60,7 @@ export default function EmbedAdmin() {
       <div>
         <h2 className="font-serif text-lg font-semibold">Einbindung auf anderen Websites</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Inhalte, die ohnehin öffentlich sind, lassen sich auf fremden Seiten anzeigen –
+          Inhalte, die ohnehin öffentlich sind, lassen sich auf fremden Seiten anzeigen:
           etwa bei einem Museum, das eine Veranstaltung mit euch ausrichtet.
         </p>
       </div>
@@ -127,7 +127,7 @@ export default function EmbedAdmin() {
       <p className="text-xs text-muted-foreground border-t pt-3">
         Es wird nur ausgeliefert, was ohnehin öffentlich ist: für die Website freigegebene Termine,
         vom Herold freigegebene Darstellungen (ohne Namen) und Galeriebilder. Die Antworten werden
-        15 Minuten zwischengespeichert – Änderungen erscheinen also mit kurzer Verzögerung.
+        15 Minuten zwischengespeichert. Änderungen erscheinen also mit kurzer Verzögerung.
         Zurzeit ausgewählt: {active.label}.
       </p>
     </div>

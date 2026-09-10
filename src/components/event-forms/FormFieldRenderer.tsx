@@ -549,8 +549,8 @@ function TentListField({ value, onChange, memberTents }: { value: any; onChange:
       {current.tents.length === 0 && (
         <p className="text-xs text-muted-foreground text-center">
           {hasMemberTents
-            ? "Kein Zelt ausgewählt – wähle eines aus deinem Profil oder füge manuell hinzu."
-            : "Noch kein Zelt hinzugefügt – klicke oben, um eines einzutragen."
+            ? "Kein Zelt ausgewählt. Wähle eines aus deinem Profil oder trage eines von Hand ein."
+            : "Noch kein Zelt hinzugefügt. Klicke oben, um eines einzutragen."
           }
         </p>
       )}

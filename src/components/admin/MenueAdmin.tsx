@@ -244,7 +244,7 @@ export default function MenueAdmin() {
             <div>
               <Label className="text-sm">Untermenü von (optional)</Label>
               <Select value={neuUnter} onValueChange={setNeuUnter}>
-                <SelectTrigger><SelectValue placeholder="Nichts – eigener Punkt" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Nichts, eigener Punkt" /></SelectTrigger>
                 <SelectContent>
                   {oben.map((e) => (
                     <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>

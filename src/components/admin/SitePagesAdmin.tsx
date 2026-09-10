@@ -245,7 +245,7 @@ function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehl
   return (
     <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
       Steht bereits auf {andere.map((s) => `„${s.title}"`).join(", ")}. Für den
-      Verein selbst sollte es genau eine Seite geben – meist die Startseite.
+      Verein selbst sollte es genau eine Seite geben, meist die Startseite.
       Für die übrigen passt „Eine Seite über den Verein".
     </p>
   );
@@ -296,11 +296,11 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
         <Input
           value={suchtitel}
           onChange={(e) => setSuchtitel(e.target.value)}
-          placeholder={`${titel} – Kurzname des Vereins`}
+          placeholder={`${titel} | Kurzname des Vereins`}
         />
         <p className="text-xs text-muted-foreground mt-1">
           Leer lassen genügt meistens. Ein eigener Satz ist besser als ein
-          Muster – er steht in der Trefferliste und entscheidet über den Klick.
+          Muster. Er steht in der Trefferliste und entscheidet über den Klick.
         </p>
       </div>
 
@@ -317,8 +317,8 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
-          Erzeugt einen maschinenlesbaren Block. Was darin steht – Name,
-          Anschrift, Web-Adresse – kommt aus den Vereinsangaben.
+          Erzeugt einen maschinenlesbaren Block. Was darin steht, also Name,
+          Anschrift und Web-Adresse, kommt aus den Vereinsangaben.
         </p>
         <OrganisationHinweis eigeneId={seite.id} gewaehlt={datenart} />
       </div>

@@ -193,7 +193,7 @@ export default function ErscheinungsbildAdmin() {
             ersatz={null}
             ersatzHinweis="Ohne Logo steht der Vereinsname als Text in der Kopfzeile."
             laedt={laedtBild === "logo"}
-            hinweis="Am besten breit und mit durchsichtigem Hintergrund. PNG oder JPEG – nur diese erscheinen auch auf dem Aufnahmeantrag."
+            hinweis="Am besten breit und mit durchsichtigem Hintergrund. PNG oder JPEG, nur diese erscheinen auch auf dem Aufnahmeantrag."
             formate="image/png,image/jpeg,image/svg+xml"
             onDatei={(d) => void bildHochladen("logo", d)}
             onEntfernen={() => void bildEntfernen("logo")}
@@ -234,7 +234,7 @@ export default function ErscheinungsbildAdmin() {
       {/* ── Farben ───────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="Farben"
-        hinweis="Die Vereinsfarbe zieht sich durch die ganze Seite – Knöpfe, Links, Hervorhebungen."
+        hinweis="Die Vereinsfarbe zieht sich durch die ganze Seite: Knöpfe, Links und Hervorhebungen."
       >
         <div className="grid sm:grid-cols-2 gap-4">
           <Farbwahl
@@ -289,7 +289,7 @@ export default function ErscheinungsbildAdmin() {
       {/* ── Beiträge ─────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="Beiträge"
-        hinweis="Bestimmt, was im Aufnahmeantrag zum Beitrag steht – und ob dort überhaupt etwas steht."
+        hinweis="Bestimmt, was im Aufnahmeantrag zum Beitrag steht und ob dort überhaupt etwas steht."
       >
         <div className="max-w-md">
           <Label className="text-sm">Wie wird der Beitrag erhoben?</Label>

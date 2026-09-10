@@ -116,14 +116,14 @@ export const FIELD_TYPES = [
   },
   {
     value: "select",
-    label: "Auswahl – eine Antwort",
+    label: "Auswahl mit einer Antwort",
     icon: "List",
     hint: "Ausklappliste, genau eine Option wählbar.",
     example: "z.B. Frühstück: ja / nein / egal",
   },
   {
     value: "multi_select",
-    label: "Auswahl – mehrere Antworten",
+    label: "Auswahl mit mehreren Antworten",
     icon: "CheckSquare",
     hint: "Kästchen zum Ankreuzen, mehrere Optionen möglich.",
     example: "z.B. Aufbau / Abbau",
@@ -135,8 +135,8 @@ export const FIELD_TYPES = [
     value: "helper_tasks",
     label: "Helferaufgaben",
     icon: "HandHelping",
-    hint: "Aufgaben zum Ankreuzen – jede mit Termin und, wenn nötig, einer Mindestanzahl. Die Auswertung zeigt, ob genug Leute zusammenkommen.",
-    example: "z.B. Aufbau (Fr, ab 14 Uhr) – mindestens 6",
+    hint: "Aufgaben zum Ankreuzen, jede mit Termin und wenn nötig einer Mindestanzahl. Die Auswertung zeigt, ob genug Leute zusammenkommen.",
+    example: "z.B. Aufbau (Fr, ab 14 Uhr), mindestens 6",
   },
   {
     value: "checkbox",
@@ -157,7 +157,7 @@ export const FIELD_TYPES = [
     value: "tent",
     label: "Zelt-Details",
     icon: "Tent",
-    hint: "Zelte aus dem Profil oder manuell erfassen (Typ, Maße, Schlafplätze) – Grundlage für die Lagerplanung.",
+    hint: "Zelte aus dem Profil übernehmen oder selbst eintragen (Typ, Maße, Schlafplätze). Das ist die Grundlage für die Lagerplanung.",
     example: "z.B. „Welche Zelte bringst du mit?\"",
   },
 ] as const;

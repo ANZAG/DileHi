@@ -150,7 +150,7 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     settings: {
       role: "display.description",
       conditional_on: "Ich stelle ein Display aus",
-      placeholder: "Kurze Beschreibung – Details klärt die Orga mit dir",
+      placeholder: "Kurze Beschreibung, Details klärt die Orga mit dir",
     },
     description: null,
   },

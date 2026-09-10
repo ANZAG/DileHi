@@ -8,12 +8,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const EPOCHS = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+import { useKategorien } from "@/hooks/useKategorien";
 
 const sanitizeFileName = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -40,6 +35,7 @@ const Sources = () => {
   const isVorstand = hasPermission("admin.access"); // used for folder deletion by non-owners
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const kategorien = useKategorien();
   const [epochFilter, setEpochFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -57,7 +53,7 @@ const Sources = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
 
-  const activeEpoch = epochFilter || "mittelalter";
+  const activeEpoch = epochFilter || kategorien[0]?.value || "";
 
   const { data: folders = [] } = useQuery({
     queryKey: ["source_folders", activeEpoch],
@@ -349,11 +345,11 @@ const Sources = () => {
             <input placeholder="Suchen..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm" />
           </div>
           <div className="grid grid-cols-3 sm:flex gap-1">
-            {EPOCHS.map((e) => (
+            {kategorien.map((e) => (
               <button
                 key={e.value}
                 onClick={() => { setEpochFilter(e.value); setCurrentFolderId(null); }}
-                className={`px-3 py-2 text-xs rounded-md border text-center ${(epochFilter || "mittelalter") === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                className={`px-3 py-2 text-xs rounded-md border text-center ${activeEpoch === e.value ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
               >
                 {e.label}
               </button>

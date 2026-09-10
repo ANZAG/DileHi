@@ -696,7 +696,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             <LinkWithQr
               icon={<MessageCircle size={13} />}
               label="Gruppenlink zur Absprache"
-              hint="WhatsApp, Signal, Matrix – was ihr nutzt. Steht in der Bestätigungsmail."
+              hint="WhatsApp, Signal oder Matrix, ganz wie ihr wollt. Der Link steht in der Bestätigungsmail."
               placeholder="https://…"
               value={groupLink}
               onChange={setGroupLink}

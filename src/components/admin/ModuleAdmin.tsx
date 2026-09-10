@@ -74,7 +74,7 @@ export default function ModuleAdmin() {
         <h2 className="font-serif text-lg font-semibold">Module</h2>
         <p className="text-sm text-muted-foreground max-w-prose">
           Was diese Installation anbietet. Abgeschaltet verschwindet ein Bereich
-          samt Menüpunkt, Kachel und Verwaltung – die Daten bleiben und kommen
+          samt Menüpunkt, Kachel und Verwaltung. Die Daten bleiben und kommen
           beim Wiedereinschalten zurück.
         </p>
       </div>
@@ -90,7 +90,7 @@ export default function ModuleAdmin() {
 
       <Liste
         titel="Zusätze"
-        hinweis="Erweiterungen eines anderen Moduls. Sie stammen aus unserer eigenen Praxis – ein Verein, der nicht auf Lagern übernachtet, braucht sie nicht."
+        hinweis="Erweiterungen eines anderen Moduls. Sie stammen aus unserer eigenen Praxis: ein Verein, der nicht auf Lagern übernachtet, braucht sie nicht."
         module={zusaetze}
         schalten={schalten}
         grund={grund}
