@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Hilfe } from "@/components/Hilfe";
+import { useDefaultRole } from "@/hooks/useDefaultRole";
 import {
   Select,
   SelectContent,
@@ -72,7 +73,13 @@ const MemberRegistry = () => {
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("mitglied");
+  // Die Standardrolle kommt aus den Einstellungen: „mitglied" gibt es in einer
+  // Installation mit eigenen Rollennamen womoeglich gar nicht.
+  const defaultRole = useDefaultRole();
+  const [inviteRole, setInviteRole] = useState("");
+  useEffect(() => {
+    if (!inviteRole && defaultRole) setInviteRole(defaultRole);
+  }, [defaultRole, inviteRole]);
 
   // Filter/search/sort
   const [search, setSearch] = useState("");
@@ -145,7 +152,7 @@ const MemberRegistry = () => {
         .map((p) => ({
           id: p.id, // no user_roles id – use profile id
           user_id: p.id,
-          role: "mitglied",
+          role: defaultRole,
           display_name: p.display_name ?? "–",
           first_name: p.first_name ?? "",
           last_name: p.last_name ?? "",
@@ -345,7 +352,7 @@ const MemberRegistry = () => {
   const reactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
       await supabase.functions.invoke("manage-member", {
-        body: { action: "update_role", userId: m.user_id, role: "mitglied" },
+        body: { action: "update_role", userId: m.user_id, role: defaultRole },
       });
       await supabase.functions.invoke("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: null, isActive: true },
