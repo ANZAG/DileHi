@@ -62,6 +62,10 @@ const DATEIEN: Record<string, () => Promise<unknown>> = {
     import("@fontsource/merriweather/latin-400.css"),
     import("@fontsource/merriweather/latin-700.css"),
   ]),
+  // Antic Didone gibt es nur in einem Schnitt – die Auszeichnung erledigt der
+  // Browser. Bei einer Didone ist das sichtbar, aber besser als gar keine
+  // fette Variante.
+  "Antic Didone": () => import("@fontsource/antic-didone/latin-400.css"),
   "Cinzel": () => Promise.all([
     import("@fontsource/cinzel/latin-400.css"),
     import("@fontsource/cinzel/latin-600.css"),
@@ -106,6 +110,7 @@ export const UEBERSCHRIFT_SCHRIFTEN: Schriftart[] = [
   { name: "EB Garamond", beschreibung: "Historisch, zurückhaltend" },
   { name: "Merriweather", beschreibung: "Kräftig, gut auf dem Bildschirm" },
   { name: "Cinzel", beschreibung: "Römische Kapitalis, sehr eigen" },
+  { name: "Antic Didone", beschreibung: "Schmal und klassisch, hohe Kontraste" },
   { name: "Inter", beschreibung: "Ohne Serifen, sachlich" },
   { name: "Work Sans", beschreibung: "Ohne Serifen, freundlich" },
 ];

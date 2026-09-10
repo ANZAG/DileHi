@@ -18,10 +18,14 @@ interface DraftState {
   period: string;
   portrayal: string;
   expertise: string;
+  /** Darf mein Name öffentlich neben dieser Darstellung stehen? */
+  showName: boolean;
   images: string[];
 }
 
-const emptyDraft: DraftState = { id: null, period: "", portrayal: "", expertise: "", images: [] };
+const emptyDraft: DraftState = {
+  id: null, period: "", portrayal: "", expertise: "", images: [], showName: false,
+};
 
 /** Editor für die eigenen Darstellungssteckbriefe (im Profil). */
 const PersonaEditor = () => {
@@ -92,11 +96,15 @@ const PersonaEditor = () => {
       period: draft.period,
       portrayal: draft.portrayal.trim().slice(0, 500),
       expertise: draft.expertise.trim().slice(0, 2000),
+      show_name: draft.showName,
       images: draft.images,
     };
+    // show_name steht noch nicht in der erzeugten types.ts – die entsteht erst
+    // bei der naechsten Neugenerierung. Danach kann die Zusicherung weg.
+    const db = supabase as unknown as { from: (t: string) => any };
     const { error } = draft.id
-      ? await supabase.from("member_personas").update(payload).eq("id", draft.id)
-      : await supabase.from("member_personas").insert({ ...payload, sort_order: personas.length });
+      ? await db.from("member_personas").update(payload).eq("id", draft.id)
+      : await db.from("member_personas").insert({ ...payload, sort_order: personas.length });
     setSaving(false);
     if (error) {
       toast({ title: "Fehler", description: error.message, variant: "destructive" });
@@ -164,6 +172,7 @@ const PersonaEditor = () => {
                     period: persona.period,
                     portrayal: persona.portrayal,
                     expertise: persona.expertise,
+                    showName: (persona as { show_name?: boolean }).show_name ?? false,
                     images: persona.images,
                   })
                 }
@@ -234,6 +243,29 @@ const PersonaEditor = () => {
               placeholder="z.B. Schmiedehandwerk, Lagerküche, Bogenbau, Quellenarbeit …"
             />
           </div>
+          {/*
+            * Der Name im Netz ist die Entscheidung der Person, nicht des
+            * Vereins. Deshalb steht der Schalter hier und nicht in der
+            * Verwaltung – und deshalb ist die Vorgabe „nein". Ob die Namen auf
+            * der Website ueberhaupt erscheinen, entscheidet zusaetzlich der
+            * Baustein.
+            */}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={draft.showName}
+              onChange={(e) => setDraft({ ...draft, showName: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+            />
+            <span className="text-sm">
+              Meinen Namen dazu zeigen
+              <span className="block text-xs text-muted-foreground">
+                Ohne Haken erscheint die Darstellung ohne Namen. Angezeigt wird
+                dein Anzeigename, nie deine Anschrift oder Mailadresse.
+              </span>
+            </span>
+          </label>
+
           <div>
             <Label className="text-sm">Bilder (max. {MAX_PERSONA_IMAGES})</Label>
             <div className="flex flex-wrap gap-2 mt-1.5">

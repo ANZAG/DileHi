@@ -97,6 +97,8 @@ export type Bausteine = {
     farbeUnterzeile?: Textfarbe;
   };
   Ueberschrift: {
+    /** Schlagwort in Kapitälchen über der Überschrift. Leer = keine. */
+    oberzeile?: string;
     text: string;
     groesse: "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
@@ -107,6 +109,7 @@ export type Bausteine = {
     aufzaehlung: "punkte" | "schlicht";
   } & typeof gemeinsameVorgaben;
   Seitenkopf: {
+    oberzeile?: string;
     ueberschrift: string;
     text?: string;
     ausrichtung: "links" | "mitte";
@@ -154,8 +157,14 @@ export type Bausteine = {
   } & typeof layoutVorgaben;
   Darstellungen: {
     kategorie?: string; ueberschrift?: string; einleitung?: string;
+    /** Namen zeigen, sofern die Person selbst zugestimmt hat. */
+    namenZeigen?: boolean;
   } & typeof layoutVorgaben;
-  Termine: { ueberschrift?: string; unterzeile?: string; anzahl: number } & typeof layoutVorgaben;
+  Termine: {
+    ueberschrift?: string; unterzeile?: string; anzahl: number;
+    /** Wie viele Jahre zurück zusätzlich gezeigt werden. 0 = nur Kommendes. */
+    rueckschau?: number;
+  } & typeof layoutVorgaben;
   Kontaktformular: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
   Veranstalteranfrage: { ueberschrift?: string; hinweis?: string } & typeof layoutVorgaben;
   Willkommen: {
@@ -257,6 +266,10 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     Ueberschrift: {
       label: "Überschrift",
       fields: {
+        oberzeile: {
+          type: "text",
+          label: "Oberzeile",
+        },
         text: { type: "text", label: "Text" },
         groesse: {
           type: "select", label: "Größe",
@@ -308,6 +321,10 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     Seitenkopf: {
       label: "Seitenkopf",
       fields: {
+        oberzeile: {
+          type: "text",
+          label: "Oberzeile",
+        },
         ueberschrift: { type: "text", label: "Überschrift" },
         text: textFeld,
         ausrichtung: {
@@ -320,7 +337,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...gemeinsameFelder,
       },
       defaultProps: {
-        ueberschrift: "Überschrift", text: "", ausrichtung: "links",
+        oberzeile: "", ueberschrift: "Überschrift", text: "", ausrichtung: "links",
         ...gemeinsameVorgaben, abstandOben: "gross", abstandUnten: "gross",
       },
       render: Seitenkopf,
@@ -611,10 +628,17 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         },
         ueberschrift: { type: "text", label: "Überschrift" },
         einleitung: { type: "textarea", label: "Text darunter" },
+        namenZeigen: {
+          type: "radio", label: "Namen zeigen",
+          options: [
+            { label: "Nein", value: false },
+            { label: "Ja, wo zugestimmt", value: true },
+          ],
+        },
         ...layoutFelder,
       }),
       defaultProps: {
-        ...layoutVorgaben, breite: "breit", kategorie: "",
+        ...layoutVorgaben, breite: "breit", kategorie: "", namenZeigen: false,
         ueberschrift: "Unsere Darstellungen",
         einleitung: DARSTELLUNGEN_EINLEITUNG,
         abstandOben: "weit", abstandUnten: "weit",
@@ -627,10 +651,21 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       fields: {
         ueberschrift: { type: "text", label: "Überschrift" },
         unterzeile: { type: "text", label: "Zeile darunter" },
+        rueckschau: {
+          type: "select", label: "Auch vergangene Termine",
+          options: [
+            { label: "Nein, nur was kommt", value: 0 },
+            { label: "Das laufende Jahr", value: 1 },
+            { label: "Die letzten drei Jahre", value: 3 },
+            { label: "Die letzten fünf Jahre", value: 5 },
+            { label: "Die letzten zehn Jahre", value: 10 },
+          ],
+        },
         anzahl: { type: "number", label: "Wie viele höchstens?", min: 1, max: 20 },
         ...layoutFelder,
       },
       defaultProps: {
+        rueckschau: 0,
         ...layoutVorgaben,
         ueberschrift: "Nächste Termine",
         unterzeile: "Hier findet ihr unsere öffentlichen Auftritte und Veranstaltungen.",
