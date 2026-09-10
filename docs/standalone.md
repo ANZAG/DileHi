@@ -87,6 +87,40 @@ leeren Datenbank zu einer laufenden DileHi-Instanz.
 Sie zu löschen hiesse: Diese eine Datenbank läuft weiter, und eine zweite lässt
 sich nie wieder aufbauen.
 
+### Nachtrag: die Historie ist unvollständig
+
+Beim Aufräumen der Ausführungsrechte ist aufgefallen, dass diese Aussage heute
+noch nicht ganz stimmt. Fünf Funktionen werden benutzt, aber in keiner
+Migration angelegt:
+
+| Funktion | Aufgerufen von |
+| --- | --- |
+| `get_role_catalog()` | dem Programm (Rollennamen in der Verwaltung) |
+| `get_permission_catalog()` | dem Programm (Rechteverwaltung) |
+| `get_member_directory()` | Mitgliederlisten |
+| `get_member_ids()` | intern |
+| `touch_election_on_vote()` | einem Trigger auf `votes` |
+
+Sie stammen aus der Zeit vor der eingecheckten Historie oder wurden von Hand
+angelegt. Für diese Installation ist das folgenlos – für eine zweite nicht:
+Wer die Migrationen der Reihe nach einspielt, bekommt eine Datenbank, in der
+die Rechteverwaltung nicht lädt.
+
+Nachtragen lässt sich das nur mit den echten Definitionen. Geraten wären sie
+gefährlich: Ein `CREATE OR REPLACE` mit falschem Rumpf überschriebe die
+funktionierende Fassung in der laufenden Datenbank. Die Definitionen liefert
+
+```sql
+SELECT pg_get_functiondef(p.oid)
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN ('get_role_catalog', 'get_permission_catalog',
+                    'get_member_directory', 'get_member_ids',
+                    'touch_election_on_vote');
+```
+
+Ein Test hält die Lücke fest und schlägt an, wenn sie wächst.
+
 **Was möglich wäre**, wenn die Zahl irgendwann stört: die Migrationen bis zu
 einem Stichtag zu einer einzigen Ausgangsdatei zusammenzufassen (ein
 „Squash"). Das ist eine ernsthafte Aufgabe, kein Aufräumen — die Reihenfolge
