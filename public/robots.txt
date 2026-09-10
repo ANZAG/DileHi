@@ -4,4 +4,11 @@ Disallow: /intern/
 Disallow: /login
 Disallow: /passwort-zuruecksetzen
 
-Sitemap: https://www.dilehi.de/sitemap.xml
+# Die Sitemap entsteht aus der Datenbank, nicht aus einer Datei: Sie enthaelt
+# genau die Seiten, die gerade veroeffentlicht sind, und die Adresse aus den
+# Vereinsangaben. Eine feste Liste hier waere nach der ersten neuen Seite
+# falsch – und bei einer zweiten Installation von Anfang an.
+#
+# Bei einer neuen Installation ist diese Zeile anzupassen: Sie zeigt auf die
+# Edge Function des jeweiligen Supabase-Projekts.
+Sitemap: https://sstplyhfebexeyqehsvv.supabase.co/functions/v1/sitemap

@@ -44,3 +44,8 @@ verify_jwt = false
 # Wird von einer geplanten GitHub-Action aufgerufen, die keine Sitzung hat.
 # Abgesichert ueber das gemeinsame Geheimnis BACKUP_SECRET.
 verify_jwt = false
+
+[functions.sitemap]
+# Suchmaschinen haben keine Sitzung. Liefert nur, was ohnehin oeffentlich ist:
+# die Adressen veroeffentlichter Seiten.
+verify_jwt = false

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { betonung } from "@/lib/betonung";
 
 interface EpochSourcesProps {
   epoch: string;
@@ -31,7 +32,7 @@ const EpochSources = ({ epoch }: EpochSourcesProps) => {
             {sources.map((s: any) => (
               <li key={s.id} className="flex items-start gap-2">
                 <span className="text-primary mt-1">•</span>
-                <span dangerouslySetInnerHTML={{ __html: s.text.replace(/\*(.*?)\*/g, '<em>$1</em>') }} />
+                <span dangerouslySetInnerHTML={{ __html: betonung(s.text) }} />
               </li>
             ))}
           </ul>
