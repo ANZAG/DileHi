@@ -278,7 +278,10 @@ const MembershipApplication = () => {
     <>
       <SEO
         title={`Mitglied werden bei ${org_short_name}`}
-        description={`Jetzt Mitglied bei ${org_name} werden.`}
+        // Vorher „Jetzt Mitglied bei X werden." – richtig, aber austauschbar.
+        // In der Trefferliste steht dieser Satz unter dem Titel und entscheidet
+        // ueber den Klick; er soll sagen, was einen erwartet.
+        description={`Aufnahmeantrag für ${org_name}: Angaben ausfüllen, absenden, fertig. Der Vorstand meldet sich anschliessend bei dir.`}
       />
 
       <div className="container py-10 max-w-xl px-4">

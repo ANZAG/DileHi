@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useBranding } from "@/hooks/useBranding";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,11 +18,22 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  /*
+   * An wen sich jemand wenden soll, dessen Zugang gesperrt ist.
+   *
+   * Hier stand „vorstand@dilehi.de" fest im Code – in einer Installation eines
+   * anderen Vereins wäre das eine fremde Adresse, an die sich niemand wenden
+   * kann. Ohne hinterlegte Adresse bleibt der allgemeine Hinweis stehen; ein
+   * ins Leere zeigender Verweis ist schlechter als keiner.
+   */
+  const { org_email } = useBranding();
+  const anWen = org_email ? `wende dich an ${org_email}` : "wende dich an den Vorstand";
+
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
       toast({
         title: "Zugang deaktiviert",
-        description: "Dein Mitgliedskonto wurde vom Vorstand deaktiviert. Bitte wende dich an vorstand@dilehi.de.",
+        description: `Dein Mitgliedskonto wurde vom Vorstand deaktiviert. Bitte ${anWen}.`,
         variant: "destructive",
       });
     }
@@ -43,7 +55,7 @@ const Login = () => {
       toast({
         title: isBanned ? "Zugang deaktiviert" : "Anmeldung fehlgeschlagen",
         description: isBanned
-          ? "Dein Konto ist derzeit deaktiviert. Bitte wende dich an vorstand@dilehi.de."
+          ? `Dein Konto ist derzeit deaktiviert. Bitte ${anWen}.`
           : "E-Mail oder Passwort ist falsch.",
         variant: "destructive",
       });

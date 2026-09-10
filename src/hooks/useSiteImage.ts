@@ -46,6 +46,43 @@ export const SITE_IMAGE_FALLBACKS: Record<string, string> = {
   "karte-hessen-nassau": karteImage,
 };
 
+/**
+ * Ersatz-Bildbeschreibungen.
+ *
+ * Solange ein Verein für einen Platz kein eigenes Bild hinterlegt hat, wird das
+ * mitgelieferte gezeigt – und dessen Beschreibung stand nirgends. Ergebnis:
+ * `alt=""` auf dem Titelbild der Startseite. Für jemanden, der die Seite
+ * vorlesen lässt, ist das Bild damit einfach nicht da; Suchmaschinen lesen es
+ * als „hier steht ein Bild, das nichts bedeutet".
+ *
+ * Die Texte beschreiben, was auf dem mitgelieferten Bild zu sehen ist. Sobald
+ * jemand ein eigenes Bild hochlädt, gilt seine eigene Beschreibung.
+ */
+export const SITE_IMAGE_ALT: Record<string, string> = {
+  "hero-startseite": "Darstellerinnen und Darsteller in mittelalterlicher Gewandung vor einem Lagerzelt",
+  "epochenkarte-mittelalter": "Spätmittelalterliche Darstellung mit Kettenhemd und Waffenrock",
+  "epochenkarte-napoleonik": "Nassauer Grenadiere in Uniform von 1815",
+  "epochenkarte-wk1": "Pioniere des Ersten Weltkriegs in Feldgrau",
+  "gruppenfoto-startseite": "Gruppenbild des Vereins in historischer Gewandung",
+  "gruppenfoto-verein": "Gruppenbild des Vereins in historischer Gewandung",
+  "detail-handwerk": "Historisches Handwerk aus der Nähe: Werkzeug und Werkstück",
+  "vorfuehrung-verein": "Vorführung vor Publikum bei einer Veranstaltung",
+  "lederworkshop-veranstalter": "Lederarbeit an einem Mitmachstand",
+  "epochen-uebersicht-veranstalter": "Darstellerinnen und Darsteller mehrerer Epochen nebeneinander",
+  "hero-mittelalter": "Spätmittelalterliche Darstellung vor historischer Kulisse",
+  "gruppenfoto-spaemi": "Gruppenbild der spätmittelalterlichen Darstellung",
+  "burg-frauenstein": "Darstellung vor der Burg Frauenstein",
+  "mittelalter-tafel": "Gedeckte Tafel nach spätmittelalterlichem Vorbild",
+  "hero-napoleonik": "Nassauer Grenadiere in Uniform von 1815",
+  "nassau-regiment-knotel": "Zeitgenössische Uniformtafel eines nassauischen Regiments",
+  "nassau-uniformtafel": "Historische Uniformtafel der nassauischen Truppen",
+  "nassauer-belle-alliance": "Darstellung der Nassauer bei La Belle Alliance",
+  "hero-wk1": "Pioniere des Ersten Weltkriegs in Feldgrau",
+  "kaserne-mainz-kastel": "Historische Aufnahme der Kaserne in Mainz-Kastel",
+  "pibat21-uniform": "Uniform des 1. Nassauischen Pionier-Bataillons Nr. 21",
+  "karte-hessen-nassau": "Historische Karte des Herzogtums Nassau",
+};
+
 interface SiteImageData {
   src: string;
   alt: string;
@@ -68,7 +105,7 @@ export function useSiteImages() {
           const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
           src = urlData.publicUrl;
         }
-        map[img.slot] = { src, alt: img.alt_text || "" };
+        map[img.slot] = { src, alt: img.alt_text || SITE_IMAGE_ALT[img.slot] || "" };
       }
       return map;
     },
@@ -80,5 +117,5 @@ export function useSiteImages() {
 export function useSiteImage(slot: string): SiteImageData {
   const { data } = useSiteImages();
   if (data?.[slot]) return data[slot];
-  return { src: SITE_IMAGE_FALLBACKS[slot] || "", alt: "" };
+  return { src: SITE_IMAGE_FALLBACKS[slot] || "", alt: SITE_IMAGE_ALT[slot] || "" };
 }
