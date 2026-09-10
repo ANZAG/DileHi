@@ -1,0 +1,115 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Vorgabe; wird von den Vereinsdaten ueberschrieben (useBranding). */
+    --schrift-ueberschrift: "DM Serif Display";
+    --schrift-text: "Inter";
+
+    --background: 40 12% 97%;
+    --foreground: 220 20% 12%;
+
+    --card: 40 15% 95%;
+    --card-foreground: 220 20% 12%;
+
+    --popover: 40 12% 97%;
+    --popover-foreground: 220 20% 12%;
+
+    --primary: 36 72% 55%;
+    --primary-foreground: 220 25% 10%;
+
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 20% 15%;
+
+    --muted: 40 10% 91%;
+    --muted-foreground: 220 10% 40%;
+
+    --accent: 36 72% 55%;
+    --accent-foreground: 220 25% 10%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 12% 87%;
+    --input: 220 12% 87%;
+    --ring: 36 72% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 220 12% 94%;
+    --sidebar-foreground: 220 20% 15%;
+    --sidebar-primary: 36 72% 55%;
+    --sidebar-primary-foreground: 220 25% 10%;
+    --sidebar-accent: 220 10% 91%;
+    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-border: 220 12% 87%;
+    --sidebar-ring: 36 72% 55%;
+  }
+
+  .dark {
+    --background: 220 18% 10%;
+    --foreground: 40 15% 92%;
+
+    --card: 220 18% 14%;
+    --card-foreground: 40 15% 92%;
+
+    --popover: 220 18% 12%;
+    --popover-foreground: 40 15% 92%;
+
+    --primary: 36 72% 55%;
+    --primary-foreground: 220 25% 10%;
+
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 40 15% 90%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 8% 55%;
+
+    --accent: 36 72% 45%;
+    --accent-foreground: 40 15% 92%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 36 72% 55%;
+
+    --sidebar-background: 220 18% 12%;
+    --sidebar-foreground: 40 15% 90%;
+    --sidebar-primary: 36 72% 55%;
+    --sidebar-primary-foreground: 220 25% 10%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 40 15% 90%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 36 72% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Serif Display', serif;
+  }
+
+  /* Force consistent date input height on iOS/mobile */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    min-height: 2.5rem;
+    max-height: 2.5rem;
+  }
+}

@@ -1,0 +1,59 @@
+name: Tageszusammenfassung
+
+# Ruft die Edge Function auf, die ungelesene Benachrichtigungen als eine Mail
+# verschickt. Ein Zeitplandienst in der Datenbank (pg_cron) wäre naheliegender,
+# lässt sich in der Lovable-Cloud aber nicht einrichten – deshalb hier.
+#
+# Einzurichten sind ZWEI Stellen, und das wird leicht verwechselt:
+#
+#   1. GitHub (Repository → Settings → Secrets and variables → Actions)
+#        DIGEST_SECRET     frei gewaehltes langes Passwort
+#        FUNCTIONS_URL     optional – nur noetig, wenn das Backend woanders
+#                          liegt als unten voreingestellt. Die Adresse ist
+#                          oeffentlich und damit kein Geheimnis; sie darf auch
+#                          als "Variable" statt als "Secret" angelegt werden.
+#
+#   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
+#        DIGEST_SECRET     derselbe Wert wie oben
+#
+# Namen mit dem Praefix SUPABASE_ sind in Lovable reserviert – deshalb heisst
+# die Adresse hier FUNCTIONS_URL.
+
+on:
+  schedule:
+    # 18:40 UTC – am Abend, wenn die Leute zu Hause sind. Krumme Minute, weil
+    # zur vollen Stunde bei GitHub sehr viele Jobs gleichzeitig starten.
+    - cron: "40 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zusammenfassung ausloesen
+        env:
+          # Voreinstellung, damit die Aktion ohne zusaetzliche Einrichtung laeuft.
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
+          DIGEST_SECRET: ${{ secrets.DIGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DIGEST_SECRET}" ]; then
+            echo "::error::Secret DIGEST_SECRET fehlt – siehe Kommentar in dieser Datei."
+            exit 1
+          fi
+          response=$(mktemp)
+          code=$(curl -s -o "$response" -w "%{http_code}" --max-time 120 \
+            -X POST "${FUNCTIONS_URL}/notify-digest" \
+            -H "x-digest-secret: ${DIGEST_SECRET}" \
+            -H "Content-Type: application/json")
+          echo "HTTP $code"
+          cat "$response"
+          echo
+          # Ein Fehlschlag soll auffallen, nicht still bleiben.
+          if [ "$code" != "200" ]; then
+            echo "::error::Zusammenfassung fehlgeschlagen (HTTP $code)"
+            exit 1
+          fi

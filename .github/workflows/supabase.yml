@@ -1,0 +1,107 @@
+name: Supabase ausrollen
+
+# Migrationen einspielen und Edge Functions bereitstellen – ohne dass jemand
+# eine Kommandozeile öffnen muss.
+#
+# Warum das hier liegt und nicht in einer Anleitung: Wer einen Verein führt,
+# hat kein Docker und keinen Supabase-CLI auf dem Rechner, und soll beides auch
+# nicht installieren müssen. Ein Knopf auf der Actions-Seite reicht.
+#
+# Drei Geheimnisse sind vorher zu hinterlegen (Settings → Secrets → Actions):
+#
+#   SUPABASE_ACCESS_TOKEN   Persönlicher Zugriffsschlüssel aus dem
+#                           Supabase-Konto (Account → Access Tokens)
+#   SUPABASE_PROJECT_REF    Die Kennung des Projekts, steht in seiner Adresse:
+#                           https://<REF>.supabase.co
+#   SUPABASE_DB_PASSWORD    Nur für die Migrationen. Beim Anlegen des Projekts
+#                           vergeben – und nur dort einmal sichtbar. Wer es
+#                           nicht mehr hat, setzt es neu: Project Settings →
+#                           Database → Reset database password.
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrationen:
+        description: "Ausstehende Migrationen einspielen"
+        type: boolean
+        default: true
+      funktionen:
+        description: "Edge Functions bereitstellen"
+        type: boolean
+        default: true
+
+jobs:
+  ausrollen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Projekt verbinden
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # „password authentication failed" sagt nicht, warum. Meist ist es kein
+      # falsches Passwort, sondern ein mitkopierter Zeilenumbruch oder ein
+      # Leerzeichen am Ende. Das sieht man dem Geheimnis in GitHub nicht an,
+      # weil das Feld den Inhalt verbirgt.
+      #
+      # Diese Prüfung verrät nichts über das Passwort ausser dem, was zur
+      # Fehlersuche nötig ist: wie lang es ist und ob etwas darin steckt, das
+      # die Verbindung stört. Der Wert selbst wird nirgends ausgegeben.
+      - name: Passwort auf Transportschäden prüfen
+        if: ${{ inputs.migrationen }}
+        env:
+          PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          if [ -z "$PW" ]; then
+            echo "SUPABASE_DB_PASSWORD ist leer oder gar nicht hinterlegt."
+            exit 1
+          fi
+          echo "Länge: ${#PW} Zeichen"
+          case "$PW" in
+            *[[:space:]]*)
+              echo "ACHTUNG: Darin steckt ein Leerzeichen oder ein Zeilenumbruch."
+              echo "Das ist fast immer die Ursache. Geheimnis neu setzen und beim"
+              echo "Einfügen darauf achten, nichts mitzunehmen."
+              ;;
+          esac
+          rest=$(printf '%s' "$PW" | tr -d 'A-Za-z0-9')
+          if [ -n "$rest" ]; then
+            echo "Enthält ${#rest} Sonderzeichen. Erlaubt, aber sie machen auf dem Weg"
+            echo "zur Datenbank am ehesten Ärger. Wenn es weiter scheitert: Passwort"
+            echo "in Supabase neu setzen, nur Buchstaben und Ziffern, dafür lang."
+          fi
+
+      # Spielt genau die Migrationen ein, die noch fehlen. Was schon lief,
+      # steht in der Datenbank und wird übersprungen – das ist der eigentliche
+      # Gewinn gegenüber dem Einfügen von Hand.
+      - name: Migrationen
+        if: ${{ inputs.migrationen }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+      # Alle auf einmal. Welche ohne Anmeldung erreichbar sein müssen, steht in
+      # supabase/config.toml und wird dabei übernommen.
+      - name: Edge Functions
+        if: ${{ inputs.funktionen }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy
+
+      - name: Was gelaufen ist
+        run: |
+          echo "### Ausgerollt" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Migrationen: ${{ inputs.migrationen }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Edge Functions: ${{ inputs.funktionen }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Die Geheimnisse der Funktionen (Mailversand, VAPID, SETUP_SECRET)" >> $GITHUB_STEP_SUMMARY
+          echo "werden hier **nicht** gesetzt. Sie stehen im Supabase-Projekt" >> $GITHUB_STEP_SUMMARY
+          echo "unter Edge Functions → Secrets." >> $GITHUB_STEP_SUMMARY

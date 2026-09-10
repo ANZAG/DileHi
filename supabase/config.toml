@@ -1,0 +1,57 @@
+project_id = "sstplyhfebexeyqehsvv"
+
+[auth.email]
+# Invitation / OTP / magic link expiry.
+# Supabase/GoTrue caps this value at 86400 seconds (24h). Any higher value
+# (e.g. the previous 604800 = 7 days) is rejected and silently falls back to the
+# default (~1h), which caused invite/reset links to expire almost immediately.
+otp_expiry = 86400
+
+[functions.events-ical]
+verify_jwt = false
+
+[functions.events-personal-ical]
+verify_jwt = false
+
+[functions.notify-contact]
+verify_jwt = false
+
+[functions.send-reset-email]
+verify_jwt = false
+
+[functions.get-satzung-link]
+verify_jwt = false
+
+[functions.submit-application]
+verify_jwt = false
+
+
+[functions.embed]
+# Einbindung fuer fremde Websites – muss ohne Anmeldung erreichbar sein.
+verify_jwt = false
+
+[functions.notify-digest]
+# Wird von einem Zeitplandienst aufgerufen, der keine Sitzung hat.
+# Abgesichert ueber das gemeinsame Geheimnis DIGEST_SECRET.
+verify_jwt = false
+
+[functions.push-notify]
+# GET liefert den oeffentlichen VAPID-Schluessel und muss ohne Anmeldung
+# erreichbar sein; POST prueft die Anmeldung selbst im Code.
+verify_jwt = false
+
+[functions.backup-export]
+# Wird von einer geplanten GitHub-Action aufgerufen, die keine Sitzung hat.
+# Abgesichert ueber das gemeinsame Geheimnis BACKUP_SECRET.
+verify_jwt = false
+
+[functions.sitemap]
+# Suchmaschinen haben keine Sitzung. Liefert nur, was ohnehin oeffentlich ist:
+# die Adressen veroeffentlichter Seiten.
+verify_jwt = false
+
+[functions.setup-first-admin]
+# Das erste Konto einer frischen Installation – es gibt naturgemaess noch
+# niemanden, der sich anmelden koennte. Abgesichert ueber SETUP_SECRET und
+# darueber, dass die Funktion verstummt, sobald ein Konto mit Rolle existiert.
+verify_jwt = false

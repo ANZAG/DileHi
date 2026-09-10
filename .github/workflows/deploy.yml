@@ -1,0 +1,56 @@
+name: Build & Deploy
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  seo-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm install
+      - name: ESLint (alt-text, label-has-associated-control, a11y)
+        run: npm run lint
+      - name: SEO check (meta, JSON-LD, sitemap, robots)
+        run: npm run seo:check
+      # Der Build laeuft ueber SWC und prueft keine Typen. Ohne diesen Schritt
+      # koennen Typfehler unbemerkt bis in die Produktion durchlaufen.
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Unit tests (Kalender-Export, Formular-Bedingungen)
+        run: npm test
+  deploy:
+    needs: seo-checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node.js setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install & Build
+        run: |
+          npm install
+          npm run build
+      - name: Deploy via FTPS
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          sudo apt-get install -y lftp
+          lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate false;
+            open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
+            mirror --reverse --delete --verbose ./dist/ /dilehi.de/
+          "
