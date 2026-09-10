@@ -24,18 +24,19 @@ import { Hilfe } from "@/components/Hilfe";
  * Hier steht nur, welche es gibt und was sie über sich aussagt.
  */
 
-interface Rolle {
+interface Role {
   key: string;
   label: string;
   description: string | null;
   sort_order: number;
   is_board: boolean;
-  is_leitung: boolean;
+  is_leadership: boolean;
+  is_default: boolean;
   public_listed: boolean;
   is_system: boolean;
   max_holders: number | null;
-  mitglieder: number;
-  rechte: number;
+  member_count: number;
+  permission_count: number;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -45,30 +46,44 @@ export default function RollenAdmin() {
   const qc = useQueryClient();
   const [neuOffen, setNeuOffen] = useState(false);
   const [neuLabel, setNeuLabel] = useState("");
-  const [nachfrage, setNachfrage] = useState<Rolle | null>(null);
+  const [nachfrage, setNachfrage] = useState<Role | null>(null);
 
   const { data: rollen = [], isLoading } = useQuery({
-    queryKey: ["rollen-status"],
-    queryFn: async (): Promise<Rolle[]> => {
-      const { data, error } = await supabase.rpc("rollen_status" as never);
+    queryKey: ["role-status"],
+    queryFn: async (): Promise<Role[]> => {
+      const { data, error } = await supabase.rpc("role_status" as never);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Rolle[];
+      return (data ?? []) as Role[];
     },
   });
 
   const erneuern = () => {
-    qc.invalidateQueries({ queryKey: ["rollen-status"] });
+    qc.invalidateQueries({ queryKey: ["role-status"] });
+    qc.invalidateQueries({ queryKey: ["app-settings"] });
     qc.invalidateQueries({ queryKey: ["role_catalog"] });
     qc.invalidateQueries({ queryKey: ["role_permissions"] });
     qc.invalidateQueries({ queryKey: ["members"] });
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ key, werte }: { key: string; werte: Partial<Rolle> }) => {
+    mutationFn: async ({ key, werte }: { key: string; werte: Partial<Role> }) => {
       const { error } = await db.from("role_catalog").update(werte).eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: erneuern,
+    onError: (e: Error) =>
+      toast({ title: "Nicht gespeichert", description: e.message, variant: "destructive" }),
+  });
+
+  const standardSetzen = useMutation({
+    mutationFn: async (key: string) => {
+      const { error } = await db.from("app_settings").update({ default_role: key }).eq("id", true);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      erneuern();
+      toast({ title: "Standardrolle geändert" });
+    },
     onError: (e: Error) =>
       toast({ title: "Nicht gespeichert", description: e.message, variant: "destructive" }),
   });
@@ -174,23 +189,28 @@ export default function RollenAdmin() {
                 <p className="text-xs text-muted-foreground mt-1">
                   <span className="font-mono">{r.key}</span>
                   {" · "}
-                  {r.mitglieder === 1 ? "1 Mitglied" : `${r.mitglieder} Mitglieder`}
+                  {r.member_count === 1 ? "1 Mitglied" : `${r.member_count} Mitglieder`}
                   {" · "}
-                  {r.rechte === 1 ? "1 Recht" : `${r.rechte} Rechte`}
-                  {r.is_system && " · Grundausstattung"}
+                  {r.permission_count === 1 ? "1 Recht" : `${r.permission_count} Rechte`}
+                  {r.is_default && " · Standard für neue Mitglieder"}
                 </p>
               </div>
-              {!r.is_system && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="shrink-0 h-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => setNachfrage(r)}
-                  aria-label={`${r.label} entfernen`}
-                >
-                  <Trash2 size={14} />
-                </Button>
-              )}
+              {/*
+                * Kein Knopf ist versteckt: Ob eine Rolle wirklich weg darf,
+                * entscheidet die Datenbank – besetzt, Standardrolle, oder die
+                * letzte mit Rechteverwaltung. Sie sagt auch, welcher Grund es
+                * war. Einen Knopf auszublenden hiesse, den Grund zu
+                * verschweigen.
+                */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0 h-8 text-muted-foreground hover:text-destructive"
+                onClick={() => setNachfrage(r)}
+                aria-label={`${r.label} entfernen`}
+              >
+                <Trash2 size={14} />
+              </Button>
             </div>
 
             <Input
@@ -203,11 +223,11 @@ export default function RollenAdmin() {
               }}
             />
 
-            <div className="grid sm:grid-cols-3 gap-3 pt-1">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch
-                  checked={r.is_leitung}
-                  onCheckedChange={(v) => aendern.mutate({ key: r.key, werte: { is_leitung: v } })}
+                  checked={r.is_leadership}
+                  onCheckedChange={(v) => aendern.mutate({ key: r.key, werte: { is_leadership: v } })}
                 />
                 <span className="text-sm">
                   Vereinsleitung<Hilfe k="rolle_leitung" />
@@ -220,6 +240,16 @@ export default function RollenAdmin() {
                 />
                 <span className="text-sm">
                   Vorstand<Hilfe k="rolle_vorstand" />
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Switch
+                  checked={r.is_default}
+                  disabled={r.is_default}
+                  onCheckedChange={(v) => v && standardSetzen.mutate(r.key)}
+                />
+                <span className="text-sm">
+                  Standard für Neue<Hilfe k="rolle_standard" />
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -257,8 +287,8 @@ export default function RollenAdmin() {
           <AlertDialogHeader>
             <AlertDialogTitle>{nachfrage?.label} entfernen?</AlertDialogTitle>
             <AlertDialogDescription>
-              {nachfrage && nachfrage.mitglieder > 0
-                ? `An dieser Rolle hängen noch ${nachfrage.mitglieder} Mitglieder. Solange das so ist, lässt sie sich nicht entfernen – trage sie erst um.`
+              {nachfrage && nachfrage.member_count > 0
+                ? `An dieser Rolle hängen noch ${nachfrage.member_count} Mitglieder. Solange das so ist, lässt sie sich nicht entfernen – trage sie erst um.`
                 : "Die Rolle und ihre Rechtezuordnungen verschwinden. Mitglieder sind nicht betroffen."}
             </AlertDialogDescription>
           </AlertDialogHeader>

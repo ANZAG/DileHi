@@ -279,7 +279,8 @@ describe("Hilfe am Feld", () => {
   const hilfen =
     abHilfe("supabase/migrations/20260909260000_onboarding.sql") +
     abHilfe("supabase/migrations/20260909300000_hilfetexte.sql") +
-    abHilfe("supabase/migrations/20260909340000_rollen_hilfetexte.sql");
+    abHilfe("supabase/migrations/20260909340000_rollen_hilfetexte.sql") +
+    abHilfe("supabase/migrations/20260909360000_role_help.sql");
 
   const alleDateien = (ordner: string): string[] =>
     readdirSync(ordner, { withFileTypes: true }).flatMap((e) =>

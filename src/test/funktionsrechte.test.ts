@@ -35,70 +35,65 @@ const migrationen = dateien.map((f) =>
 const alles = migrationen.join("\n");
 
 /**
- * Der Bestand: angelegt minus gelöscht, in der Reihenfolge der Migrationen.
+ * Der Bestand, Schritt für Schritt.
  *
- * `CASCADE` bei einem DROP zieht abhängige Objekte mit, aber keine anderen
- * Funktionen – für die Buchführung hier ist das ohne Belang.
+ * Nicht der Endzustand, sondern der Verlauf: Postgres prüft eine GRANT-Zeile
+ * in dem Moment, in dem sie läuft. Eine Funktion darf später gelöscht werden,
+ * ohne dass die Zeile von vorher falsch wird — und eine Zeile vor dem CREATE
+ * ist falsch, auch wenn die Funktion am Ende dasteht.
+ *
+ * Genau diese zwei Fälle gab es hier: `create_forum_mention_notifications`
+ * wurde angesprochen, nachdem sie gelöscht war, und `get_role_catalog`
+ * bekommt Rechte in einer Migration, die vor ihrem CREATE liegt.
  */
 const vorhanden = new Map<string, string>();
-for (const inhalt of migrationen) {
-  /*
-   * In Lesereihenfolge, nicht erst alle CREATE und dann alle DROP.
-   *
-   * Der erste Anlauf machte zwei Durchgänge je Datei – und lag bei jedem
-   * `DROP FUNCTION IF EXISTS x(); CREATE FUNCTION x()` falsch, weil der DROP
-   * am Ende gewann. Sechs Funktionen galten so als gelöscht, obwohl sie
-   * direkt darunter neu angelegt werden. Genau der Fehler, den dieser Test
-   * finden soll, nur eine Ebene höher.
-   */
+const fehler: string[] = [];
+
+for (const [nr, inhalt] of migrationen.entries()) {
   const schritte =
-    /CREATE (?:OR REPLACE )?FUNCTION\s+public\.(\w+)\s*\([^)]*\)([\s\S]{0,4000}?)AS\s+\$|DROP FUNCTION\s+(?:IF EXISTS\s+)?public\.(\w+)\s*\(/g;
+    /CREATE (?:OR REPLACE )?FUNCTION\s+public\.(\w+)\s*\([^)]*\)([\s\S]{0,4000}?)AS\s+\$|DROP FUNCTION\s+(?:IF EXISTS\s+)?public\.(\w+)\s*\(|(?:GRANT|REVOKE)\s+(?:EXECUTE|ALL)\s+ON\s+FUNCTION\s+public\.(\w+)\s*\(/g;
   for (const m of inhalt.matchAll(schritte)) {
     if (m[1]) vorhanden.set(m[1], m[2]);
     else if (m[3]) vorhanden.delete(m[3]);
+    else if (m[4] && !vorhanden.has(m[4])) fehler.push(`${dateien[nr]}: ${m[4]}`);
   }
 }
-
-/** Funktionen, die eine Migration namentlich anspricht. */
-const angesprochen = [...new Set(
-  [...alles.matchAll(/(?:GRANT|REVOKE)\s+(?:EXECUTE|ALL)\s+ON\s+FUNCTION\s+public\.(\w+)\s*\(/g)]
-    .map((m) => m[1])
-)];
 
 describe("Bestand der Datenbankfunktionen", () => {
   it("findet überhaupt welche", () => {
     // Schuetzt vor dem stillen Gegenteil: Passt das Muster einmal nicht mehr,
     // liefen die Pruefungen unten ueber leere Listen und waeren gruen.
     expect(vorhanden.size).toBeGreaterThan(40);
-    expect(angesprochen.length).toBeGreaterThan(10);
+    // Und die Pruefung selbst laeuft: Ohne Treffer waere sie stumm gruen.
+    expect(fehler.length).toBeGreaterThan(0);
   });
 
   /**
-   * Funktionen, die benutzt, aber in keiner Migration angelegt werden.
+   * Funktionen, die angesprochen werden, bevor es sie gibt.
    *
-   * Fünf standen hier: get_member_directory, get_member_ids,
-   * get_permission_catalog, get_role_catalog, touch_election_on_vote. Sie sind
-   * mit ihren echten Definitionen aus der laufenden Datenbank nachgetragen
-   * (20260909320000), deshalb ist die Liste leer.
+   * Die fünf aus der unvollständigen Historie sind nachgetragen — allerdings
+   * in einer späten Migration, während ihre GRANT-Zeilen aus dem August
+   * stammen. Auf einer frischen Datenbank scheitern die also.
    *
-   * Leer soll sie bleiben. Wächst sie, ist wieder eine Funktion am
-   * Migrationsweg vorbei entstanden – und eine zweite Installation bekäme sie
-   * nicht.
+   * Behoben wird das nicht durch Verschieben, sondern durch den
+   * Ausgangsstand: Dort steht alles in einer Datei und in der richtigen
+   * Reihenfolge. Bis dahin steht die Liste hier und darf nicht wachsen.
    */
-  const AUSSERHALB_DER_HISTORIE: string[] = [];
+  const RECHTE_VOR_DEM_ANLEGEN = [
+    "get_member_directory",
+    "get_member_ids",
+    "get_permission_catalog",
+    "get_role_catalog",
+    "touch_election_on_vote",
+    "is_herold",
+    "is_schatzmeister",
+  ];
 
-  it("spricht keine Funktion an, die es nicht mehr gibt", () => {
-    // Der Fehler von heute: REVOKE auf eine Funktion, die im Mai geloescht
-    // wurde. Postgres kennt kein „REVOKE IF EXISTS", die Migration bricht ab.
-    const verschwunden = angesprochen
-      .filter((f) => !vorhanden.has(f))
-      .filter((f) => !AUSSERHALB_DER_HISTORIE.includes(f));
-    expect(verschwunden).toEqual([]);
-  });
-
-  it("lässt die Lücke in der Historie nicht wachsen", () => {
-    const luecke = angesprochen.filter((f) => !vorhanden.has(f));
-    expect(luecke.sort()).toEqual([...AUSSERHALB_DER_HISTORIE].sort());
+  it("spricht keine Funktion an, bevor es sie gibt", () => {
+    const unerwartet = fehler.filter(
+      (f) => !RECHTE_VOR_DEM_ANLEGEN.some((n) => f.endsWith(`: ${n}`))
+    );
+    expect(unerwartet).toEqual([]);
   });
 
   it("setzt bei jeder Funktion einen festen Suchpfad", () => {

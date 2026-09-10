@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
+import { useDefaultRole } from "@/hooks/useDefaultRole";
 
 type Application = {
   id: string;
@@ -64,6 +65,10 @@ const intervalLabel = (v: string) =>
   v === "halbjaehrlich" ? "Halbjährlich" : "Jährlich";
 
 const MemberApplicationsAdmin = () => {
+  // Welche Rolle ein angenommener Antrag bekommt, steht in den Einstellungen –
+  // „mitglied" gibt es in einer Installation mit eigenen Rollennamen womoeglich
+  // gar nicht.
+  const defaultRole = useDefaultRole();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -93,7 +98,7 @@ const MemberApplicationsAdmin = () => {
       // Invite the member; the edge function also generates the PDF,
       // pre-fills the profile and attaches the application to the member.
       const { error: inviteErr } = await supabase.functions.invoke("invite-member", {
-        body: { email: app.email, role: "mitglied", applicationId: app.id },
+        body: { email: app.email, role: defaultRole, applicationId: app.id },
       });
       if (inviteErr) throw inviteErr;
 
