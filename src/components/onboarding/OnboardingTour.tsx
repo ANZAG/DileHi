@@ -206,7 +206,7 @@ const SCHATZMEISTER_STEPS: TourStep[] = [
   {
     icon: FileText,
     title: "Mitgliedsunterlagen",
-    body: "Du hast Zugriff auf die Mitgliedsunterlagen – Aufnahmeanträge und Stammdaten –, die du für die Beitragsabrechnung brauchst.",
+    body: "Du kommst an die Unterlagen, die du für die Beitragsabrechnung brauchst: Aufnahmeanträge und die Stammdaten der Mitglieder.",
     route: "/intern/verwaltung",
   },
   {
