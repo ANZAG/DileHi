@@ -23,6 +23,12 @@ Zwei Dinge aus dem fertigen Projekt notieren, beide unter *Settings → API*:
 | Project URL | `https://abcdefgh.supabase.co` |
 | anon public key | ein langer Text, beginnend mit `eyJ` |
 
+**Das Projekt nicht mit GitHub verbinden.** Supabase bietet das an, und es
+klingt nach genau dem Richtigen. Es ist aber derselbe Weg, den auch der
+Ausrollen-Knopf aus Schritt 4 geht — zwei Stellen, die dieselbe Datenbank
+umbauen, ohne voneinander zu wissen. Was dabei herauskommt, steht unten unter
+*Wenn etwas klemmt*.
+
 > Der `anon`-Schlüssel darf öffentlich sein — er steht später im ausgelieferten
 > Programm und ist für jeden Besucher sichtbar. Was jemand damit tun darf,
 > regeln die Zugriffsregeln in der Datenbank, nicht die Geheimhaltung des
@@ -140,3 +146,27 @@ Module verstecken Einstellungen, die man sonst vergeblich sucht.
 | Keine Mail | SMTP-Angaben fehlen. Der Einladungslink steht auf der Seite |
 | Website weiss und leer | `VITE_SUPABASE_URL` oder der Schlüssel fehlen beim Hoster |
 | „Keine Rolle hat das Recht roles.manage" | Der Ausrollen-Knopf lief nicht durch. Sieh im Protokoll der Action nach |
+| `password authentication failed` | Beim Einfügen des Passworts in das GitHub-Geheimnis ist ein Zeilenumbruch mitgekommen. Der Workflow sagt im Schritt davor, ob das so ist |
+| `Remote migration versions not found in local migrations directory` | In der Datenbank steht schon etwas. Siehe den nächsten Abschnitt |
+
+### Wenn im Projekt schon etwas steht
+
+Der Ausgangsstand legt Tabellen an. Auf Tabellen, die es schon gibt, lässt er
+sich nicht legen — dann bricht der Ausrollen-Knopf ab, bevor er etwas anfasst.
+
+Meist kommt das daher, dass das Supabase-Projekt mit GitHub verbunden wurde.
+Supabase spielt dann von sich aus alle Migrationen ein, die es im Projekt
+findet, und hört auf, sobald eine nicht durchläuft. Zurück bleibt eine halb
+aufgebaute Datenbank und ein Verzeichnis voller Versionen, die es so nicht mehr
+gibt.
+
+Der Weg zurück, solange noch keine Mitglieder angelegt sind:
+
+1. In Supabase unter **Integrations** die Verbindung zu GitHub trennen.
+2. Im **SQL Editor** [`docs/projekt-leeren.sql`](projekt-leeren.sql) ausführen.
+   Das Skript prüft am Ende selbst nach und gibt vier Zahlen aus; alle bis auf
+   die Ablagen müssen null sein.
+3. **Actions → Supabase ausrollen** neu starten.
+
+Sind schon Mitglieder angelegt, ist es kein leeres Projekt mehr. Dann nicht
+leeren, sondern melden — der Weg ist dann ein anderer.
