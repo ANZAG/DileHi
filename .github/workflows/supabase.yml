@@ -7,14 +7,16 @@ name: Supabase ausrollen
 # hat kein Docker und keinen Supabase-CLI auf dem Rechner, und soll beides auch
 # nicht installieren müssen. Ein Knopf auf der Actions-Seite reicht.
 #
-# Zwei Geheimnisse sind vorher zu hinterlegen (Settings → Secrets → Actions):
+# Drei Geheimnisse sind vorher zu hinterlegen (Settings → Secrets → Actions):
 #
 #   SUPABASE_ACCESS_TOKEN   Persönlicher Zugriffsschlüssel aus dem
 #                           Supabase-Konto (Account → Access Tokens)
 #   SUPABASE_PROJECT_REF    Die Kennung des Projekts, steht in seiner Adresse:
 #                           https://<REF>.supabase.co
 #   SUPABASE_DB_PASSWORD    Nur für die Migrationen. Beim Anlegen des Projekts
-#                           vergeben.
+#                           vergeben – und nur dort einmal sichtbar. Wer es
+#                           nicht mehr hat, setzt es neu: Project Settings →
+#                           Database → Reset database password.
 
 on:
   workflow_dispatch:
@@ -42,6 +44,38 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # „password authentication failed" sagt nicht, warum. Meist ist es kein
+      # falsches Passwort, sondern ein mitkopierter Zeilenumbruch oder ein
+      # Leerzeichen am Ende. Das sieht man dem Geheimnis in GitHub nicht an,
+      # weil das Feld den Inhalt verbirgt.
+      #
+      # Diese Prüfung verrät nichts über das Passwort ausser dem, was zur
+      # Fehlersuche nötig ist: wie lang es ist und ob etwas darin steckt, das
+      # die Verbindung stört. Der Wert selbst wird nirgends ausgegeben.
+      - name: Passwort auf Transportschäden prüfen
+        if: ${{ inputs.migrationen }}
+        env:
+          PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          if [ -z "$PW" ]; then
+            echo "SUPABASE_DB_PASSWORD ist leer oder gar nicht hinterlegt."
+            exit 1
+          fi
+          echo "Länge: ${#PW} Zeichen"
+          case "$PW" in
+            *[[:space:]]*)
+              echo "ACHTUNG: Darin steckt ein Leerzeichen oder ein Zeilenumbruch."
+              echo "Das ist fast immer die Ursache. Geheimnis neu setzen und beim"
+              echo "Einfügen darauf achten, nichts mitzunehmen."
+              ;;
+          esac
+          rest=$(printf '%s' "$PW" | tr -d 'A-Za-z0-9')
+          if [ -n "$rest" ]; then
+            echo "Enthält ${#rest} Sonderzeichen. Erlaubt, aber sie machen auf dem Weg"
+            echo "zur Datenbank am ehesten Ärger. Wenn es weiter scheitert: Passwort"
+            echo "in Supabase neu setzen, nur Buchstaben und Ziffern, dafür lang."
+          fi
 
       # Spielt genau die Migrationen ein, die noch fehlen. Was schon lief,
       # steht in der Datenbank und wird übersprungen – das ist der eigentliche
