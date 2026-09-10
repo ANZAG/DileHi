@@ -110,33 +110,65 @@ SELECT
     ) t
   ), '') || E'\n\n' ||
 
-  -- 4. Startdaten. Reihenfolge zählt: Kataloge vor dem, was auf sie zeigt.
+  -- 4. Startdaten. Reihenfolge zählt: Kataloge vor dem, was auf sie zeigt,
+  --    und innerhalb einer Tabelle, die auf sich selbst zeigt, erst die Zeile,
+  --    auf die gezeigt wird („tiefe"). Alphabetisch stand event_forms vor
+  --    events, das es voraussetzt.
+  --
+  --    Listenspalten (text[]) kommen aus to_jsonb als JSON-Liste. Als Text
+  --    zurückgeschrieben wäre das `["verein"]`, und Postgres lehnt es ab.
+  --    Deshalb werden sie über ihren Typ erkannt und als Liste geschrieben.
   E'-- == Startdaten ==\n' || COALESCE((
-    SELECT string_agg(anweisung, E'\n' ORDER BY rang, anweisung) FROM (
-      SELECT q.rang,
+    SELECT string_agg(anweisung, E'\n' ORDER BY rang, tiefe, anweisung) FROM (
+      SELECT q.rang, q.tiefe,
              format('INSERT INTO public.%I (%s) VALUES (%s) ON CONFLICT DO NOTHING;',
                q.tabelle,
                (SELECT string_agg(quote_ident(key), ', ' ORDER BY ord)
                   FROM jsonb_each_text(q.zeile) WITH ORDINALITY AS e(key, wert, ord)),
-               (SELECT string_agg(CASE WHEN q.zeile -> key = 'null'::jsonb
-                                       THEN 'NULL' ELSE quote_literal(wert) END, ', ' ORDER BY ord)
+               (SELECT string_agg(
+                         CASE
+                           WHEN q.zeile -> key = 'null'::jsonb THEN 'NULL'
+                           WHEN (SELECT ty.typcategory FROM pg_attribute a
+                                   JOIN pg_type ty ON ty.oid = a.atttypid
+                                  WHERE a.attrelid = ('public.' || q.tabelle)::regclass
+                                    AND a.attname = key) = 'A'
+                             THEN quote_literal(COALESCE((
+                                    SELECT array_agg(el ORDER BY n)
+                                      FROM jsonb_array_elements_text(q.zeile -> key)
+                                           WITH ORDINALITY AS l(el, n))::text, '{}'))
+                           ELSE quote_literal(wert)
+                         END, ', ' ORDER BY ord)
                   FROM jsonb_each_text(q.zeile) WITH ORDINALITY AS e(key, wert, ord))
              ) AS anweisung
       FROM (
-        SELECT 1 AS rang, 'role_catalog' AS tabelle, to_jsonb(x) AS zeile FROM public.role_catalog x
-        UNION ALL SELECT 1, 'permission_catalog', to_jsonb(x) FROM public.permission_catalog x
-        UNION ALL SELECT 2, 'role_permissions', to_jsonb(x) FROM public.role_permissions x
-        UNION ALL SELECT 3, 'app_modules', to_jsonb(x) FROM public.app_modules x
-        UNION ALL SELECT 3, 'mail_templates', to_jsonb(x) FROM public.mail_templates x
-        UNION ALL SELECT 3, 'pdf_texts', to_jsonb(x) FROM public.pdf_texts x
-        UNION ALL SELECT 3, 'application_fields', to_jsonb(x) FROM public.application_fields x
-        UNION ALL SELECT 3, 'profile_fields', to_jsonb(x) FROM public.profile_fields x
-        UNION ALL SELECT 3, 'form_templates', to_jsonb(x) FROM public.form_templates x
-        UNION ALL SELECT 3, 'contribution_categories', to_jsonb(x) FROM public.contribution_categories x
-        UNION ALL SELECT 3, 'onboarding_schritte', to_jsonb(x) FROM public.onboarding_schritte x
-        UNION ALL SELECT 3, 'onboarding_hilfe', to_jsonb(x) FROM public.onboarding_hilfe x
-        UNION ALL SELECT 3, 'site_categories', to_jsonb(x) FROM public.site_categories x
-        UNION ALL SELECT 4, 'site_menu', to_jsonb(x) FROM public.site_menu x
+        SELECT 1 AS rang, 0 AS tiefe, 'role_catalog' AS tabelle, to_jsonb(x) AS zeile FROM public.role_catalog x
+        UNION ALL SELECT 1, 0, 'permission_catalog', to_jsonb(x) FROM public.permission_catalog x
+        UNION ALL SELECT 2, 0, 'role_permissions', to_jsonb(x) FROM public.role_permissions x
+        UNION ALL SELECT 3, (WITH RECURSIVE k(key, requires, d) AS (
+                               SELECT x.key, x.requires, 0
+                               UNION ALL
+                               SELECT m.key, m.requires, k.d + 1
+                                 FROM k JOIN public.app_modules m ON m.key = k.requires
+                                WHERE k.d < 20)
+                             SELECT max(d) FROM k),
+                         'app_modules', to_jsonb(x) FROM public.app_modules x
+        UNION ALL SELECT 3, 0, 'mail_templates', to_jsonb(x) FROM public.mail_templates x
+        UNION ALL SELECT 3, 0, 'pdf_texts', to_jsonb(x) FROM public.pdf_texts x
+        UNION ALL SELECT 3, 0, 'application_fields', to_jsonb(x) FROM public.application_fields x
+        UNION ALL SELECT 3, 0, 'profile_fields', to_jsonb(x) FROM public.profile_fields x
+        UNION ALL SELECT 3, 0, 'form_templates', to_jsonb(x) FROM public.form_templates x
+        UNION ALL SELECT 3, 0, 'contribution_categories', to_jsonb(x) FROM public.contribution_categories x
+        UNION ALL SELECT 3, 0, 'onboarding_schritte', to_jsonb(x) FROM public.onboarding_schritte x
+        UNION ALL SELECT 3, 0, 'onboarding_hilfe', to_jsonb(x) FROM public.onboarding_hilfe x
+        UNION ALL SELECT 3, 0, 'site_categories', to_jsonb(x) FROM public.site_categories x
+        UNION ALL SELECT 4, (WITH RECURSIVE k(id, parent_id, d) AS (
+                               SELECT x.id, x.parent_id, 0
+                               UNION ALL
+                               SELECT m.id, m.parent_id, k.d + 1
+                                 FROM k JOIN public.site_menu m ON m.id = k.parent_id
+                                WHERE k.d < 20)
+                             SELECT max(d) FROM k),
+                         'site_menu', to_jsonb(x) FROM public.site_menu x
       ) q
     ) t
   ), '') || E'\n\n' ||
