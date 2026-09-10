@@ -237,7 +237,7 @@ const HEROLD_STEPS: TourStep[] = [
   {
     icon: Image,
     title: "Galerie",
-    body: "Lade Galeriebilder hoch, versieh sie mit Alt-Texten und ordne sie den passenden Epochen zu.",
+    body: "Lade Bilder hoch, schreibe eine kurze Beschreibung dazu und ordne sie der passenden Kategorie zu.",
     route: "/intern/verwaltung",
   },
   {
