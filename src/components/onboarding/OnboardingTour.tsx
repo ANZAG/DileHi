@@ -181,7 +181,7 @@ const VORSTAND_STEPS: TourStep[] = [
   {
     icon: ScrollText,
     title: "Audit Log",
-    body: "Im Audit Log siehst du sicherheitsrelevante Aktionen wie gelöschte Abstimmungen – für volle Nachvollziehbarkeit.",
+    body: "Im Audit Log ist festgehalten, wer wichtige Dinge geändert hat, zum Beispiel eine gelöschte Abstimmung. So bleibt alles nachvollziehbar.",
     route: "/intern/verwaltung/protokoll",
   },
   {
