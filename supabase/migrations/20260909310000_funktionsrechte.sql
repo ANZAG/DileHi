@@ -1,4 +1,4 @@
--- Wer welche Funktion aufrufen darf
+-- Wer welche Datenbankfunktion aufrufen darf
 --
 -- In Postgres darf PUBLIC jede neue Funktion ausführen, solange niemand
 -- widerspricht. Das ist bei einer Datenbank hinter einer Anwendung eine
@@ -6,8 +6,7 @@
 -- Programm, jeder Besucher hat ihn, und damit lässt sich jede Funktion
 -- aufrufen, der niemand widersprochen hat.
 --
--- Achtzehn Funktionen hatten keine einzige GRANT-Zeile. Zwei davon sind der
--- eigentliche Grund für diese Migration:
+-- Zwei davon sind der eigentliche Grund für diese Migration:
 --
 --   pending_digests()          Liefert Namen und ALLE ungelesenen
 --                              Benachrichtigungen jedes Mitglieds. Gedacht für
@@ -17,49 +16,71 @@
 --   push_targets_for_thread()  Wer welches Forumsthema abonniert hat.
 --
 -- Dazu backup_manifest() und backup_schema_ddl(), die den Aufbau der Datenbank
--- ausgeben, und elf Triggerfunktionen, die niemand direkt aufrufen soll.
+-- ausgeben, und die Triggerfunktionen, die niemand direkt aufrufen soll.
 --
--- Triggerfunktionen brauchen kein EXECUTE: Postgres ruft sie im Rahmen der
--- auslösenden Anweisung auf, nicht im Namen der anfragenden Person. Entziehen
--- ist also folgenlos für den Betrieb und schliesst den direkten Aufruf aus.
+-- ── Warum das hier Schleifen sind und keine Aufzählung ─────────────────────
+--
+-- Die erste Fassung zählte die Funktionen namentlich auf. Sie scheiterte an
+-- der ersten Zeile: `create_forum_mention_notifications()` gibt es nicht mehr,
+-- sie wurde im Mai gelöscht. Die Liste war aus den CREATE-Anweisungen der
+-- Migrationen entstanden – und hatte die DROPs übersehen.
+--
+-- Eine von Hand gepflegte Liste von Funktionsnamen geht genau so aus. Deshalb
+-- fragt diese Migration die Datenbank: Was es nicht gibt, wird übersprungen,
+-- und die Triggerfunktionen ergeben sich aus den Triggern selbst statt aus
+-- einer Abschrift.
 
 -- ══ Nur für den Server ══════════════════════════════════════════════════════
 --
--- Diese vier ruft eine Edge Function mit dem Service-Schlüssel auf. Für alle
+-- Diese fünf ruft eine Edge Function mit dem Service-Schlüssel auf. Für alle
 -- anderen gibt es keinen Grund, sie zu erreichen.
 
-REVOKE ALL ON FUNCTION public.pending_digests() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.pending_digests() TO service_role;
-
-REVOKE ALL ON FUNCTION public.push_targets_for_thread(uuid, uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.push_targets_for_thread(uuid, uuid) TO service_role;
-
-REVOKE ALL ON FUNCTION public.push_mark_failure(text, boolean) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.push_mark_failure(text, boolean) TO service_role;
-
-REVOKE ALL ON FUNCTION public.backup_manifest() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.backup_manifest() TO service_role;
-
-REVOKE ALL ON FUNCTION public.backup_schema_ddl() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.backup_schema_ddl() TO service_role;
+DO $$
+DECLARE
+  v_namen text[] := ARRAY[
+    'pending_digests',
+    'push_targets_for_thread',
+    'push_mark_failure',
+    'backup_manifest',
+    'backup_schema_ddl'
+  ];
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = ANY(v_namen)
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', r.sig);
+  END LOOP;
+END $$;
 
 -- ══ Triggerfunktionen ═══════════════════════════════════════════════════════
 --
--- Werden vom Trigger gerufen, nie von aussen. Ohne Entzug könnte jemand etwa
--- create_forum_reply_notifications() direkt aufrufen und Benachrichtigungen
--- erzeugen, zu denen es keinen Beitrag gibt.
+-- Werden vom Trigger gerufen, nie von aussen: Postgres führt sie im Rahmen der
+-- auslösenden Anweisung aus und nicht im Namen der anfragenden Person. Der
+-- Entzug ist deshalb folgenlos für den Betrieb und schliesst den direkten
+-- Aufruf aus – etwa den, Benachrichtigungen zu erzeugen, zu denen es gar
+-- keinen Beitrag gibt.
+--
+-- Abgeleitet aus pg_trigger und nicht aus einer Liste: Was ein Trigger ruft,
+-- weiss die Datenbank besser als wir.
 
-REVOKE ALL ON FUNCTION public.create_forum_mention_notifications() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.create_forum_reply_notifications() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.events_archive_thread() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.events_create_thread() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.events_sync_thread_title() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.forum_keep_revision() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.forum_notify_post() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.forum_notify_thread() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.forum_touch_thread() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.update_thread_on_post() FROM PUBLIC, anon, authenticated;
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT DISTINCT p.oid::regprocedure AS sig
+    FROM pg_trigger t
+    JOIN pg_proc p ON p.oid = t.tgfoid
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND NOT t.tgisinternal
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
+  END LOOP;
+END $$;
 
 -- ══ Rollenprüfungen ═════════════════════════════════════════════════════════
 --
@@ -69,16 +90,21 @@ REVOKE ALL ON FUNCTION public.update_thread_on_post() FROM PUBLIC, anon, authent
 -- Fehler zurück. Deshalb bleibt der Zugang – aber ausdrücklich und nicht über
 -- PUBLIC, das jede künftige Datenbankrolle mit einschliesst.
 
-REVOKE ALL ON FUNCTION public.is_herold(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_herold(uuid) TO anon, authenticated;
-
-REVOKE ALL ON FUNCTION public.is_schatzmeister(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_schatzmeister(uuid) TO anon, authenticated;
-
--- Drei weitere Triggerfunktionen, beim Durchzaehlen aufgefallen.
-REVOKE ALL ON FUNCTION public.forum_threads_guard() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.site_pages_touch() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.vorlagen_touch() FROM PUBLIC, anon, authenticated;
+DO $$
+DECLARE
+  v_namen text[] := ARRAY['is_herold', 'is_schatzmeister'];
+  r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = ANY(v_namen)
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', r.sig);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated', r.sig);
+  END LOOP;
+END $$;
 
 -- ══ Fester Suchpfad ═════════════════════════════════════════════════════════
 --
@@ -116,9 +142,39 @@ AS $fn$
 $fn$;
 
 -- Beide werden aus anderen Funktionen und aus Regeln heraus benutzt, nicht von
--- aussen aufgerufen. Der Zugang bleibt, aber ausdruecklich.
+-- aussen aufgerufen. Der Zugang bleibt, aber ausdrücklich.
 REVOKE ALL ON FUNCTION public.forum_mentioned_users(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.forum_mentioned_users(text) TO authenticated, service_role;
 
 REVOKE ALL ON FUNCTION public.beitragsstufe_angeboten(boolean, integer, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.beitragsstufe_angeboten(boolean, integer, integer) TO anon, authenticated;
+
+-- ══ Was übrig bleibt ════════════════════════════════════════════════════════
+--
+-- Zum Schluss dasselbe noch einmal von der anderen Seite: Jede Funktion in
+-- `public`, die weder ausdrücklich jemandem gegeben noch entzogen wurde, steht
+-- weiterhin PUBLIC offen. Statt sie zu erraten, werden sie hier aufgelistet –
+-- als Hinweis im Protokoll des Einspielens, nicht als Fehler.
+--
+-- Angefasst wird nichts: Was eine Funktion darf, ist eine Entscheidung und
+-- keine Aufräumarbeit.
+
+DO $$
+DECLARE v_offen text;
+BEGIN
+  SELECT string_agg(p.oid::regprocedure::text, ', ' ORDER BY p.proname)
+  INTO v_offen
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.prokind = 'f'
+    AND has_function_privilege('anon', p.oid, 'EXECUTE')
+    AND NOT EXISTS (
+      SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
+      WHERE a.grantee <> 0
+    );
+
+  IF v_offen IS NOT NULL THEN
+    RAISE NOTICE 'Ohne ausdrueckliche Regelung, weiter fuer PUBLIC ausfuehrbar: %', v_offen;
+  END IF;
+END $$;
