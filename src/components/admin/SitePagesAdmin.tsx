@@ -74,7 +74,7 @@ export default function SitePagesAdmin() {
           <h2 className="font-serif text-lg font-semibold">Seiten</h2>
         </div>
         {darfLayout && !anlegen && (
-          <Button size="sm" onClick={() => setAnlegen(true)}>
+          <Button data-tour="knopf-seite-anlegen" size="sm" onClick={() => setAnlegen(true)}>
             <Plus size={15} className="mr-1" /> Seite anlegen
           </Button>
         )}
@@ -132,7 +132,7 @@ export default function SitePagesAdmin() {
         </div>
       ) : (
         <ul className="divide-y rounded-lg border bg-card overflow-hidden">
-          {seiten.map((s: SitePage) => (
+          {seiten.map((s: SitePage, i: number) => (
             <li key={s.id}>
               <div className="flex flex-wrap items-center gap-2 p-3">
               <span className="min-w-0 flex-1 basis-full sm:basis-auto">
@@ -160,6 +160,7 @@ export default function SitePagesAdmin() {
               {darfLayout && (
                 <Button
                   variant="ghost" size="icon"
+                  data-tour={i === 0 ? "seite-einstellungen" : undefined}
                   aria-label={`Einstellungen von „${s.title}"`}
                   title="Adresse, Beschreibung, Sichtbarkeit"
                   onClick={() => setEinstellungen(einstellungen?.id === s.id ? null : s)}
@@ -168,7 +169,7 @@ export default function SitePagesAdmin() {
                 </Button>
               )}
 
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild data-tour={i === 0 ? "seite-bearbeiten" : undefined}>
                 <Link to={`/intern/seiten/${s.id}`}>
                   <Pencil size={14} className="mr-1" /> Bearbeiten
                 </Link>

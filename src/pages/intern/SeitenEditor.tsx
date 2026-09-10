@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Puck, type Data } from "@puckeditor/core";
 import { ArrowLeft, Eye, EyeOff, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NeuHier } from "@/components/onboarding/NeuHier";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
@@ -92,7 +93,16 @@ export default function SeitenEditor() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    // Streifen ueber dem Editor, Puck fuellt den Rest. Ohne die Spalte
+    // rutschte Puck unter den Bildschirmrand, sobald der Streifen da ist.
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <div className="px-4 pt-4 empty:hidden">
+        <NeuHier
+          tour="seiten"
+          text="Zum ersten Mal im Baukasten? Kurz gezeigt, wie eine Seite entsteht."
+        />
+      </div>
+      <div className="flex-1 min-h-0">
       <Puck
         config={configFuer(darfLayout)}
         data={stand}
@@ -114,6 +124,7 @@ export default function SeitenEditor() {
             </Button>
 
             <Button
+              data-tour="knopf-entwurf"
               variant="outline"
               size="sm"
               disabled={entwurf.isPending}
@@ -148,6 +159,7 @@ export default function SeitenEditor() {
           </div>
         )}
       />
+      </div>
     </div>
   );
 }

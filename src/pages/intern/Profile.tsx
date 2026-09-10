@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import PushToggle from "@/components/PushToggle";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
 import { fuehrungStarten } from "@/components/onboarding/useOnboarding";
+import ErsteSchritte from "@/components/onboarding/ErsteSchritte";
 import { Hilfe } from "@/components/Hilfe";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -360,10 +361,10 @@ const Profile = () => {
             <ArrowLeft size={16} /> Zurück
           </Link>
           <button
-            onClick={() => fuehrungStarten()}
+            onClick={() => fuehrungStarten("start")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
-            <HelpCircle size={14} /> Führung starten
+            <HelpCircle size={14} /> Einführung
           </button>
         </div>
         <h1 className="font-serif text-2xl font-bold mb-6">Mein Profil</h1>
@@ -383,6 +384,8 @@ const Profile = () => {
           * was man mitbringt, zuletzt Einstellungen und Unterlagen.
           */}
         <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
+          <ErsteSchritte />
+
           {/* Personal info */}
           <div data-tour="profil-daten" className="p-6 rounded-lg border bg-card space-y-4">
             <h2 className="font-serif text-lg font-semibold">Persönliche Daten</h2>

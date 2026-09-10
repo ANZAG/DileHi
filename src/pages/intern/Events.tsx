@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -65,6 +66,11 @@ const EventsPage = () => {
   return (
     <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <NeuHier
+          tour="veranstaltungen"
+          text="Zum ersten Mal hier? Kurz gezeigt, wie Zusagen und Anmeldungen laufen."
+        />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
@@ -72,9 +78,10 @@ const EventsPage = () => {
               <Link to="/intern"><ArrowLeft size={20} /></Link>
             </Button>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
+            <TourKnopf tour="veranstaltungen" />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => ev.setShowCalendarSync(true)}>
+            <Button data-tour="knopf-kalender" variant="outline" size="sm" onClick={() => ev.setShowCalendarSync(true)}>
               <LinkIcon size={16} className="mr-1" /> <span className="hidden sm:inline">Kalender </span>Abo
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -85,7 +92,7 @@ const EventsPage = () => {
             {/* Der einzige Knopf zum Anlegen. Ein ausgewählter Tag im Kalender
                 ist gleich vorbelegt – das war vorher der einzige Zweck des
                 zweiten Knopfes weiter unten. */}
-            <Button size="sm" onClick={() => ev.openCreate(ev.selectedDate ?? undefined)}>
+            <Button data-tour="knopf-termin-anlegen" size="sm" onClick={() => ev.openCreate(ev.selectedDate ?? undefined)}>
               <Plus size={16} className="mr-1" />
               Veranstaltung hinzufügen
               {ev.selectedDate && (
