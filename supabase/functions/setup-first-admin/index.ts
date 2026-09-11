@@ -36,6 +36,55 @@ const antwort = (status: number, body: Record<string, unknown>) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+/**
+ * Wohin der Einladungslink zeigt.
+ *
+ * Sonst kommt die Adresse aus SITE_URL oder aus den Vereinsangaben. In einer
+ * frischen Installation gibt es beides nicht: Die Website trägt man unter
+ * Erscheinungsbild ein, und dahin kommt man erst mit dem Zugang, den diese
+ * Funktion gerade anlegen soll. Der erste Anlauf brach genau hier ab.
+ *
+ * Also die Seite, von der aus /einrichtung aufgerufen wurde. Sie wird
+ * zugleich in die Vereinsangaben geschrieben, damit auch die Einladungen
+ * danach einen Link haben. Nur wenn dort noch nichts steht, und später
+ * jederzeit unter Erscheinungsbild zu ändern.
+ *
+ * Die Herkunft einer Anfrage lässt sich fälschen. Hier schadet das nicht: Wer
+ * sie fälscht, kennt das Geheimnis schon und schickt den Link an sich selbst.
+ */
+async function adresseDerSeite(
+  admin: ReturnType<typeof createClient>,
+  req: Request
+): Promise<string> {
+  try {
+    return await seitenAdresse();
+  } catch {
+    // weiter unten
+  }
+
+  const herkunft = req.headers.get("origin") ?? req.headers.get("referer") ?? "";
+  let adresse: URL;
+  try {
+    adresse = new URL(herkunft);
+  } catch {
+    throw new Error(
+      "Keine Web-Adresse bekannt. SITE_URL setzen oder die Einrichtung über die Website aufrufen."
+    );
+  }
+  const lokal = adresse.hostname === "localhost" || adresse.hostname === "127.0.0.1";
+  if (adresse.protocol !== "https:" && !lokal) {
+    throw new Error("Die Einrichtung geht nur über https.");
+  }
+
+  await admin
+    .from("app_settings")
+    .update({ website_url: adresse.origin })
+    .eq("id", true)
+    .is("website_url", null);
+
+  return adresse.origin;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -105,7 +154,7 @@ Deno.serve(async (req) => {
     const { data: vorhandene } = await admin.auth.admin.listUsers();
     const schonDa = vorhandene?.users?.find((u) => u.email === email);
 
-    const ziel = await seitenAdresse();
+    const ziel = await adresseDerSeite(admin, req);
     let userId: string;
     let einladung: string | null = null;
 

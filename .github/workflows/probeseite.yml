@@ -1,0 +1,102 @@
+name: Probeseite ausrollen
+
+# ding.dilehi.de – DING so, wie ein neuer Verein es sieht.
+#
+# Die Vereinsseite dilehi.de baut aus `main` und spricht über die eingecheckte
+# .env mit der alten Datenbank bei Lovable. Diese Seite hier baut aus `DING`
+# und spricht mit dem neuen Supabase-Projekt. Beide laufen nebeneinander,
+# ohne sich zu berühren – bis die Inhalte umgezogen sind.
+#
+# Was sie braucht, liegt schon in den GitHub-Geheimnissen:
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF   (vom Ausrollen-Knopf)
+#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD        (von der Vereinsseite)
+#
+# Adresse und öffentlicher Schlüssel der Datenbank werden beim Bauen geholt,
+# nicht abgetippt. Beides ist öffentlich – es steht später im ausgelieferten
+# Programm –, aber abgetippt wäre es eine Stelle mehr, die veralten kann.
+
+on:
+  push:
+    branches:
+      - DING
+  workflow_dispatch:
+
+# Zwei Pushes kurz hintereinander: Der zweite gewinnt, der erste bricht ab.
+concurrency:
+  group: probeseite
+  cancel-in-progress: true
+
+jobs:
+  probeseite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Datenbank-Adresse und öffentlichen Schlüssel holen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          # Nur der anon-Schlüssel wird herausgefiltert. Die Antwort enthält
+          # auch den service_role-Schlüssel; der geht nirgendwohin weiter.
+          anon=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq -r '.[] | select(.name == "anon") | .api_key')
+          if [ -z "$anon" ] || [ "$anon" = "null" ]; then
+            echo "Kein anon-Schlüssel im Projekt gefunden."
+            exit 1
+          fi
+          echo "::add-mask::$anon"
+          # Was hier steht, geht beim Bauen der eingecheckten .env vor.
+          {
+            echo "VITE_SUPABASE_URL=https://$REF.supabase.co"
+            echo "VITE_SUPABASE_PROJECT_ID=$REF"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$anon"
+          } >> "$GITHUB_ENV"
+
+      - name: Prüfen und bauen
+        run: |
+          npm ci
+          npx tsc --noEmit -p tsconfig.app.json
+          npm test
+          npm run build
+
+      # Eine Probeseite hat in Suchmaschinen nichts verloren. Sonst stünde
+      # ding.dilehi.de neben dilehi.de in den Ergebnissen, mit denselben
+      # Texten – und das kostet die echte Seite ihren Rang.
+      - name: Für Suchmaschinen sperren
+        run: |
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+          cat >> dist/.htaccess <<'HTACCESS'
+
+          # Probeseite: nicht in Suchmaschinen
+          <IfModule mod_headers.c>
+            Header set X-Robots-Tag "noindex, nofollow"
+          </IfModule>
+          HTACCESS
+
+      - name: Hochladen nach ding.dilehi.de
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          sudo apt-get install -y lftp
+          lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate false;
+            open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
+            mirror --reverse --delete --verbose ./dist/ /ding.dilehi.de/
+          "
+
+      - name: Was gelaufen ist
+        run: |
+          echo "### Probeseite" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ausgerollt nach https://ding.dilehi.de aus \`${GITHUB_SHA::7}\`." >> $GITHUB_STEP_SUMMARY
+          echo "Erster Zugang: https://ding.dilehi.de/einrichtung" >> $GITHUB_STEP_SUMMARY
