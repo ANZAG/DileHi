@@ -15,7 +15,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Dieselbe Version wie beim Bauen. Mit Node 20 fehlten den Tests
+          # eingebautes WebSocket und fs.globSync – lokal (Node 24) grün,
+          # hier rot, und das am 11.09.2026 mitten im Ausrollen.
+          node-version: 24
       - name: Install
         run: npm install
       - name: ESLint (alt-text, label-has-associated-control, a11y)
