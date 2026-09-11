@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Eye, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
@@ -97,10 +98,9 @@ const MemberApplicationsAdmin = () => {
     mutationFn: async (app: Application) => {
       // Invite the member; the edge function also generates the PDF,
       // pre-fills the profile and attaches the application to the member.
-      const { error: inviteErr } = await supabase.functions.invoke("invite-member", {
+      await invokeFunction("invite-member", {
         body: { email: app.email, role: defaultRole, applicationId: app.id },
       });
-      if (inviteErr) throw inviteErr;
 
       // Mark application as approved
       const { error: updateErr } = await supabase

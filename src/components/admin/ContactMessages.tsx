@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { Trash2, ChevronDown, Reply, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -66,17 +67,19 @@ const ContactMessages = () => {
   const handleReply = async (email: string, name: string, contactMessageId: string) => {
     if (!replyText.trim()) return;
     setSending(true);
-    const { data, error } = await supabase.functions.invoke("reply-contact", {
-      body: { to: email, name, message: replyText.trim(), contact_message_id: contactMessageId },
-    });
-    setSending(false);
-    if (error || !data?.success) {
-      toast({ title: "Fehler beim Senden", variant: "destructive" });
-    } else {
+    try {
+      const data = await invokeFunction<{ success?: boolean }>("reply-contact", {
+        body: { to: email, name, message: replyText.trim(), contact_message_id: contactMessageId },
+      });
+      if (!data?.success) throw new Error("Die Antwort ist nicht rausgegangen.");
       toast({ title: "Antwort gesendet" });
       setReplyTo(null);
       setReplyText("");
       queryClient.invalidateQueries({ queryKey: ["contact_replies"] });
+    } catch (err) {
+      toast({ title: "Fehler beim Senden", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
