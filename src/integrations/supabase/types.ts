@@ -107,28 +107,28 @@ export type Database = {
       }
       app_modules: {
         Row: {
-          kind: string
           description: string | null
           enabled: boolean
           key: string
+          kind: string
           label: string
           requires: string | null
           sort_order: number
         }
         Insert: {
-          kind?: string
           description?: string | null
           enabled?: boolean
           key: string
+          kind?: string
           label: string
           requires?: string | null
           sort_order?: number
         }
         Update: {
-          kind?: string
           description?: string | null
           enabled?: boolean
           key?: string
+          kind?: string
           label?: string
           requires?: string | null
           sort_order?: number
@@ -148,13 +148,13 @@ export type Database = {
           bank_bic: string | null
           bank_iban: string | null
           bank_recipient: string | null
-          contribution_retention_years: number
           board_members: string | null
           calendar_timezone: string
           color_dark: string
           color_primary: string
           color_surface: string
           contribution_model: string
+          contribution_retention_years: number
           default_role: string | null
           favicon_path: string | null
           font_body: string
@@ -184,10 +184,10 @@ export type Database = {
           privacy_officer: string | null
           register_court: string | null
           register_number: string | null
-          statutes_document_id: string | null
-          statutes_link: boolean
           seo_description: string | null
           seo_image_path: string | null
+          statutes_document_id: string | null
+          statutes_link: boolean
           updated_at: string
           updated_by: string | null
           vat_id: string | null
@@ -197,13 +197,13 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          contribution_retention_years?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
           color_surface?: string
           contribution_model?: string
+          contribution_retention_years?: number
           default_role?: string | null
           favicon_path?: string | null
           font_body?: string
@@ -233,10 +233,10 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
-          statutes_document_id?: string | null
-          statutes_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
+          statutes_document_id?: string | null
+          statutes_link?: boolean
           updated_at?: string
           updated_by?: string | null
           vat_id?: string | null
@@ -246,13 +246,13 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          contribution_retention_years?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
           color_surface?: string
           contribution_model?: string
+          contribution_retention_years?: number
           default_role?: string | null
           favicon_path?: string | null
           font_body?: string
@@ -282,10 +282,10 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
-          statutes_document_id?: string | null
-          statutes_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
+          statutes_document_id?: string | null
+          statutes_link?: boolean
           updated_at?: string
           updated_by?: string | null
           vat_id?: string | null
@@ -438,29 +438,29 @@ export type Database = {
       contribution_categories: {
         Row: {
           created_at: string
-          removed_from: number | null
           description: string | null
           is_active: boolean
           key: string
           label: string
+          removed_from: number | null
           sort_order: number
         }
         Insert: {
           created_at?: string
-          removed_from?: number | null
           description?: string | null
           is_active?: boolean
           key: string
           label: string
+          removed_from?: number | null
           sort_order?: number
         }
         Update: {
           created_at?: string
-          removed_from?: number | null
           description?: string | null
           is_active?: boolean
           key?: string
           label?: string
+          removed_from?: number | null
           sort_order?: number
         }
         Relationships: []
@@ -1489,50 +1489,50 @@ export type Database = {
       }
       mail_templates: {
         Row: {
-          subject: string
-          footnote: string
-          description: string | null
           body: string
-          eyebrow: string
-          key: string
           button_label: string
+          defaults: Json
+          description: string | null
+          eyebrow: string
+          footnote: string
+          heading: string
+          key: string
           label: string
           placeholders: string[]
           sort_order: number
-          defaults: Json
-          heading: string
+          subject: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          subject?: string
-          footnote?: string
-          description?: string | null
           body?: string
-          eyebrow?: string
-          key: string
           button_label?: string
+          defaults: Json
+          description?: string | null
+          eyebrow?: string
+          footnote?: string
+          heading?: string
+          key: string
           label: string
           placeholders?: string[]
           sort_order?: number
-          defaults: Json
-          heading?: string
+          subject?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          subject?: string
-          footnote?: string
-          description?: string | null
           body?: string
-          eyebrow?: string
-          key?: string
           button_label?: string
+          defaults?: Json
+          description?: string | null
+          eyebrow?: string
+          footnote?: string
+          heading?: string
+          key?: string
           label?: string
           placeholders?: string[]
           sort_order?: number
-          defaults?: Json
-          heading?: string
+          subject?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1779,20 +1779,20 @@ export type Database = {
       }
       onboarding_help: {
         Row: {
-          key: string
           defaults: Json | null
+          key: string
           text: string
           title: string | null
         }
         Insert: {
-          key: string
           defaults?: Json | null
+          key: string
           text: string
           title?: string | null
         }
         Update: {
-          key?: string
           defaults?: Json | null
+          key?: string
           text?: string
           title?: string | null
         }
@@ -1801,7 +1801,7 @@ export type Database = {
       onboarding_steps: {
         Row: {
           anchor: string | null
-          task: string | null
+          defaults: Json | null
           icon: string
           is_active: boolean
           key: string
@@ -1809,7 +1809,7 @@ export type Database = {
           permission: string | null
           route: string | null
           sort_order: number
-          defaults: Json | null
+          task: string | null
           text: string
           tip: string | null
           title: string
@@ -1817,7 +1817,7 @@ export type Database = {
         }
         Insert: {
           anchor?: string | null
-          task?: string | null
+          defaults?: Json | null
           icon?: string
           is_active?: boolean
           key: string
@@ -1825,7 +1825,7 @@ export type Database = {
           permission?: string | null
           route?: string | null
           sort_order?: number
-          defaults?: Json | null
+          task?: string | null
           text: string
           tip?: string | null
           title: string
@@ -1833,7 +1833,7 @@ export type Database = {
         }
         Update: {
           anchor?: string | null
-          task?: string | null
+          defaults?: Json | null
           icon?: string
           is_active?: boolean
           key?: string
@@ -1841,7 +1841,7 @@ export type Database = {
           permission?: string | null
           route?: string | null
           sort_order?: number
-          defaults?: Json | null
+          task?: string | null
           text?: string
           tip?: string | null
           title?: string
@@ -1851,37 +1851,37 @@ export type Database = {
       }
       pdf_texts: {
         Row: {
-          description: string | null
           body: string
+          defaults: Json
+          description: string | null
           key: string
           label: string
           placeholders: string[]
           sort_order: number
-          defaults: Json
           title: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          description?: string | null
           body?: string
+          defaults: Json
+          description?: string | null
           key: string
           label: string
           placeholders?: string[]
           sort_order?: number
-          defaults: Json
           title?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          description?: string | null
           body?: string
+          defaults?: Json
+          description?: string | null
           key?: string
           label?: string
           placeholders?: string[]
           sort_order?: number
-          defaults?: Json
           title?: string
           updated_at?: string
           updated_by?: string | null
@@ -2542,31 +2542,6 @@ export type Database = {
         }[]
       }
       backup_schema_ddl: { Args: never; Returns: string }
-      contribution_category_offered: {
-        Args: { _is_active: boolean; _removed_from: number; _year?: number }
-        Returns: boolean
-      }
-      remove_contribution_category: { Args: { _key: string }; Returns: Json }
-      restore_contribution_category: {
-        Args: { _key: string }
-        Returns: undefined
-      }
-      contribution_category_status: {
-        Args: never
-        Returns: {
-          offered: boolean
-          former_members: number
-          removed_from: number
-          description: string
-          is_active: boolean
-          key: string
-          label: string
-          last_data_year: number
-          deletable_from: number
-          members: number
-          sort_order: number
-        }[]
-      }
       can_vote: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
@@ -2574,6 +2549,26 @@ export type Database = {
       cast_votes: {
         Args: { _election_id: string; _voter_id: string; _votes: Json }
         Returns: undefined
+      }
+      contribution_category_offered: {
+        Args: { _is_active: boolean; _removed_from: number; _year?: number }
+        Returns: boolean
+      }
+      contribution_category_status: {
+        Args: never
+        Returns: {
+          deletable_from: number
+          description: string
+          former_members: number
+          is_active: boolean
+          key: string
+          label: string
+          last_data_year: number
+          members: number
+          offered: boolean
+          removed_from: number
+          sort_order: number
+        }[]
       }
       count_members: { Args: never; Returns: number }
       ensure_event_thread: { Args: { _event_id: string }; Returns: string }
@@ -2699,6 +2694,7 @@ export type Database = {
         Args: { _election_id: string; _user_id: string }
         Returns: number
       }
+      has_leadership_role: { Args: { _user_id: string }; Returns: boolean }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean
@@ -2708,17 +2704,16 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { _user_id: string }; Returns: boolean }
-      has_leadership_role: { Args: { _user_id: string }; Returns: boolean }
       mark_notifications_read: { Args: { _ids?: string[] }; Returns: number }
       module_enabled: { Args: { _key: string }; Returns: boolean }
       module_status: {
         Args: never
         Returns: {
           active: boolean
-          kind: string
           description: string
           enabled: boolean
           key: string
+          kind: string
           label: string
           requires: string
           sort_order: number
@@ -2762,9 +2757,9 @@ export type Database = {
           privacy_officer: string
           register_court: string
           register_number: string
-          statutes_link: boolean
           seo_description: string
           seo_image_path: string
+          statutes_link: boolean
           vat_id: string
           website_url: string
         }[]
@@ -2789,6 +2784,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      remove_contribution_category: { Args: { _key: string }; Returns: Json }
+      restore_contribution_category: {
+        Args: { _key: string }
+        Returns: undefined
+      }
       role_status: {
         Args: never
         Returns: {
@@ -2804,14 +2804,6 @@ export type Database = {
           permission_count: number
           public_listed: boolean
           sort_order: number
-        }[]
-      }
-      statutes_options: {
-        Args: never
-        Returns: {
-          created_at: string
-          id: string
-          title: string
         }[]
       }
       seo_organization_pages: {
@@ -2831,6 +2823,14 @@ export type Database = {
         Returns: undefined
       }
       setup_needed: { Args: never; Returns: boolean }
+      statutes_options: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          title: string
+        }[]
+      }
       submit_form_response: {
         Args: { _answers: Json; _email: string; _name: string; _token: string }
         Returns: string
