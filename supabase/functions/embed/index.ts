@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Einbindung nach außen: Veranstaltungen, Darstellungen und Galerie.
@@ -60,7 +60,7 @@ interface Item {
 }
 
 async function loadItems(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   resource: Resource,
   limit: number
 ): Promise<Item[]> {

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
 import { marke } from "../_shared/einstellungen.ts";
 
@@ -53,7 +53,7 @@ const antwort = (status: number, body: Record<string, unknown>) =>
  * sie fälscht, kennt das Geheimnis schon und schickt den Link an sich selbst.
  */
 async function adresseDerSeite(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   req: Request
 ): Promise<string> {
   try {

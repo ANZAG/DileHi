@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { sendeMail, vereinsAdresse, seitenAdresse } from "../_shared/mail.ts";
 import { baueMail, pdfText } from "../_shared/vorlagen.ts";
@@ -40,10 +40,7 @@ const fmtDate = (d: string | null) => {
   }
 };
 
-// Helvetica nutzt WinAnsi und kann ä ö ü ß abbilden – nur normalisieren.
-const safe = (s: string | null | undefined) => (s ?? "").normalize("NFC");
-
-async function getCurrentRate(client: ReturnType<typeof createClient>): Promise<number> {
+async function getCurrentRate(client: SupabaseClient): Promise<number> {
   try {
     const { data } = await client.rpc("get_current_contribution_rate");
     const n = typeof data === "number" ? data : Number(data);
@@ -56,7 +53,7 @@ async function getCurrentRate(client: ReturnType<typeof createClient>): Promise<
 // Reihenfolge kommen aus role_catalog, nicht mehr aus einer Liste im Code.
 export interface Official { label: string; name: string }
 
-async function getOfficials(client: ReturnType<typeof createClient>): Promise<Official[]> {
+async function getOfficials(client: SupabaseClient): Promise<Official[]> {
   const { data, error } = await client.rpc("get_board_members");
 
   if (!error && Array.isArray(data)) {
@@ -194,7 +191,7 @@ interface Beitragsangaben {
 }
 
 /** Modell und Mitgliedsarten – dieselbe Abfrage, die auch das Formular nutzt. */
-async function beitragsangaben(client: ReturnType<typeof createClient>): Promise<Beitragsangaben> {
+async function beitragsangaben(client: SupabaseClient): Promise<Beitragsangaben> {
   const { data } = await client.rpc("public_contribution_settings");
   const zeile = (data as { model: string; options: unknown }[] | null)?.[0];
   const arten = Array.isArray(zeile?.options)
@@ -255,6 +252,7 @@ async function buildApplicationPdf(
   const R = 551;
   const W = R - L;
 
+  // Helvetica nutzt WinAnsi und kann ä ö ü ß abbilden – nur normalisieren.
   const safe = (s: string | null | undefined) => (s ?? "").normalize("NFC");
 
   // ── Hilfsfunktionen ───────────────────────────────────────────────────────
