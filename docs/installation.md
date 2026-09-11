@@ -46,6 +46,16 @@ Geheimnisse anlegen:
 | `SUPABASE_PROJECT_REF` | Der Teil vor `.supabase.co` aus der Project URL |
 | `SUPABASE_DB_PASSWORD` | Das Passwort aus Schritt 1 |
 
+Und daneben, unter **Variables** (nicht Secrets, sie ist öffentlich):
+
+| Name | Wert |
+| --- | --- |
+| `SITE_URL` | Die Adresse der Website, mit `https://`, etwa `https://euer-verein.de` |
+
+Damit stellt der Ausrollen-Knopf die Anmeldung ein: Links in Mails zeigen auf
+diese Adresse, und niemand kann sich selbst ein Konto anlegen. Mitglieder
+kommen über Einladungen aus der Verwaltung.
+
 > Der Zugriffsschlüssel gehört zum Konto, nicht zum Projekt — mit ihm könnte
 > jemand alle eure Supabase-Projekte verändern. Er gehört in die
 > GitHub-Geheimnisse und in keine Datei.
@@ -143,6 +153,8 @@ Module verstecken Einstellungen, die man sonst vergeblich sucht.
 | --- | --- |
 | `/einrichtung` leitet sofort zur Anmeldung | Es gibt schon ein Konto mit Rolle. Der Weg ist zu |
 | „Nicht möglich" beim ersten Zugang | `SETUP_SECRET` fehlt oder stimmt nicht |
+| „Die Einrichtung geht nur über https" | Für die Adresse ist noch kein Zertifikat eingerichtet. Beim Hoster nachholen |
+| Link in der Mail führt zu `localhost:3000` | Die Variable `SITE_URL` fehlt, oder der Ausrollen-Knopf lief seitdem nicht |
 | Keine Mail | SMTP-Angaben fehlen. Der Einladungslink steht auf der Seite |
 | Website weiss und leer | `VITE_SUPABASE_URL` oder der Schlüssel fehlen beim Hoster |
 | „Keine Rolle hat das Recht roles.manage" | Der Ausrollen-Knopf lief nicht durch. Sieh im Protokoll der Action nach |
