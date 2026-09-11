@@ -80,7 +80,8 @@ if (!gibt("public/robots.txt")) {
   fehler.push("public/robots.txt fehlt");
 } else {
   const r = lies("public/robots.txt");
-  if (!/^Sitemap:\s*https?:\/\//m.test(r)) fehler.push("public/robots.txt: Sitemap-Zeile fehlt");
+  // Die Adresse setzt der Build ein (vite.config.ts), hier steht der Platzhalter.
+  if (!/^Sitemap:\s*(https?:\/\/|__FUNCTIONS_URL__\/)/m.test(r)) fehler.push("public/robots.txt: Sitemap-Zeile fehlt");
   if (!/Disallow:\s*\/intern\//.test(r)) fehler.push("public/robots.txt: /intern/ ist nicht ausgeschlossen");
 }
 
