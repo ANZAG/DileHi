@@ -9,6 +9,6 @@ Disallow: /passwort-zuruecksetzen
 # Vereinsangaben. Eine feste Liste hier waere nach der ersten neuen Seite
 # falsch – und bei einer zweiten Installation von Anfang an.
 #
-# Bei einer neuen Installation ist diese Zeile anzupassen: Sie zeigt auf die
-# Edge Function des jeweiligen Supabase-Projekts.
-Sitemap: https://sstplyhfebexeyqehsvv.supabase.co/functions/v1/sitemap
+# Die Adresse der Funktion setzt der Build ein (vite.config.ts), aus dem
+# Supabase-Projekt, gegen das gebaut wird. Von Hand ist hier nichts anzupassen.
+Sitemap: __FUNCTIONS_URL__/sitemap
