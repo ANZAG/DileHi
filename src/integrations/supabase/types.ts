@@ -148,11 +148,14 @@ export type Database = {
           bank_bic: string | null
           bank_iban: string | null
           bank_recipient: string | null
+          beitrag_aufbewahrung_jahre: number
           board_members: string | null
           calendar_timezone: string
           color_dark: string
           color_primary: string
+          color_surface: string
           contribution_model: string
+          default_role: string | null
           favicon_path: string | null
           font_body: string
           font_headings: string
@@ -194,11 +197,14 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
+          beitrag_aufbewahrung_jahre?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          color_surface?: string
           contribution_model?: string
+          default_role?: string | null
           favicon_path?: string | null
           font_body?: string
           font_headings?: string
@@ -240,11 +246,14 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
+          beitrag_aufbewahrung_jahre?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
           color_primary?: string
+          color_surface?: string
           contribution_model?: string
+          default_role?: string | null
           favicon_path?: string | null
           font_body?: string
           font_headings?: string
@@ -283,6 +292,13 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "app_settings_default_role_fkey"
+            columns: ["default_role"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["key"]
+          },
           {
             foreignKeyName: "app_settings_satzung_document_fk"
             columns: ["satzung_document_id"]
@@ -422,6 +438,7 @@ export type Database = {
       contribution_categories: {
         Row: {
           created_at: string
+          geloescht_ab: number | null
           hinweis: string | null
           is_active: boolean
           key: string
@@ -430,6 +447,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          geloescht_ab?: number | null
           hinweis?: string | null
           is_active?: boolean
           key: string
@@ -438,6 +456,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          geloescht_ab?: number | null
           hinweis?: string | null
           is_active?: boolean
           key?: string
@@ -1048,7 +1067,7 @@ export type Database = {
           can_view: boolean
           category_id: string
           is_moderator: boolean
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
         }
         Insert: {
           can_reply?: boolean
@@ -1056,7 +1075,7 @@ export type Database = {
           can_view?: boolean
           category_id: string
           is_moderator?: boolean
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
         }
         Update: {
           can_reply?: boolean
@@ -1064,7 +1083,7 @@ export type Database = {
           can_view?: boolean
           category_id?: string
           is_moderator?: boolean
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
         }
         Relationships: [
           {
@@ -1073,6 +1092,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "forum_categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_category_roles_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -1524,6 +1550,7 @@ export type Database = {
           public_images: string[]
           published_at: string | null
           published_by: string | null
+          show_name: boolean
           sort_order: number
           updated_at: string
           user_id: string
@@ -1539,6 +1566,7 @@ export type Database = {
           public_images?: string[]
           published_at?: string | null
           published_by?: string | null
+          show_name?: boolean
           sort_order?: number
           updated_at?: string
           user_id: string
@@ -1554,6 +1582,7 @@ export type Database = {
           public_images?: string[]
           published_at?: string | null
           published_by?: string | null
+          show_name?: boolean
           sort_order?: number
           updated_at?: string
           user_id?: string
@@ -1745,6 +1774,78 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      onboarding_hilfe: {
+        Row: {
+          key: string
+          standard: Json | null
+          text: string
+          titel: string | null
+        }
+        Insert: {
+          key: string
+          standard?: Json | null
+          text: string
+          titel?: string | null
+        }
+        Update: {
+          key?: string
+          standard?: Json | null
+          text?: string
+          titel?: string | null
+        }
+        Relationships: []
+      }
+      onboarding_schritte: {
+        Row: {
+          anker: string | null
+          aufgabe: string | null
+          icon: string
+          is_active: boolean
+          key: string
+          modul: string | null
+          recht: string | null
+          route: string | null
+          sort_order: number
+          standard: Json | null
+          text: string
+          tipp: string | null
+          titel: string
+          tour: string
+        }
+        Insert: {
+          anker?: string | null
+          aufgabe?: string | null
+          icon?: string
+          is_active?: boolean
+          key: string
+          modul?: string | null
+          recht?: string | null
+          route?: string | null
+          sort_order?: number
+          standard?: Json | null
+          text: string
+          tipp?: string | null
+          titel: string
+          tour?: string
+        }
+        Update: {
+          anker?: string | null
+          aufgabe?: string | null
+          icon?: string
+          is_active?: boolean
+          key?: string
+          modul?: string | null
+          recht?: string | null
+          route?: string | null
+          sort_order?: number
+          standard?: Json | null
+          text?: string
+          tipp?: string | null
+          titel?: string
+          tour?: string
         }
         Relationships: []
       }
@@ -2021,6 +2122,7 @@ export type Database = {
         Row: {
           description: string | null
           is_board: boolean
+          is_leadership: boolean
           is_system: boolean
           key: string
           label: string
@@ -2031,6 +2133,7 @@ export type Database = {
         Insert: {
           description?: string | null
           is_board?: boolean
+          is_leadership?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -2041,6 +2144,7 @@ export type Database = {
         Update: {
           description?: string | null
           is_board?: boolean
+          is_leadership?: boolean
           is_system?: boolean
           key?: string
           label?: string
@@ -2056,23 +2160,31 @@ export type Database = {
           granted: boolean
           id: string
           permission: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
         }
         Insert: {
           created_at?: string
           granted?: boolean
           id?: string
           permission: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
         }
         Update: {
           created_at?: string
           granted?: boolean
           id?: string
           permission?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       site_categories: {
         Row: {
@@ -2328,22 +2440,30 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       user_tours: {
         Row: {
@@ -2422,6 +2542,31 @@ export type Database = {
         }[]
       }
       backup_schema_ddl: { Args: never; Returns: string }
+      beitragsstufe_angeboten: {
+        Args: { _geloescht_ab: number; _is_active: boolean; _jahr?: number }
+        Returns: boolean
+      }
+      beitragsstufe_entfernen: { Args: { _key: string }; Returns: Json }
+      beitragsstufe_wieder_anbieten: {
+        Args: { _key: string }
+        Returns: undefined
+      }
+      beitragsstufen_status: {
+        Args: never
+        Returns: {
+          angeboten: boolean
+          ehemalige: number
+          geloescht_ab: number
+          hinweis: string
+          is_active: boolean
+          key: string
+          label: string
+          letztes_datenjahr: number
+          loeschbar_ab: number
+          mitglieder: number
+          sort_order: number
+        }[]
+      }
       can_vote: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
@@ -2521,6 +2666,7 @@ export type Database = {
         Returns: {
           expertise: string
           images: string[]
+          name: string
           period: string
           portrayal: string
         }[]
@@ -2561,9 +2707,7 @@ export type Database = {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
       }
-      is_herold: { Args: { _user_id: string }; Returns: boolean }
       is_member: { Args: { _user_id: string }; Returns: boolean }
-      is_schatzmeister: { Args: { _user_id: string }; Returns: boolean }
       is_vorstand: { Args: { _user_id: string }; Returns: boolean }
       mark_notifications_read: { Args: { _ids?: string[] }; Returns: number }
       module_enabled: { Args: { _key: string }; Returns: boolean }
@@ -2580,6 +2724,7 @@ export type Database = {
           sort_order: number
         }[]
       }
+      onboarding_erledigt: { Args: never; Returns: string[] }
       pending_digests: {
         Args: never
         Returns: {
@@ -2594,6 +2739,7 @@ export type Database = {
           board_members: string
           color_dark: string
           color_primary: string
+          color_surface: string
           favicon_path: string
           font_body: string
           font_headings: string
@@ -2643,6 +2789,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      role_status: {
+        Args: never
+        Returns: {
+          description: string
+          is_board: boolean
+          is_default: boolean
+          is_leadership: boolean
+          is_system: boolean
+          key: string
+          label: string
+          max_holders: number
+          member_count: number
+          permission_count: number
+          public_listed: boolean
+          sort_order: number
+        }[]
+      }
       satzung_auswahl: {
         Args: never
         Returns: {
@@ -2667,10 +2830,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      setup_needed: { Args: never; Returns: boolean }
       submit_form_response: {
         Args: { _answers: Json; _email: string; _name: string; _token: string }
         Returns: string
       }
+      transfer_accounts: { Args: never; Returns: Json }
       update_form_settings: {
         Args: { _form_id: string; _patch: Json }
         Returns: Json
@@ -2686,13 +2851,6 @@ export type Database = {
       }
     }
     Enums: {
-      app_role:
-        | "vorstand"
-        | "mitglied"
-        | "herold"
-        | "schatzmeister"
-        | "officiatus_1"
-        | "officiatus_2"
       forum_category_status: "vorgeschlagen" | "aktiv" | "archiviert"
       forum_post_kind: "beitrag" | "umfrage" | "mitbringliste"
       forum_watch_level: "beobachten" | "verfolgen" | "stumm"
@@ -2823,14 +2981,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: [
-        "vorstand",
-        "mitglied",
-        "herold",
-        "schatzmeister",
-        "officiatus_1",
-        "officiatus_2",
-      ],
       forum_category_status: ["vorgeschlagen", "aktiv", "archiviert"],
       forum_post_kind: ["beitrag", "umfrage", "mitbringliste"],
       forum_watch_level: ["beobachten", "verfolgen", "stumm"],
