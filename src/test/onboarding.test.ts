@@ -1,15 +1,17 @@
+// @vitest-environment node
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ZEICHEN_NAMEN, zeichen } from "@/components/onboarding/icons";
-import { AUSGANGSSTAND, MIGRATIONEN, startdaten } from "./hilfe/datenbank";
+import { functionSource, seedRows } from "./hilfe/buehne";
 
 /**
  * Die Einführung: stimmt, was in der Datenbank steht, mit dem Programm überein?
  *
- * Geprüft wird am Ausgangsstand, also an dem, was eine neue Installation
- * wirklich bekommt. Vorher standen hier Muster, die die VALUES-Listen dreier
- * Migrationen zerlegten — fragil, und zweimal still danebengegriffen: einmal
- * an mehrteiligen Ankernamen, einmal an Zeilenenden.
+ * Geprüft wird an der Bühne, auf der alle Migrationen gelaufen sind – also an
+ * dem, was eine neue Installation wirklich bekommt. Vorher wurden die
+ * INSERT-Anweisungen im Text zerlegt: fragil, zweimal still danebengegriffen,
+ * und nach der Umbenennung ins Englische hätten die Prüfungen die alten Namen
+ * gesucht.
  */
 
 /** Alle .tsx unter src – Anker und Tournamen können überall stehen. */
@@ -24,8 +26,10 @@ const alleDateien = (ordner: string): string[] =>
 
 const QUELLEN = alleDateien("src").map((f) => readFileSync(f, "utf-8")).join("\n");
 
-const SCHRITTE = startdaten("onboarding_schritte");
-const HILFEN = startdaten("onboarding_hilfe");
+type Step = { key: string; icon: string | null; anchor: string | null; task: string | null;
+  tour: string | null; route: string | null; sort_order: number; defaults: Record<string, unknown> | null };
+const SCHRITTE = await seedRows<Step>("onboarding_steps");
+const HILFEN = await seedRows<{ key: string }>("onboarding_help");
 
 describe("Die Einführung ist überhaupt da", () => {
   it("bringt Schritte und Hilfetexte mit", () => {
@@ -58,7 +62,7 @@ describe("Zeichen der Schritte", () => {
  * dann einfach ein Fenster in der Mitte, so wie vorher.
  */
 describe("Anker der Führung", () => {
-  const anker = [...new Set(SCHRITTE.map((s) => s.anker).filter((a): a is string => !!a))];
+  const anker = [...new Set(SCHRITTE.map((s) => s.anchor).filter((a): a is string => !!a))];
 
   it("hat zu jedem Anker ein Element im Markup", () => {
     expect(anker.length).toBeGreaterThan(8);
@@ -74,14 +78,13 @@ describe("Anker der Führung", () => {
 });
 
 describe("Aufgaben", () => {
-  it("prüft jede Aufgabe in der Datenbank nach", () => {
-    // Eine Aufgabe ohne Zweig in onboarding_erledigt() liesse sich nie
+  it("prüft jede Aufgabe in der Datenbank nach", async () => {
+    // Eine Aufgabe ohne Zweig in onboarding_completed_tasks() liesse sich nie
     // abhaken – die Liste bliebe fuer immer stehen.
-    const aufgaben = [...new Set(SCHRITTE.map((s) => s.aufgabe).filter((a): a is string => !!a))];
+    const aufgaben = [...new Set(SCHRITTE.map((s) => s.task).filter((a): a is string => !!a))];
     expect(aufgaben.length).toBeGreaterThan(3);
 
-    const anfang = AUSGANGSSTAND.indexOf("FUNCTION public.onboarding_erledigt");
-    const funktion = AUSGANGSSTAND.slice(anfang, anfang + 4000);
+    const funktion = await functionSource("onboarding_completed_tasks");
     expect(aufgaben.filter((a) => !funktion.includes(`'${a}'`))).toEqual([]);
   });
 });
@@ -113,7 +116,7 @@ describe("Die drei Fehler der Vorgängerfassung", () => {
 describe("Inhalte sind pflegbar", () => {
   it("holt die Schritte aus der Datenbank, nicht aus dem Quelltext", () => {
     const hook = readFileSync("src/components/onboarding/useOnboarding.ts", "utf-8");
-    expect(hook).toContain('from("onboarding_schritte")');
+    expect(hook).toContain('from("onboarding_steps")');
   });
 
   it("hat einen Platz in der Verwaltung", () => {
@@ -123,20 +126,12 @@ describe("Inhalte sind pflegbar", () => {
   });
 
   it("hält den Auslieferungszustand fest", () => {
-    // Ohne `standard` gaebe es keinen Weg zurueck, wenn jemand einen Text
-    // ueberschreibt.
-    //
-    // Im Ausgangsstand steht der Wert in der Zeile. Eine von Hand geschriebene
-    // Migration traegt ihn danach nach – deshalb hier beides pruefen und nicht
-    // stur jede Zeile.
-    const ausAbzug = startdaten("onboarding_schritte").filter((s) => "standard" in s);
-    expect(ausAbzug.length).toBeGreaterThan(10);
-    expect(ausAbzug.every((s) => s.standard)).toBe(true);
-
-    for (const [i, inhalt] of MIGRATIONEN.entries()) {
-      if (i === 0 || !inhalt.includes("INSERT INTO public.onboarding_schritte")) continue;
-      expect(inhalt, `Migration ${i}`).toContain("SET standard = jsonb_build_object");
-    }
+    // Ohne `defaults` gaebe es keinen Weg zurueck, wenn jemand einen Text
+    // ueberschreibt. Jede Zeile braucht ihn, auch die aus spaeteren
+    // Migrationen – und mit englischen Schluesseln, sonst setzt „Zuruecksetzen"
+    // nichts zurueck.
+    expect(SCHRITTE.filter((s) => !s.defaults || Object.keys(s.defaults).length === 0).map((s) => s.key)).toEqual([]);
+    expect(SCHRITTE.filter((s) => !("title" in (s.defaults ?? {}))).map((s) => s.key)).toEqual([]);
 
     const admin = readFileSync("src/components/admin/OnboardingAdmin.tsx", "utf-8");
     expect(admin).toContain("Auslieferungszustand");
@@ -163,9 +158,9 @@ describe("Reihenfolge des Rundgangs", () => {
 
   it("hebt die Kacheln in der Reihenfolge hervor, in der sie stehen", () => {
     const inTour = rundgang
-      .map((s) => s.anker)
+      .map((s) => s.anchor)
       .filter((a): a is string => !!a && a.startsWith("kachel-"));
-    const imMarkup = [...dashboard.matchAll(/modul: "([a-z_]+)"/g)].map((m) => `kachel-${m[1]}`);
+    const imMarkup = [...dashboard.matchAll(/module: "([a-z_]+)"/g)].map((m) => `kachel-${m[1]}`);
 
     // Nur die Kacheln vergleichen, die der Rundgang anspricht: „Anmeldungen"
     // taucht nur bei Organisatoren auf und bleibt aussen vor.

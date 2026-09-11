@@ -11,11 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * Der Rundgang (`start`) zeigt einmal die Startseite: was liegt wo. Die
  * Bereichstouren erklären, wie man in einem Bereich arbeitet. Beides steht in
- * `onboarding_schritte`, unterschieden durch die Spalte `tour`.
+ * `onboarding_steps`, unterschieden durch die Spalte `tour`.
  *
  * ── Wer was sieht ──────────────────────────────────────────────────────────
  *
- * `recht` und `modul` an jedem Schritt. Keine Rollenabfrage: Wer einer eigenen
+ * `permission` und `module` an jedem Schritt. Keine Rollenabfrage: Wer einer eigenen
  * Rolle das passende Recht gibt, bekommt den Schritt.
  *
  * ── Was gemerkt wird ───────────────────────────────────────────────────────
@@ -32,16 +32,16 @@ export interface Schritt {
   key: string;
   tour: string;
   icon: string;
-  titel: string;
+  title: string;
   text: string;
-  tipp: string | null;
+  tip: string | null;
   route: string | null;
-  /** Das Element mit data-tour="<anker>" wird hervorgehoben. */
-  anker: string | null;
-  recht: string | null;
-  modul: string | null;
+  /** Das Element mit data-tour="<anchor>" wird hervorgehoben. */
+  anchor: string | null;
+  permission: string | null;
+  module: string | null;
   /** Gesetzt = echte Aufgabe, die sich selbst abhakt. */
-  aufgabe: string | null;
+  task: string | null;
   sort_order: number;
   is_active: boolean;
 }
@@ -61,7 +61,7 @@ export function useOnboarding() {
     queryKey: ["onboarding-schritte"],
     queryFn: async (): Promise<Schritt[]> => {
       const { data, error } = await db
-        .from("onboarding_schritte")
+        .from("onboarding_steps")
         .select("*")
         .eq("is_active", true)
         .order("sort_order");
@@ -75,7 +75,7 @@ export function useOnboarding() {
   const erledigtQuery = useQuery({
     queryKey: ["onboarding-erledigt", user?.id],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("onboarding_erledigt" as never);
+      const { data, error } = await supabase.rpc("onboarding_completed_tasks" as never);
       if (error) throw new Error(error.message);
       return (data ?? []) as string[];
     },
@@ -105,7 +105,7 @@ export function useOnboarding() {
     () =>
       (schritteQuery.data ?? []).filter(
         (s) =>
-          (!s.recht || hasPermission(s.recht)) && (!s.modul || modulAn(module, s.modul))
+          (!s.permission || hasPermission(s.permission)) && (!s.module || modulAn(module, s.module))
       ),
     // permissions statt hasPermission: Die Funktion ist bei jedem Aufbau neu,
     // die Liste dahinter nicht.
@@ -122,7 +122,7 @@ export function useOnboarding() {
 
   /** Die Schritte einer Tour, in Reihenfolge. */
   const schritteFuer = useCallback(
-    (tour: string) => gueltig.filter((s) => s.tour === tour && !s.aufgabe),
+    (tour: string) => gueltig.filter((s) => s.tour === tour && !s.task),
     [gueltig]
   );
 
@@ -148,9 +148,9 @@ export function useOnboarding() {
   const aufgaben: Aufgabe[] = useMemo(
     () =>
       gueltig
-        .filter((s) => !!s.aufgabe)
+        .filter((s) => !!s.task)
         .filter((s) => !merkzettel.has(`aufgabe:${s.key}`))
-        .map((s) => ({ ...s, fertig: erledigt.has(s.aufgabe!) })),
+        .map((s) => ({ ...s, fertig: erledigt.has(s.task!) })),
     [gueltig, erledigt, merkzettel]
   );
 

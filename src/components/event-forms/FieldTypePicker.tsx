@@ -30,10 +30,10 @@ interface Props {
 export default function FieldTypePicker({ open, onOpenChange, onSelect, nur }: Props) {
   // Ein Feldtyp, dessen Modul aus ist, steht nicht zur Wahl. Das ist die
   // einzige Stelle dafuer – ein neues Modul mit eigenem Feldtyp braucht nur
-  // den Eintrag `modul` in FIELD_TYPES.
+  // den Eintrag `module` in FIELD_TYPES.
   const { data: module } = useModule();
   const typen = (nur ? FIELD_TYPES.filter((t) => nur.includes(t.value)) : FIELD_TYPES)
-    .filter((t) => modulAn(module, (t as { modul?: string }).modul));
+    .filter((t) => modulAn(module, (t as { module?: string }).module));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">

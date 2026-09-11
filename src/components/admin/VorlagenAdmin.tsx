@@ -12,26 +12,26 @@ import ForumEditor from "@/components/forum/ForumEditor";
 interface MailVorlage {
   key: string;
   label: string;
-  hinweis: string | null;
-  betreff: string;
-  kennzeile: string;
-  ueberschrift: string;
-  inhalt: string;
-  knopf: string;
-  fussnote: string;
-  platzhalter: string[];
-  standard: Record<string, string>;
+  description: string | null;
+  subject: string;
+  eyebrow: string;
+  heading: string;
+  body: string;
+  button_label: string;
+  footnote: string;
+  placeholders: string[];
+  defaults: Record<string, string>;
   sort_order: number;
 }
 
 interface PdfVorlage {
   key: string;
   label: string;
-  hinweis: string | null;
-  titel: string;
-  inhalt: string;
-  platzhalter: string[];
-  standard: Record<string, string>;
+  description: string | null;
+  title: string;
+  body: string;
+  placeholders: string[];
+  defaults: Record<string, string>;
   sort_order: number;
 }
 
@@ -39,11 +39,11 @@ const db = supabase as unknown as { from: (t: string) => any };
 
 /** Welche Felder eine Mailvorlage hat und wie sie erklärt werden. */
 const MAILFELDER: { feld: keyof MailVorlage; label: string; hinweis: string }[] = [
-  { feld: "betreff", label: "Betreff", hinweis: "Steht in der Übersicht des Postfachs." },
-  { feld: "kennzeile", label: "Kennzeile", hinweis: "Die kleine Zeile über der Überschrift. Darf leer bleiben." },
-  { feld: "ueberschrift", label: "Überschrift", hinweis: "Die große Zeile in der Mail. Darf leer bleiben." },
-  { feld: "knopf", label: "Beschriftung des Knopfes", hinweis: "Leer = kein Knopf. Wohin er führt, entscheidet die Anwendung." },
-  { feld: "fussnote", label: "Fußnote", hinweis: "Kleingedrucktes unter dem Text." },
+  { feld: "subject", label: "Betreff", hinweis: "Steht in der Übersicht des Postfachs." },
+  { feld: "eyebrow", label: "Kennzeile", hinweis: "Die kleine Zeile über der Überschrift. Darf leer bleiben." },
+  { feld: "heading", label: "Überschrift", hinweis: "Die große Zeile in der Mail. Darf leer bleiben." },
+  { feld: "button_label", label: "Beschriftung des Knopfes", hinweis: "Leer = kein Knopf. Wohin er führt, entscheidet die Anwendung." },
+  { feld: "footnote", label: "Fußnote", hinweis: "Kleingedrucktes unter dem Text." },
 ];
 
 /**
@@ -114,8 +114,8 @@ function Mailvorlagen() {
   const speichern = useMutation({
     mutationFn: async (v: MailVorlage) => {
       const { error } = await db.from("mail_templates").update({
-        betreff: v.betreff, kennzeile: v.kennzeile, ueberschrift: v.ueberschrift,
-        inhalt: v.inhalt, knopf: v.knopf, fussnote: v.fussnote,
+        subject: v.subject, eyebrow: v.eyebrow, heading: v.heading,
+        body: v.body, button_label: v.button_label, footnote: v.footnote,
       }).eq("key", v.key);
       if (error) throw new Error(error.message);
     },
@@ -151,7 +151,7 @@ function Mailvorlagen() {
       />
 
       <div className="space-y-4">
-        <Kopf label={gewaehlt.label} hinweis={gewaehlt.hinweis} platzhalter={gewaehlt.platzhalter} />
+        <Kopf label={gewaehlt.label} hinweis={gewaehlt.description} platzhalter={gewaehlt.placeholders} />
 
         {MAILFELDER.slice(0, 3).map(({ feld, label, hinweis }) => (
           <Zeile key={feld} label={label} hinweis={hinweis}>
@@ -173,8 +173,8 @@ function Mailvorlagen() {
                 Dokument, also ein neuer Editor. */}
             <ForumEditor
               key={entwurf.key}
-              value={entwurf.inhalt}
-              onChange={(html) => setEntwurf({ ...entwurf, inhalt: html })}
+              value={entwurf.body}
+              onChange={(html) => setEntwurf({ ...entwurf, body: html })}
               umfang="knapp"
               compact
               placeholder="Text der E-Mail …"
@@ -194,7 +194,7 @@ function Mailvorlagen() {
         <Fuss
           geaendert={geaendert}
           laeuft={speichern.isPending}
-          zuruecksetzen={() => setEntwurf({ ...entwurf, ...gewaehlt.standard })}
+          zuruecksetzen={() => setEntwurf({ ...entwurf, ...gewaehlt.defaults })}
           speichern={() => speichern.mutate(entwurf)}
         />
       </div>
@@ -231,7 +231,7 @@ export function Antragstexte() {
   const speichern = useMutation({
     mutationFn: async (t: PdfVorlage) => {
       const { error } = await db.from("pdf_texts")
-        .update({ titel: t.titel, inhalt: t.inhalt }).eq("key", t.key);
+        .update({ title: t.title, body: t.body }).eq("key", t.key);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -266,27 +266,27 @@ export function Antragstexte() {
       />
 
       <div className="space-y-4">
-        <Kopf label={gewaehlt.label} hinweis={gewaehlt.hinweis} platzhalter={gewaehlt.platzhalter} />
+        <Kopf label={gewaehlt.label} hinweis={gewaehlt.description} platzhalter={gewaehlt.placeholders} />
 
         <Zeile label="Abschnittsüberschrift" hinweis="Steht auf dem gedruckten Antrag über dem Text. Darf leer bleiben.">
           <Input
-            value={entwurf.titel}
-            onChange={(e) => setEntwurf({ ...entwurf, titel: e.target.value })}
+            value={entwurf.title}
+            onChange={(e) => setEntwurf({ ...entwurf, title: e.target.value })}
           />
         </Zeile>
 
         <Zeile label="Text" hinweis="Jede Zeile ist ein eigener Absatz beziehungsweise eine eigene Angabe. Derselbe Wortlaut erscheint im Webformular und auf dem PDF.">
           <Textarea
             rows={8}
-            value={entwurf.inhalt}
-            onChange={(e) => setEntwurf({ ...entwurf, inhalt: e.target.value })}
+            value={entwurf.body}
+            onChange={(e) => setEntwurf({ ...entwurf, body: e.target.value })}
           />
         </Zeile>
 
         <Fuss
           geaendert={geaendert}
           laeuft={speichern.isPending}
-          zuruecksetzen={() => setEntwurf({ ...entwurf, ...gewaehlt.standard })}
+          zuruecksetzen={() => setEntwurf({ ...entwurf, ...gewaehlt.defaults })}
           speichern={() => speichern.mutate(entwurf)}
         />
       </div>

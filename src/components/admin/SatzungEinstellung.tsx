@@ -19,8 +19,8 @@ import {
  */
 
 interface Stand {
-  satzung_link: boolean;
-  satzung_document_id: string | null;
+  statutes_link: boolean;
+  statutes_document_id: string | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -40,13 +40,13 @@ export default function SatzungEinstellung() {
   });
 
   useEffect(() => {
-    if (data) setEntwurf({ satzung_link: data.satzung_link, satzung_document_id: data.satzung_document_id });
+    if (data) setEntwurf({ statutes_link: data.statutes_link, statutes_document_id: data.statutes_document_id });
   }, [data]);
 
   const { data: dokumente = [] } = useQuery({
     queryKey: ["satzung-auswahl"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("satzung_auswahl" as never);
+      const { data, error } = await supabase.rpc("statutes_options" as never);
       if (error) throw new Error(error.message);
       return (data ?? []) as { id: string; title: string; created_at: string }[];
     },
@@ -72,8 +72,8 @@ export default function SatzungEinstellung() {
 
   const geaendert =
     !!data &&
-    (entwurf.satzung_link !== data.satzung_link ||
-      entwurf.satzung_document_id !== data.satzung_document_id);
+    (entwurf.statutes_link !== data.statutes_link ||
+      entwurf.statutes_document_id !== data.statutes_document_id);
 
   return (
     <div className="max-w-xl space-y-4">
@@ -86,8 +86,8 @@ export default function SatzungEinstellung() {
       <label className="flex items-start gap-2.5 cursor-pointer">
         <input
           type="checkbox"
-          checked={entwurf.satzung_link}
-          onChange={(e) => setEntwurf({ ...entwurf, satzung_link: e.target.checked })}
+          checked={entwurf.statutes_link}
+          onChange={(e) => setEntwurf({ ...entwurf, statutes_link: e.target.checked })}
           className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
         />
         <span className="text-sm">
@@ -99,13 +99,13 @@ export default function SatzungEinstellung() {
         </span>
       </label>
 
-      {entwurf.satzung_link && (
+      {entwurf.statutes_link && (
         <div>
           <Label className="text-sm">Welches Dokument ist die Satzung?</Label>
           <Select
-            value={entwurf.satzung_document_id ?? "neuestes"}
+            value={entwurf.statutes_document_id ?? "neuestes"}
             onValueChange={(v) =>
-              setEntwurf({ ...entwurf, satzung_document_id: v === "neuestes" ? null : v })
+              setEntwurf({ ...entwurf, statutes_document_id: v === "neuestes" ? null : v })
             }
           >
             <SelectTrigger><SelectValue /></SelectTrigger>

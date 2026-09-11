@@ -28,8 +28,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     footer_legal_label,
   } = useBrandingAnwenden();
   // Beide Aufrufe teilen sich eine Abfrage – siehe useSiteMenu.
-  const navItems = useSiteMenu("kopf");
-  const rechtliches = useSiteMenu("fuss_rechtliches");
+  const navItems = useSiteMenu("header");
+  const rechtliches = useSiteMenu("footer_legal");
 
   // roleLabels comes from useAuth (loaded from role_catalog in DB)
   // → no frontend change needed when a new role is added

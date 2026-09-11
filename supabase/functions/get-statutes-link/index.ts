@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: path, error: pathErr } = await admin.rpc("get_current_satzung_path");
+    const { data: path, error: pathErr } = await admin.rpc("get_current_statutes_path");
     if (pathErr || !path) {
       return new Response(JSON.stringify({ error: "Keine Satzung hinterlegt" }), {
         status: 404,

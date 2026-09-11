@@ -158,8 +158,8 @@ SELECT
         UNION ALL SELECT 3, 0, 'profile_fields', to_jsonb(x) FROM public.profile_fields x
         UNION ALL SELECT 3, 0, 'form_templates', to_jsonb(x) FROM public.form_templates x
         UNION ALL SELECT 3, 0, 'contribution_categories', to_jsonb(x) FROM public.contribution_categories x
-        UNION ALL SELECT 3, 0, 'onboarding_schritte', to_jsonb(x) FROM public.onboarding_schritte x
-        UNION ALL SELECT 3, 0, 'onboarding_hilfe', to_jsonb(x) FROM public.onboarding_hilfe x
+        UNION ALL SELECT 3, 0, 'onboarding_steps', to_jsonb(x) FROM public.onboarding_steps x
+        UNION ALL SELECT 3, 0, 'onboarding_help', to_jsonb(x) FROM public.onboarding_help x
         UNION ALL SELECT 3, 0, 'site_categories', to_jsonb(x) FROM public.site_categories x
         UNION ALL SELECT 4, (WITH RECURSIVE k(id, parent_id, d) AS (
                                SELECT x.id, x.parent_id, 0

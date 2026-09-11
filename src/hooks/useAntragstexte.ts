@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Antragstext {
-  titel: string;
-  inhalt: string;
+  title: string;
+  body: string;
 }
 
 /**
@@ -24,16 +24,16 @@ export function useAntragstexte(): Record<string, Antragstext> {
       const { data, error } = await (supabase as unknown as {
         from: (t: string) => {
           select: (c: string) => Promise<{
-            data: { key: string; titel: string; inhalt: string }[] | null;
+            data: { key: string; title: string; body: string }[] | null;
             error: { message: string } | null;
           }>;
         };
       })
         .from("pdf_texts")
-        .select("key, titel, inhalt");
+        .select("key, title, body");
       if (error) throw new Error(error.message);
       return Object.fromEntries(
-        (data ?? []).map((z) => [z.key, { titel: z.titel, inhalt: z.inhalt }])
+        (data ?? []).map((z) => [z.key, { title: z.title, body: z.body }])
       );
     },
     staleTime: 60 * 60 * 1000,

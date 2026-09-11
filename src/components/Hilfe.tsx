@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  * Zeltabstand eintippt, fragt sich in diesem Moment, was gemeint ist – und
  * nicht drei Wochen vorher beim ersten Anmelden.
  *
- * Die Texte stehen in der Datenbank (`onboarding_hilfe`) und lassen sich unter
+ * Die Texte stehen in der Datenbank (`onboarding_help`) und lassen sich unter
  * Verwaltung → System anpassen. Ein Verein, der andere Worte für seine Dinge
  * benutzt, soll sie hier hinschreiben können.
  *
@@ -24,10 +24,10 @@ export function Hilfe({ k }: { k: string }) {
     queryKey: ["onboarding-hilfe"],
     queryFn: async () => {
       const { data, error } = await (supabase as unknown as { from: (t: string) => any })
-        .from("onboarding_hilfe")
-        .select("key, titel, text");
+        .from("onboarding_help")
+        .select("key, title, text");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { key: string; titel: string | null; text: string }[];
+      return (data ?? []) as { key: string; title: string | null; text: string }[];
     },
     staleTime: 60 * 60 * 1000,
     retry: 1,
@@ -41,14 +41,14 @@ export function Hilfe({ k }: { k: string }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={eintrag.titel ? `Hilfe: ${eintrag.titel}` : "Hilfe"}
+          aria-label={eintrag.title ? `Hilfe: ${eintrag.title}` : "Hilfe"}
           className="inline-flex align-middle text-muted-foreground hover:text-foreground transition-colors ml-1"
         >
           <HelpCircle size={14} />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 text-sm" align="start">
-        {eintrag.titel && <p className="font-medium mb-1">{eintrag.titel}</p>}
+        {eintrag.title && <p className="font-medium mb-1">{eintrag.title}</p>}
         <p className="text-muted-foreground leading-relaxed">{eintrag.text}</p>
       </PopoverContent>
     </Popover>

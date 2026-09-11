@@ -1,5 +1,6 @@
+// @vitest-environment node
 import { readFileSync } from "node:fs";
-import { AUSGANGSSTAND } from "./hilfe/datenbank";
+import { functionSource } from "./hilfe/buehne";
 import { describe, expect, it } from "vitest";
 import { stufenFuerJahr, type BeitragsstufeStatus } from "@/hooks/useBeitragsstufen";
 import { beschreibung, meldung, nachfrageText } from "@/components/beitraege/meldungen";
@@ -7,21 +8,21 @@ import { beschreibung, meldung, nachfrageText } from "@/components/beitraege/mel
 const stufe = (p: Partial<BeitragsstufeStatus>): BeitragsstufeStatus => ({
   key: p.key ?? "aktiv",
   label: p.label ?? "Aktives Mitglied",
-  hinweis: null,
+  description: null,
   sort_order: 0,
   is_active: p.is_active ?? true,
-  geloescht_ab: p.geloescht_ab ?? null,
-  angeboten: p.angeboten ?? true,
-  mitglieder: p.mitglieder ?? 0,
-  ehemalige: p.ehemalige ?? 0,
-  letztes_datenjahr: p.letztes_datenjahr ?? null,
-  loeschbar_ab: p.loeschbar_ab ?? null,
+  removed_from: p.removed_from ?? null,
+  offered: p.offered ?? true,
+  members: p.members ?? 0,
+  former_members: p.former_members ?? 0,
+  last_data_year: p.last_data_year ?? null,
+  deletable_from: p.deletable_from ?? null,
 });
 
 describe("Stufen eines Jahres", () => {
   const liste = [
     stufe({ key: "aktiv" }),
-    stufe({ key: "foerder", geloescht_ab: 2026 }),
+    stufe({ key: "foerder", removed_from: 2026 }),
     stufe({ key: "student", is_active: false }),
   ];
 
@@ -53,33 +54,34 @@ describe("Texte zum Entfernen", () => {
   });
 
   it("warnt vor Profilen, die noch daran hängen", () => {
-    const s = stufe({ mitglieder: 3, ehemalige: 1 });
+    const s = stufe({ members: 3, former_members: 1 });
     expect(beschreibung(s)).toContain("3 Mitglieder");
     expect(beschreibung(s)).toContain("1 ehemalige");
     expect(nachfrageText(s)).toContain("nicht entfernen");
   });
 
   it("erklärt, warum alte Sätze stehen bleiben", () => {
-    const s = stufe({ letztes_datenjahr: 2024 });
+    const s = stufe({ last_data_year: 2024 });
     expect(beschreibung(s)).toContain("Beitragssätze bis 2024");
     expect(nachfrageText(s)).toContain("Aufbewahrungsfrist");
   });
 
   it("nennt bei einem Vermerk das Jahr, ab dem endgültig gelöscht werden darf", () => {
-    const s = stufe({ geloescht_ab: 2027, letztes_datenjahr: 2026, loeschbar_ab: 2032 });
+    const s = stufe({ removed_from: 2027, last_data_year: 2026, deletable_from: 2032 });
     expect(beschreibung(s)).toContain("löschbar ab 2032");
   });
 
   it("sagt bei jedem Ausgang der Datenbank etwas Sinnvolles", () => {
-    // Jeder Rueckgabewert von beitragsstufe_entfernen muss einen Text haben.
-    // Ohne diese Pruefung faende man eine Luecke erst an einem leeren Hinweis.
+    // Jeder Rueckgabewert von remove_contribution_category muss einen Text
+    // haben. Ohne diese Pruefung faende man eine Luecke erst an einem leeren
+    // Hinweis.
     const faelle = [
-      { ok: false as const, grund: "mitglieder" as const, mitglieder: 2, ehemalige: 0 },
-      { ok: false as const, grund: "letzte" as const },
-      { ok: false as const, grund: "unbekannt" as const },
-      { ok: true as const, aktion: "geloescht" as const },
-      { ok: true as const, aktion: "stillgelegt" as const, geloescht_ab: 2026, loeschbar_ab: 2030, letztes_datenjahr: 2024 },
-      { ok: true as const, aktion: "vermerkt" as const, geloescht_ab: 2027, loeschbar_ab: 2032, letztes_datenjahr: 2026 },
+      { ok: false as const, reason: "members" as const, members: 2, former_members: 0 },
+      { ok: false as const, reason: "last" as const },
+      { ok: false as const, reason: "unknown" as const },
+      { ok: true as const, action: "deleted" as const },
+      { ok: true as const, action: "retired" as const, removed_from: 2026, deletable_from: 2030, last_data_year: 2024 },
+      { ok: true as const, action: "scheduled" as const, removed_from: 2027, deletable_from: 2032, last_data_year: 2026 },
     ];
     for (const f of faelle) {
       const m = meldung(f);
@@ -100,13 +102,12 @@ describe("Texte zum Entfernen", () => {
  */
 describe("Verkabelung der Beitragsstufen", () => {
   /*
-   * Geprueft wird am Ausgangsstand, nicht mehr an einer Migration.
-   *
-   * Der Unterschied ist nicht nur der Pfad: Eine Migration beschreibt eine
-   * Aenderung, der Ausgangsstand das Ergebnis. Was hier zaehlt, sind die
-   * Funktionsruempfe – und die stehen dort im Wortlaut, wie die Datenbank sie
-   * heute kennt.
+   * Geprueft wird an der Buehne, auf der alle Migrationen gelaufen sind: an
+   * den Funktionsruempfen, wie die Datenbank sie wirklich kennt. Vorher stand
+   * hier der Text des Ausgangsstands – nach der Umbenennung ins Englische
+   * haette das die alten Fassungen geprueft, die es nicht mehr gibt.
    */
+  const entfernen = functionSource("remove_contribution_category");
 
   it("stellt die Auswahl im Profil aus der Datenbank zusammen", () => {
     const profil = readFileSync("src/pages/intern/Profile.tsx", "utf-8");
@@ -116,26 +117,29 @@ describe("Verkabelung der Beitragsstufen", () => {
     expect(profil).not.toContain('<option value="aktiv"');
   });
 
-  it("prüft den Löschvermerk auch im öffentlichen Aufnahmeantrag", () => {
-    const stelle = AUSGANGSSTAND.slice(AUSGANGSSTAND.indexOf("FUNCTION public.public_contribution_settings"));
-    expect(stelle).toContain("beitragsstufe_angeboten(c.is_active, c.geloescht_ab)");
+  it("prüft den Löschvermerk auch im öffentlichen Aufnahmeantrag", async () => {
+    const stelle = await functionSource("public_contribution_settings");
+    expect(stelle).toContain("contribution_category_offered(c.is_active, c.removed_from)");
   });
 
-  it("kennt alle vier Ausgänge des Entfernens", () => {
-    for (const wort of ["'mitglieder'", "'letzte'", "'geloescht'", "'stillgelegt'", "'vermerkt'"]) {
-      expect(AUSGANGSSTAND).toContain(wort);
+  it("kennt alle Ausgänge des Entfernens – und die Oberfläche auch", async () => {
+    // Jedes Wort, das die Datenbank zurückgibt, muss in meldungen.ts stehen.
+    const texte = readFileSync("src/components/beitraege/meldungen.ts", "utf-8");
+    for (const wort of ["members", "last", "deleted", "retired", "scheduled"]) {
+      expect(await entfernen).toContain(`'${wort}'`);
+      expect(texte).toContain(`"${wort}"`);
     }
   });
 
-  it("liest die Aufbewahrungsfrist aus den Einstellungen", () => {
-    expect(AUSGANGSSTAND).toContain("beitrag_aufbewahrung_jahre");
+  it("liest die Aufbewahrungsfrist aus den Einstellungen", async () => {
+    expect(await entfernen).toContain("contribution_retention_years");
     const admin = readFileSync("src/components/admin/ErscheinungsbildAdmin.tsx", "utf-8");
-    expect(admin).toContain("beitrag_aufbewahrung_jahre");
+    expect(admin).toContain("contribution_retention_years");
   });
 
-  it("löscht die letzte verbliebene Stufe nicht", () => {
+  it("löscht die letzte verbliebene Stufe nicht", async () => {
     // Ohne diese Sperre stuende im Aufnahmeantrag eine leere Auswahl.
-    expect(AUSGANGSSTAND).toContain("<= 1");
-    expect(AUSGANGSSTAND).toContain("'letzte'");
+    expect(await entfernen).toContain("<= 1");
+    expect(await entfernen).toContain("'last'");
   });
 });

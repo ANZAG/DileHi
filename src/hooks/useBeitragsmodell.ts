@@ -17,7 +17,7 @@ export type Beitragsmodell = "fest" | "umlage" | "keiner";
 export interface Mitgliedsart {
   key: string;
   label: string;
-  hinweis: string | null;
+  description: string | null;
   /** Jahresbetrag – null bei Umlage und ohne Beitrag. */
   amount: number | null;
 }

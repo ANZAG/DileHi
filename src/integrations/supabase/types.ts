@@ -107,7 +107,7 @@ export type Database = {
       }
       app_modules: {
         Row: {
-          art: string
+          kind: string
           description: string | null
           enabled: boolean
           key: string
@@ -116,7 +116,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
-          art?: string
+          kind?: string
           description?: string | null
           enabled?: boolean
           key: string
@@ -125,7 +125,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
-          art?: string
+          kind?: string
           description?: string | null
           enabled?: boolean
           key?: string
@@ -148,7 +148,7 @@ export type Database = {
           bank_bic: string | null
           bank_iban: string | null
           bank_recipient: string | null
-          beitrag_aufbewahrung_jahre: number
+          contribution_retention_years: number
           board_members: string | null
           calendar_timezone: string
           color_dark: string
@@ -184,8 +184,8 @@ export type Database = {
           privacy_officer: string | null
           register_court: string | null
           register_number: string | null
-          satzung_document_id: string | null
-          satzung_link: boolean
+          statutes_document_id: string | null
+          statutes_link: boolean
           seo_description: string | null
           seo_image_path: string | null
           updated_at: string
@@ -197,7 +197,7 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          beitrag_aufbewahrung_jahre?: number
+          contribution_retention_years?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
@@ -233,8 +233,8 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
-          satzung_document_id?: string | null
-          satzung_link?: boolean
+          statutes_document_id?: string | null
+          statutes_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
           updated_at?: string
@@ -246,7 +246,7 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           bank_recipient?: string | null
-          beitrag_aufbewahrung_jahre?: number
+          contribution_retention_years?: number
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
@@ -282,8 +282,8 @@ export type Database = {
           privacy_officer?: string | null
           register_court?: string | null
           register_number?: string | null
-          satzung_document_id?: string | null
-          satzung_link?: boolean
+          statutes_document_id?: string | null
+          statutes_link?: boolean
           seo_description?: string | null
           seo_image_path?: string | null
           updated_at?: string
@@ -300,8 +300,8 @@ export type Database = {
             referencedColumns: ["key"]
           },
           {
-            foreignKeyName: "app_settings_satzung_document_fk"
-            columns: ["satzung_document_id"]
+            foreignKeyName: "app_settings_statutes_document_fk"
+            columns: ["statutes_document_id"]
             isOneToOne: false
             referencedRelation: "documents"
             referencedColumns: ["id"]
@@ -438,8 +438,8 @@ export type Database = {
       contribution_categories: {
         Row: {
           created_at: string
-          geloescht_ab: number | null
-          hinweis: string | null
+          removed_from: number | null
+          description: string | null
           is_active: boolean
           key: string
           label: string
@@ -447,8 +447,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          geloescht_ab?: number | null
-          hinweis?: string | null
+          removed_from?: number | null
+          description?: string | null
           is_active?: boolean
           key: string
           label: string
@@ -456,8 +456,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          geloescht_ab?: number | null
-          hinweis?: string | null
+          removed_from?: number | null
+          description?: string | null
           is_active?: boolean
           key?: string
           label?: string
@@ -1489,50 +1489,50 @@ export type Database = {
       }
       mail_templates: {
         Row: {
-          betreff: string
-          fussnote: string
-          hinweis: string | null
-          inhalt: string
-          kennzeile: string
+          subject: string
+          footnote: string
+          description: string | null
+          body: string
+          eyebrow: string
           key: string
-          knopf: string
+          button_label: string
           label: string
-          platzhalter: string[]
+          placeholders: string[]
           sort_order: number
-          standard: Json
-          ueberschrift: string
+          defaults: Json
+          heading: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          betreff?: string
-          fussnote?: string
-          hinweis?: string | null
-          inhalt?: string
-          kennzeile?: string
+          subject?: string
+          footnote?: string
+          description?: string | null
+          body?: string
+          eyebrow?: string
           key: string
-          knopf?: string
+          button_label?: string
           label: string
-          platzhalter?: string[]
+          placeholders?: string[]
           sort_order?: number
-          standard: Json
-          ueberschrift?: string
+          defaults: Json
+          heading?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          betreff?: string
-          fussnote?: string
-          hinweis?: string | null
-          inhalt?: string
-          kennzeile?: string
+          subject?: string
+          footnote?: string
+          description?: string | null
+          body?: string
+          eyebrow?: string
           key?: string
-          knopf?: string
+          button_label?: string
           label?: string
-          platzhalter?: string[]
+          placeholders?: string[]
           sort_order?: number
-          standard?: Json
-          ueberschrift?: string
+          defaults?: Json
+          heading?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1777,112 +1777,112 @@ export type Database = {
         }
         Relationships: []
       }
-      onboarding_hilfe: {
+      onboarding_help: {
         Row: {
           key: string
-          standard: Json | null
+          defaults: Json | null
           text: string
-          titel: string | null
+          title: string | null
         }
         Insert: {
           key: string
-          standard?: Json | null
+          defaults?: Json | null
           text: string
-          titel?: string | null
+          title?: string | null
         }
         Update: {
           key?: string
-          standard?: Json | null
+          defaults?: Json | null
           text?: string
-          titel?: string | null
+          title?: string | null
         }
         Relationships: []
       }
-      onboarding_schritte: {
+      onboarding_steps: {
         Row: {
-          anker: string | null
-          aufgabe: string | null
+          anchor: string | null
+          task: string | null
           icon: string
           is_active: boolean
           key: string
-          modul: string | null
-          recht: string | null
+          module: string | null
+          permission: string | null
           route: string | null
           sort_order: number
-          standard: Json | null
+          defaults: Json | null
           text: string
-          tipp: string | null
-          titel: string
+          tip: string | null
+          title: string
           tour: string
         }
         Insert: {
-          anker?: string | null
-          aufgabe?: string | null
+          anchor?: string | null
+          task?: string | null
           icon?: string
           is_active?: boolean
           key: string
-          modul?: string | null
-          recht?: string | null
+          module?: string | null
+          permission?: string | null
           route?: string | null
           sort_order?: number
-          standard?: Json | null
+          defaults?: Json | null
           text: string
-          tipp?: string | null
-          titel: string
+          tip?: string | null
+          title: string
           tour?: string
         }
         Update: {
-          anker?: string | null
-          aufgabe?: string | null
+          anchor?: string | null
+          task?: string | null
           icon?: string
           is_active?: boolean
           key?: string
-          modul?: string | null
-          recht?: string | null
+          module?: string | null
+          permission?: string | null
           route?: string | null
           sort_order?: number
-          standard?: Json | null
+          defaults?: Json | null
           text?: string
-          tipp?: string | null
-          titel?: string
+          tip?: string | null
+          title?: string
           tour?: string
         }
         Relationships: []
       }
       pdf_texts: {
         Row: {
-          hinweis: string | null
-          inhalt: string
+          description: string | null
+          body: string
           key: string
           label: string
-          platzhalter: string[]
+          placeholders: string[]
           sort_order: number
-          standard: Json
-          titel: string
+          defaults: Json
+          title: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          hinweis?: string | null
-          inhalt?: string
+          description?: string | null
+          body?: string
           key: string
           label: string
-          platzhalter?: string[]
+          placeholders?: string[]
           sort_order?: number
-          standard: Json
-          titel?: string
+          defaults: Json
+          title?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          hinweis?: string | null
-          inhalt?: string
+          description?: string | null
+          body?: string
           key?: string
           label?: string
-          platzhalter?: string[]
+          placeholders?: string[]
           sort_order?: number
-          standard?: Json
-          titel?: string
+          defaults?: Json
+          title?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1917,7 +1917,7 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
-          modul: string | null
+          module: string | null
           options: Json
           required: boolean
           settings: Json
@@ -1931,7 +1931,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
-          modul?: string | null
+          module?: string | null
           options?: Json
           required?: boolean
           settings?: Json
@@ -1945,7 +1945,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
-          modul?: string | null
+          module?: string | null
           options?: Json
           required?: boolean
           settings?: Json
@@ -2245,7 +2245,7 @@ export type Database = {
       }
       site_menu: {
         Row: {
-          bereich: string
+          area: string
           created_at: string
           href: string | null
           id: string
@@ -2257,7 +2257,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
-          bereich?: string
+          area?: string
           created_at?: string
           href?: string | null
           id?: string
@@ -2269,7 +2269,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
-          bereich?: string
+          area?: string
           created_at?: string
           href?: string | null
           id?: string
@@ -2542,28 +2542,28 @@ export type Database = {
         }[]
       }
       backup_schema_ddl: { Args: never; Returns: string }
-      beitragsstufe_angeboten: {
-        Args: { _geloescht_ab: number; _is_active: boolean; _jahr?: number }
+      contribution_category_offered: {
+        Args: { _is_active: boolean; _removed_from: number; _year?: number }
         Returns: boolean
       }
-      beitragsstufe_entfernen: { Args: { _key: string }; Returns: Json }
-      beitragsstufe_wieder_anbieten: {
+      remove_contribution_category: { Args: { _key: string }; Returns: Json }
+      restore_contribution_category: {
         Args: { _key: string }
         Returns: undefined
       }
-      beitragsstufen_status: {
+      contribution_category_status: {
         Args: never
         Returns: {
-          angeboten: boolean
-          ehemalige: number
-          geloescht_ab: number
-          hinweis: string
+          offered: boolean
+          former_members: number
+          removed_from: number
+          description: string
           is_active: boolean
           key: string
           label: string
-          letztes_datenjahr: number
-          loeschbar_ab: number
-          mitglieder: number
+          last_data_year: number
+          deletable_from: number
+          members: number
           sort_order: number
         }[]
       }
@@ -2616,7 +2616,7 @@ export type Database = {
         Returns: number
       }
       get_current_contribution_rate: { Args: never; Returns: number }
-      get_current_satzung_path: { Args: never; Returns: string }
+      get_current_statutes_path: { Args: never; Returns: string }
       get_election_results: {
         Args: never
         Returns: {
@@ -2708,14 +2708,14 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { _user_id: string }; Returns: boolean }
-      is_vorstand: { Args: { _user_id: string }; Returns: boolean }
+      has_leadership_role: { Args: { _user_id: string }; Returns: boolean }
       mark_notifications_read: { Args: { _ids?: string[] }; Returns: number }
       module_enabled: { Args: { _key: string }; Returns: boolean }
       module_status: {
         Args: never
         Returns: {
-          aktiv: boolean
-          art: string
+          active: boolean
+          kind: string
           description: string
           enabled: boolean
           key: string
@@ -2724,7 +2724,7 @@ export type Database = {
           sort_order: number
         }[]
       }
-      onboarding_erledigt: { Args: never; Returns: string[] }
+      onboarding_completed_tasks: { Args: never; Returns: string[] }
       pending_digests: {
         Args: never
         Returns: {
@@ -2762,7 +2762,7 @@ export type Database = {
           privacy_officer: string
           register_court: string
           register_number: string
-          satzung_link: boolean
+          statutes_link: boolean
           seo_description: string
           seo_image_path: string
           vat_id: string
@@ -2806,7 +2806,7 @@ export type Database = {
           sort_order: number
         }[]
       }
-      satzung_auswahl: {
+      statutes_options: {
         Args: never
         Returns: {
           created_at: string
@@ -2814,7 +2814,7 @@ export type Database = {
           title: string
         }[]
       }
-      seo_organisation_seiten: {
+      seo_organization_pages: {
         Args: never
         Returns: {
           id: string

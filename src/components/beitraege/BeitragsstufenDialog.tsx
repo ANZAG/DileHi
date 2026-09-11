@@ -73,7 +73,7 @@ export default function BeitragsstufenDialog({
 
   const entfernen = useMutation({
     mutationFn: async (key: string) => {
-      const { data, error } = await supabase.rpc("beitragsstufe_entfernen" as never, { _key: key } as never);
+      const { data, error } = await supabase.rpc("remove_contribution_category" as never, { _key: key } as never);
       if (error) throw new Error(error.message);
       return data as Ergebnis;
     },
@@ -93,7 +93,7 @@ export default function BeitragsstufenDialog({
 
   const wiederAnbieten = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await supabase.rpc("beitragsstufe_wieder_anbieten" as never, { _key: key } as never);
+      const { error } = await supabase.rpc("restore_contribution_category" as never, { _key: key } as never);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -125,19 +125,19 @@ export default function BeitragsstufenDialog({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium">{s.label}</span>
-                      {!s.angeboten && (
+                      {!s.offered && (
                         <Badge variant="secondary" className="text-xs">Nicht mehr im Antrag</Badge>
                       )}
-                      {s.geloescht_ab != null && (
+                      {s.removed_from != null && (
                         <Badge variant="outline" className="text-xs">
-                          Läuft aus zum {s.geloescht_ab}
+                          Läuft aus zum {s.removed_from}
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{beschreibung(s)}</p>
                   </div>
 
-                  {s.geloescht_ab != null ? (
+                  {s.removed_from != null ? (
                     <Button
                       size="sm"
                       variant="ghost"
