@@ -1,0 +1,228 @@
+// SharePoint über Microsoft Graph – die Ablage für grosse Dateien.
+//
+// Eigene App-Registrierung, getrennt von der für den Mailversand: Diese hier
+// darf Dateien lesen und schreiben, jene Mails verschicken. Ein
+// durchgesickertes Geheimnis soll nicht beides öffnen. Das Recht ist
+// `Sites.Selected` – die App sieht genau die eine Website, für die ein Admin
+// sie freigegeben hat, und sonst nichts im Tenant (docs/sharepoint.md).
+//
+// Alles liegt unter einem Ordner der Dokumentbibliothek der Website
+// (FOLDER). Die Funktionen prüfen bei jeder Datei, dass sie dort liegt: Die
+// Kennung einer Datei kommt vom Browser, und ohne diese Prüfung liesse sich
+// damit jede Datei der Website herunterladen oder löschen.
+
+export const FOLDER = "Quellensammlung";
+
+/** Stückgrösse beim Hochladen. Graph verlangt ein Vielfaches von 320 KiB. */
+export const CHUNK = 320 * 1024 * 32; // 10 MiB
+
+const GRAPH = "https://graph.microsoft.com/v1.0";
+
+export interface SharePointTarget {
+  siteId: string;
+  siteName: string;
+  driveId: string;
+  driveName: string;
+}
+
+export interface DriveItem {
+  id: string;
+  name: string;
+  size?: number;
+  file?: { mimeType?: string };
+  parentReference?: { path?: string };
+  "@microsoft.graph.downloadUrl"?: string;
+}
+
+/** Welche Geheimnisse fehlen – für eine Meldung, mit der man etwas anfangen kann. */
+export function missingSecrets(): string[] {
+  return ["SHAREPOINT_TENANT_ID", "SHAREPOINT_CLIENT_ID", "SHAREPOINT_CLIENT_SECRET"]
+    .filter((n) => !Deno.env.get(n));
+}
+
+let token: { value: string; until: number } | null = null;
+
+async function accessToken(): Promise<string> {
+  if (token && Date.now() < token.until) return token.value;
+  const fehlt = missingSecrets();
+  if (fehlt.length > 0) {
+    throw new Error(`SharePoint ist nicht eingerichtet. Es fehlt: ${fehlt.join(", ")}.`);
+  }
+  const tenant = Deno.env.get("SHAREPOINT_TENANT_ID")!;
+  const resp = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("SHAREPOINT_CLIENT_ID")!,
+      client_secret: Deno.env.get("SHAREPOINT_CLIENT_SECRET")!,
+      scope: "https://graph.microsoft.com/.default",
+      grant_type: "client_credentials",
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Anmeldung bei Microsoft fehlgeschlagen: ${await graphReason(resp)}`);
+  }
+  const data = await resp.json();
+  // Eine Minute Luft, damit kein Aufruf mit einem gerade ablaufenden Schlüssel startet.
+  token = { value: data.access_token, until: Date.now() + (Number(data.expires_in) - 60) * 1000 };
+  return token.value;
+}
+
+/** Die Meldung aus einer Antwort von Graph, ohne den ganzen Rumpf. */
+async function graphReason(resp: Response): Promise<string> {
+  try {
+    const body = await resp.json();
+    return body?.error?.message ?? body?.error_description ?? `HTTP ${resp.status}`;
+  } catch {
+    return `HTTP ${resp.status}`;
+  }
+}
+
+export async function graph(path: string, init: RequestInit = {}): Promise<Response> {
+  const resp = await fetch(path.startsWith("http") ? path : `${GRAPH}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${await accessToken()}`,
+      ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
+      ...init.headers,
+    },
+  });
+  return resp;
+}
+
+async function graphJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const resp = await graph(path, init);
+  if (!resp.ok) throw new Error(`SharePoint: ${await graphReason(resp)}`);
+  return await resp.json() as T;
+}
+
+const targets = new Map<string, { target: SharePointTarget; until: number }>();
+
+/**
+ * Website und Dokumentbibliothek zu einer Adresse wie
+ * https://verein.sharepoint.com/sites/Vereinsablage.
+ */
+export async function resolveTarget(siteUrl: string): Promise<SharePointTarget> {
+  const cached = targets.get(siteUrl);
+  if (cached && Date.now() < cached.until) return cached.target;
+
+  let url: URL;
+  try {
+    url = new URL(siteUrl);
+  } catch {
+    throw new Error("Die Adresse der SharePoint-Website ist keine gültige Adresse.");
+  }
+  if (!url.hostname.endsWith(".sharepoint.com")) {
+    throw new Error("Die Adresse muss auf .sharepoint.com enden, etwa https://verein.sharepoint.com/sites/Ablage.");
+  }
+  const path = url.pathname.replace(/\/+$/, "");
+  const site = await graphJson<{ id: string; displayName: string }>(
+    `/sites/${url.hostname}:${path || "/"}`
+  );
+  const drive = await graphJson<{ id: string; name: string }>(`/sites/${site.id}/drive`);
+  const target = { siteId: site.id, siteName: site.displayName, driveId: drive.id, driveName: drive.name };
+  targets.set(siteUrl, { target, until: Date.now() + 10 * 60 * 1000 });
+  return target;
+}
+
+/** Legt den Ordner für die Ablage an, falls es ihn noch nicht gibt. */
+export async function ensureFolder(target: SharePointTarget): Promise<void> {
+  const resp = await graph(`/drives/${target.driveId}/root:/${encodeURIComponent(FOLDER)}`);
+  if (resp.ok) return;
+  if (resp.status !== 404) throw new Error(`SharePoint: ${await graphReason(resp)}`);
+  await graphJson(`/drives/${target.driveId}/root/children`, {
+    method: "POST",
+    body: JSON.stringify({ name: FOLDER, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }),
+  });
+}
+
+/** Zeichen, die SharePoint in Dateinamen nicht annimmt. Umlaute bleiben. */
+export function safeFileName(name: string): string {
+  const cleaned = name.replace(/["*:<>?/\\|#%]/g, "_").replace(/^[\s.]+|[\s.]+$/g, "").slice(0, 180);
+  return cleaned || "Datei";
+}
+
+/** Ein Ordnername aus einer Epoche: nur Buchstaben, Ziffern, Bindestrich, Unterstrich. */
+export function safeSegment(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 60) || "allgemein";
+}
+
+/**
+ * Eine Hochladesitzung. Die Adresse darin gilt ohne Anmeldung – der Browser
+ * lädt direkt zu Microsoft, an Supabase vorbei. Deshalb spielt die Grösse
+ * der Datei für Supabase keine Rolle.
+ */
+export async function createUploadSession(
+  target: SharePointTarget,
+  subfolder: string,
+  fileName: string
+): Promise<string> {
+  const path = [FOLDER, safeSegment(subfolder), `${Date.now()}_${safeFileName(fileName)}`]
+    .map(encodeURIComponent).join("/");
+  const session = await graphJson<{ uploadUrl: string }>(
+    `/drives/${target.driveId}/root:/${path}:/createUploadSession`,
+    { method: "POST", body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }
+  );
+  return session.uploadUrl;
+}
+
+/**
+ * Eine Datei, aber nur, wenn sie unter FOLDER liegt.
+ * Mit Download-Adresse, die ohne Anmeldung gilt und nach Minuten verfällt.
+ */
+export async function fileInFolder(target: SharePointTarget, itemId: string): Promise<DriveItem> {
+  const item = await graphJson<DriveItem>(
+    `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}` +
+      "?$select=id,name,size,file,parentReference,@microsoft.graph.downloadUrl"
+  );
+  if (!isInFolder(item.parentReference?.path)) {
+    throw new Error("Diese Datei gehört nicht zur Ablage der Quellensammlung.");
+  }
+  return item;
+}
+
+/**
+ * Liegt ein Eltern-Pfad wie `/drives/…/root:/Quellensammlung/mittelalter`
+ * unter FOLDER? Genau dieser Ordner oder darunter – nicht
+ * „QuellensammlungPrivat", nicht ein Ordner gleichen Namens tiefer in der
+ * Bibliothek.
+ */
+export function isInFolder(parentPath: string | undefined): boolean {
+  let path = parentPath ?? "";
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    return false;
+  }
+  const marker = path.indexOf("/root:");
+  if (marker < 0) return false;
+  const below = path.slice(marker + "/root:".length);
+  return below === `/${FOLDER}` || below.startsWith(`/${FOLDER}/`);
+}
+
+/** In den Papierkorb der Website – dort lässt sie sich 93 Tage wiederherstellen. */
+export async function deleteFile(target: SharePointTarget, itemId: string): Promise<void> {
+  await fileInFolder(target, itemId);
+  const resp = await graph(`/drives/${target.driveId}/items/${encodeURIComponent(itemId)}`, { method: "DELETE" });
+  if (!resp.ok && resp.status !== 404) throw new Error(`SharePoint: ${await graphReason(resp)}`);
+}
+
+/** Hochladen vom Server aus, in Stücken – für das Verschieben aus Supabase. */
+export async function uploadBytes(uploadUrl: string, bytes: Uint8Array): Promise<DriveItem> {
+  const total = bytes.byteLength;
+  if (total === 0) throw new Error("Die Datei ist leer.");
+  for (let start = 0; start < total; start += CHUNK) {
+    const end = Math.min(start + CHUNK, total) - 1;
+    // Keine Anmeldung an die Hochladeadresse schicken – Graph lehnt das ab.
+    const resp = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Range": `bytes ${start}-${end}/${total}` },
+      // Die Typen von TypeScript 6 trennen Uint8Array nach Art des Puffers;
+      // fetch nimmt diesen hier ohne Weiteres.
+      body: bytes.subarray(start, end + 1) as BodyInit,
+    });
+    if (resp.status === 200 || resp.status === 201) return await resp.json() as DriveItem;
+    if (resp.status !== 202) throw new Error(`Hochladen nach SharePoint: ${await graphReason(resp)}`);
+  }
+  throw new Error("Hochladen nach SharePoint: Die letzte Antwort fehlte.");
+}
