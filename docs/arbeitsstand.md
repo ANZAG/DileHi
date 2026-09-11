@@ -1,0 +1,419 @@
+# Arbeitsstand DING
+
+Stand: 11. September 2026, nach dem ersten erfolgreichen Ausrollen in das
+eigene Supabase-Projekt.
+
+Diese Datei hält fest, was umgesetzt ist, an welchen Fehlern wir uns gestossen
+haben, was man über das Projekt wissen muss und was als Nächstes kommt. Sie
+ist für den Menschen geschrieben, der weitermacht, und für Claude, wenn eine
+neue Unterhaltung beginnt.
+
+---
+
+## Auf einen Blick
+
+| | |
+| --- | --- |
+| Produkt | **DING** — das Vereinsprogramm, das andere Vereine selbst aufsetzen können. DileHi ist seine erste Installation |
+| Arbeitszweig | `DING` |
+| Zweig der Vereinsseite | `main` — jeder Push baut dilehi.de und lädt per FTP zu gn2 |
+| Neue Datenbank | Supabase-Projekt **DING**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt |
+| Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — läuft noch, soll stillgelegt werden |
+| Probeseite | `ding.dilehi.de` — baut aus `DING`, spricht mit der neuen Datenbank |
+| Vereinsseite | `dilehi.de` — baut aus `main`, spricht noch mit der **alten** Datenbank |
+| Tests | 25 Dateien, 250 Prüfungen, alle grün |
+
+---
+
+## Was umgesetzt ist
+
+### Onboarding
+
+Zweimal gebaut. Die erste Fassung war eine Diashow, die ich nur modular
+gemacht hatte, statt sie zu ersetzen. Die jetzige:
+
+- **Zwei Eingänge:** die Einrichtung einer neuen Installation und der erste
+  Besuch eines Mitglieds.
+- **Rundgang über die Startseite** in Lesereihenfolge, ohne Seitenwechsel bis
+  auf den letzten Schritt ins Profil. Ein Test prüft die Reihenfolge gegen
+  das Markup.
+- **Bereichstouren** für einzelne Bereiche, gestartet über den Streifen „Neu
+  hier?" oder das Fragezeichen. Sie erklären am echten Bildschirm, nicht an
+  Bildern.
+- **Aufgaben** im Profil, die sich nur abhaken, wenn die Sache wirklich getan
+  ist (`onboarding_erledigt()` prüft in der Datenbank).
+- **Hervorhebung** über vier Rechtecke um das Ziel, angesteuert über
+  `data-tour`-Anker.
+- **Hilfe am Feld** (`<Hilfe k="…">`) mit Texten aus der Datenbank.
+- **Alle Inhalte in der Datenbank** (`onboarding_schritte`,
+  `onboarding_hilfe`), pflegbar unter Verwaltung → Erste Schritte, mit
+  Auslieferungszustand zum Zurücksetzen.
+
+Näheres: [`onboarding.md`](onboarding.md).
+
+### Beiträge
+
+- Beitragsstufen lassen sich entfernen. Die Datenbank entscheidet selbst: ohne
+  Daten löschen, mit Daten aus Vorjahren bis zum Ende der Aufbewahrung
+  behalten, mit Daten aus dem laufenden Jahr zum nächsten Jahr vormerken.
+- Kachel- und Listenansicht in der Beitragsübersicht.
+
+### Oberfläche
+
+- Eine Seitenbreite (`SEITE`, `max-w-6xl`) statt fünf, eine Lesebreite
+  (`LESEBREITE`, 68 Zeichen), beide in `src/lib/layout.ts`.
+- Profil zweispaltig, Verwaltung einheitlich breit.
+- Menüs durchgesehen und Erklärungen dort ergänzt, wo sie fehlten.
+
+### Rollen
+
+- Das Enum `app_role` ist aufgelöst. Rollen sind Text mit Fremdschlüssel auf
+  `role_catalog`, umbenennbar über `ON UPDATE CASCADE`.
+- Die Rolle „vorstand" wird gelöscht, mit der Migration
+  `20260911120000_remove_vorstand_role.sql`. Sie läuft beim nächsten Ausrollen.
+  Den Vorsitz hat bei uns `officiatus_1`. Massgeblich ist nie ein Name,
+  sondern das Recht: Wer `roles.manage` hat, darf Rollen vergeben.
+  *Beim Schreiben dieser Datei aufgefallen:* Gewünscht war das schon am
+  10. September. Die Migrationen danach haben aber nur die Namen frei gemacht,
+  die Rolle selbst stand noch im Ausgangsstand. Mit `roles.manage` galt sie
+  als Systemrolle und liess sich in der Verwaltung nicht löschen.
+- `is_leadership`, `role_status()`, `role_catalog_guard()`,
+  einstellbare Standardrolle (`app_settings.default_role`). Ist keine gesetzt,
+  nimmt das Programm die unterste Rolle im Katalog.
+- `is_herold()` und `is_schatzmeister()` sind gelöscht. Sie steckten in keiner
+  einzigen Regel mehr.
+
+### Sicherheit
+
+- **Gespeichertes XSS** geschlossen: `src/lib/betonung.ts` maskiert erst und
+  setzt dann die Hervorhebung, nicht umgekehrt.
+- **Ausführungsrechte:** Jeder Funktion ist `PUBLIC` entzogen. Vorher konnte
+  jeder Besucher `pending_digests()` aufrufen und bekam Namen und alle
+  ungelesenen Benachrichtigungen jedes Mitglieds.
+- Jede Funktion hat einen festen `search_path`.
+- Die Sitemap kommt aus einer Edge Function statt aus einer Datei.
+- **Anmeldung** (neu, im Ausrollen-Knopf): Adresse statt `localhost:3000`,
+  Selbstregistrierung aus. Geprüft: Keine Leseregel gilt allein deshalb, weil
+  jemand angemeldet ist. Ein fremdes Konto hätte also nur öffentliche Daten
+  gesehen — abgeschaltet ist die Registrierung trotzdem.
+
+### Installation ohne Kommandozeile
+
+Die Anleitung für einen neuen Verein steht in
+[`installation.md`](installation.md): sechs Schritte, gut eine Stunde, kein
+SQL-Editor.
+
+- **Der Ausgangsstand** `supabase/migrations/00000000000000_ausgangsstand.sql`:
+  die ganze Datenbank in einer Datei, aus einer einzigen Abfrage
+  ([`supabase/ausgangsstand/EXPORT.md`](../supabase/ausgangsstand/EXPORT.md)).
+  62 Tabellen, 67 Funktionen, Zugriffsregeln, Rechte, Startdaten, Ablagen,
+  der Trigger an `auth.users`.
+- **Die alten Migrationen** liegen in `docs/archiv-migrationen/` (111 Dateien).
+  Die Bereichstouren (`20260909290000_bereichstouren.sql`) sind zurückgeholt,
+  weil sie in der alten Datenbank nie gelaufen waren.
+- **Der Ausrollen-Knopf** (`.github/workflows/supabase.yml`): sieht zuerst
+  nach, was in der Datenbank steht, prüft das Passwort auf mitkopierte
+  Umbrüche, kann das Migrationsverzeichnis leeren (nur bei leerer Datenbank),
+  spielt Migrationen ein, stellt Edge Functions bereit, stellt die Anmeldung
+  ein.
+- **Der erste Zugang** über `/einrichtung` und die Edge Function
+  `setup-first-admin`. Dreifach gesichert: Sie braucht `SETUP_SECRET`, arbeitet
+  nur, solange niemand eine Rolle hat, und vergibt die Rolle mit
+  `roles.manage`. Ist noch keine Web-Adresse hinterlegt, nimmt sie die Seite,
+  von der aus sie aufgerufen wurde.
+- **Aufräumen, wenn ein Projekt schon etwas abbekommen hat:**
+  [`projekt-leeren.sql`](projekt-leeren.sql).
+
+### Probeseite
+
+`.github/workflows/probeseite.yml`: Jeder Push auf `DING` prüft, baut und lädt
+nach `ding.dilehi.de`. Adresse und öffentlichen Schlüssel holt der Workflow
+selbst aus dem Projekt. Die Seite ist für Suchmaschinen gesperrt.
+
+### Neue Prüfungen
+
+| Test | Was er prüft |
+| --- | --- |
+| `ausgangsstand.test.ts` | spielt den Ausgangsstand in eine leere Datenbank (PGlite), spielt den ersten Zugang durch und exportiert das Ergebnis mit der Abfrage aus `EXPORT.md` in eine zweite leere Datenbank |
+| `funktionen.test.ts` | liest jede Edge Function so, wie Deno es beim Bündeln tut, und folgt jedem relativen Import |
+| `funktionsrechte.test.ts` | `PUBLIC` entzogen, `search_path` gesetzt, jede Triggerfunktion hängt an einem Trigger |
+| `onboarding.test.ts` | Anker, Touren, Aufgaben und Hilfetexte passen zwischen Datenbank und Markup zusammen |
+
+Die Hilfen dazu: `src/test/hilfe/datenbank.ts` (liest den Ausgangsstand und
+die Startdaten) und `src/test/hilfe/buehne.ts` (die leere Supabase-Datenbank).
+
+---
+
+## Fehler, auf die ich achten muss
+
+Das sind die Fehler, die tatsächlich passiert sind, und zwar mehrmals oder
+teuer. Die meisten gehören zu einer von zwei Sorten: **Prüfungen, die grün
+sind, weil sie an der falschen Stelle nachsehen**, und **Einstellungen oder
+Tabellen, die es gibt, die aber nie gelesen oder nie angelegt werden**.
+
+### Werkzeug
+
+1. **Backslashes gehen im Bash-Werkzeug verloren.** In Heredocs und in
+   `node -e` wird aus `"\\n"` ein `"\n"` und daraus ein echter Umbruch. So kam
+   ein kaputtes `split("` in `invite-member` und blieb zwei Tage unbemerkt.
+   → Skripte mit Backslash über das Write-Werkzeug als Datei anlegen.
+2. **Gerade Anführungszeichen in deutschen Texten** beenden TypeScript-Strings.
+   → Im Deutschen immer „…" schreiben.
+3. **Zeilenenden:** Git wandelt in CRLF um, dann greifen Muster mit `\n` nicht
+   mehr. → Vor dem Vergleichen `.replace(/\r\n/g, "\n")`.
+
+### Prüfungen, die nichts prüfen
+
+4. **Muster, die zur Schreibweise nicht passen.** Der Abzug schreibt
+   Triggerfunktionen ohne `public.`. Mein erstes Muster fand deshalb null von
+   vierzehn angebunden. Vorher: Anker mit mehreren Bindestrichen wurden
+   übersehen, und mehrzeilige `INSERT` galten als nicht vorhanden.
+   → **Jede neue Prüfung einmal gegen den alten, kaputten Stand laufen
+   lassen.** Wenn sie dort nicht anschlägt, prüft sie nichts.
+5. **Leere Listen sind grün.** → Jede Prüfung über eine Liste verlangt vorher
+   eine Mindestzahl an Einträgen.
+6. **Eine Datei sagt, was einmal war; nur die Datenbank sagt, was ist.** Die
+   Behauptung, `is_herold()` stecke in zehn Regeln, stammte aus Migrationen.
+   In der Datenbank waren es null. → Bei Fragen zum Stand in der Datenbank
+   nachsehen (Supabase-Zugang, lesend).
+7. **Bestandsaufnahme nur aus `CREATE`, ohne `DROP`** führte zu einer
+   Migration, die an einer gelöschten Funktion scheiterte. Derselbe Fehler
+   steckte eine Ebene höher im Test. → In einem Durchgang und in Reihenfolge
+   lesen, oder gleich `pg_proc` fragen.
+
+### Datenbank
+
+8. **Neue Funktionen darf `PUBLIC` ausführen**, bis jemand widerspricht. Bei
+   Supabase steht der anon-Schlüssel im ausgelieferten Programm, also heisst
+   `PUBLIC`: jeder Besucher. → Bei jeder neuen Funktion `REVOKE ALL … FROM
+   PUBLIC` und gezielt `GRANT`.
+9. **Regeln ohne `TO`** gelten für `PUBLIC`, also auch für `anon`.
+10. **`IMMUTABLE` bei einer Funktion, die `CURRENT_DATE` liest**, ist falsch.
+    → `STABLE`.
+11. **Ein Abzug ist eine Momentaufnahme.** Vier Teile aus zwei verschiedenen
+    Momenten ergeben keine lauffähige Datei. → Eine Abfrage, ein Moment.
+12. **Reihenfolge im Abzug:** Fremdschlüssel kamen vor ihren Schlüsseln,
+    Module vor denen, die sie voraussetzen, weil alphabetisch sortiert war.
+    Listen (`text[]`) standen in JSON-Schreibweise da. → Behoben in der
+    Datei, in `backup_schema_ddl()` und in der Exportabfrage. Der Rundlauftest
+    in `ausgangsstand.test.ts` fängt es künftig.
+13. **`backup_schema_ddl()` sieht nur `public`.** Der Trigger an `auth.users`
+    fehlte deshalb: Neue Konten hätten kein Profil bekommen.
+14. **Die Sicherungen der alten Datenbank** haben dieselben
+    Reihenfolgefehler. Zurückgespielt würden sie scheitern.
+
+### Supabase
+
+15. **Der SQL-Editor führt alles in einem Zug aus.** Scheitert eine Anweisung,
+    ist auch alles davor rückgängig. Dann sieht es aus, als sei etwas passiert,
+    und es ist nichts passiert.
+16. **„Success. No rows returned" bei `DELETE`** heisst nur, dass nichts
+    zurückgegeben wurde, nicht, dass nichts gelöscht wurde.
+17. **Supabases eigene GitHub-Integration und unser Ausrollen-Knopf** machen
+    dieselbe Arbeit. Beide zusammen haben alte Migrationen halb eingespielt.
+    → Die Integration bleibt aus.
+18. **`password authentication failed`** kam von einem Passwort, das nicht
+    stimmte oder nicht so im Geheimnis stand wie gedacht. Der Workflow prüft
+    jetzt Länge und Umbrüche, ohne den Wert zu zeigen.
+19. **`Remote migration versions not found`**: Im Verzeichnis der Datenbank
+    stehen Versionen, die es im Projekt nicht mehr gibt. → Schalter
+    „Verzeichnis zurücksetzen" im Ausrollen-Knopf.
+20. **Die Bühne (PGlite) läuft mit allen Rechten.** Was in Supabase an Rechten
+    scheitert, sieht man dort nicht.
+21. **Der lesende Zugang darf `setup_needed()` nicht aufrufen.** Das ist
+    richtig so und kein Fehler.
+
+### Frische Installation
+
+Alles, was eine Installation braucht, bevor jemand etwas eintragen kann, muss
+ohne Eintrag funktionieren. Drei Fälle, an denen das nicht so war oder nicht
+so ist:
+
+22. **Web-Adresse:** Die Einrichtung brauchte sie, bevor man sie eintragen
+    konnte. Jetzt gilt die Seite, von der aus aufgerufen wird.
+23. **Standardrolle leer:** Das Programm nimmt dann die unterste Rolle im
+    Katalog. So gewollt.
+24. **Versandweg:** steht ab Werk auf Microsoft Graph. SMTP-Angaben allein
+    reichen nicht, SMTP muss unter Erscheinungsbild ausgewählt werden.
+    **Noch offen**, siehe unten.
+
+### Programm
+
+25. **30 Sekunden pro Seitenwechsel in der Tour:** Ein Scroll-Listener rief
+    `scrollIntoView({behavior: "smooth"})` auf, und das löste neue
+    Scroll-Ereignisse aus. → Höchstens einmal je Schritt scrollen, per
+    `requestAnimationFrame` messen, bei gleichen Massen dasselbe Objekt
+    zurückgeben.
+26. **Die Typprüfung sieht nur `src/`.** Edge Functions fielen durch jedes
+    Raster. → `funktionen.test.ts`.
+27. **Eingecheckte `.env`:** Jeder Build ohne eigene Umgebungsvariablen spricht
+    mit der alten DileHi-Datenbank. Für ein Produkt ist das gefährlich: Ein
+    fremder Verein, der die Variablen vergisst, landet bei uns.
+
+### Arbeitsweise
+
+28. **Den kritisierten Weg nicht verschönern, sondern ersetzen.** „Jetzt hast
+    du doch wieder den alten Weg umgesetzt" — die Diashow war modular gemacht
+    statt abgeschafft.
+29. **Den Nutzer nicht zum Testlauf machen.** Dreimal hintereinander ist ein
+    Fehler erst im Ausrollen-Knopf aufgefallen. Seitdem läuft alles vorher
+    über die Bühne.
+30. **Ein Wunsch ist erst erledigt, wenn die Datenbank es zeigt.** Die Rolle
+    „vorstand" sollte am 10. September weg. Sie stand am 11. noch im
+    Ausgangsstand, mit allen Rechten. Aufgefallen ist das nur, weil für diese
+    Datei jede Aussage noch einmal nachgesehen wurde.
+
+---
+
+## Wissenswertes
+
+### Arbeitsablauf mit Git
+
+```
+auf DING arbeiten → commit → push DING
+→ checkout main → merge --no-ff DING → push main → zurück auf DING
+```
+
+- **Push auf `DING`** startet die Probeseite.
+- **Push auf `main`** baut dilehi.de und lädt per FTP hoch. Solange die
+  Oberfläche nichts von der neuen Datenbank verlangt, ist das harmlos.
+- **Lovable** pusht noch selbst nach `main` („Changes", „Work in progress").
+  Vor dem Pushen also `git fetch`, der Merge ist Routine. Das endet mit der
+  Stilllegung.
+
+### Geheimnisse und Variablen
+
+| Wo | Name | Stand |
+| --- | --- | --- |
+| GitHub Secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` | gesetzt |
+| GitHub Secrets | `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` | gesetzt, für beide Seiten |
+| GitHub Variables | `SITE_URL` | **fehlt noch** — `https://ding.dilehi.de` |
+| Supabase Edge Functions | `SETUP_SECRET` | gesetzt |
+| Supabase Edge Functions | `SMTP_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch |
+| Umgebung des Rechners | `SUPABASE_ACCESS_TOKEN` | gesetzt, für Claudes lesenden Zugang |
+
+**Was Claude nie sieht:** das Datenbankpasswort, den `service_role`-Schlüssel
+und den Wert des Zugriffsschlüssels. Öffentlich sind Project URL und
+anon-Schlüssel, die stehen ohnehin im ausgelieferten Programm.
+
+### Claudes Zugang zur Datenbank
+
+- Über `.mcp.json` (im Ordner `GitHub` und in `DileHi`, beide nicht
+  versioniert) mit `--read-only`.
+- Oder über die Verwaltungsschnittstelle mit dem Schlüssel aus der Umgebung,
+  nur mit `read_only: true`.
+- **Schreibend nur nach ausdrücklicher Zustimmung**, und dann lieber über den
+  Ausrollen-Knopf, damit es im Protokoll steht.
+
+### Eine neue Migration anlegen
+
+1. Neue Datei nach dem Ausgangsstand, etwa
+   `supabase/migrations/20260912120000_irgendwas.sql`.
+2. Englische Bezeichner. Bei jeder neuen Funktion `REVOKE … FROM PUBLIC`,
+   gezieltes `GRANT` und `SET search_path`.
+3. `npm test` — die Bühne spielt Ausgangsstand und alle Migrationen ein.
+4. Pushen, dann **Actions → Supabase ausrollen**.
+
+Den Ausgangsstand nicht von Hand erweitern, ausser für das, was der Abzug nicht
+sieht (steht am Ende der Datei, gekennzeichnet). Ein neuer Abzug ersetzt ihn
+ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
+
+### Schreibregeln
+
+- **Code und Datenbank englisch**, ohne Mischung. Das Ziel heisst „die neue
+  SAP", nicht Vereinsprojekt.
+- **Oberfläche deutsch**, und zwar deutsch gedacht, nicht übersetzt. Nicht wie
+  eine KI schreiben. Beispiel: „Felder mit dem Vermerk ‚fest' sind das
+  Fundament", nicht „tragen die Aufnahme".
+- Typografische Anführungszeichen „…".
+
+### Wo was steht
+
+| Datei | Inhalt |
+| --- | --- |
+| [`installation.md`](installation.md) | die Anleitung für einen neuen Verein |
+| [`standalone.md`](standalone.md) | was für andere Vereine fehlte (teilweise veraltet, siehe unten) |
+| [`onboarding.md`](onboarding.md), [`module.md`](module.md) | Aufbau von Einführung und Modulen |
+| [`name-ding.md`](name-ding.md) | warum DING |
+| [`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md) | der Nachbau von vuozvolc.de als Probe für den Seitenbaukasten |
+| [`datenschutz-checkliste.md`](datenschutz-checkliste.md) | was die Anwendung verarbeitet, und wo es in der Erklärung steht |
+| [`../supabase/ausgangsstand/EXPORT.md`](../supabase/ausgangsstand/EXPORT.md) | die Abfrage für den Ausgangsstand |
+
+---
+
+## Was noch ansteht
+
+### 1. Probeseite in Betrieb nehmen — jetzt
+
+- [ ] gn2 → SSL/TLS-Zertifikate: Let's Encrypt für `ding.dilehi.de`.
+      Ohne https lässt sich die Einrichtung nicht aufrufen.
+- [ ] GitHub → Variables: `SITE_URL` = `https://ding.dilehi.de`.
+- [ ] **Actions → Supabase ausrollen** von `DING`. Bringt die geänderte
+      Einrichtungsfunktion hoch, stellt die Anmeldung ein und löscht die
+      Rolle „vorstand". Das muss vor dem ersten Zugang passieren.
+- [ ] **Actions → Probeseite ausrollen**: Ist der erste Durchlauf grün?
+- [ ] `https://ding.dilehi.de/einrichtung`: erster Zugang. Der Link steht auf
+      der Seite, weil der Mailversand noch fehlt.
+- [ ] Umsehen, als wäre man ein fremder Verein: Wo klingt es noch nach uns?
+
+### 2. Vor dem Umzug klären
+
+- [ ] **Was zieht mit?** Mitglieder werden neu eingeladen, Passwörter kommen
+      nicht mit. Offen sind Seiten, Termine, Galerie, Dokumente, Forum und
+      Beitragsdaten. Davon hängt ab, wie aufwendig der Umzug wird.
+- [ ] **Mailversand:** SMTP oder weiter Microsoft 365? Die Geheimnisse dazu im
+      neuen Projekt anlegen. Der Versandweg steht ab Werk auf Microsoft Graph.
+      Für DING sollte die Vorgabe SMTP sein, weil die Anleitung SMTP
+      beschreibt.
+- [ ] **Mails von Supabase selbst** (etwa die Bestätigung einer neuen
+      E-Mail-Adresse im Profil) laufen über Supabases eigenen Versand. Der
+      schafft zwei Mails pro Stunde. Unter Authentication → SMTP die eigenen
+      Angaben eintragen.
+- [ ] `VAPID_*` für Push-Nachrichten, `DIGEST_SECRET`, `BACKUP_TOKEN` im neuen
+      Projekt.
+- [ ] `backup.yml` und `digest.yml` zeigen als Vorgabe noch auf die alte
+      Funktionsadresse.
+- [ ] `src/integrations/supabase/types.ts` neu erzeugen. Die Datei kennt noch
+      das Enum `app_role` und nicht `show_name` oder `default_role`. Geht jetzt
+      über den Supabase-Zugang.
+- [ ] **Startdaten, die nach uns klingen:** Das Menü enthält Spätmittelalter,
+      Erster Weltkrieg, Napoleonik und Für Veranstalter, die
+      Seitenkategorien sind unsere drei Epochen. Für DileHi richtig, für einen
+      fremden Verein Links ins Leere.
+
+### 3. Der Umzug
+
+- [ ] Inhalte übertragen, je nach Entscheidung oben.
+- [ ] **`.env` aus dem Repository nehmen.** Die Vereinsseite bekommt die
+      Adresse dann wie die Probeseite aus dem Workflow. Fehlen die Variablen,
+      soll der Build scheitern, statt still mit einer fremden Datenbank zu
+      sprechen.
+- [ ] `supabase/config.toml` (`project_id`) und `public/robots.txt`
+      (`Sitemap:`) auf das neue Projekt.
+- [ ] `SITE_URL` auf `https://dilehi.de`, ebenso die Website unter
+      Erscheinungsbild. Ausrollen-Knopf einmal laufen lassen.
+- [ ] Mitglieder neu einladen, rund zwanzig.
+- [ ] **Lovable stilllegen:** eine letzte Sicherung, Verbindung zu GitHub
+      trennen, Projekt abschalten. Bis dahin: `invite-member` ist dort seit dem
+      9. September vermutlich nicht mehr aktualisiert worden, und die
+      Bereichstouren fehlen dort.
+
+### 4. Danach
+
+- [ ] **Englische Bezeichner** in einem Durchgang: rund 60 in der Datenbank
+      (etwa `onboarding_schritte`, `onboarding_hilfe`, `onboarding_erledigt()`,
+      Spalten wie `anker`, `aufgabe`, `platzhalter`, `betreff`, `fussnote`),
+      rund 300 Stellen im Code, dazu Dateinamen wie `Einrichtung.tsx` oder
+      `ErsteSchritte.tsx`. Zusammen mit der Oberfläche prüfen, weil die
+      Tests Tabellen- und Spaltennamen lesen.
+- [ ] **Vuozvolc-Nachbau:** Die drei Bausteine und die Schrift Antic Didone
+      sind da, die Seiten selbst noch nicht.
+- [ ] [`standalone.md`](standalone.md) nachziehen: Dort steht die
+      Installationsroutine noch als „nicht begonnen", und `is_herold()` noch
+      als offen.
+- [ ] Die Actions melden, dass Node 20 ausläuft. Harmlos, sie laufen schon mit
+      Node 24. Irgendwann `actions/checkout` und `actions/setup-node` auf die
+      nächste Hauptversion heben.
+- [ ] `DING` als Stamm, `main` als Zweig der DileHi-Installation. Kein
+      dauerhafter Fork: Was DileHi-eigen ist, gehört in die Datenbank, nicht
+      in einen eigenen Zweig.
