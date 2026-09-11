@@ -1,7 +1,7 @@
 # Arbeitsstand DING
 
-Stand: 11. September 2026, mittags. Die Probeseite läuft, das
-Umzugswerkzeug steht, der Umzug selbst noch nicht.
+Stand: 11. September 2026, nachmittags. DileHi ist umgezogen, Lovable
+wird abgeschaltet.
 
 Diese Datei hält fest, was umgesetzt ist, an welchen Fehlern wir uns gestossen
 haben, was man über das Projekt wissen muss und was als Nächstes kommt. Sie
@@ -20,7 +20,7 @@ neue Unterhaltung beginnt.
 | Neue Datenbank | Supabase-Projekt **DING**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt |
 | Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — läuft noch, soll stillgelegt werden |
 | Probeseite | `ding.dilehi.de` — baut aus `DING`, spricht mit der neuen Datenbank |
-| Vereinsseite | `dilehi.de` — baut aus `main`, spricht noch mit der **alten** Datenbank |
+| Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | erst DileHi ins neue Projekt ziehen (Anleitung: [`umzug.md`](umzug.md)), dann aufräumen, dann eine leere Installation ausprobieren |
 | Tests | 27 Dateien, 259 Prüfungen, alle grün |
 
@@ -430,21 +430,28 @@ alle 62 Tabellen, 19 Konten (16 mit Passwort), 127 von 140 Dateien.
       25-MB-Grenze gescheitert sind, während der Eintrag trotzdem angelegt
       wurde. Prüfen, ob die Quellensammlung das so zulässt.
 
-Danach, bei Claude:
+**dilehi.de ist umgestellt** (11. September, nachmittags): Vereinsseite,
+Probeseite, Kalender, Einbindung und Sitemap sprechen mit `hmrog…`. Die
+`.env` ist raus, `deploy.yml` holt Adresse und Schlüssel aus dem Projekt,
+`types.ts` kommt aus dem eigenen Projekt, Lovable-Reste sind entfernt, die
+Anmeldung steht auf `https://www.dilehi.de`, die tägliche Sicherung ist
+wieder grün.
 
-- [ ] **`.env` aus dem Repository nehmen.** `deploy.yml` holt Adresse und
-      Schlüssel wie die Probeseite. Fehlen sie, scheitert der Build (das tut
-      er schon: `vite.config.ts` bricht ohne `VITE_SUPABASE_URL` ab).
-- [ ] `supabase/config.toml` (`project_id`), `backup.yml`, `digest.yml` auf das
-      neue Projekt.
-- [ ] `src/integrations/supabase/types.ts` neu erzeugen. Die Datei kennt noch
-      das Enum `app_role` und nicht `show_name` oder `default_role`.
-- [ ] Lovable-Reste: `lovable-tagger`, `previewAuthStorage.ts`, `bun.lock`,
-      `.lovable/`, und in der Datenschutzerklärung
-      (`scripts/rechtstexte.mjs`) steht Lovable als Plattform.
+Offen:
+
+- [ ] **Lovable abschalten** (Eric): Verbindung zu GitHub trennen, Projekt
+      stilllegen. Die 13 grossen Dateien liegen zusätzlich lokal bei Eric.
+- [ ] **Datenschutzerklärung** auf der Seite: den Satz zur Plattform Lovable
+      im Editor streichen (die Vorlage in `scripts/rechtstexte.mjs` ist schon
+      angepasst).
+- [ ] **Probeversand** unter Verwaltung → Erscheinungsbild: Geht Mail über
+      Microsoft 365 aus dem neuen Projekt?
 - [ ] **Mails von Supabase selbst** (Bestätigung einer neuen E-Mail-Adresse)
       laufen über Supabases eigenen Versand, zwei Mails pro Stunde. Unter
       Authentication → SMTP eigene Angaben eintragen.
+- [ ] **Quellensammlung**: 761 der 852 MB im Speicher sind ihre Dateien.
+      Kandidat für eine Ablage in SharePoint über Microsoft Graph, siehe
+      Gespräch vom 11. September.
 
 ### 4. Danach
 
