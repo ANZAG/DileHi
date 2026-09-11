@@ -308,6 +308,11 @@ so ist:
     Projekt lehnte sie ab. Darüber liegt die Grenze des Tarifs (kostenlos:
     50 MB je Datei, 1 GB insgesamt), die sich nicht aufheben lässt. → Vor
     einem Umzug die Grössen im Abzug gegen den Tarif des Ziels halten.
+36. **Lokal grün wegen einer Datei, die es nur lokal gibt.** Nach dem
+    Entfernen der `.env` liefen die Tests bei mir durch – dank `.env.local` –
+    und im Build von dilehi.de scheiterten sechs („supabaseUrl is required").
+    → Die Tests haben feste Platzhalter in `vitest.config.ts`. Vor einem Push,
+    der Umgebung oder Konfiguration ändert, einmal ohne `.env.local` prüfen.
 
 ---
 
