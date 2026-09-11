@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
+import { readFunctionError } from "@/lib/functionError";
 
 interface Einstellungen {
   org_name: string;
@@ -617,7 +618,7 @@ function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
       if (rumpf.ok) {
         setErgebnis({ ok: true, text: `Über ${rumpf.weg} an ${rumpf.an} verschickt.` });
       } else {
-        const ausRumpf = rumpf.fehler ?? (await leseFehler(error));
+        const ausRumpf = rumpf.fehler ?? (await readFunctionError(error));
         setErgebnis({ ok: false, text: ausRumpf || "Unbekannter Fehler" });
       }
     } catch (err) {
@@ -653,18 +654,6 @@ function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
       )}
     </div>
   );
-}
-
-/** Die Fehlermeldung aus der Antwort der Edge Function, falls vorhanden. */
-async function leseFehler(error: unknown): Promise<string> {
-  const antwort = (error as { context?: Response } | null)?.context;
-  if (!antwort) return error instanceof Error ? error.message : "";
-  try {
-    const rumpf = await antwort.json();
-    return rumpf?.fehler ?? "";
-  } catch {
-    return error instanceof Error ? error.message : "";
-  }
 }
 
 function MailAnleitung({ weg }: { weg: string }) {
