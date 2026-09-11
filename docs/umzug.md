@@ -29,9 +29,11 @@ GitHub → Settings → Secrets and variables → Actions. Steht `BACKUP_TOKEN` 
 schon, den Wert aus dem Passwortmanager nehmen. Sonst einen neuen anlegen:
 lang, nur Buchstaben und Ziffern.
 
-> Dass die tägliche Sicherung rot ist, liegt vermutlich genau hier: Der
-> Schlüssel fehlt auf einer der beiden Seiten, oder `BACKUP_PASSPHRASE` fehlt
-> in GitHub. Der Umzug braucht nur `BACKUP_TOKEN`.
+> Warum die tägliche Sicherung rot ist: `backup-export` gibt es in Lovable
+> gar nicht, die Adresse antwortet mit 404 (nachgesehen am 11. September).
+> Lovable stellt eine Funktion nur bereit, wenn man es im eigenen Chat darum
+> bittet; was über GitHub hereinkommt, bleibt liegen. Ebenso fehlen dort
+> `mail-test` und `sitemap`.
 
 ### 2. In Lovable
 
@@ -40,10 +42,10 @@ lang, nur Buchstaben und Ziffern.
    [`supabase/transfer/export-accounts.sql`](../supabase/transfer/export-accounts.sql)
    einfügen und ausführen. Am Ende steht eine Zeile mit zwei Zahlen: wie viele
    Konten es gibt und wie viele davon ein Passwort haben.
-3. **`backup-export` neu bereitstellen.** Die neue Fassung liegt auf `main`.
-   Holt Lovable sie nicht von selbst, im Chat bitten:
-   „Bitte die Edge Function backup-export neu bereitstellen. Am Code nichts
-   ändern."
+3. **`backup-export` bereitstellen.** Die Funktion liegt auf `main`, in
+   Lovable läuft sie noch nicht. Im Chat bitten:
+   „Bitte die Edge Function backup-export bereitstellen, so wie sie im
+   Repository steht. Am Code nichts ändern."
 
 Ob das geklappt hat, prüft der Workflow selbst im ersten Schritt.
 
