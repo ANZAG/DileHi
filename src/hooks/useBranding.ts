@@ -13,7 +13,7 @@ export interface Branding {
   /** Steht das Logo neben dem Vereinsnamen in der Kopfzeile? */
   logo_in_header: boolean;
   /** Verlinkt {{satzung}} im Aufnahmeantrag auf das hinterlegte Dokument. */
-  satzung_link: boolean;
+  statutes_link: boolean;
   color_primary: string;
   color_surface: string;
   color_dark: string;
@@ -52,7 +52,7 @@ const VORGABE: Branding = {
   logo_path: null,
   favicon_path: null,
   logo_in_header: true,
-  satzung_link: true,
+  statutes_link: true,
   color_primary: "#dd9933",
   // Genau das Grau aus index.css, damit sich ohne Einstellung nichts aendert.
   color_surface: "#f4f2ee",

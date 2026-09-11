@@ -1,24 +1,27 @@
+// @vitest-environment node
 import { readFileSync } from "node:fs";
-import { startdaten } from "./hilfe/datenbank";
+import { seedRows } from "./hilfe/buehne";
 import { describe, expect, it } from "vitest";
 import { modulAn, nurAktive, type Modulstand } from "@/hooks/useModule";
+
+const APP_MODULES = await seedRows<{ key: string }>("app_modules");
 
 const modul = (p: Partial<Modulstand>): Modulstand => ({
   key: p.key ?? "x",
   label: p.label ?? "",
   description: null,
-  art: p.art ?? "grundfunktion",
+  kind: p.kind ?? "core",
   requires: p.requires ?? null,
   sort_order: 0,
   enabled: p.enabled ?? true,
-  aktiv: p.aktiv ?? p.enabled ?? true,
+  active: p.active ?? p.enabled ?? true,
 });
 
 describe("Module", () => {
   const liste = [
-    modul({ key: "forum", enabled: true, aktiv: true }),
-    modul({ key: "events", enabled: false, aktiv: false }),
-    modul({ key: "event_forms", enabled: true, aktiv: false, requires: "events" }),
+    modul({ key: "forum", enabled: true, active: true }),
+    modul({ key: "events", enabled: false, active: false }),
+    modul({ key: "event_forms", enabled: true, active: false, requires: "events" }),
   ];
 
   it("zeigt ein eingeschaltetes Modul", () => {
@@ -31,7 +34,7 @@ describe("Module", () => {
 
   it("verbirgt ein Modul, dessen Grundlage fehlt", () => {
     // event_forms steht auf „an", die Veranstaltungen darunter nicht. Massgeblich
-    // ist `aktiv`, sonst haetten wir Anmeldeformulare ohne Veranstaltungen.
+    // ist `active`, sonst haetten wir Anmeldeformulare ohne Veranstaltungen.
     expect(modulAn(liste, "event_forms")).toBe(false);
   });
 
@@ -54,8 +57,8 @@ describe("Module", () => {
 
   it("filtert Listen mit Modulangabe", () => {
     const kacheln = [
-      { titel: "Forum", modul: "forum" },
-      { titel: "Termine", modul: "events" },
+      { titel: "Forum", module: "forum" },
+      { titel: "Termine", module: "events" },
       { titel: "Profil" },
     ];
     expect(nurAktive(kacheln, liste).map((k) => k.titel)).toEqual(["Forum", "Profil"]);
@@ -72,7 +75,8 @@ describe("Module", () => {
  */
 describe("Verkabelung", () => {
   /** Die Module, die eine neue Installation mitbekommt. */
-  const angelegt = startdaten("app_modules").map((m) => m.key);
+  // Vorab geladen (siehe unten), weil describe nicht warten kann.
+  const angelegt = APP_MODULES.map((m) => m.key);
 
   const benutzt = (datei: string, muster: RegExp) => {
     const inhalt = readFileSync(datei, "utf-8");
@@ -80,11 +84,11 @@ describe("Verkabelung", () => {
   };
 
   const schluessel = new Set([
-    ...benutzt("src/pages/intern/Dashboard.tsx", /modul: "(\w+)"/g),
-    ...benutzt("src/pages/intern/Admin.tsx", /modul: "(\w+)"/g),
+    ...benutzt("src/pages/intern/Dashboard.tsx", /module: "(\w+)"/g),
+    ...benutzt("src/pages/intern/Admin.tsx", /module: "(\w+)"/g),
     ...benutzt("src/App.tsx", /<ModulRoute k="(\w+)">/g),
     ...benutzt("src/pages/intern/EventFormEvaluation.tsx", /modulAn\(module, "(\w+)"\)/g),
-    ...benutzt("src/components/event-forms/types.ts", /modul: "(\w+)"/g),
+    ...benutzt("src/components/event-forms/types.ts", /module: "(\w+)"/g),
   ]);
 
   it("kennt jedes benutzte Modul in der Datenbank", () => {

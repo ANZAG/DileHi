@@ -233,7 +233,7 @@ function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehl
   const { data: seiten = [] } = useQuery({
     queryKey: ["seo-organisation"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("seo_organisation_seiten" as never);
+      const { data, error } = await supabase.rpc("seo_organization_pages" as never);
       if (error) throw new Error(error.message);
       return (data ?? []) as { id: string; title: string; slug: string }[];
     },

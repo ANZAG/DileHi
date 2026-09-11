@@ -24,8 +24,8 @@ interface Einstellungen {
   logo_path: string | null;
   favicon_path: string | null;
   logo_in_header: boolean;
-  satzung_link: boolean;
-  satzung_document_id: string | null;
+  statutes_link: boolean;
+  statutes_document_id: string | null;
   color_primary: string;
   color_surface: string;
   color_dark: string;
@@ -38,7 +38,7 @@ interface Einstellungen {
   mail_transport: string;
   calendar_timezone: string;
   contribution_model: string;
-  beitrag_aufbewahrung_jahre: number;
+  contribution_retention_years: number;
   bank_recipient: string | null;
   bank_iban: string | null;
   bank_bic: string | null;
@@ -390,9 +390,9 @@ export default function ErscheinungsbildAdmin() {
               min={1}
               max={30}
               className="w-24"
-              value={entwurf.beitrag_aufbewahrung_jahre ?? 5}
+              value={entwurf.contribution_retention_years ?? 5}
               onChange={(e) =>
-                setze({ beitrag_aufbewahrung_jahre: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })
+                setze({ contribution_retention_years: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })
               }
             />
             <span className="text-sm text-muted-foreground">Jahre</span>

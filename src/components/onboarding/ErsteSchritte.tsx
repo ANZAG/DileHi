@@ -54,7 +54,7 @@ export default function ErsteSchritte() {
 
               <div className="min-w-0 flex-1">
                 <p className={`text-sm ${a.fertig ? "text-muted-foreground line-through" : "font-medium"}`}>
-                  {a.titel}
+                  {a.title}
                 </p>
                 {!a.fertig && (
                   <p className="text-xs text-muted-foreground mt-0.5">{a.text}</p>
@@ -64,7 +64,7 @@ export default function ErsteSchritte() {
               {!a.fertig && (
                 <button
                   onClick={() => ausblenden(a.key)}
-                  aria-label={`${a.titel} betrifft mich nicht`}
+                  aria-label={`${a.title} betrifft mich nicht`}
                   title="Betrifft mich nicht"
                   className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >

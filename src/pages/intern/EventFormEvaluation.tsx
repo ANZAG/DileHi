@@ -720,16 +720,16 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
 
         <EvalCoverage items={summary.coverage} />
 
-        {modulAn(module, "verpflegung") && <EvalCatering
+        {modulAn(module, "catering") && <EvalCatering
           days={summary.cateringDays}
           dietOptions={summary.dietOptions}
           allergies={summary.allergyNotes}
           hasDiet={summary.hasDiet}
         />}
 
-        {modulAn(module, "helfer") && <EvalHelperTasks tasks={summary.helperResults} />}
+        {modulAn(module, "helpers") && <EvalHelperTasks tasks={summary.helperResults} />}
 
-        {modulAn(module, "fahrgemeinschaften") && <EvalLogistics
+        {modulAn(module, "carpools") && <EvalLogistics
           carsCount={summary.carsCount}
           canTowCount={summary.canTowCount}
           trailerCount={summary.trailerCount}
@@ -787,7 +787,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             Der Rechner darunter zeigt ihn seit jeher an und rechnet mit dem
             Massstab – nur konnte ihn niemand hinterlegen, weil dieser Editor
             nirgends eingebunden war. Eine halb verkabelte Funktion. */}
-        {modulAn(module, "lagerlogistik") && canModerate && eventId && form?.id && (
+        {modulAn(module, "camp_logistics") && canModerate && eventId && form?.id && (
           <EventMapSettings
             eventId={eventId}
             formId={form.id}
@@ -797,7 +797,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           />
         )}
 
-        {modulAn(module, "lagerlogistik") && <EvalAreaCalculator
+        {modulAn(module, "camp_logistics") && <EvalAreaCalculator
           spacing={spacing}
           setSpacing={setSpacing}
           selectedClubTents={selectedClubTents}

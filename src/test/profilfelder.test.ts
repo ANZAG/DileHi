@@ -1,12 +1,13 @@
+// @vitest-environment node
 import { readFileSync } from "node:fs";
-import { startdaten } from "./hilfe/datenbank";
+import { seedRows } from "./hilfe/buehne";
 import { describe, expect, it } from "vitest";
 import { bereichAn, freieFelder, type Profilfeld } from "@/hooks/useProfilfelder";
 
 const feld = (p: Partial<Profilfeld>): Profilfeld => ({
   id: p.id ?? "x",
   block_key: p.block_key ?? null,
-  modul: p.modul ?? null,
+  module: p.module ?? null,
   type: p.type ?? "text",
   label: p.label ?? "",
   description: null,
@@ -43,8 +44,10 @@ describe("Bereiche des Mitgliederprofils", () => {
   });
 });
 
-describe("Migration der Profilfelder", () => {
-  const felder = startdaten("profile_fields");
+const PROFILE_FIELDS = await seedRows<{ block_key: string | null }>("profile_fields");
+
+describe("Startdaten der Profilfelder", () => {
+  const felder = PROFILE_FIELDS;
 
   it("legt jeden Bereich an, den die Profilseite abfragt", () => {
     // Die Schluessel stehen in Profile.tsx. Ein Tippfehler hiesse: Der Bereich

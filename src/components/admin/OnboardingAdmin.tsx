@@ -27,20 +27,20 @@ interface Schritt {
   key: string;
   tour: string;
   icon: string;
-  titel: string;
+  title: string;
   text: string;
-  tipp: string | null;
-  aufgabe: string | null;
+  tip: string | null;
+  task: string | null;
   sort_order: number;
   is_active: boolean;
-  standard: { titel?: string; text?: string; tipp?: string | null } | null;
+  defaults: { title?: string; text?: string; tip?: string | null } | null;
 }
 
 interface Hilfetext {
   key: string;
-  titel: string | null;
+  title: string | null;
   text: string;
-  standard: { titel?: string | null; text?: string } | null;
+  defaults: { title?: string | null; text?: string } | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -70,7 +70,7 @@ export default function OnboardingAdmin() {
   const { data: schritte = [], isLoading } = useQuery({
     queryKey: ["onboarding-schritte-admin"],
     queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await db.from("onboarding_schritte").select("*").order("sort_order");
+      const { data, error } = await db.from("onboarding_steps").select("*").order("sort_order");
       if (error) throw new Error(error.message);
       return data ?? [];
     },
@@ -79,7 +79,7 @@ export default function OnboardingAdmin() {
   const { data: hilfen = [] } = useQuery({
     queryKey: ["onboarding-hilfe-admin"],
     queryFn: async (): Promise<Hilfetext[]> => {
-      const { data, error } = await db.from("onboarding_hilfe").select("*").order("key");
+      const { data, error } = await db.from("onboarding_help").select("*").order("key");
       if (error) throw new Error(error.message);
       return data ?? [];
     },
@@ -95,11 +95,11 @@ export default function OnboardingAdmin() {
   const speichern = useMutation({
     mutationFn: async () => {
       for (const [key, werte] of Object.entries(entwurf)) {
-        const { error } = await db.from("onboarding_schritte").update(werte).eq("key", key);
+        const { error } = await db.from("onboarding_steps").update(werte).eq("key", key);
         if (error) throw new Error(error.message);
       }
       for (const [key, werte] of Object.entries(hilfeEntwurf)) {
-        const { error } = await db.from("onboarding_hilfe").update(werte).eq("key", key);
+        const { error } = await db.from("onboarding_help").update(werte).eq("key", key);
         if (error) throw new Error(error.message);
       }
     },
@@ -116,21 +116,21 @@ export default function OnboardingAdmin() {
   const geaendert =
     Object.keys(entwurf).length > 0 || Object.keys(hilfeEntwurf).length > 0;
 
-  const wert = (s: Schritt, feld: "titel" | "text" | "tipp") =>
+  const wert = (s: Schritt, feld: "title" | "text" | "tip") =>
     (entwurf[s.key]?.[feld] as string | null | undefined) ?? s[feld] ?? "";
 
   const setze = (key: string, feld: string, v: unknown) =>
     setEntwurf((e) => ({ ...e, [key]: { ...e[key], [feld]: v } }));
 
   const zuruecksetzen = (s: Schritt) => {
-    if (!s.standard) return;
+    if (!s.defaults) return;
     setEntwurf((e) => ({
       ...e,
       [s.key]: {
         ...e[s.key],
-        titel: s.standard!.titel ?? s.titel,
-        text: s.standard!.text ?? s.text,
-        tipp: s.standard!.tipp ?? null,
+        title: s.defaults!.title ?? s.title,
+        text: s.defaults!.text ?? s.text,
+        tip: s.defaults!.tip ?? null,
       },
     }));
   };
@@ -180,14 +180,14 @@ export default function OnboardingAdmin() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Icon size={16} className="text-primary shrink-0" />
                       <span className="text-xs text-muted-foreground font-mono truncate">{s.key}</span>
-                      {s.aufgabe && (
+                      {s.task && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
                           Aufgabe
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      {s.standard && (
+                      {s.defaults && (
                         <button
                           type="button"
                           onClick={() => zuruecksetzen(s)}
@@ -199,7 +199,7 @@ export default function OnboardingAdmin() {
                       <Switch
                         checked={aktiv}
                         onCheckedChange={(v) => setze(s.key, "is_active", v)}
-                        aria-label={`${s.titel} zeigen`}
+                        aria-label={`${s.title} zeigen`}
                       />
                     </div>
                   </div>
@@ -208,8 +208,8 @@ export default function OnboardingAdmin() {
                     <Label className="text-xs">Überschrift</Label>
                     <Input
                       className="h-9"
-                      value={wert(s, "titel")}
-                      onChange={(e) => setze(s.key, "titel", e.target.value)}
+                      value={wert(s, "title")}
+                      onChange={(e) => setze(s.key, "title", e.target.value)}
                     />
                   </div>
                   <div>
@@ -226,8 +226,8 @@ export default function OnboardingAdmin() {
                     </Label>
                     <Input
                       className="h-9"
-                      value={wert(s, "tipp")}
-                      onChange={(e) => setze(s.key, "tipp", e.target.value || null)}
+                      value={wert(s, "tip")}
+                      onChange={(e) => setze(s.key, "tip", e.target.value || null)}
                     />
                   </div>
                 </div>
@@ -251,9 +251,9 @@ export default function OnboardingAdmin() {
                 <Label className="text-xs">Überschrift</Label>
                 <Input
                   className="h-9"
-                  value={(hilfeEntwurf[h.key]?.titel as string | undefined) ?? h.titel ?? ""}
+                  value={(hilfeEntwurf[h.key]?.title as string | undefined) ?? h.title ?? ""}
                   onChange={(e) =>
-                    setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], titel: e.target.value } }))
+                    setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], title: e.target.value } }))
                   }
                 />
               </div>

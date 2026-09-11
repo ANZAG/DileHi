@@ -73,7 +73,7 @@ export default function OnboardingTour() {
   }, [schritteFuer, zeigen]);
 
   const aktuell = liste[index] ?? null;
-  const anker = aktuell?.anker ?? null;
+  const anker = aktuell?.anchor ?? null;
 
   // Das Element suchen und vermessen. useLayoutEffect, damit die Karte nicht
   // erst in der Mitte aufblitzt und dann springt.
@@ -349,16 +349,16 @@ function Karte({
                 Schritt {index + 1} von {gesamt}
               </p>
               <h3 className="font-serif text-base font-semibold leading-tight">
-                {schritt.titel}
+                {schritt.title}
               </h3>
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground leading-relaxed">{schritt.text}</p>
 
-          {schritt.tipp && (
+          {schritt.tip && (
             <p className="text-xs text-primary/80 bg-primary/5 rounded-md px-3 py-2 mt-3">
-              {schritt.tipp}
+              {schritt.tip}
             </p>
           )}
         </div>

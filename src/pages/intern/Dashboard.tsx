@@ -15,18 +15,18 @@ import { SEITE } from "@/lib/layout";
 /**
  * Die Kacheln des Mitgliederbereichs.
  *
- * `modul` sagt, wozu eine Kachel gehört – gefiltert wird unten an einer
+ * `module` sagt, wozu eine Kachel gehört – gefiltert wird unten an einer
  * Stelle. Eine neue Kachel braucht deshalb keine eigene Abfrage, nur diesen
  * Eintrag.
  */
 const baseCards = [
-  { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen", modul: "events" },
-  { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum", modul: "forum" },
-  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/versammlungen", modul: "announcements" },
-  { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen", modul: "elections" },
-  { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", modul: "documents" },
-  { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", modul: "sources" },
-  { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", modul: "member_map" },
+  { title: "Veranstaltungen", desc: "Termine planen, zusagen und Kalender synchronisieren.", icon: CalendarDays, path: "/intern/veranstaltungen", module: "events" },
+  { title: "Forum", desc: "Absprachen, Fragen und alles dazwischen.", icon: MessagesSquare, path: "/intern/forum", module: "forum" },
+  { title: "Versammlungen", desc: "Ankündigungen, MV-Einladungen und Protokolle.", icon: Megaphone, path: "/intern/versammlungen", module: "announcements" },
+  { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen", module: "elections" },
+  { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", module: "documents" },
+  { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
+  { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
 ];
 
 const Dashboard = () => {
@@ -71,7 +71,7 @@ const Dashboard = () => {
             desc: "Wer kommt, und was dafür gebraucht wird.",
             icon: ClipboardList,
             path: "/intern/auswertungen",
-            modul: "event_forms",
+            module: "event_forms",
           },
           ...baseCards.slice(1),
         ]
@@ -146,7 +146,7 @@ const Dashboard = () => {
             >
               <Link
                 to={card.path}
-                data-tour={card.modul ? `kachel-${card.modul}` : undefined}
+                data-tour={card.module ? `kachel-${card.module}` : undefined}
                 className="flex flex-col p-3 sm:p-6 rounded-lg border bg-card hover:shadow-md transition-shadow h-full overflow-hidden"
               >
                 <card.icon size={24} className="text-primary mb-2 shrink-0" />
