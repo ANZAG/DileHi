@@ -21,17 +21,17 @@ export type { Marke };
 // ── Vorlagen laden ──────────────────────────────────────────────────────────
 
 interface MailVorlage {
-  betreff: string;
-  kennzeile: string;
-  ueberschrift: string;
-  inhalt: string;
-  knopf: string;
-  fussnote: string;
+  subject: string;
+  eyebrow: string;
+  heading: string;
+  body: string;
+  button_label: string;
+  footnote: string;
 }
 
 interface PdfVorlage {
-  titel: string;
-  inhalt: string;
+  title: string;
+  body: string;
 }
 
 const mailGemerkt = new Map<string, { stand: MailVorlage; bis: number }>();
@@ -50,7 +50,7 @@ async function mailVorlage(key: string): Promise<MailVorlage> {
 
   const { data, error } = await adminClient()
     .from("mail_templates")
-    .select("betreff, kennzeile, ueberschrift, inhalt, knopf, fussnote")
+    .select("subject, eyebrow, heading, body, button_label, footnote")
     .eq("key", key)
     .maybeSingle();
 
@@ -74,7 +74,7 @@ export async function pdfText(key: string, werte: Record<string, string> = {}): 
     ? gemerkt.stand
     : await (async () => {
         const { data, error } = await adminClient()
-          .from("pdf_texts").select("titel, inhalt").eq("key", key).maybeSingle();
+          .from("pdf_texts").select("title, body").eq("key", key).maybeSingle();
         if (error) throw new Error(`Antragstext ${key} nicht lesbar: ${error.message}`);
         if (!data) throw new Error(`Der Antragstext "${key}" fehlt. Migration eingespielt?`);
         const stand = data as PdfVorlage;
@@ -85,7 +85,7 @@ export async function pdfText(key: string, werte: Record<string, string> = {}): 
   // Vereinsname und Adresse sind ueberall verfuegbar – wie bei den Mails.
   const m = await marke();
   const alle = { verein: m.name, webseite: m.web, vereinsmail: m.mail, ...werte };
-  return { titel: fuelle(roh.titel, alle), inhalt: fuelle(roh.inhalt, alle) };
+  return { title: fuelle(roh.title, alle), body: fuelle(roh.body, alle) };
 }
 
 /** Ersetzt {{name}} durch den Wert. Unbekannte Platzhalter fallen weg. */
@@ -322,24 +322,24 @@ export async function baueMail(
     Object.entries(alle).map(([k, v]) => [k, k === "block" ? v : escapeHtml(v)])
   );
 
-  const rumpf = formatieren(fuelle(vorlage.inhalt, sicher), m);
+  const rumpf = formatieren(fuelle(vorlage.body, sicher), m);
   const knopf =
-    vorlage.knopf && extras.knopfZiel ? knopfHtml(extras.knopfZiel, vorlage.knopf, m) : "";
+    vorlage.button_label && extras.knopfZiel ? knopfHtml(extras.knopfZiel, vorlage.button_label, m) : "";
 
   // Der Ersatzlink stand bisher in jeder zweiten Vorlage von Hand darin.
   // Mailprogramme, die Knoepfe verschlucken, gibt es weiterhin.
-  const ersatz = extras.knopfZiel && vorlage.knopf
+  const ersatz = extras.knopfZiel && vorlage.button_label
     ? `<p style="margin: 0; font-size: 12px; color: ${STILL}; line-height: 1.6;">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br><a href="${extras.knopfZiel}" style="color: ${m.farbe}; word-break: break-all;">${escapeHtml(extras.knopfZiel)}</a></p>`
     : "";
 
-  const fussnote = [fuelle(vorlage.fussnote, sicher), ersatz].filter(Boolean).join("<br><br>");
+  const fussnote = [fuelle(vorlage.footnote, sicher), ersatz].filter(Boolean).join("<br><br>");
 
   return {
-    betreff: fuelle(vorlage.betreff, alle),
+    betreff: fuelle(vorlage.subject, alle),
     html: rahmen(
       {
-        kennzeile: fuelle(vorlage.kennzeile, alle),
-        ueberschrift: fuelle(vorlage.ueberschrift, alle),
+        kennzeile: fuelle(vorlage.eyebrow, alle),
+        ueberschrift: fuelle(vorlage.heading, alle),
         rumpf: rumpf + knopf,
         fussnote,
         unterschrift: extras.unterschrift,

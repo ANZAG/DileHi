@@ -99,6 +99,50 @@ create function storage.foldername(name text) returns text[] language sql immuta
   $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
 `;
 
+let installed: Promise<PGlite> | undefined;
+
+/**
+ * Eine fertige Installation: leere Datenbank, darauf alle Migrationen.
+ *
+ * Für Prüfungen, die wissen wollen, was beim Aufsetzen in einer Tabelle steht
+ * oder wie eine Funktion lautet. Bis September lasen sie das aus dem Text des
+ * Ausgangsstands – und hätten nach jeder Migration, die etwas umbenennt, die
+ * alten Namen gesucht. Die Datenbank sagt, was ist; eine Datei sagt, was
+ * einmal war.
+ *
+ * Einmal je Testdatei aufgebaut, danach wiederverwendet. Nur lesen.
+ */
+export function installation(): Promise<PGlite> {
+  installed ??= (async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const db = await leereDatenbank();
+    const dateien = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
+    for (const f of dateien) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+    return db;
+  })();
+  return installed;
+}
+
+/** Was eine Tabelle nach dem Aufsetzen enthält. */
+export async function seedRows<T = Record<string, unknown>>(table: string): Promise<T[]> {
+  const db = await installation();
+  return (await db.query<T>(`select * from public.${table}`)).rows;
+}
+
+/** Der Quelltext einer Funktion, so wie er in der Datenbank steht. */
+export async function functionSource(name: string): Promise<string> {
+  const db = await installation();
+  const rows = (await db.query<{ def: string }>(
+    `select pg_get_functiondef(p.oid) as def from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and p.proname = $1`,
+    [name]
+  )).rows;
+  if (rows.length !== 1) throw new Error(`Funktion ${name}: ${rows.length} Treffer`);
+  return rows[0].def;
+}
+
 export async function leereDatenbank(): Promise<PGlite> {
   const db = new PGlite({ extensions: { pgcrypto, uuid_ossp } });
   await db.exec(SUPABASE);

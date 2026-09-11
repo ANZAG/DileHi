@@ -14,7 +14,7 @@ import { useBeitragsmodell, beitragsTextSchluessel } from "@/hooks/useBeitragsmo
 import { useAntragsfelder, type Antragsfeld } from "@/hooks/useAntragsfelder";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 
-const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-satzung-link`;
+const SATZUNG_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-statutes-link`;
 const FALLBACK_RATE = 36;
 
 // ─── Typ-Hilfen ───────────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ const MembershipApplication = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [rate, setRate] = useState<number>(FALLBACK_RATE);
-  const { org_name, org_short_name, satzung_link } = useBranding();
+  const { org_name, org_short_name, statutes_link } = useBranding();
   const texte = useAntragstexte();
   const { modell, arten } = useBeitragsmodell();
   const { data: alleFelder = [] } = useAntragsfelder();
@@ -170,7 +170,7 @@ const MembershipApplication = () => {
   const betrag = gewaehlteArt?.amount ?? rate;
   const werte = { verein: org_name, beitrag: betrag.toFixed(2).replace(".", ",") };
   const zeilen = (key: string) =>
-    fuelleText(texte[key]?.inhalt ?? "", werte)
+    fuelleText(texte[key]?.body ?? "", werte)
       .split("\n")
       .map((z) => z.trim())
       .filter(Boolean);
@@ -349,8 +349,8 @@ const MembershipApplication = () => {
                     }))}
                     onChange={(v) => set("membership_type", v)}
                   />
-                  {gewaehlteArt?.hinweis && (
-                    <p className="text-xs text-muted-foreground mt-1">{gewaehlteArt.hinweis}</p>
+                  {gewaehlteArt?.description && (
+                    <p className="text-xs text-muted-foreground mt-1">{gewaehlteArt.description}</p>
                   )}
                 </div>
               )}
@@ -425,7 +425,7 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  <MitSatzungslink text={zustimmungen[0] ?? ""} verlinken={satzung_link} /> *
+                  <MitSatzungslink text={zustimmungen[0] ?? ""} verlinken={statutes_link} /> *
                 </span>
               </label>
 
@@ -437,7 +437,7 @@ const MembershipApplication = () => {
                   className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
                 />
                 <span className="text-sm">
-                  <MitSatzungslink text={zustimmungen[1] ?? ""} verlinken={satzung_link} /> *
+                  <MitSatzungslink text={zustimmungen[1] ?? ""} verlinken={statutes_link} /> *
                 </span>
               </label>
 

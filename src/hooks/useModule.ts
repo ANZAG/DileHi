@@ -17,9 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
  *      mit key, label, description, sort_order und – falls es auf einem
  *      anderen Modul aufbaut – `requires`.
  *   2. Route in App.tsx in <ModulRoute k="inventar"> einwickeln.
- *   3. In den Listen, wo es auftauchen soll, `modul: "inventar"` ergänzen:
+ *   3. In den Listen, wo es auftauchen soll, `module: "inventar"` ergänzen:
  *      Dashboard-Kachel, Verwaltungsreiter. Gefiltert wird zentral.
- *   4. Für Felder in Formularen: `modul` am Feldtyp in FIELD_TYPES.
+ *   4. Für Felder in Formularen: `module` am Feldtyp in FIELD_TYPES.
  *
  * Kein `if` an irgendeiner weiteren Stelle. Wenn du eines schreiben musst,
  * fehlt hier ein Haken – dann gehört er hierher und nicht dorthin.
@@ -28,13 +28,13 @@ export interface Modulstand {
   key: string;
   label: string;
   description: string | null;
-  art: "grundfunktion" | "zusatz";
+  kind: "core" | "addon";
   requires: string | null;
   sort_order: number;
   /** Der Schalter selbst. */
   enabled: boolean;
   /** Das Ergebnis samt Abhängigkeiten – danach richtet sich die Anzeige. */
-  aktiv: boolean;
+  active: boolean;
 }
 
 export function useModule() {
@@ -63,13 +63,13 @@ export function useModule() {
 export function modulAn(module: Modulstand[] | undefined, key?: string | null): boolean {
   if (!key) return true;
   if (!module || module.length === 0) return true;
-  return module.find((m) => m.key === key)?.aktiv ?? true;
+  return module.find((m) => m.key === key)?.active ?? true;
 }
 
-/** Filtert eine Liste, deren Einträge ein optionales `modul` tragen. */
-export function nurAktive<T extends { modul?: string | null }>(
+/** Filtert eine Liste, deren Einträge ein optionales `module` tragen. */
+export function nurAktive<T extends { module?: string | null }>(
   eintraege: T[],
   module: Modulstand[] | undefined
 ): T[] {
-  return eintraege.filter((e) => modulAn(module, e.modul));
+  return eintraege.filter((e) => modulAn(module, e.module));
 }

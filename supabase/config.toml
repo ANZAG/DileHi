@@ -19,7 +19,7 @@ verify_jwt = false
 [functions.send-reset-email]
 verify_jwt = false
 
-[functions.get-satzung-link]
+[functions.get-statutes-link]
 verify_jwt = false
 
 [functions.submit-application]

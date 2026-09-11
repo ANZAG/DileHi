@@ -23,7 +23,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | DileHi ist umgezogen ([`umzug.md`](umzug.md)). Jetzt aufräumen, dann eine leere Installation ausprobieren |
-| Tests | 28 Dateien, 261 Prüfungen, alle grün |
+| Tests | 28 Dateien, 266 Prüfungen, alle grün |
 
 ---
 
@@ -43,12 +43,12 @@ gemacht hatte, statt sie zu ersetzen. Die jetzige:
   hier?" oder das Fragezeichen. Sie erklären am echten Bildschirm, nicht an
   Bildern.
 - **Aufgaben** im Profil, die sich nur abhaken, wenn die Sache wirklich getan
-  ist (`onboarding_erledigt()` prüft in der Datenbank).
+  ist (`onboarding_completed_tasks()` prüft in der Datenbank).
 - **Hervorhebung** über vier Rechtecke um das Ziel, angesteuert über
   `data-tour`-Anker.
 - **Hilfe am Feld** (`<Hilfe k="…">`) mit Texten aus der Datenbank.
-- **Alle Inhalte in der Datenbank** (`onboarding_schritte`,
-  `onboarding_hilfe`), pflegbar unter Verwaltung → Erste Schritte, mit
+- **Alle Inhalte in der Datenbank** (`onboarding_steps`,
+  `onboarding_help`), pflegbar unter Verwaltung → Erste Schritte, mit
   Auslieferungszustand zum Zurücksetzen.
 
 Näheres: [`onboarding.md`](onboarding.md).
@@ -150,7 +150,8 @@ Prüfungen (Typen, Tests) für Pushes auf `DING` laufen jetzt in `deploy.yml`.
 
 ### Umzug aus Lovable
 
-Anleitung und Aufbau: [`umzug.md`](umzug.md). Kurz: `backup-export` gibt mit
+Abgeschlossen am 11. September, die Werkzeuge liegen in
+[`archiv-umzug/`](archiv-umzug/). Anleitung und Aufbau: [`umzug.md`](umzug.md). Kurz: `backup-export` gibt mit
 `accounts: true` auch die Konten heraus, samt Passwort-Hash über
 `transfer_accounts()` in der alten Datenbank. Der Workflow „Umzug aus Lovable"
 spielt alles in einer Transaktion ein (`supabase/transfer/import.sql`, ohne
@@ -330,6 +331,17 @@ so ist:
     und im Build von dilehi.de scheiterten sechs („supabaseUrl is required").
     → Die Tests haben feste Platzhalter in `vitest.config.ts`. Vor einem Push,
     der Umgebung oder Konfiguration ändert, einmal ohne `.env.local` prüfen.
+37. **Die Typprüfung ist kein Netz, wo der Code castet.** Nach dem Umbenennen
+    in `types.ts` meldete `tsc` null Fehler – nicht weil alles passte,
+    sondern weil fast jeder Zugriff auf diese Tabellen über `as never` oder
+    `as unknown as { from: … }` lief. Getragen hat erst, die Typen der Hooks
+    umzustellen; von dort fand `tsc` jede lesende Stelle. → Bei einer
+    Umbenennung zuerst die eigenen Typen ändern, dann suchen.
+38. **Tests lasen den Text des Ausgangsstands.** Nach einer Migration, die
+    etwas umbenennt, hätten sie die alten Namen gesucht und gefunden. Jetzt
+    fragen sie die Bühne (`installation()`, `seedRows()`, `functionSource()`
+    in `src/test/hilfe/buehne.ts`), auf der alle Migrationen gelaufen sind.
+    Wieder Fehler 6: Nur die Datenbank sagt, was ist.
 
 ---
 
@@ -481,12 +493,26 @@ Offen:
       so, dass sie beim Wiederholen im Umzug DileHis Menü nicht anfasst.
 - [x] Edge Functions werden über `invokeFunction()` aufgerufen (`src/lib/functionError.ts`): bricht bei jedem Fehler mit der Meldung der Funktion ab, auf Deutsch, auch wenn der Server nicht erreichbar ist. Ein Test hält fest, welche fünf Aufrufe aus gutem Grund direkt bleiben. Nebenbei: Austreten lassen und Wieder aufnehmen haben Fehler bisher verschluckt.
 - [x] Edge Functions auf Typen prüfen lassen: `npm run functions:check`, im Workflow bei jedem Push. Fand beim ersten Lauf, dass der Aufnahmeantrag die Antworten auf die Zusatzfragen nie gespeichert hat (zod warf das Feld `extra` weg; 2 Anträge betroffen, nicht wiederherstellbar).
-- [ ] **Englische Bezeichner** in einem Durchgang: rund 60 in der Datenbank
-      (etwa `onboarding_schritte`, `onboarding_hilfe`, `onboarding_erledigt()`,
-      Spalten wie `anker`, `aufgabe`, `platzhalter`, `betreff`, `fussnote`),
-      rund 300 Stellen im Code, dazu Dateinamen wie `Einrichtung.tsx` oder
-      `ErsteSchritte.tsx`. Zusammen mit der Oberfläche prüfen, weil die
-      Tests Tabellen- und Spaltennamen lesen.
+- [x] **Englische Bezeichner, erster Durchgang: der Aufbau der Datenbank.**
+      Migration `20260911180000_english_identifiers.sql`, die Zuordnung alt →
+      neu steht oben in der Datei: 2 Tabellen, 21 Spalten, 10 Funktionen samt
+      Rückgaben, gut 60 Richtlinien, die Werte mit Prüfregel (`kind`, `area`),
+      Modulschlüssel, Aufgabenschlüssel, JSON-Schlüssel in `defaults`. Code,
+      Edge Functions und Tests ziehen mit.
+- [ ] **Zweiter Durchgang: Werte in den Inhalten.** Mitgliedsarten (`aktiv`,
+      `foerder`), Beitragsintervall, Beitragsmodell (`fest`), SEO-Typ,
+      Dokumentkategorien (`satzung`, `vorstand`, `vereinsshirts` – die stehen
+      sogar in den Speicher-Richtlinien), Schlüssel der Touren und Schritte,
+      Anker im Markup, `pdf_texts.key`, die Namen der Seitenbausteine und ihrer
+      Felder im Editor-Inhalt (`Textabschnitt`, `inhalt`, `ueberschrift`). Braucht
+      Datenmigrationen über DileHis Inhalte, deshalb getrennt. Dazu die
+      Richtlinien in `storage` mit deutschem Namen.
+- [ ] **Dritter Durchgang: der Code selbst.** Rund 300 deutsche Namen im
+      TypeScript (`modulAn`, `nurAktive`, `meldung().titel`, `baueMail()`
+      mit `betreff`, `useBeitragsstufen`, `MenuBereich` …), Dateinamen wie
+      `Einrichtung.tsx`, `ErsteSchritte.tsx`, `buehne.ts`, die Testnamen,
+      die Schlüssel im Abzug von `backup-export` (`tabellen`, `zeilen`).
+      Rein mechanisch, die Typprüfung trägt dabei.
 - [ ] **Vuozvolc-Nachbau:** Die drei Bausteine und die Schrift Antic Didone
       sind da, die Seiten selbst noch nicht.
 - [ ] [`standalone.md`](standalone.md) nachziehen: Dort steht die

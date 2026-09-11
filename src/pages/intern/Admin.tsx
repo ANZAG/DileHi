@@ -88,9 +88,9 @@ const Admin = () => {
   const alleTabs = [
     ...(canMembers ? [
       { id: "members" as const, gruppe: "personen", label: "Mitglieder", icon: Users, desc: "Register, Einladungen und Rollen" },
-      { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" , modul: "applications"},
+      { id: "applications" as const, gruppe: "personen", label: "Anträge", icon: ClipboardList, desc: "Mitgliedsanträge prüfen" , module: "applications"},
     ] : []),
-    { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" , modul: "contact"},
+    { id: "messages" as const, gruppe: "personen", label: "Kontaktanfragen", icon: Mail, desc: "Nachrichten vom Kontaktformular" , module: "contact"},
     ...(hasPermission("site.content_edit") || hasPermission("site.layout_edit") ? [
       { id: "sitepages" as const, gruppe: "website", label: "Seiten", icon: FileText, desc: "Öffentliche Seiten zusammenstellen" },
     ] : []),
@@ -98,35 +98,35 @@ const Admin = () => {
       { id: "menue" as const, gruppe: "website", label: "Menü", icon: MenuIcon, desc: "Punkte in der Kopfzeile" },
     ] : []),
     ...(hasPermission("gallery.manage") ? [
-      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder für den Galerie-Baustein" , modul: "gallery"},
+      { id: "gallery" as const, gruppe: "website", label: "Galerie", icon: Image, desc: "Bilder für den Galerie-Baustein" , module: "gallery"},
     ] : []),
     ...(hasPermission("epoch_sources.manage") ? [
-      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Inhalt des Quellen-Bausteins" , modul: "sources"},
+      { id: "sources" as const, gruppe: "website", label: "Quellen", icon: BookOpen, desc: "Inhalt des Quellen-Bausteins" , module: "sources"},
     ] : []),
     ...(hasPermission("visitor_highlights.manage") ? [
-      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Inhalt des Highlight-Bausteins" , modul: "besucher_highlights"},
+      { id: "visitor" as const, gruppe: "website", label: "Besucher-Highlights", icon: Eye, desc: "Inhalt des Highlight-Bausteins" , module: "visitor_highlights"},
     ] : []),
     ...(hasPermission("personas.publish") ? [
-      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Inhalt des Darstellungs-Bausteins" , modul: "personas"},
+      { id: "personas" as const, gruppe: "website", label: "Darstellungen", icon: ScrollText, desc: "Inhalt des Darstellungs-Bausteins" , module: "personas"},
     ] : []),
     ...(hasPermission("site.content_edit") || hasPermission("gallery.manage") ? [
       { id: "kategorien" as const, gruppe: "website", label: "Kategorien", icon: Tags, desc: "Ordnen die Inhalte dieser Bausteine" },
     ] : []),
     ...(hasPermission("system.integrations") ? [
-      { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , modul: "einbindung"},
+      { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , module: "embedding"},
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
-      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , modul: "applications"},
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , module: "applications"},
       { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
       { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , modul: "forum"},
+      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , module: "forum"},
     ] : []),
     ...(hasPermission("events.moderate") ? [
-      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , modul: "event_forms"},
+      { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , module: "event_forms"},
     ] : []),
     ...(hasPermission("system.modules") ? [
       { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche der Verein nutzt" },

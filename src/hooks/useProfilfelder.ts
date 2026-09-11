@@ -21,7 +21,7 @@ export interface Profilfeld extends FormField {
   block_key: string | null;
   is_active: boolean;
   /** Bereich erscheint nur, wenn dieses Modul eingeschaltet ist. */
-  modul: string | null;
+  module: string | null;
 }
 
 /** Was der Baukasten im Profil anbieten darf. */
@@ -64,7 +64,7 @@ export function bereichAn(
   // Zwei Schalter, beide muessen an sein: der Bereich selbst und das Modul
   // dahinter. „Meine Zelte" im Profil ohne Lagerlogistik in der Auswertung
   // waere eine Liste, die nirgends ankommt.
-  return eintrag.is_active && modulAn(module, eintrag.modul);
+  return eintrag.is_active && modulAn(module, eintrag.module);
 }
 
 /** Die frei zusammengestellten Fragen, in ihrer Reihenfolge. */

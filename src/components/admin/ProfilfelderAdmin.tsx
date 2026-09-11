@@ -229,7 +229,7 @@ function AusDemAntrag({ vorhanden, uebernehmen }: {
       // Neue Kennung: Es ist ein eigenes Feld, keine Verknuepfung.
       id: `neu-${crypto.randomUUID()}`,
       block_key: null,
-      modul: null,
+      module: null,
       is_active: true,
       sort_order: 0,
     });

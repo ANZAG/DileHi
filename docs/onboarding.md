@@ -4,9 +4,9 @@ Was jemand sieht, der zum ersten Mal im Mitgliederbereich steht.
 
 | Datei / Tabelle                    | Inhalt                                             |
 | ---------------------------------- | -------------------------------------------------- |
-| `onboarding_schritte`              | Die Inhalte. Pflegbar unter Verwaltung → System.    |
-| `onboarding_hilfe`                 | Die Erklärungen hinter dem Fragezeichen am Feld.    |
-| `onboarding_erledigt()`            | Woran die Anwendung erkennt, dass etwas getan ist.  |
+| `onboarding_steps`                 | Die Inhalte. Pflegbar unter Verwaltung → System.    |
+| `onboarding_help`                  | Die Erklärungen hinter dem Fragezeichen am Feld.    |
+| `onboarding_completed_tasks()`     | Woran die Anwendung erkennt, dass etwas getan ist.  |
 | `useOnboarding.ts`                 | Der Stand für die angemeldete Person.               |
 | `NeuHier.tsx`                      | Das Angebot als Streifen, und das Fragezeichen.     |
 | `OnboardingTour.tsx`               | Die Führung mit Hervorhebung.                       |
@@ -80,9 +80,9 @@ weiterarbeiten können.
 
 ## Warum eine Aufgabe kein Kästchen hat
 
-Ein Schritt mit `aufgabe` ist etwas, das jemand tut. Ob es getan ist, weiß die
+Ein Schritt mit `task` ist etwas, das jemand tut. Ob es getan ist, weiß die
 Datenbank: Der Name steht da, ein Zelt ist eingetragen, es gibt eine Zusage.
-`onboarding_erledigt()` sieht nach.
+`onboarding_completed_tasks()` sieht nach.
 
 Deshalb gibt es dort nichts zum Anklicken. Ein Häkchen, das man setzen kann,
 ohne die Sache getan zu haben, wäre nur eine höflichere Diashow.
@@ -98,16 +98,16 @@ eigenen Ablauf.
 
 ## Einen Schritt hinzufügen
 
-Eine Zeile in `onboarding_schritte`:
+Eine Zeile in `onboarding_steps`:
 
-| Spalte    | Bedeutung                                                         |
-| --------- | ----------------------------------------------------------------- |
-| `tour`    | Zu welcher Führung er gehört: `start` oder ein Bereichsname.       |
-| `recht`   | Nur mit diesem Recht sichtbar. Leer = für alle.                    |
-| `modul`   | Nur bei eingeschaltetem Modul. Leer = immer.                       |
-| `anker`   | Das Element mit `data-tour="<anker>"` wird hervorgehoben.          |
-| `route`   | Auf welcher Seite der Schritt liegt.                               |
-| `aufgabe` | Gesetzt = echte Aufgabe. Braucht einen Zweig in `onboarding_erledigt()`. |
+| Spalte       | Bedeutung                                                         |
+| ------------ | ----------------------------------------------------------------- |
+| `tour`       | Zu welcher Führung er gehört: `start` oder ein Bereichsname.       |
+| `permission` | Nur mit diesem Recht sichtbar. Leer = für alle.                    |
+| `module`     | Nur bei eingeschaltetem Modul. Leer = immer.                       |
+| `anchor`     | Das Element mit `data-tour="<anchor>"` wird hervorgehoben.          |
+| `route`      | Auf welcher Seite der Schritt liegt.                               |
+| `task`       | Gesetzt = echte Aufgabe. Braucht einen Zweig in `onboarding_completed_tasks()`. |
 
 Es gibt **keine** Rollenabfrage. Wer eine eigene Rolle „Zeugwart" anlegt und
 ihr das passende Recht gibt, bekommt den Schritt.
@@ -164,7 +164,7 @@ Gerätewechsel soll die Einführung weder zurückholen noch verlieren.
 Solange die Texte im Quelltext standen, war die Einführung für jeden anderen
 Verein falscher Inhalt: unsere Formulierungen über unsere Bereiche.
 
-Nicht anpassbar sind `tour`, `recht`, `modul`, `anker`, `route` und `aufgabe`.
+Nicht anpassbar sind `tour`, `permission`, `module`, `anchor`, `route` und `task`.
 Das sind Verkabelungen zum Programm, keine Inhalte — ein Anker, den jemand
 umbenennt, zeigt auf nichts mehr. Zu jedem Text gibt es einen Weg zurück auf
 den Auslieferungszustand.
@@ -172,7 +172,7 @@ den Auslieferungszustand.
 ## Was der Test prüft
 
 `src/test/onboarding.test.ts` vergleicht die Migration mit dem Markup: zu jedem
-Anker ein Element, zu jeder Aufgabe ein Zweig in `onboarding_erledigt()`, zu
+Anker ein Element, zu jeder Aufgabe ein Zweig in `onboarding_completed_tasks()`, zu
 jedem Zeichennamen ein Zeichen. Dazu zwei Dinge, die nicht zurückkommen
 sollen: kein Start von selbst, kein Abhaken von Hand — und dass der Rundgang
 die Kacheln in genau der Reihenfolge hervorhebt, in der sie auf der Startseite
