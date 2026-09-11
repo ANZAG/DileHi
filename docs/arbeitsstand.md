@@ -296,6 +296,13 @@ so ist:
 33. **Edge Functions werden nicht auf Typen geprüft.** `setup-first-admin` las
     `m.org_short_name`, das es in `marke()` nicht gibt; die Einladung hätte
     „undefined: Zugang einrichten" geheissen. Kein Test hat es gesehen.
+34. **`set_config()` ist nicht `SET`.** Supabase gibt `postgres` einige
+    geschützte Einstellungen frei (`supautils.privileged_role_allowed_configs`,
+    darunter `session_replication_role`), aber nur, wenn sie als `SET`-Befehl
+    kommen. Über `set_config()` hiess es im ersten Probelauf „permission
+    denied". Wieder Fehler 20: Die Bühne läuft mit allen Rechten. → Vor dem
+    ersten Lauf in Supabase die Rechte lesend abfragen (`has_table_privilege`,
+    `pg_has_role`), nicht annehmen.
 
 ---
 
