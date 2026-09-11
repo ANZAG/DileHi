@@ -349,6 +349,14 @@ so ist:
     war – rund zehn Minuten passten Seite und Datenbank nicht zusammen.
     → Überall Node 24. Und beim Ausrollen erst die Seite bauen lassen, dann
     die Migration starten, wenn beides zusammengehört.
+40. **Ein Semikolon im Dateinamen.** Beim Umzug hat die Speicher-Schnittstelle
+    von Supabase zwölf Dateinamen am `;` abgeschnitten („Werk; Band 01.pdf"
+    → „Werk"), obwohl die Adresse sauber kodiert war. Aufgefallen erst beim
+    Bau der SharePoint-Ablage, weil Datei und Quelle nicht zueinander
+    fanden. Der Test des Umzugs lief gegen eine nachgebaute Ablage, die das
+    nicht nachbildete. → Beim Übertragen von Dateien danach die Namen im Ziel
+    mit denen in der Datenbank abgleichen, nicht nur die Anzahl. Die
+    Verschiebe-Aktion nach SharePoint fängt die zwölf ab.
 
 ---
 
