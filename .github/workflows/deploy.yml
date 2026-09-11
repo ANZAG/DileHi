@@ -1,8 +1,10 @@
 name: Build & Deploy
 on:
+  # DING wird nur geprüft; hochgeladen wird allein aus main (siehe deploy).
   push:
     branches:
       - main
+      - DING
   pull_request:
     branches:
       - main

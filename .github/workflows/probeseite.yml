@@ -1,27 +1,36 @@
-name: Probeseite ausrollen
+name: Probeseite
 
-# ding.dilehi.de – DING so, wie ein neuer Verein es sieht.
+# ding.dilehi.de – die Testinstallation von DING.
 #
-# Die Vereinsseite dilehi.de baut aus `main` und spricht über die eingecheckte
-# .env mit der alten Datenbank bei Lovable. Diese Seite hier baut aus `DING`
-# und spricht mit dem neuen Supabase-Projekt. Beide laufen nebeneinander,
-# ohne sich zu berühren – bis die Inhalte umgezogen sind.
+# Bis zum Umzug am 11. September zeigte diese Seite DING, wie ein neuer
+# Verein es sieht. Seitdem spricht das Projekt, gegen das sie gebaut wurde,
+# mit den Daten von DileHi. Die Seite ist deshalb geleert, und sie baut nicht
+# mehr bei jedem Push von selbst.
 #
-# Was sie braucht, liegt schon in den GitHub-Geheimnissen:
-#   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF   (vom Ausrollen-Knopf)
-#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD        (von der Vereinsseite)
+# Später kommt hier eine eigene Installation hin, mit einem eigenen
+# Supabase-Projekt: zuerst zum Ausprobieren der Installation, danach hinter
+# einem Passwort als Vorführsystem (siehe docs/arbeitsstand.md).
 #
-# Adresse und öffentlicher Schlüssel der Datenbank werden beim Bauen geholt,
-# nicht abgetippt. Beides ist öffentlich – es steht später im ausgelieferten
-# Programm –, aber abgetippt wäre es eine Stelle mehr, die veralten kann.
+# Zwei Aktionen:
+#
+#   ausrollen   baut DING und lädt es nach ding.dilehi.de. Braucht das
+#               Geheimnis PROBE_SUPABASE_PROJECT_REF – mit Absicht nicht
+#               SUPABASE_PROJECT_REF: Das ist DileHi, und eine Probeseite, die
+#               mit den echten Mitgliederdaten spricht, soll es nicht noch
+#               einmal geben.
+#   leeren      ersetzt alles auf ding.dilehi.de durch eine leere Seite.
 
 on:
-  push:
-    branches:
-      - DING
   workflow_dispatch:
+    inputs:
+      aktion:
+        description: "Was soll passieren?"
+        type: choice
+        options:
+          - leeren
+          - ausrollen
+        default: leeren
 
-# Zwei Pushes kurz hintereinander: Der zweite gewinnt, der erste bricht ab.
 concurrency:
   group: probeseite
   cancel-in-progress: true
@@ -31,16 +40,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        if: ${{ inputs.aktion == 'ausrollen' }}
 
       - uses: actions/setup-node@v4
+        if: ${{ inputs.aktion == 'ausrollen' }}
         with:
           node-version: 24
 
       - name: Datenbank-Adresse und öffentlichen Schlüssel holen
+        if: ${{ inputs.aktion == 'ausrollen' }}
         env:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          REF: ${{ secrets.PROBE_SUPABASE_PROJECT_REF }}
+          DILEHI: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          if [ -z "$REF" ]; then
+            echo "::error::PROBE_SUPABASE_PROJECT_REF fehlt. Die Probeseite braucht ein eigenes Supabase-Projekt."
+            exit 1
+          fi
+          if [ "$REF" = "$DILEHI" ]; then
+            echo "::error::PROBE_SUPABASE_PROJECT_REF zeigt auf das Projekt von DileHi. Das ist nicht die Probeseite."
+            exit 1
+          fi
           # Nur der anon-Schlüssel wird herausgefiltert. Die Antwort enthält
           # auch den service_role-Schlüssel; der geht nirgendwohin weiter.
           anon=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
@@ -51,7 +72,6 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$anon"
-          # Was hier steht, geht beim Bauen der eingecheckten .env vor.
           {
             echo "VITE_SUPABASE_URL=https://$REF.supabase.co"
             echo "VITE_SUPABASE_PROJECT_ID=$REF"
@@ -59,11 +79,32 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Prüfen und bauen
+        if: ${{ inputs.aktion == 'ausrollen' }}
         run: |
           npm ci
           npx tsc --noEmit -p tsconfig.app.json
           npm test
           npm run build
+
+      - name: Leere Seite
+        if: ${{ inputs.aktion == 'leeren' }}
+        run: |
+          mkdir -p dist
+          cat > dist/index.html <<'HTML'
+          <!doctype html>
+          <html lang="de">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="robots" content="noindex, nofollow">
+            <title>ding.dilehi.de</title>
+          </head>
+          <body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;color:#333">
+            <p>Hier ist gerade nichts.</p>
+            <p>Zum Verein geht es auf <a href="https://www.dilehi.de">www.dilehi.de</a>.</p>
+          </body>
+          </html>
+          HTML
 
       # Eine Probeseite hat in Suchmaschinen nichts verloren. Sonst stünde
       # ding.dilehi.de neben dilehi.de in den Ergebnissen, mit denselben
@@ -79,6 +120,8 @@ jobs:
           </IfModule>
           HTACCESS
 
+      # --delete: Was nicht in dist/ steht, verschwindet vom Webspace. Beim
+      # Leeren ist das alles ausser der leeren Seite.
       - name: Hochladen nach ding.dilehi.de
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
@@ -96,7 +139,10 @@ jobs:
 
       - name: Was gelaufen ist
         run: |
-          echo "### Probeseite" >> $GITHUB_STEP_SUMMARY
+          echo "### Probeseite: ${{ inputs.aktion }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Ausgerollt nach https://ding.dilehi.de aus \`${GITHUB_SHA::7}\`." >> $GITHUB_STEP_SUMMARY
-          echo "Erster Zugang: https://ding.dilehi.de/einrichtung" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.aktion }}" = "leeren" ]; then
+            echo "ding.dilehi.de ist leer." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Ausgerollt nach https://ding.dilehi.de aus \`${GITHUB_SHA::7}\`." >> $GITHUB_STEP_SUMMARY
+          fi

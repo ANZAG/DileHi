@@ -127,9 +127,25 @@ SQL-Editor.
 
 ### Probeseite
 
-`.github/workflows/probeseite.yml`: Jeder Push auf `DING` prüft, baut und lädt
-nach `ding.dilehi.de`. Adresse und öffentlichen Schlüssel holt der Workflow
-selbst aus dem Projekt. Die Seite ist für Suchmaschinen gesperrt.
+`ding.dilehi.de` ist seit dem 11. September **leer**. Das Projekt, gegen das
+sie gebaut war, gehört seit dem Umzug DileHi.
+
+`.github/workflows/probeseite.yml` läuft nur noch von Hand, mit zwei
+Aktionen: `leeren` und `ausrollen`. Ausrollen braucht ein eigenes Geheimnis
+`PROBE_SUPABASE_PROJECT_REF` und bricht ab, wenn es auf DileHi zeigt. Die
+Prüfungen (Typen, Tests) für Pushes auf `DING` laufen jetzt in `deploy.yml`.
+
+**Der Plan für ding.dilehi.de:**
+
+1. Wenn dilehi.de aufgeräumt und DING fertig ist: ein zweites
+   Supabase-Projekt anlegen (der kostenlose Tarif erlaubt zwei) und DING dort
+   streng nach [`installation.md`](installation.md) installieren. Das ist der
+   Probelauf der Anleitung.
+2. Klappt das, die Seite hinter ein Passwort setzen (Verzeichnisschutz bei
+   gn2) und als Vorführsystem nutzen.
+3. Darin eine möglichst genaue Kopie von vuozvolc.de bauen, damit die sich
+   DING ansehen können. Vorarbeit:
+   [`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md).
 
 ### Umzug aus Lovable
 
