@@ -192,8 +192,8 @@ Deno.serve(async (req) => {
         const m = await marke();
         await sendeMail(
           email,
-          `${m.org_short_name}: Zugang einrichten`,
-          `<p>Für dich wurde der erste Verwaltungszugang zu ${m.org_name} eingerichtet.</p>` +
+          `${m.kurz}: Zugang einrichten`,
+          `<p>Für dich wurde der erste Verwaltungszugang zu ${m.name} eingerichtet.</p>` +
             `<p><a href="${einladung}">Passwort festlegen und anmelden</a></p>` +
             `<p>Der Link gilt einmalig.</p>`
         );
