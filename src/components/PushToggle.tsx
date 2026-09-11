@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BellRing, BellOff, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -56,8 +57,8 @@ export default function PushToggle() {
 
       // Der öffentliche Schlüssel kommt vom Backend, nicht aus dem Build –
       // so muss für eine andere Installation nichts neu übersetzt werden.
-      const { data, error } = await supabase.functions.invoke("push-notify", { method: "GET" });
-      if (error || !data?.publicKey) throw new Error("Schlüssel nicht abrufbar");
+      const data = await invokeFunction<{ publicKey?: string }>("push-notify", { method: "GET" });
+      if (!data?.publicKey) throw new Error("Der Server hat keinen Schlüssel für Benachrichtigungen.");
 
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({

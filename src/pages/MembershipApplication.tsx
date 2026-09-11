@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/functionError";
 import { CheckCircle2, Loader2, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -209,7 +210,7 @@ const MembershipApplication = () => {
     setSubmitting(true);
     setError("");
     try {
-      const { data, error: err } = await supabase.functions.invoke("submit-application", {
+      await invokeFunction("submit-application", {
         body: {
           website, // honeypot
           rendered_at: renderedAtRef.current,
@@ -236,8 +237,6 @@ const MembershipApplication = () => {
           ),
         },
       });
-      if (err) throw err;
-      if (data && (data as any).error) throw new Error((data as any).error);
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message ?? "Unbekannter Fehler. Bitte versuche es erneut.");

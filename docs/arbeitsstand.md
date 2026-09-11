@@ -308,8 +308,8 @@ so ist:
 32. **supabase-js verschluckt die Fehlermeldung.** Bei einem Fehlerstatus
     steht in `error.message` nur „Edge Function returned a non-2xx status
     code", die eigentliche Auskunft steckt im Rumpf. → `readFunctionError()`
-    aus `src/lib/functionError.ts`. Noch nicht überall eingesetzt, nur in der
-    Einrichtung und im Probeversand.
+    aus `src/lib/functionError.ts`, inzwischen über `invokeFunction()`
+    überall.
 33. **Edge Functions wurden nicht auf Typen geprüft** (behoben am 11. September, `deno check`). `setup-first-admin` las
     `m.org_short_name`, das es in `marke()` nicht gibt; die Einladung hätte
     „undefined: Zugang einrichten" geheissen. Kein Test hat es gesehen.
@@ -479,7 +479,7 @@ Offen:
       sagt die Verwaltung das deutlich, und die Einladungslinks stehen zum
       Weitergeben da wie bei der Einrichtung. Als Migration mit Test – aber
       so, dass sie beim Wiederholen im Umzug DileHis Menü nicht anfasst.
-- [ ] `readFunctionError()` bei allen Aufrufen von Edge Functions einsetzen.
+- [x] Edge Functions werden über `invokeFunction()` aufgerufen (`src/lib/functionError.ts`): bricht bei jedem Fehler mit der Meldung der Funktion ab, auf Deutsch, auch wenn der Server nicht erreichbar ist. Ein Test hält fest, welche fünf Aufrufe aus gutem Grund direkt bleiben. Nebenbei: Austreten lassen und Wieder aufnehmen haben Fehler bisher verschluckt.
 - [x] Edge Functions auf Typen prüfen lassen: `npm run functions:check`, im Workflow bei jedem Push. Fand beim ersten Lauf, dass der Aufnahmeantrag die Antworten auf die Zusatzfragen nie gespeichert hat (zod warf das Feld `extra` weg; 2 Anträge betroffen, nicht wiederherstellbar).
 - [ ] **Englische Bezeichner** in einem Durchgang: rund 60 in der Datenbank
       (etwa `onboarding_schritte`, `onboarding_hilfe`, `onboarding_erledigt()`,

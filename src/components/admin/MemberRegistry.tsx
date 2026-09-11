@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Hilfe } from "@/components/Hilfe";
 import { useDefaultRole } from "@/hooks/useDefaultRole";
+import { invokeFunction } from "@/lib/functionError";
 import {
   Select,
   SelectContent,
@@ -191,10 +192,10 @@ const MemberRegistry = () => {
     queryFn: async (): Promise<Record<string, string>> => {
       const userIds = members.map((m) => m.user_id);
       if (userIds.length === 0) return {};
-      const { data } = await supabase.functions.invoke("manage-member", {
+      const data = await invokeFunction<Record<string, string> | null>("manage-member", {
         body: { action: "get_emails", userIds },
       });
-      return (data ?? {}) as Record<string, string>;
+      return data ?? {};
     },
     enabled: members.length > 0,
     staleTime: 10 * 60 * 1000,
@@ -281,11 +282,9 @@ const MemberRegistry = () => {
 
   const inviteMember = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("invite-member", {
+      return await invokeFunction("invite-member", {
         body: { email: inviteEmail, role: inviteRole },
       });
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
@@ -301,20 +300,18 @@ const MemberRegistry = () => {
       const userId = selectedMember.user_id;
 
       if (editDisplayName !== selectedMember.display_name) {
-        const { error } = await supabase.functions.invoke("manage-member", {
+        await invokeFunction("manage-member", {
           body: { action: "update_profile", userId, displayName: editDisplayName },
         });
-        if (error) throw error;
       }
 
       if (selectedMember.role !== editRole) {
-        const { error } = await supabase.functions.invoke("manage-member", {
+        await invokeFunction("manage-member", {
           body: { action: "update_role", userId, role: editRole },
         });
-        if (error) throw error;
       }
 
-      const { error } = await supabase.functions.invoke("manage-member", {
+      await invokeFunction("manage-member", {
         body: {
           action: "update_membership",
           userId,
@@ -323,7 +320,6 @@ const MemberRegistry = () => {
           isActive: editIsActive,
         },
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
@@ -336,10 +332,13 @@ const MemberRegistry = () => {
   const deactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
       const today = new Date().toISOString().slice(0, 10);
-      await supabase.functions.invoke("manage-member", {
+      // Erst das Austrittsdatum, dann die Rolle. Bisher wurde die Rolle auch
+      // gelöscht, wenn das Datum nicht gespeichert war – ohne Meldung.
+      await invokeFunction("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: today, isActive: false },
       });
-      await supabase.from("user_roles").delete().eq("user_id", m.user_id);
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", m.user_id);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
@@ -351,10 +350,10 @@ const MemberRegistry = () => {
 
   const reactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
-      await supabase.functions.invoke("manage-member", {
+      await invokeFunction("manage-member", {
         body: { action: "update_role", userId: m.user_id, role: defaultRole },
       });
-      await supabase.functions.invoke("manage-member", {
+      await invokeFunction("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: null, isActive: true },
       });
     },
@@ -368,11 +367,9 @@ const MemberRegistry = () => {
 
   const resetPassword = useMutation({
     mutationFn: async (userId: string) => {
-      const { data, error } = await supabase.functions.invoke("manage-member", {
+      return await invokeFunction<{ email?: string }>("manage-member", {
         body: { action: "reset_password", userId },
       });
-      if (error) throw error;
-      return data;
     },
     onSuccess: (data: any) => {
       toast({ title: "Passwort-Reset", description: `Reset-Link wurde an ${data?.email || "den Benutzer"} gesendet.` });
@@ -383,14 +380,13 @@ const MemberRegistry = () => {
   const deleteUser = useMutation({
     mutationFn: async () => {
       if (!deletingMember || !reassignTo) return;
-      const { error } = await supabase.functions.invoke("manage-member", {
+      await invokeFunction("manage-member", {
         body: {
           action: "delete_user",
           userId: deletingMember.user_id,
           reassignToUserId: reassignTo,
         },
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
