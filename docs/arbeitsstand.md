@@ -328,7 +328,7 @@ auf DING arbeiten → commit → push DING
 | --- | --- | --- |
 | GitHub Secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` | gesetzt |
 | GitHub Secrets | `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` | gesetzt, für beide Seiten |
-| GitHub Variables | `SITE_URL` | `https://ding.dilehi.de`, nach dem Umzug `https://dilehi.de` |
+| GitHub Variables | `SITE_URL` | `https://ding.dilehi.de`, nach dem Umzug `https://www.dilehi.de` |
 | GitHub Secrets | `BACKUP_TOKEN` | für den Umzug nötig. Die Sicherung ist rot, weil `backup-export` in Lovable nie bereitgestellt wurde (404); ebenso fehlen dort `mail-test` und `sitemap` |
 | Supabase Edge Functions | `SETUP_SECRET` | gesetzt |
 | Supabase Edge Functions | `MS_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch, siehe [`umzug.md`](umzug.md) |
