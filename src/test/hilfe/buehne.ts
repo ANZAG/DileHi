@@ -13,8 +13,9 @@ import { uuid_ossp } from "@electric-sql/pglite/contrib/uuid_ossp";
  *
  * PGlite ist ein echtes Postgres, nur ohne Server. Was Supabase selbst
  * mitbringt, steht unten nachgebaut, und zwar nur so viel, wie der
- * Ausgangsstand wirklich anspricht: drei Rollen, `auth.users` mit
- * `auth.uid()`, die zwei Speichertabellen, `pgcrypto` im Schema `extensions`.
+ * Ausgangsstand und der Umzug wirklich ansprechen: drei Rollen, `auth.users`
+ * mit `auth.uid()` und den Spalten, die GoTrue liest, `auth.identities`, die
+ * zwei Speichertabellen, `pgcrypto` im Schema `extensions`.
  *
  * Was die Bühne nicht kann: Sie läuft mit allen Rechten. Scheitert in
  * Supabase etwas an fehlenden Rechten, sieht man es hier nicht.
@@ -33,16 +34,41 @@ create extension pgcrypto schema extensions;
 create extension "uuid-ossp" schema extensions;
 
 create table auth.users (
+  instance_id uuid,
   id uuid primary key default gen_random_uuid(),
+  aud varchar(255),
+  role varchar(255),
   email text,
+  encrypted_password varchar(255),
+  confirmation_token varchar(255),
+  recovery_token varchar(255),
+  email_change_token_new varchar(255),
+  email_change varchar(255),
+  raw_app_meta_data jsonb,
   raw_user_meta_data jsonb default '{}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   last_sign_in_at timestamptz,
   email_confirmed_at timestamptz,
+  phone_confirmed_at timestamptz,
+  confirmed_at timestamptz generated always as (least(email_confirmed_at, phone_confirmed_at)) stored,
   invited_at timestamptz,
   banned_until timestamptz,
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  is_sso_user boolean not null default false,
+  is_anonymous boolean not null default false
+);
+create table auth.identities (
+  provider_id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  identity_data jsonb not null,
+  provider text not null,
+  last_sign_in_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  email text generated always as (lower(identity_data ->> 'email')) stored,
+  id uuid primary key default gen_random_uuid(),
+  unique (provider_id, provider)
 );
 create function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;

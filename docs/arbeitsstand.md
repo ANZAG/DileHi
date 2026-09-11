@@ -1,7 +1,7 @@
 # Arbeitsstand DING
 
-Stand: 11. September 2026, nach dem ersten erfolgreichen Ausrollen in das
-eigene Supabase-Projekt.
+Stand: 11. September 2026, mittags. Die Probeseite läuft, das
+Umzugswerkzeug steht, der Umzug selbst noch nicht.
 
 Diese Datei hält fest, was umgesetzt ist, an welchen Fehlern wir uns gestossen
 haben, was man über das Projekt wissen muss und was als Nächstes kommt. Sie
@@ -21,7 +21,8 @@ neue Unterhaltung beginnt.
 | Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — läuft noch, soll stillgelegt werden |
 | Probeseite | `ding.dilehi.de` — baut aus `DING`, spricht mit der neuen Datenbank |
 | Vereinsseite | `dilehi.de` — baut aus `main`, spricht noch mit der **alten** Datenbank |
-| Tests | 25 Dateien, 250 Prüfungen, alle grün |
+| Plan | erst DileHi ins neue Projekt ziehen (Anleitung: [`umzug.md`](umzug.md)), dann aufräumen, dann eine leere Installation ausprobieren |
+| Tests | 27 Dateien, 259 Prüfungen, alle grün |
 
 ---
 
@@ -130,12 +131,32 @@ SQL-Editor.
 nach `ding.dilehi.de`. Adresse und öffentlichen Schlüssel holt der Workflow
 selbst aus dem Projekt. Die Seite ist für Suchmaschinen gesperrt.
 
+### Umzug aus Lovable
+
+Anleitung und Aufbau: [`umzug.md`](umzug.md). Kurz: `backup-export` gibt mit
+`accounts: true` auch die Konten heraus, samt Passwort-Hash über
+`transfer_accounts()` in der alten Datenbank. Der Workflow „Umzug aus Lovable"
+spielt alles in einer Transaktion ein (`supabase/transfer/import.sql`, ohne
+Trigger, Verweise danach nachgeprüft), wiederholt die Migrationen nach dem
+Ausgangsstand und trägt die Dateien hinüber. Ohne Häkchen ist es ein
+Probelauf, der zurückrollt.
+
+### Adressen nach draußen
+
+Kalender-Abos, Einbindungen und Sitemap zeigen auf die eigene Seite
+(`/kalender/…`, `/einbindung/…`, `/sitemap.xml`). Die `.htaccess` leitet an die
+Edge Functions weiter; das Ziel setzt der Build aus `VITE_SUPABASE_URL` ein
+(`vite.config.ts`, `src/lib/publicAddresses.ts`). Ein Umzug der Datenbank
+ändert damit nur das Ziel, nicht die Adresse im Handy eines Mitglieds.
+
 ### Neue Prüfungen
 
 | Test | Was er prüft |
 | --- | --- |
 | `ausgangsstand.test.ts` | spielt den Ausgangsstand in eine leere Datenbank (PGlite), spielt den ersten Zugang durch und exportiert das Ergebnis mit der Abfrage aus `EXPORT.md` in eine zweite leere Datenbank |
 | `funktionen.test.ts` | liest jede Edge Function so, wie Deno es beim Bündeln tut, und folgt jedem relativen Import |
+| `transfer.test.ts` | spielt den Umzug durch: alte Installation auf dem Ausgangsstand, Abzug in der Form von `backup-export`, Einspielen in eine neue mit Einrichtungskonto. Gegenprobe mit acht absichtlich eingebauten Fehlern, sieben erkannt; der achte war eine Prüfung, die nie anschlagen konnte, und ist raus |
+| `publicAddresses.test.ts` | die Adressen, die das Programm nach draußen gibt, und die Weiterleitungen in der `.htaccess` passen zusammen |
 | `funktionsrechte.test.ts` | `PUBLIC` entzogen, `search_path` gesetzt, jede Triggerfunktion hängt an einem Trigger |
 | `onboarding.test.ts` | Anker, Touren, Aufgaben und Hilfetexte passen zwischen Datenbank und Markup zusammen |
 
@@ -262,6 +283,19 @@ so ist:
     „vorstand" sollte am 10. September weg. Sie stand am 11. noch im
     Ausgangsstand, mit allen Rechten. Aufgefallen ist das nur, weil für diese
     Datei jede Aussage noch einmal nachgesehen wurde.
+31. **Ausgerollt heisst nicht: der letzte Stand.** Die Einrichtung scheiterte,
+    weil der Ausrollen-Knopf um 00:48 lief und die Korrektur erst um 09:20
+    kam. → Bei einem Fehler in einer Edge Function zuerst nachsehen, welche
+    Fassung in Supabase steht (`get_edge_function`, `updated_at`), dann erst
+    im Code suchen.
+32. **supabase-js verschluckt die Fehlermeldung.** Bei einem Fehlerstatus
+    steht in `error.message` nur „Edge Function returned a non-2xx status
+    code", die eigentliche Auskunft steckt im Rumpf. → `readFunctionError()`
+    aus `src/lib/functionError.ts`. Noch nicht überall eingesetzt, nur in der
+    Einrichtung und im Probeversand.
+33. **Edge Functions werden nicht auf Typen geprüft.** `setup-first-admin` las
+    `m.org_short_name`, das es in `marke()` nicht gibt; die Einladung hätte
+    „undefined: Zugang einrichten" geheissen. Kein Test hat es gesehen.
 
 ---
 
@@ -287,9 +321,10 @@ auf DING arbeiten → commit → push DING
 | --- | --- | --- |
 | GitHub Secrets | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` | gesetzt |
 | GitHub Secrets | `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` | gesetzt, für beide Seiten |
-| GitHub Variables | `SITE_URL` | **fehlt noch** — `https://ding.dilehi.de` |
+| GitHub Variables | `SITE_URL` | `https://ding.dilehi.de`, nach dem Umzug `https://dilehi.de` |
+| GitHub Secrets | `BACKUP_TOKEN` | für den Umzug nötig, Stand unklar (die Sicherung ist rot) |
 | Supabase Edge Functions | `SETUP_SECRET` | gesetzt |
-| Supabase Edge Functions | `SMTP_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch |
+| Supabase Edge Functions | `MS_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch, siehe [`umzug.md`](umzug.md) |
 | Umgebung des Rechners | `SUPABASE_ACCESS_TOKEN` | gesetzt, für Claudes lesenden Zugang |
 
 **Was Claude nie sieht:** das Datenbankpasswort, den `service_role`-Schlüssel
@@ -332,6 +367,7 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 | Datei | Inhalt |
 | --- | --- |
 | [`installation.md`](installation.md) | die Anleitung für einen neuen Verein |
+| [`umzug.md`](umzug.md) | der Umzug aus Lovable, Schritt für Schritt |
 | [`standalone.md`](standalone.md) | was für andere Vereine fehlte (teilweise veraltet, siehe unten) |
 | [`onboarding.md`](onboarding.md), [`module.md`](module.md) | Aufbau von Einführung und Modulen |
 | [`name-ding.md`](name-ding.md) | warum DING |
@@ -343,63 +379,60 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 
 ## Was noch ansteht
 
-### 1. Probeseite in Betrieb nehmen — jetzt
+### 1. Probeseite in Betrieb nehmen — erledigt
 
-- [ ] gn2 → SSL/TLS-Zertifikate: Let's Encrypt für `ding.dilehi.de`.
-      Ohne https lässt sich die Einrichtung nicht aufrufen.
-- [ ] GitHub → Variables: `SITE_URL` = `https://ding.dilehi.de`.
-- [ ] **Actions → Supabase ausrollen** von `DING`. Bringt die geänderte
-      Einrichtungsfunktion hoch, stellt die Anmeldung ein und löscht die
-      Rolle „vorstand". Das muss vor dem ersten Zugang passieren.
-- [ ] **Actions → Probeseite ausrollen**: Ist der erste Durchlauf grün?
-- [ ] `https://ding.dilehi.de/einrichtung`: erster Zugang. Der Link steht auf
-      der Seite, weil der Mailversand noch fehlt.
+- [x] https für `ding.dilehi.de`, `SITE_URL` gesetzt, Supabase ausgerollt
+      (alle drei Migrationen stehen), erster Zugang angelegt.
 - [ ] Umsehen, als wäre man ein fremder Verein: Wo klingt es noch nach uns?
+      Kommt nach dem Umzug, dann mit einer leeren Installation.
 
-### 2. Vor dem Umzug klären
+### 2. Entschieden am 11. September
 
-- [ ] **Was zieht mit?** Mitglieder werden neu eingeladen, Passwörter kommen
-      nicht mit. Offen sind Seiten, Termine, Galerie, Dokumente, Forum und
-      Beitragsdaten. Davon hängt ab, wie aufwendig der Umzug wird.
-- [ ] **Mailversand:** SMTP oder weiter Microsoft 365? Die Geheimnisse dazu im
-      neuen Projekt anlegen. Der Versandweg steht ab Werk auf Microsoft Graph.
-      Für DING sollte die Vorgabe SMTP sein, weil die Anleitung SMTP
-      beschreibt.
-- [ ] **Mails von Supabase selbst** (etwa die Bestätigung einer neuen
-      E-Mail-Adresse im Profil) laufen über Supabases eigenen Versand. Der
-      schafft zwei Mails pro Stunde. Unter Authentication → SMTP die eigenen
-      Angaben eintragen.
-- [ ] `VAPID_*` für Push-Nachrichten, `DIGEST_SECRET`, `BACKUP_TOKEN` im neuen
-      Projekt.
-- [ ] `backup.yml` und `digest.yml` zeigen als Vorgabe noch auf die alte
-      Funktionsadresse.
-- [ ] `src/integrations/supabase/types.ts` neu erzeugen. Die Datei kennt noch
-      das Enum `app_role` und nicht `show_name` oder `default_role`. Geht jetzt
-      über den Supabase-Zugang.
-- [ ] **Startdaten, die nach uns klingen:** Das Menü enthält Spätmittelalter,
-      Erster Weltkrieg, Napoleonik und Für Veranstalter, die
-      Seitenkategorien sind unsere drei Epochen. Für DileHi richtig, für einen
-      fremden Verein Links ins Leere.
+- **Es zieht alles um**, Konten samt Passwort. Geht das Passwort nicht, dann
+  alles ohne; dafür gibt es das Häkchen im Workflow.
+- **Mailversand bleibt Microsoft Graph** für DileHi. Für eine neue
+  Installation soll SMTP die Vorgabe sein (siehe 4).
+- **Erst umziehen, dann aufräumen, dann eine leere Installation probieren.**
+  Das Projekt `hmrog…` wird DileHis Datenbank und kann danach umbenannt
+  werden.
 
 ### 3. Der Umzug
 
-- [ ] Inhalte übertragen, je nach Entscheidung oben.
-- [ ] **`.env` aus dem Repository nehmen.** Die Vereinsseite bekommt die
-      Adresse dann wie die Probeseite aus dem Workflow. Fehlen die Variablen,
-      soll der Build scheitern, statt still mit einer fremden Datenbank zu
-      sprechen.
-- [ ] `supabase/config.toml` (`project_id`) und `public/robots.txt`
-      (`Sitemap:`) auf das neue Projekt.
-- [ ] `SITE_URL` auf `https://dilehi.de`, ebenso die Website unter
-      Erscheinungsbild. Ausrollen-Knopf einmal laufen lassen.
-- [ ] Mitglieder neu einladen, rund zwanzig.
-- [ ] **Lovable stilllegen:** eine letzte Sicherung, Verbindung zu GitHub
-      trennen, Projekt abschalten. Bis dahin: `invite-member` ist dort seit dem
-      9. September vermutlich nicht mehr aktualisiert worden, und die
-      Bereichstouren fehlen dort.
+Schritt für Schritt in [`umzug.md`](umzug.md). Offen, bei Eric:
+
+- [ ] `BACKUP_TOKEN` in GitHub und Lovable, `export-accounts.sql` in Lovable
+      ausführen, `backup-export` in Lovable neu bereitstellen.
+- [ ] Geheimnisse der Edge Functions im neuen Projekt (`MS_*`, `VAPID_*`,
+      `DIGEST_SECRET`, `BACKUP_TOKEN`).
+- [ ] Probelauf, dann der Umzug.
+
+Danach, bei Claude:
+
+- [ ] **`.env` aus dem Repository nehmen.** `deploy.yml` holt Adresse und
+      Schlüssel wie die Probeseite. Fehlen sie, scheitert der Build (das tut
+      er schon: `vite.config.ts` bricht ohne `VITE_SUPABASE_URL` ab).
+- [ ] `supabase/config.toml` (`project_id`), `backup.yml`, `digest.yml` auf das
+      neue Projekt.
+- [ ] `src/integrations/supabase/types.ts` neu erzeugen. Die Datei kennt noch
+      das Enum `app_role` und nicht `show_name` oder `default_role`.
+- [ ] Lovable-Reste: `lovable-tagger`, `previewAuthStorage.ts`, `bun.lock`,
+      `.lovable/`, und in der Datenschutzerklärung
+      (`scripts/rechtstexte.mjs`) steht Lovable als Plattform.
+- [ ] **Mails von Supabase selbst** (Bestätigung einer neuen E-Mail-Adresse)
+      laufen über Supabases eigenen Versand, zwei Mails pro Stunde. Unter
+      Authentication → SMTP eigene Angaben eintragen.
 
 ### 4. Danach
 
+- [ ] **Startdaten für eine neue Installation:** im Kopfmenü nur die
+      Startseite, im Fuß Impressum und Datenschutz, beide aus den Angaben
+      unter Erscheinungsbild erzeugt statt ins Leere. Keine Epochen als
+      Seitenkategorien. Versand ab Werk SMTP; ist SMTP nicht eingerichtet,
+      sagt die Verwaltung das deutlich, und die Einladungslinks stehen zum
+      Weitergeben da wie bei der Einrichtung. Als Migration mit Test – aber
+      so, dass sie beim Wiederholen im Umzug DileHis Menü nicht anfasst.
+- [ ] `readFunctionError()` bei allen Aufrufen von Edge Functions einsetzen.
+- [ ] Edge Functions auf Typen prüfen lassen (`deno check` im Workflow).
 - [ ] **Englische Bezeichner** in einem Durchgang: rund 60 in der Datenbank
       (etwa `onboarding_schritte`, `onboarding_hilfe`, `onboarding_erledigt()`,
       Spalten wie `anker`, `aufgabe`, `platzhalter`, `betreff`, `fussnote`),
