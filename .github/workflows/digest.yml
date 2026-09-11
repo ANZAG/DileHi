@@ -36,7 +36,7 @@ jobs:
       - name: Zusammenfassung ausloesen
         env:
           # Voreinstellung, damit die Aktion ohne zusaetzliche Einrichtung laeuft.
-          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || format('https://{0}.supabase.co/functions/v1', secrets.SUPABASE_PROJECT_REF) }}
           DIGEST_SECRET: ${{ secrets.DIGEST_SECRET }}
         run: |
           set -euo pipefail

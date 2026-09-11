@@ -2835,7 +2835,6 @@ export type Database = {
         Args: { _answers: Json; _email: string; _name: string; _token: string }
         Returns: string
       }
-      transfer_accounts: { Args: never; Returns: Json }
       update_form_settings: {
         Args: { _form_id: string; _patch: Json }
         Returns: Json
