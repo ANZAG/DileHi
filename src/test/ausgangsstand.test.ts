@@ -124,9 +124,12 @@ describe("Die ersten Minuten", () => {
     expect(profil?.display_name).toBe("Erste Person");
 
     // Die Einrichtungsseite sucht die Rolle mit roles.manage, keinen Namen.
-    const rolle = await eins<{ role: string }>(
-      "select role from public.role_permissions where permission = 'roles.manage' limit 1"
+    // „vorstand" darf nicht darunter sein: Den Vorsitz hat der 1. Officiatus.
+    const berechtigt = await alle<{ role: string }>(
+      "select role from public.role_permissions where permission = 'roles.manage' order by role"
     );
+    expect(berechtigt.map((r) => r.role)).toEqual(["officiatus_1", "officiatus_2"]);
+    const rolle = berechtigt[0];
     expect(rolle?.role).toBeTruthy();
 
     await db.query(`insert into public.user_roles (user_id, role) values ('${konto!.id}', '${rolle!.role}')`);
