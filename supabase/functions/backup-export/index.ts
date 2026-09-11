@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Vollständiger Abzug der Datenbank – ohne Datenbank-Passwort.
@@ -181,7 +181,7 @@ interface Accounts {
  * hängt, bleibt beim richtigen Menschen.
  */
 async function readAccounts(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   warnungen: string[]
 ): Promise<Accounts> {
   const { data, error } = await admin.rpc("transfer_accounts");
@@ -238,7 +238,7 @@ async function readAccounts(
 
 /** Speicher-Ordner sind nicht rekursiv abfragbar – also selbst hinabsteigen. */
 async function walkBucket(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   bucket: string,
   prefix: string,
   depth: number

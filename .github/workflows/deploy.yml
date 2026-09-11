@@ -26,6 +26,16 @@ jobs:
       # koennen Typfehler unbemerkt bis in die Produktion durchlaufen.
       - name: TypeScript
         run: npx tsc --noEmit -p tsconfig.app.json
+      # Die Edge Functions laufen unter Deno und fielen bisher durch jedes
+      # Raster. Beim ersten Lauf am 11.09.2026 fand diese Prüfung einen echten
+      # Fehler: Der Aufnahmeantrag hat die Antworten auf die Zusatzfragen nie
+      # gespeichert. Eigene Konfiguration (typecheck.json statt deno.json),
+      # damit das Ausrollen bei Supabase davon unberührt bleibt.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge Functions (Typen)
+        run: deno check --no-lock --config supabase/functions/typecheck.json supabase/functions
       - name: Unit tests (Kalender-Export, Formular-Bedingungen)
         run: npm test
   deploy:
