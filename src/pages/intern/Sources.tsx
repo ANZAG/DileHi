@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput } from "lucide-react";
+import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput, AlertTriangle } from "lucide-react";
+import {
+  attachFile, deleteSourceWithFile, downloadUrl, registerSource, uploadToSharePoint,
+} from "@/lib/sharePointFiles";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -19,10 +22,29 @@ const getFileExtension = (path: string) => {
   return ext;
 };
 
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"];
+
 const isPreviewable = (path: string) => {
   const ext = getFileExtension(path);
-  return ["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"].includes(ext);
+  return ["pdf", ...IMAGE_EXTENSIONS].includes(ext);
 };
+
+/** Eine Quelle, wie die Seite sie braucht. Die Datei liegt in Supabase (file_path) oder in SharePoint (drive_item_id). */
+interface SourceRow {
+  id: string;
+  title: string;
+  content: string | null;
+  url: string | null;
+  file_path: string | null;
+  drive_item_id?: string | null;
+  file_name?: string | null;
+  file_missing?: boolean;
+  folder_id: string | null;
+  created_by: string;
+}
+
+/** Der Name, an dem sich ablesen lässt, was für eine Datei es ist. */
+const fileLabel = (s: SourceRow) => s.file_name ?? s.file_path ?? "";
 
 interface UploadProgress {
   fileName: string;
@@ -53,8 +75,21 @@ const Sources = () => {
   const [editTitle, setEditTitle] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
+  const [previewIsImage, setPreviewIsImage] = useState(false);
+  const canManageStorage = hasPermission("system.integrations");
 
   const activeEpoch = epochFilter || kategorien[0]?.value || "";
+
+  // Wohin neue Dateien gehen. Eingestellt unter Verwaltung → Dateiablage.
+  const { data: fileStorage = "supabase" } = useQuery({
+    queryKey: ["file-storage"],
+    queryFn: async () => {
+      const { data } = await (supabase as unknown as { from: (t: string) => any })
+        .from("app_settings").select("file_storage").maybeSingle();
+      return ((data?.file_storage as string | undefined) ?? "supabase") as "supabase" | "sharepoint";
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: folders = [] } = useQuery({
     queryKey: ["source_folders", activeEpoch],
@@ -78,7 +113,7 @@ const Sources = () => {
         .eq("epoch", activeEpoch)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as SourceRow[];
     },
   });
 
@@ -136,6 +171,14 @@ const Sources = () => {
 
   const deleteSource = useMutation({
     mutationFn: async (id: string) => {
+      const s = sources.find((x) => x.id === id);
+      // Mit Datei über die Edge Function: Sie löscht die Datei mit – bisher
+      // blieb sie im Speicher liegen, wenn die Quelle weg war. Eine Datei in
+      // SharePoint geht in den Papierkorb der Website.
+      if (s?.drive_item_id || s?.file_path) {
+        await deleteSourceWithFile(id);
+        return;
+      }
       const { error } = await supabase.from("sources").delete().eq("id", id);
       if (error) throw error;
     },
@@ -143,6 +186,7 @@ const Sources = () => {
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       toast({ title: "Quelle gelöscht" });
     },
+    onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
   const deleteFolder = useMutation({
@@ -209,35 +253,46 @@ const Sources = () => {
     }));
     setUploads((prev) => [...prev, ...newUploads]);
 
+    let gelungen = 0;
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
       const safeName = sanitizeFileName(file.name);
       const path = `sources/${activeEpoch}/${Date.now()}_${safeName}`;
-
-      try {
+      const fortschritt = (anteil: number) =>
         setUploads((prev) =>
           prev.map((u) =>
             u.fileName === file.name && u.status === "uploading"
-              ? { ...u, progress: 50 }
+              ? { ...u, progress: Math.round(anteil * 100) }
               : u
           )
         );
 
-        const { error: uploadErr } = await supabase.storage
-          .from("internal-files")
-          .upload(path, file);
-        if (uploadErr) throw uploadErr;
-
+      try {
         const customTitle = uploadTitles[file.name] || file.name;
-        const { error: dbErr } = await supabase.from("sources").insert({
-          epoch: activeEpoch,
-          title: customTitle,
-          content: `Datei: ${file.name}`,
-          file_path: path,
-          folder_id: currentFolderId,
-          created_by: user!.id,
-        });
-        if (dbErr) throw dbErr;
+
+        if (fileStorage === "sharepoint") {
+          // Direkt zu Microsoft, in Stücken – mit echtem Fortschritt statt
+          // eines festen „50 %".
+          const item = await uploadToSharePoint(file, activeEpoch, fortschritt);
+          await registerSource({ driveItemId: item.id, title: customTitle, epoch: activeEpoch, folderId: currentFolderId });
+        } else {
+          fortschritt(0.5);
+          const { error: uploadErr } = await supabase.storage
+            .from("internal-files")
+            .upload(path, file);
+          if (uploadErr) throw uploadErr;
+
+          const { error: dbErr } = await supabase.from("sources").insert({
+            epoch: activeEpoch,
+            title: customTitle,
+            content: `Datei: ${file.name}`,
+            file_path: path,
+            folder_id: currentFolderId,
+            created_by: user!.id,
+          });
+          if (dbErr) throw dbErr;
+        }
+        gelungen++;
 
         setUploads((prev) =>
           prev.map((u) =>
@@ -260,25 +315,64 @@ const Sources = () => {
     queryClient.invalidateQueries({ queryKey: ["sources"] });
     setPendingFiles([]);
     setUploadTitles({});
-    const successCount = fileArray.length;
-    toast({ title: `${successCount} Datei${successCount !== 1 ? "en" : ""} hochgeladen` });
+    // Bisher stand hier die Zahl der ausgewählten Dateien, auch wenn welche
+    // gescheitert waren.
+    toast({
+      title: `${gelungen} von ${fileArray.length} Datei${fileArray.length !== 1 ? "en" : ""} hochgeladen`,
+      variant: gelungen < fileArray.length ? "destructive" : undefined,
+    });
 
     setTimeout(() => {
       setUploads((prev) => prev.filter((u) => u.status === "uploading"));
     }, 3000);
   };
 
-  const previewSourceFile = async (filePath: string, title: string) => {
-    const { data, error } = await supabase.storage.from("internal-files").createSignedUrl(filePath, 300);
+  const previewSourceFile = async (s: SourceRow) => {
+    if (s.drive_item_id) {
+      try {
+        const d = await downloadUrl(s.id);
+        // SharePoint liefert Dateien zum Herunterladen aus, nicht zum Anzeigen.
+        // Für die Vorschau deshalb erst laden und dann zeigen – bei sehr
+        // grossen Scans lieber gleich herunterladen.
+        if ((d.size ?? 0) > 60 * 1024 * 1024) {
+          toast({ title: "Zu gross für die Vorschau", description: "Bitte herunterladen." });
+          return;
+        }
+        const blob = await (await fetch(d.url)).blob();
+        setPreviewTitle(s.title);
+        setPreviewIsImage((d.mimeType ?? blob.type).startsWith("image/"));
+        setPreviewUrl(URL.createObjectURL(blob));
+      } catch (err) {
+        toast({ title: "Vorschau-Fehler", description: (err as Error).message, variant: "destructive" });
+      }
+      return;
+    }
+    const { data, error } = await supabase.storage.from("internal-files").createSignedUrl(s.file_path!, 300);
     if (error || !data?.signedUrl) {
       toast({ title: "Vorschau-Fehler", variant: "destructive" });
       return;
     }
-    setPreviewTitle(title);
+    setPreviewTitle(s.title);
+    setPreviewIsImage(IMAGE_EXTENSIONS.includes(getFileExtension(s.file_path!)));
     setPreviewUrl(data.signedUrl);
   };
 
-  const downloadSourceFile = async (filePath: string, title: string) => {
+  const downloadSourceFile = async (s: SourceRow) => {
+    const title = s.title;
+    if (s.drive_item_id) {
+      try {
+        const d = await downloadUrl(s.id);
+        // Die Adresse gilt ohne Anmeldung und nur Minuten; SharePoint schickt
+        // die Datei als Download, die Seite bleibt stehen.
+        const a = document.createElement("a");
+        a.href = d.url;
+        a.click();
+      } catch (err) {
+        toast({ title: "Download-Fehler", description: (err as Error).message, variant: "destructive" });
+      }
+      return;
+    }
+    const filePath = s.file_path!;
     const { data, error } = await supabase.storage.from("internal-files").download(filePath);
     if (error || !data) {
       toast({ title: "Download-Fehler", variant: "destructive" });
@@ -290,6 +384,29 @@ const Sources = () => {
     a.download = title;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Eine Datei an eine Quelle hängen, deren Datei fehlt.
+   *
+   * Beim Umzug nach SharePoint fanden sich Quellen, deren Datei nie im
+   * Speicher angekommen war, und Scans, die für Supabase zu gross waren. Die
+   * Einträge bleiben stehen, mit Titel, Ordner und wer sie angelegt hat; die
+   * Datei wird hier nachgereicht.
+   */
+  const attachToSource = async (s: SourceRow, file: File) => {
+    setUploads((prev) => [...prev, { fileName: file.name, progress: 0, status: "uploading" }]);
+    const setze = (patch: Partial<UploadProgress>) =>
+      setUploads((prev) => prev.map((u) => (u.fileName === file.name && u.status === "uploading" ? { ...u, ...patch } : u)));
+    try {
+      const item = await uploadToSharePoint(file, activeEpoch, (anteil) => setze({ progress: Math.round(anteil * 100) }));
+      await attachFile(s.id, item.id);
+      setze({ progress: 100, status: "done" });
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      toast({ title: "Datei nachgereicht" });
+    } catch (err) {
+      setze({ status: "error", error: (err as Error).message });
+    }
   };
 
   const searchResults = search
@@ -381,8 +498,8 @@ const Sources = () => {
         {searchResults ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{searchResults.length} Ergebnis{searchResults.length !== 1 ? "se" : ""}</p>
-            {searchResults.map((s) => (
-              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
+            {searchResults.map((s: SourceRow) => (
+              <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onAttach={fileStorage === "sharepoint" && (s.created_by === user?.id || canManageStorage) ? attachToSource : undefined} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
             ))}
           </div>
         ) : (
@@ -449,8 +566,8 @@ const Sources = () => {
                 {currentSources.length === 0 && currentFolders.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">Keine Quellen in diesem Ordner.</div>
                 ) : (
-                  currentSources.map((s) => (
-                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
+                  currentSources.map((s: SourceRow) => (
+                    <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onAttach={fileStorage === "sharepoint" && (s.created_by === user?.id || canManageStorage) ? attachToSource : undefined} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
                   ))
                 )}
               </div>
@@ -487,13 +604,20 @@ const Sources = () => {
         </Dialog>
 
         {/* File preview dialog */}
-        <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <Dialog
+          open={!!previewUrl}
+          onOpenChange={() => {
+            // Vorschauen aus SharePoint liegen als geladene Datei im Speicher.
+            if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }}
+        >
           <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="truncate">{previewTitle}</DialogTitle>
             </DialogHeader>
             {previewUrl && (
-              previewUrl.match(/\.(png|jpg|jpeg|gif|webp|svg|bmp)/i) ? (
+              previewIsImage ? (
                 <img src={previewUrl} alt={previewTitle} className="max-w-full max-h-[70vh] object-contain mx-auto" />
               ) : (
                 <iframe src={previewUrl} className="w-full h-[70vh] border rounded" title={previewTitle} />
@@ -507,11 +631,13 @@ const Sources = () => {
 };
 
 interface SourceItemProps {
-  source: any;
+  source: SourceRow;
   user: any;
   onDelete: (id: string) => void;
-  onDownload: (path: string, name: string) => void;
-  onPreview: (path: string, name: string) => void;
+  onDownload: (s: SourceRow) => void;
+  onPreview: (s: SourceRow) => void;
+  /** Gesetzt, wenn hier eine fehlende Datei nachgereicht werden darf. */
+  onAttach?: (s: SourceRow, file: File) => void;
   onEdit: (id: string, title: string) => void;
   editingId: string | null;
   editTitle: string;
@@ -522,8 +648,9 @@ interface SourceItemProps {
   onMove: (id: string, folderId: string | null) => void;
 }
 
-const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, editingId, editTitle, onEditTitleChange, onEditSave, onEditCancel, folders, onMove }: SourceItemProps) => {
+const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onAttach, onEdit, editingId, editTitle, onEditTitleChange, onEditSave, onEditCancel, folders, onMove }: SourceItemProps) => {
   const [showMove, setShowMove] = useState(false);
+  const hasFile = !!(s.drive_item_id || s.file_path) && !s.file_missing;
 
   return (
     <div className="p-4 rounded-lg border bg-card flex items-start justify-between gap-3 overflow-hidden">
@@ -542,7 +669,8 @@ const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, 
           </div>
         ) : (
           <div className="flex items-center gap-2 min-w-0">
-            {s.file_path && <FileText size={14} className="text-primary shrink-0" />}
+            {hasFile && <FileText size={14} className="text-primary shrink-0" />}
+            {s.file_missing && <AlertTriangle size={14} className="text-amber-600 shrink-0" />}
             <h3 className="font-semibold truncate">{s.title}</h3>
             {s.created_by === user?.id && (
               <>
@@ -583,15 +711,34 @@ const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onEdit, 
               <ExternalLink size={12} /> Link öffnen
             </a>
           )}
-          {s.file_path && isPreviewable(s.file_path) && (
-            <button onClick={() => onPreview(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+          {hasFile && isPreviewable(fileLabel(s)) && (
+            <button onClick={() => onPreview(s)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
               <Eye size={12} /> Vorschau
             </button>
           )}
-          {s.file_path && (
-            <button onClick={() => onDownload(s.file_path, s.title)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+          {hasFile && (
+            <button onClick={() => onDownload(s)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
               <FileText size={12} /> Herunterladen
             </button>
+          )}
+          {s.file_missing && (
+            <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+              Die Datei fehlt.
+              {onAttach && (
+                <label className="text-primary hover:underline cursor-pointer">
+                  Nachreichen
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const datei = e.target.files?.[0];
+                      if (datei) onAttach(s, datei);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </span>
           )}
         </div>
       </div>
