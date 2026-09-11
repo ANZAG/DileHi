@@ -9,7 +9,7 @@ import {
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
   UserCog2,
 } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
 import SourcesAdmin from "@/components/admin/SourcesAdmin";
 import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
@@ -51,7 +51,13 @@ const Admin = () => {
   const { data: module } = useModule();
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
-  const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
+  // ?reiter=… öffnet einen bestimmten Reiter, etwa beim Zurück aus dem
+  // Seiteneditor. Ohne das landete man immer bei den Mitgliedern. Was der
+  // Reiter zeigt, schützen weiter unten die Rechte, nicht dieser Wert.
+  const [params] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<AdminTab>(
+    () => (params.get("reiter") as AdminTab | null) ?? defaultTab
+  );
   // Welcher Reiter offen ist. null heisst „der, in dem das Geöffnete liegt".
   const [offeneGruppeTitel, setOffeneGruppeTitel] = useState<string | null>(null);
 
