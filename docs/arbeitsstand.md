@@ -342,6 +342,13 @@ so ist:
     fragen sie die Bühne (`installation()`, `seedRows()`, `functionSource()`
     in `src/test/hilfe/buehne.ts`), auf der alle Migrationen gelaufen sind.
     Wieder Fehler 6: Nur die Datenbank sagt, was ist.
+39. **Zwei Node-Versionen in einem Workflow.** Die Prüfung in `deploy.yml`
+    lief mit Node 20, der Build mit 24, mein Rechner auch mit 24. Den Tests
+    fehlten unter 20 eingebautes WebSocket und `fs.globSync`; aufgefallen ist
+    es beim Ausrollen der Umbenennung, nachdem die Migration schon gelaufen
+    war – rund zehn Minuten passten Seite und Datenbank nicht zusammen.
+    → Überall Node 24. Und beim Ausrollen erst die Seite bauen lassen, dann
+    die Migration starten, wenn beides zusammengehört.
 
 ---
 
