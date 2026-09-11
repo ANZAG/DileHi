@@ -303,6 +303,11 @@ so ist:
     denied". Wieder Fehler 20: Die Bühne läuft mit allen Rechten. → Vor dem
     ersten Lauf in Supabase die Rechte lesend abfragen (`has_table_privilege`,
     `pg_has_role`), nicht annehmen.
+35. **Grenzen einer Ablage gelten nur beim Hochladen.** In Lovable lagen
+    Dateien, die die heutigen Grenzen der Ablage nie erlaubt hätten; das neue
+    Projekt lehnte sie ab. Darüber liegt die Grenze des Tarifs (kostenlos:
+    50 MB je Datei, 1 GB insgesamt), die sich nicht aufheben lässt. → Vor
+    einem Umzug die Grössen im Abzug gegen den Tarif des Ziels halten.
 
 ---
 
@@ -405,13 +410,20 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 
 ### 3. Der Umzug
 
-Schritt für Schritt in [`umzug.md`](umzug.md). Offen, bei Eric:
+Schritt für Schritt in [`umzug.md`](umzug.md). **Am 11. September gelaufen:**
+alle 62 Tabellen, 19 Konten (16 mit Passwort), 127 von 140 Dateien.
 
-- [ ] `BACKUP_TOKEN` in GitHub und Lovable, `export-accounts.sql` in Lovable
-      ausführen, `backup-export` in Lovable neu bereitstellen.
-- [ ] Geheimnisse der Edge Functions im neuen Projekt (`MS_*`, `VAPID_*`,
-      `DIGEST_SECRET`, `BACKUP_TOKEN`).
-- [ ] Probelauf, dann der Umzug.
+- [ ] **13 Dateien fehlen**, alle aus der Quellensammlung (Spätmittelalter,
+      eine Erster Weltkrieg), 50 bis 466 MB, zusammen gut 2 GB. Der kostenlose
+      Supabase-Tarif erlaubt höchstens 50 MB je Datei und 1 GB insgesamt;
+      belegt sind schon 852 MB. Entweder Pro-Tarif und dann „Umzug aus
+      Lovable" mit „nur Dateien", oder die Scans woanders ablegen und in der
+      Quellensammlung verlinken (`sources.url`). **Bis das geklärt ist, Lovable
+      nicht abschalten** – dort liegen sie noch.
+- [ ] Weitere 10 Einträge der Quellensammlung zeigen auf Dateien, die schon
+      in Lovable nicht in der Ablage lagen. Vermutlich Hochladen, die an der
+      25-MB-Grenze gescheitert sind, während der Eintrag trotzdem angelegt
+      wurde. Prüfen, ob die Quellensammlung das so zulässt.
 
 Danach, bei Claude:
 
