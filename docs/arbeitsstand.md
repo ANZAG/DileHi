@@ -497,7 +497,8 @@ Offen:
 - [ ] **Quellensammlung in SharePoint** – gebaut am 11. September
       (Migration `20260912090000_file_storage.sql`, Edge Function
       `sharepoint-files`, Verwaltung → Dateiablage). Eigene App-Registrierung
-      mit `Sites.Selected`. Offen bei Eric: Einrichtung nach
+      mit `Sites.Selected`. Website „Vereinsablage" und App „DING Dateiablage"
+      sind angelegt (11. September abends). Offen bei Eric: der Rest der Einrichtung nach
       [`sharepoint.md`](sharepoint.md), dann umschalten und die 51 Dateien
       verschieben, die 13 grossen Scans nachreichen. Bekannte Lücke: Wird ein
       Ordner der Quellensammlung gelöscht, bleiben die Dateien seiner Quellen
