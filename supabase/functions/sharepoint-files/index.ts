@@ -240,8 +240,19 @@ async function moveOne(
   if (source.drive_item_id) return { ok: true, ergebnis: "schon_da" };
   if (!source.file_path) return { ok: true, ergebnis: "ohne_datei" };
 
-  const { data: blob, error: loadError } = await admin.storage.from("internal-files").download(source.file_path);
-  if (loadError || !blob) {
+  // Beim Umzug aus Lovable (11.09.2026) wurden Namen mit Semikolon am `;`
+  // abgeschnitten: Die Speicher-Schnittstelle nimmt es in der Adresse als
+  // Trennzeichen. Aus „Werk; Band 01.pdf" wurde „Werk". Findet sich der
+  // volle Name nicht, deshalb der gekürzte – in SharePoint heisst die Datei
+  // dann wieder richtig.
+  const kandidaten = [source.file_path];
+  if (source.file_path.includes(";")) kandidaten.push(source.file_path.split(";")[0]);
+  let blob: Blob | null = null;
+  for (const pfad of kandidaten) {
+    const { data } = await admin.storage.from("internal-files").download(pfad);
+    if (data) { blob = data; break; }
+  }
+  if (!blob) {
     await admin.from("sources").update({ file_missing: true }).eq("id", sourceId);
     return { ok: true, ergebnis: "fehlt" };
   }
@@ -256,6 +267,8 @@ async function moveOne(
     .eq("id", sourceId);
   if (updateError) throw new Error(`Hochgeladen, aber die Quelle ist nicht umgestellt: ${updateError.message}`);
 
-  await admin.storage.from("internal-files").remove([source.file_path]);
+  // Beide Namen: Das Löschen geht über den Rumpf der Anfrage und trifft den
+  // vollen Namen genau – den gibt es aber nicht, wenn er abgeschnitten war.
+  await admin.storage.from("internal-files").remove(kandidaten);
   return { ok: true, ergebnis: "verschoben", groesse: item.size ?? null };
 }

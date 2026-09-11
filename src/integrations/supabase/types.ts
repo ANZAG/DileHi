@@ -157,6 +157,7 @@ export type Database = {
           contribution_retention_years: number
           default_role: string | null
           favicon_path: string | null
+          file_storage: string
           font_body: string
           font_headings: string
           footer_legal_label: string
@@ -186,6 +187,7 @@ export type Database = {
           register_number: string | null
           seo_description: string | null
           seo_image_path: string | null
+          sharepoint_site_url: string | null
           statutes_document_id: string | null
           statutes_link: boolean
           updated_at: string
@@ -206,6 +208,7 @@ export type Database = {
           contribution_retention_years?: number
           default_role?: string | null
           favicon_path?: string | null
+          file_storage?: string
           font_body?: string
           font_headings?: string
           footer_legal_label?: string
@@ -235,6 +238,7 @@ export type Database = {
           register_number?: string | null
           seo_description?: string | null
           seo_image_path?: string | null
+          sharepoint_site_url?: string | null
           statutes_document_id?: string | null
           statutes_link?: boolean
           updated_at?: string
@@ -255,6 +259,7 @@ export type Database = {
           contribution_retention_years?: number
           default_role?: string | null
           favicon_path?: string | null
+          file_storage?: string
           font_body?: string
           font_headings?: string
           footer_legal_label?: string
@@ -284,6 +289,7 @@ export type Database = {
           register_number?: string | null
           seo_description?: string | null
           seo_image_path?: string | null
+          sharepoint_site_url?: string | null
           statutes_document_id?: string | null
           statutes_link?: boolean
           updated_at?: string
@@ -2394,10 +2400,15 @@ export type Database = {
           content: string | null
           created_at: string
           created_by: string
+          drive_item_id: string | null
           epoch: string
+          file_missing: boolean
+          file_name: string | null
           file_path: string | null
+          file_size: number | null
           folder_id: string | null
           id: string
+          mime_type: string | null
           title: string
           updated_at: string
           url: string | null
@@ -2406,10 +2417,15 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by: string
+          drive_item_id?: string | null
           epoch: string
+          file_missing?: boolean
+          file_name?: string | null
           file_path?: string | null
+          file_size?: number | null
           folder_id?: string | null
           id?: string
+          mime_type?: string | null
           title: string
           updated_at?: string
           url?: string | null
@@ -2418,10 +2434,15 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by?: string
+          drive_item_id?: string | null
           epoch?: string
+          file_missing?: boolean
+          file_name?: string | null
           file_path?: string | null
+          file_size?: number | null
           folder_id?: string | null
           id?: string
+          mime_type?: string | null
           title?: string
           updated_at?: string
           url?: string | null
