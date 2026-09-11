@@ -65,7 +65,7 @@ jobs:
     steps:
       - name: Abzug abholen
         env:
-          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || format('https://{0}.supabase.co/functions/v1', secrets.SUPABASE_PROJECT_REF) }}
           BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
           # Dateien sind gross und aendern sich selten – deshalb nur sonntags,
           # oder auf ausdruecklichen Wunsch beim Handstart.

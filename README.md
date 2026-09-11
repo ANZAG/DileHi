@@ -1,73 +1,29 @@
-# Welcome to your Lovable project
+# DING
 
-## Project info
+Das Vereinsprogramm, das ein Verein selbst aufsetzen kann: öffentliche
+Website mit Seitenbaukasten, dahinter ein Mitgliederbereich mit Terminen,
+Anmeldungen, Forum, Abstimmungen, Dokumenten und Beiträgen.
 
-**URL**: [https://lovable.dev/projects/1009136a-7a27-45bd-908f-7c25329a933a](https://lovable.dev/projects/1009136a-7a27-45bd-908f-7c25329a933a)
+Die erste Installation ist [dilehi.de](https://www.dilehi.de), die Seite von
+Diu lebendec Histôrje, einem Living-History-Verein aus Wiesbaden.
 
-## How can I edit this code?
+## Für einen neuen Verein
 
-There are several ways of editing your application.
+[`docs/installation.md`](docs/installation.md): sechs Schritte, ohne
+Kommandozeile. Gebraucht werden ein Supabase-Projekt, ein Webspace mit FTP und
+dieses Repository als Kopie.
 
-**Use Lovable**
+## Für die Weiterentwicklung
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1009136a-7a27-45bd-908f-7c25329a933a) and start prompting.
+- **Stand und nächste Schritte:** [`docs/arbeitsstand.md`](docs/arbeitsstand.md)
+- **Aufbau:** React, TypeScript, Vite, Tailwind, shadcn/ui. Datenbank, Anmeldung,
+  Dateien und Edge Functions bei Supabase.
+- **Datenbank:** `supabase/migrations/`, der Ausgangsstand und alles danach.
+  Ausgerollt wird über **Actions → Supabase ausrollen**.
+- **Prüfen:** `npm test` (spielt auch die Datenbank auf einer leeren Bühne
+  durch), `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`.
+- **Lokal starten:** `npm install`, dann eine `.env.local` mit
+  `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` des Projekts, dann
+  `npm run dev`.
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Code und Datenbank sind englisch benannt, die Oberfläche ist deutsch.
