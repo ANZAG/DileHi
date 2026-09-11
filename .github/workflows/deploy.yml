@@ -36,6 +36,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+      # Bis zum Umzug stand die Adresse der Datenbank in einer eingecheckten
+      # .env. Jeder Build ohne eigene Angaben sprach damit mit der Datenbank
+      # von DileHi – auch der eines fremden Vereins. Jetzt holt der Build sie
+      # aus dem Projekt, wie die Probeseite. Fehlt sie, bricht er ab
+      # (vite.config.ts).
+      - name: Datenbank-Adresse und öffentlichen Schlüssel holen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          anon=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq -r '.[] | select(.name == "anon") | .api_key')
+          if [ -z "$anon" ] || [ "$anon" = "null" ]; then
+            echo "Kein anon-Schlüssel im Projekt gefunden."
+            exit 1
+          fi
+          echo "::add-mask::$anon"
+          {
+            echo "VITE_SUPABASE_URL=https://$REF.supabase.co"
+            echo "VITE_SUPABASE_PROJECT_ID=$REF"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$anon"
+          } >> "$GITHUB_ENV"
       - name: Install & Build
         run: |
           npm install
