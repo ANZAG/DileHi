@@ -22,3 +22,12 @@ anderen Supabase-Installation kommt –, findet hier die Bausteine:
 | `transfer.test.ts`, `transferFiles.test.ts` | die Prüfungen dazu |
 
 Was dabei gelernt wurde, steht im Arbeitsstand unter den Fehlern 31 bis 36.
+
+## Nachtrag, 11. September abends
+
+Zwölf Dateinamen mit Semikolon sind beim Übertragen am `;` abgeschnitten
+worden: Die Speicher-Schnittstelle von Supabase nimmt es in der Adresse als
+Trennzeichen, obwohl `transfer-files.mjs` die Namen kodiert. Die Dateien sind
+vollständig da, nur unter dem gekürzten Namen. Die Aktion `move` der Edge
+Function `sharepoint-files` findet sie trotzdem und legt sie in SharePoint
+unter dem vollen Namen ab.
