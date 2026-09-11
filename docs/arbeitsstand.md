@@ -18,11 +18,11 @@ neue Unterhaltung beginnt.
 | Arbeitszweig | `DING` |
 | Zweig der Vereinsseite | `main` — jeder Push baut dilehi.de und lädt per FTP zu gn2 |
 | Neue Datenbank | Supabase-Projekt **DING**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt |
-| Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — läuft noch, soll stillgelegt werden |
+| Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — nicht mehr in Gebrauch, wird abgeschaltet |
 | Probeseite | `ding.dilehi.de` — baut aus `DING`, spricht mit der neuen Datenbank |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
-| Plan | erst DileHi ins neue Projekt ziehen (Anleitung: [`umzug.md`](umzug.md)), dann aufräumen, dann eine leere Installation ausprobieren |
-| Tests | 27 Dateien, 259 Prüfungen, alle grün |
+| Plan | DileHi ist umgezogen ([`umzug.md`](umzug.md)). Jetzt aufräumen, dann eine leere Installation ausprobieren |
+| Tests | 28 Dateien, 261 Prüfungen, alle grün |
 
 ---
 
