@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Puck, type Data } from "@puckeditor/core";
-import { ArrowLeft, Eye, EyeOff, Save } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Globe, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NeuHier } from "@/components/onboarding/NeuHier";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,9 @@ import "@puckeditor/core/puck.css";
  * versehentlich zerlegen. Das regelt Puck selbst über die Rechte, nicht wir
  * über ausgeblendete Knöpfe.
  */
+/** Zurück dorthin, wo man hergekommen ist: zu den Seiten, nicht zu den Mitgliedern. */
+const ZURUECK = "/intern/verwaltung?reiter=sitepages";
+
 export default function SeitenEditor() {
   const { pageId } = useParams<{ pageId: string }>();
   const { hasPermission } = useAuth();
@@ -86,7 +89,7 @@ export default function SeitenEditor() {
       <div className="container py-16 text-center max-w-lg px-4">
         <p className="text-muted-foreground">Diese Seite gibt es nicht.</p>
         <Button variant="outline" className="mt-4" asChild>
-          <Link to="/intern/verwaltung">Zur Verwaltung</Link>
+          <Link to={ZURUECK}>Zur Verwaltung</Link>
         </Button>
       </div>
     );
@@ -118,7 +121,7 @@ export default function SeitenEditor() {
         renderHeaderActions={({ state }) => (
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/intern/verwaltung">
+              <Link to={ZURUECK}>
                 <ArrowLeft size={15} className="mr-1" /> Zurück
               </Link>
             </Button>
@@ -131,6 +134,22 @@ export default function SeitenEditor() {
               onClick={() => entwurf.mutate(state.data as Data)}
             >
               <Save size={15} className="mr-1" /> Entwurf sichern
+            </Button>
+
+            {/*
+              Mit dem eigenen Kopf war Pucks Knopf „Publish" verschwunden –
+              bis zum 11.09.2026 liess sich eine Seite im Editor nur noch als
+              Entwurf sichern, nie mehr veröffentlichen. Auch nicht nach dem
+              Zurückziehen.
+            */}
+            <Button
+              data-tour="knopf-veroeffentlichen"
+              size="sm"
+              disabled={veroeffentlichen.isPending}
+              onClick={() => veroeffentlichen.mutate(state.data as Data)}
+            >
+              <Globe size={15} className="mr-1" />
+              {page.is_published ? "Änderungen veröffentlichen" : "Veröffentlichen"}
             </Button>
 
             {page.is_published && darfLayout && (
