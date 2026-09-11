@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
+import { readFunctionError } from "@/lib/functionError";
 
 /**
  * Der erste Bildschirm einer frischen Installation.
@@ -62,7 +63,7 @@ export default function Einrichtung() {
       const { data, error } = await supabase.functions.invoke("setup-first-admin", {
         body: { email: email.trim(), secret: geheimnis.trim(), name: name.trim() },
       });
-      if (error) throw error;
+      if (error) throw new Error(await readFunctionError(error));
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       setFertig(data as { rolle: string; einladung: string | null; mailVersandt: boolean });
     } catch (err) {
