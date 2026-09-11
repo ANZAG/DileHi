@@ -17,9 +17,10 @@ neue Unterhaltung beginnt.
 | Produkt | **DING** — das Vereinsprogramm, das andere Vereine selbst aufsetzen können. DileHi ist seine erste Installation |
 | Arbeitszweig | `DING` |
 | Zweig der Vereinsseite | `main` — jeder Push baut dilehi.de und lädt per FTP zu gn2 |
-| Neue Datenbank | Supabase-Projekt **DING**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt |
+| Datenbank von DileHi | Supabase-Projekt **DileHi**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt (bis 11. September hiess es DING) |
+| Test- und Vorführsystem | Supabase-Projekt **DING**, Kennung `nyloyirwppbetrkkyncw`, Frankfurt, angelegt am 11. September, noch völlig leer. Gehört zu `ding.dilehi.de` (`PROBE_SUPABASE_PROJECT_REF`) |
 | Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — nicht mehr in Gebrauch, wird abgeschaltet |
-| Probeseite | `ding.dilehi.de` — baut aus `DING`, spricht mit der neuen Datenbank |
+| Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | DileHi ist umgezogen ([`umzug.md`](umzug.md)). Jetzt aufräumen, dann eine leere Installation ausprobieren |
 | Tests | 28 Dateien, 261 Prüfungen, alle grün |
