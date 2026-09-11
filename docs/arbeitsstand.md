@@ -310,7 +310,7 @@ so ist:
     code", die eigentliche Auskunft steckt im Rumpf. → `readFunctionError()`
     aus `src/lib/functionError.ts`. Noch nicht überall eingesetzt, nur in der
     Einrichtung und im Probeversand.
-33. **Edge Functions werden nicht auf Typen geprüft.** `setup-first-admin` las
+33. **Edge Functions wurden nicht auf Typen geprüft** (behoben am 11. September, `deno check`). `setup-first-admin` las
     `m.org_short_name`, das es in `marke()` nicht gibt; die Einladung hätte
     „undefined: Zugang einrichten" geheissen. Kein Test hat es gesehen.
 34. **`set_config()` ist nicht `SET`.** Supabase gibt `postgres` einige
@@ -480,7 +480,7 @@ Offen:
       Weitergeben da wie bei der Einrichtung. Als Migration mit Test – aber
       so, dass sie beim Wiederholen im Umzug DileHis Menü nicht anfasst.
 - [ ] `readFunctionError()` bei allen Aufrufen von Edge Functions einsetzen.
-- [ ] Edge Functions auf Typen prüfen lassen (`deno check` im Workflow).
+- [x] Edge Functions auf Typen prüfen lassen: `npm run functions:check`, im Workflow bei jedem Push. Fand beim ersten Lauf, dass der Aufnahmeantrag die Antworten auf die Zusatzfragen nie gespeichert hat (zod warf das Feld `extra` weg; 2 Anträge betroffen, nicht wiederherstellbar).
 - [ ] **Englische Bezeichner** in einem Durchgang: rund 60 in der Datenbank
       (etwa `onboarding_schritte`, `onboarding_hilfe`, `onboarding_erledigt()`,
       Spalten wie `anker`, `aufgabe`, `platzhalter`, `betreff`, `fussnote`),
