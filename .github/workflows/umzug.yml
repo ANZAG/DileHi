@@ -1,0 +1,289 @@
+name: Umzug aus Lovable
+
+# Holt alles aus der alten Datenbank in der Lovable-Cloud und spielt es ins
+# eigene Supabase-Projekt: Tabellen, Konten samt Passwort, Dateien.
+#
+# Ohne Häkchen bei „Wirklich übernehmen" ist es ein Probelauf. Er holt den
+# Abzug, spielt ihn ein, prüft alles – und rollt am Ende zurück. Im Bericht
+# steht, was passiert wäre. Erst wenn der Probelauf sauber ist, das Häkchen
+# setzen.
+#
+# Voraussetzungen (Anleitung: docs/umzug.md):
+#
+#   Lovable   backup-export in der neuen Fassung ausgerollt, BACKUP_TOKEN
+#             als Secret gesetzt, supabase/transfer/export-accounts.sql im
+#             SQL-Editor ausgeführt
+#   GitHub    BACKUP_TOKEN (derselbe Wert), dazu die drei SUPABASE_*-Geheimnisse
+#             vom Ausrollen-Knopf
+#   Supabase  „Supabase ausrollen" ist mit dem aktuellen Stand gelaufen
+#
+# Was ersetzt wird: jede Tabelle, die im Abzug steht, und alle Konten. Das
+# Konto aus der Einrichtung verschwindet dabei – an seine Stelle tritt der
+# Vorstand aus dem Abzug.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ernst:
+        description: "Wirklich übernehmen (sonst Probelauf, der alles zurückrollt)"
+        type: boolean
+        default: false
+      dateien:
+        description: "Dateien aus den Ablagen mitnehmen"
+        type: boolean
+        default: true
+      ohne_passwoerter:
+        description: "Auch ohne Passwörter übernehmen (alle müssen dann „Passwort vergessen“ wählen)"
+        type: boolean
+        default: false
+      vorhandene_ersetzen:
+        description: "Im Ziel stehen schon Mitglieder – trotzdem alles ersetzen"
+        type: boolean
+        default: false
+
+concurrency:
+  group: umzug
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  QUELLE: ${{ vars.ALTE_FUNKTIONEN_URL || 'https://sstplyhfebexeyqehsvv.supabase.co/functions/v1' }}
+
+jobs:
+  umzug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Erst nachsehen ──────────────────────────────────────────────────────
+      #
+      # Die alte Fassung von backup-export antwortet genauso wie die neue,
+      # kennt aber keine Konten. Dann käme ein Abzug ohne Mitglieder heraus.
+      # Die neue Fassung setzt einen Kopf, an dem sie zu erkennen ist.
+      - name: Ist backup-export in Lovable neu ausgerollt?
+        run: |
+          fassung=$(curl -sS -o /dev/null -D - -X OPTIONS "$QUELLE/backup-export" \
+            | tr -d '\r' | awk -F': ' 'tolower($1)=="x-backup-export" {print $2}')
+          if [ "$fassung" != "2" ]; then
+            echo "::error::backup-export in Lovable ist noch die alte Fassung (oder nicht erreichbar)."
+            echo "In Lovable die Edge Function backup-export neu ausrollen lassen, siehe docs/umzug.md."
+            exit 1
+          fi
+          echo "backup-export: Fassung $fassung"
+
+      - name: Ist das Ziel bereit?
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          ERNST: ${{ inputs.ernst }}
+          ERSETZEN: ${{ inputs.vorhandene_ersetzen }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/frage.sql <<'SQL'
+          select
+            (select count(*) from auth.users) as konten,
+            (select coalesce(json_agg(version order by version), '[]') from supabase_migrations.schema_migrations) as versionen;
+          SQL
+          curl -sS -f -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            --data "$(jq -n --rawfile q /tmp/frage.sql '{query: $q}')" > /tmp/ziel.json
+
+          konten=$(jq -r '.[0].konten' /tmp/ziel.json)
+          echo "Ziel $REF: $konten Konten"
+
+          # Die Migrationen nach dem Ausgangsstand laufen nach dem Einspielen
+          # noch einmal über die alten Daten. Das geht nur, wenn das Ziel sie
+          # schon hat – sonst ist der Aufbau ein anderer als der, gegen den
+          # eingespielt wird.
+          fehlend=""
+          for f in supabase/migrations/*.sql; do
+            v=$(basename "$f" | cut -d_ -f1)
+            jq -e --arg v "$v" '.[0].versionen | index($v)' /tmp/ziel.json > /dev/null || fehlend="$fehlend $v"
+          done
+          if [ -n "$fehlend" ]; then
+            echo "::error::Im Ziel fehlen Migrationen:$fehlend. Erst „Supabase ausrollen“ laufen lassen."
+            exit 1
+          fi
+
+          # Ein Konto ist das aus der Einrichtung. Mehr heisst: Hier wird schon
+          # gearbeitet, und ein Umzug würde es überschreiben.
+          if [ "$ERNST" = "true" ] && [ "$konten" -gt 1 ] && [ "$ERSETZEN" != "true" ]; then
+            echo "::error::Im Ziel stehen schon $konten Konten. Wer wirklich ersetzen will, setzt das Häkchen „trotzdem alles ersetzen“."
+            exit 1
+          fi
+
+      # ── Abzug holen ─────────────────────────────────────────────────────────
+      #
+      # Er enthält die Passwort-Hashes aller Mitglieder. Deshalb liegt er nur
+      # im Arbeitsverzeichnis dieses Laufs, wird nirgends ausgegeben und nicht
+      # als Artefakt abgelegt. Der Rechner wird nach dem Lauf verworfen.
+      - name: Abzug holen
+        env:
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+          DATEIEN: ${{ inputs.dateien }}
+          OHNE_PW: ${{ inputs.ohne_passwoerter }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BACKUP_TOKEN" ]; then
+            echo "::error::Das GitHub-Geheimnis BACKUP_TOKEN fehlt."
+            exit 1
+          fi
+          files=false; [ "$DATEIEN" = "true" ] && files=true
+          code=$(curl -sS -o "$RUNNER_TEMP/abzug.json" -w "%{http_code}" --max-time 900 \
+            -X POST "$QUELLE/backup-export" \
+            -H "x-backup-token: $BACKUP_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"files\": $files, \"accounts\": true}")
+          if [ "$code" != "200" ] && [ "$code" != "207" ]; then
+            echo "::error::Abzug fehlgeschlagen (HTTP $code)"
+            jq -r '.error // empty' "$RUNNER_TEMP/abzug.json" 2>/dev/null || true
+            exit 1
+          fi
+
+          {
+            echo "### Abzug"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            jq -r '"| Tabellen | \(.tabellen | length) |",
+                   "| Zeilen | \([.zeilen[]] | add) |",
+                   "| Konten | \(.konten.users | length) |",
+                   "| Passwörter | \(if .konten.passwoerter then "dabei" else "**nicht dabei**" end) |",
+                   "| Dateien | \(.dateien | length) |"' "$RUNNER_TEMP/abzug.json"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          jq -r '.warnungen[]? | "::warning::\(.)"' "$RUNNER_TEMP/abzug.json"
+
+          # Eine Tabelle, die nicht lesbar war, fehlt im Abzug. Das Einspielen
+          # würde sie leeren – also gar nicht erst anfangen.
+          if jq -e '[.warnungen[]? | select(startswith("Tabelle"))] | length > 0' "$RUNNER_TEMP/abzug.json" > /dev/null; then
+            echo "::error::Der Abzug ist unvollständig, siehe Warnungen."
+            exit 1
+          fi
+          if [ "$(jq -r '.konten.passwoerter' "$RUNNER_TEMP/abzug.json")" != "true" ] && [ "$OHNE_PW" != "true" ]; then
+            echo "::error::Die Passwörter fehlen: transfer_accounts() ist in der alten Datenbank nicht angelegt (docs/umzug.md, Schritt 2). Oder bewusst ohne: Häkchen „Auch ohne Passwörter“."
+            exit 1
+          fi
+
+          # Für die Datenbank nur, was sie braucht.
+          jq -c '{tabellen, konten}' "$RUNNER_TEMP/abzug.json" > "$RUNNER_TEMP/payload.json"
+
+      # ── Einspielen ──────────────────────────────────────────────────────────
+      #
+      # psql über den Pooler, mit dem Datenbankpasswort vom Ausrollen-Knopf.
+      # Alles in einer Transaktion: Scheitert irgendetwas, bleibt das Ziel,
+      # wie es war. Im Probelauf endet sie mit ROLLBACK.
+      - name: Einspielen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          ERNST: ${{ inputs.ernst }}
+        run: |
+          set -euo pipefail
+          host=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/config/database/pooler" \
+            -H "Authorization: Bearer $TOKEN" | jq -r '[.[] | select(.database_type == "PRIMARY")][0].db_host')
+          alt=$(echo "$QUELLE" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')
+          ende=rollback; [ "$ERNST" = "true" ] && ende=commit
+
+          {
+            printf '%s\n' '\set ON_ERROR_STOP on'
+            printf '%s\n' 'begin;'
+            printf '%s\n' 'set local statement_timeout = 0;'
+            printf "set local transfer.old_ref = '%s';\n" "$alt"
+            printf "set local transfer.new_ref = '%s';\n" "$REF"
+            printf '%s\n' 'create temp table transfer_payload (payload jsonb);'
+            printf '\\set payload `cat %s`\n' "$RUNNER_TEMP/payload.json"
+            printf '%s\n' "insert into transfer_payload values (:'payload');"
+            printf '%s\n' '\i supabase/transfer/import.sql'
+            # Die Migrationen nach dem Ausgangsstand gelten auch für die alten
+            # Daten: Sie löschen „vorstand" und bringen die Bereichstouren.
+            for f in $(ls supabase/migrations/*.sql | sort | tail -n +2); do
+              printf '\\i %s\n' "$f"
+            done
+            printf '%s\n' '\pset footer off'
+            printf '%s\n' 'select kind as art, detail, n from transfer_report order by kind, detail;'
+            printf '%s;\n' "$ende"
+          } > "$RUNNER_TEMP/driver.sql"
+
+          set +e
+          psql "host=$host port=5432 dbname=postgres user=postgres.$REF sslmode=require" \
+            -q -f "$RUNNER_TEMP/driver.sql" > "$RUNNER_TEMP/bericht.txt" 2> "$RUNNER_TEMP/meldungen.txt"
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/bericht.txt"
+          cat "$RUNNER_TEMP/meldungen.txt" >&2
+
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "### Abgebrochen – im Ziel hat sich nichts geändert"
+              echo ""
+              echo '```'
+              grep -E 'ERROR|FEHLER|DETAIL|HINT|CONTEXT' "$RUNNER_TEMP/meldungen.txt" || tail -20 "$RUNNER_TEMP/meldungen.txt"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$status"
+          fi
+
+          {
+            if [ "$ERNST" = "true" ]; then
+              echo "### Eingespielt"
+            else
+              echo "### Probelauf – zurückgerollt, nichts geändert"
+            fi
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/bericht.txt"
+            echo '```'
+            echo ""
+            echo "- **tabelle**: Zeilen je Tabelle"
+            echo "- **spalte_entfaellt**: Feld mit Inhalt, das es im Ziel nicht mehr gibt"
+            echo "- **fehlt_hier**: Tabelle aus dem Abzug, die das Ziel nicht kennt"
+            echo "- **mitgeleert**: Tabelle, die nicht im Abzug stand und trotzdem geleert wurde"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dateien übertragen
+        if: ${{ inputs.ernst && inputs.dateien }}
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          # Den service_role-Schlüssel nur für diesen Schritt holen und sofort
+          # maskieren. Er erscheint nirgends im Protokoll.
+          key=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
+            -H "Authorization: Bearer $TOKEN" | jq -r '.[] | select(.name == "service_role") | .api_key')
+          echo "::add-mask::$key"
+          set +e
+          TARGET_URL="https://$REF.supabase.co" SERVICE_KEY="$key" \
+            node scripts/transfer-files.mjs "$RUNNER_TEMP/abzug.json" > "$RUNNER_TEMP/dateien.txt"
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/dateien.txt"
+          {
+            echo "### Dateien"
+            echo ""
+            echo '```'
+            # Ohne die Zwischenstände („25 von 300“) und ohne die Warnzeilen.
+            grep -v '^::' "$RUNNER_TEMP/dateien.txt" | grep -vE '^[0-9]+ von [0-9]+$' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Die Datenbank steht dann schon. Rot wird der Schritt trotzdem,
+          # damit fehlende Dateien auffallen. Solange die Vereinsseite noch
+          # nicht umgestellt ist, lässt sich der ganze Umzug einfach
+          # wiederholen (Häkchen „trotzdem alles ersetzen“).
+          exit "$status"
+
+      - name: Wie es weitergeht
+        if: ${{ success() }}
+        run: |
+          {
+            echo ""
+            if [ "${{ inputs.ernst }}" = "true" ]; then
+              echo "Die Daten stehen im neuen Projekt. Nächster Schritt in docs/umzug.md: die Vereinsseite umstellen."
+            else
+              echo "Sieht der Bericht richtig aus, denselben Lauf mit „Wirklich übernehmen“ starten."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
