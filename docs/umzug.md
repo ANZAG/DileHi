@@ -98,7 +98,7 @@ sich dann nichts geändert.
 4. **Mir Bescheid geben.** Dann stelle ich dilehi.de um: `.env` raus, der Build
    holt die Adresse aus dem neuen Projekt, `backup.yml` und `digest.yml`
    bekommen die neue Adresse.
-5. **GitHub → Variables:** `SITE_URL` auf `https://dilehi.de`, danach
+5. **GitHub → Variables:** `SITE_URL` auf `https://www.dilehi.de` (so steht die Website auch in den Vereinsangaben), danach
    einmal **Supabase ausrollen**. Das stellt die Anmeldung auf die
    Vereinsseite um.
 6. **Den Mitgliedern schreiben:** einmal neu anmelden, das Passwort bleibt.
