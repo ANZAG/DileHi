@@ -40,6 +40,10 @@ on:
         description: "Im Ziel stehen schon Mitglieder – trotzdem alles ersetzen"
         type: boolean
         default: false
+      nur_dateien:
+        description: "Nur die Dateien übertragen, die Datenbank nicht anfassen"
+        type: boolean
+        default: false
 
 concurrency:
   group: umzug
@@ -79,6 +83,7 @@ jobs:
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           ERNST: ${{ inputs.ernst }}
           ERSETZEN: ${{ inputs.vorhandene_ersetzen }}
+          NUR_DATEIEN: ${{ inputs.nur_dateien }}
         run: |
           set -euo pipefail
           cat > /tmp/frage.sql <<'SQL'
@@ -109,7 +114,7 @@ jobs:
 
           # Ein Konto ist das aus der Einrichtung. Mehr heisst: Hier wird schon
           # gearbeitet, und ein Umzug würde es überschreiben.
-          if [ "$ERNST" = "true" ] && [ "$konten" -gt 1 ] && [ "$ERSETZEN" != "true" ]; then
+          if [ "$ERNST" = "true" ] && [ "$NUR_DATEIEN" != "true" ] && [ "$konten" -gt 1 ] && [ "$ERSETZEN" != "true" ]; then
             echo "::error::Im Ziel stehen schon $konten Konten. Wer wirklich ersetzen will, setzt das Häkchen „trotzdem alles ersetzen“."
             exit 1
           fi
@@ -124,6 +129,7 @@ jobs:
           BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
           DATEIEN: ${{ inputs.dateien }}
           OHNE_PW: ${{ inputs.ohne_passwoerter }}
+          NUR_DATEIEN: ${{ inputs.nur_dateien }}
         run: |
           set -euo pipefail
           if [ -z "$BACKUP_TOKEN" ]; then
@@ -131,10 +137,13 @@ jobs:
             exit 1
           fi
           files=false; [ "$DATEIEN" = "true" ] && files=true
+          accounts=true
+          # Nur Dateien: Die Konten mit ihren Hashes werden gar nicht erst abgeholt.
+          if [ "$NUR_DATEIEN" = "true" ]; then files=true; accounts=false; OHNE_PW=true; fi
           code=$(curl -sS -o "$RUNNER_TEMP/abzug.json" -w "%{http_code}" --max-time 900 \
             -X POST "$QUELLE/backup-export" \
             -H "x-backup-token: $BACKUP_TOKEN" -H "Content-Type: application/json" \
-            -d "{\"files\": $files, \"accounts\": true}")
+            -d "{\"files\": $files, \"accounts\": $accounts}")
           if [ "$code" != "200" ] && [ "$code" != "207" ]; then
             echo "::error::Abzug fehlgeschlagen (HTTP $code)"
             jq -r '.error // empty' "$RUNNER_TEMP/abzug.json" 2>/dev/null || true
@@ -176,6 +185,7 @@ jobs:
       # Alles in einer Transaktion: Scheitert irgendetwas, bleibt das Ziel,
       # wie es war. Im Probelauf endet sie mit ROLLBACK.
       - name: Einspielen
+        if: ${{ !inputs.nur_dateien }}
         env:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -245,7 +255,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Dateien übertragen
-        if: ${{ inputs.ernst && inputs.dateien }}
+        if: ${{ (inputs.ernst && inputs.dateien) || inputs.nur_dateien }}
         env:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
