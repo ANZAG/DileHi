@@ -142,7 +142,11 @@ BEGIN
 
   -- ── 2. Einspielen ─────────────────────────────────────────────────────────
 
-  PERFORM set_config('session_replication_role', 'replica', true);
+  -- Als SET, nicht über set_config(): Supabase gibt diesen Wert für postgres
+  -- nur frei, wenn er als Befehl kommt (supautils fängt SET ab). Über die
+  -- Funktion hiess es „permission denied" – aufgefallen erst im Probelauf,
+  -- weil die Bühne mit allen Rechten läuft.
+  SET LOCAL session_replication_role = replica;
 
   loaded := pg_temp.transfer_load('auth.users'::regclass, p -> 'konten' -> 'users');
   INSERT INTO transfer_report VALUES ('konten', 'übernommen', loaded);
@@ -190,7 +194,7 @@ BEGIN
     INSERT INTO transfer_report VALUES ('tabelle', t, loaded);
   END LOOP;
 
-  PERFORM set_config('session_replication_role', 'origin', true);
+  SET LOCAL session_replication_role = origin;
 
   -- ── 3. Nachprüfen ─────────────────────────────────────────────────────────
   --
