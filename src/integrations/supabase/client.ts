@@ -9,9 +9,11 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Ohne eigenen `storage`: Im Browser nimmt supabase-js von selbst localStorage,
+// anderswo (Tests unter Node) einen Speicher im Arbeitsspeicher. Ein festes
+// `localStorage` hier liess jeden Test scheitern, der diese Datei nur lud.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   }

@@ -1,5 +1,9 @@
 # Umzug aus Lovable
 
+> **Abgeschlossen am 11. September 2026.** Lovable ist abgeschaltet, die
+> Werkzeuge liegen in [`archiv-umzug/`](archiv-umzug/). Diese Datei bleibt als
+> Bericht, wie es gemacht wurde.
+
 Alles aus der alten Datenbank in der Lovable-Cloud kommt ins eigene
 Supabase-Projekt: jede Tabelle, jedes Konto mit seinem Passwort, jede Datei aus
 den Ablagen. Die Arbeit macht der Workflow **„Umzug aus Lovable"**. Vorher sind
@@ -39,7 +43,7 @@ lang, nur Buchstaben und Ziffern.
 
 1. **Secret** `BACKUP_TOKEN` mit demselben Wert wie in GitHub.
 2. **SQL-Editor:** den Inhalt von
-   [`supabase/transfer/export-accounts.sql`](../supabase/transfer/export-accounts.sql)
+   [`archiv-umzug/transfer/export-accounts.sql`](archiv-umzug/transfer/export-accounts.sql)
    einfügen und ausführen. Am Ende steht eine Zeile mit zwei Zahlen: wie viele
    Konten es gibt und wie viele davon ein Passwort haben.
 3. **`backup-export` bereitstellen.** Die Funktion liegt auf `main`, in
@@ -124,12 +128,12 @@ und ist bis dahin der Rückweg.
 
 | Datei | Aufgabe |
 | --- | --- |
-| [`supabase/transfer/export-accounts.sql`](../supabase/transfer/export-accounts.sql) | legt in der alten Datenbank `transfer_accounts()` an, die `auth.users` und `auth.identities` herausgibt |
-| [`supabase/functions/backup-export`](../supabase/functions/backup-export/index.ts) | liefert mit `accounts: true` die Konten mit, sonst wie bisher |
-| [`supabase/transfer/import.sql`](../supabase/transfer/import.sql) | spielt den Abzug ein: leeren, ohne Trigger einspielen, Verweise nachprüfen |
-| [`scripts/transfer-files.mjs`](../scripts/transfer-files.mjs) | trägt die Dateien aus den Ablagen hinüber |
-| [`.github/workflows/umzug.yml`](../.github/workflows/umzug.yml) | der Knopf |
-| [`src/test/transfer.test.ts`](../src/test/transfer.test.ts) | spielt den ganzen Umzug auf der Bühne durch |
+| [`archiv-umzug/transfer/export-accounts.sql`](archiv-umzug/transfer/export-accounts.sql) | legt in der alten Datenbank `transfer_accounts()` an, die `auth.users` und `auth.identities` herausgibt |
+| `supabase/functions/backup-export` | lieferte mit `accounts: true` die Konten mit; nach dem Umzug wieder herausgenommen |
+| [`archiv-umzug/transfer/import.sql`](archiv-umzug/transfer/import.sql) | spielt den Abzug ein: leeren, ohne Trigger einspielen, Verweise nachprüfen |
+| [`archiv-umzug/transfer-files.mjs`](archiv-umzug/transfer-files.mjs) | trägt die Dateien aus den Ablagen hinüber |
+| [`archiv-umzug/umzug.yml`](archiv-umzug/umzug.yml) | der Knopf |
+| [`archiv-umzug/transfer.test.ts`](archiv-umzug/transfer.test.ts) | spielt den ganzen Umzug auf der Bühne durch |
 
 Nach dem Einspielen laufen die Migrationen nach dem Ausgangsstand noch einmal
 über die alten Daten. Die alte Datenbank steht auf dem Ausgangsstand; erst so

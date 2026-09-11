@@ -19,7 +19,7 @@ interface Eintrag {
   sort_order: number;
   is_visible: boolean;
   opens_new: boolean;
-  bereich: MenuBereich | null;
+  area: MenuBereich | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -40,7 +40,7 @@ const BEREICHE: {
   untermenues: boolean;
 }[] = [
   {
-    id: "kopf",
+    id: "header",
     reiter: "Kopfzeile",
     hinweis: "Die Punkte oben auf der Seite. Eine Ebene Untermenü ist möglich. Dieselben Punkte stehen im Fußbereich noch einmal als Spalte.",
     spalte: "footer_navigation_label",
@@ -48,7 +48,7 @@ const BEREICHE: {
     untermenues: true,
   },
   {
-    id: "fuss_rechtliches",
+    id: "footer_legal",
     reiter: "Fußbereich: Rechtliches",
     hinweis: "Die rechte Spalte unten. Impressum und Datenschutz gehören hierhin; eine Satzung oder eine Barrierefreiheitserklärung kann dazukommen.",
     spalte: "footer_legal_label",
@@ -71,7 +71,7 @@ const BEREICHE: {
 export default function MenueAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [bereich, setBereich] = useState<MenuBereich>("kopf");
+  const [bereich, setBereich] = useState<MenuBereich>("header");
   const [neuOffen, setNeuOffen] = useState(false);
   const [neuLabel, setNeuLabel] = useState("");
   const [neuZiel, setNeuZiel] = useState("");
@@ -92,7 +92,7 @@ export default function MenueAdmin() {
 
   // Nur die Einträge des offenen Reiters. Fehlt die Spalte noch (Migration
   // nicht eingespielt), zählt alles zur Kopfzeile – wie vorher.
-  const eintraege = alle.filter((e) => (e.bereich ?? "kopf") === bereich);
+  const eintraege = alle.filter((e) => (e.area ?? "header") === bereich);
 
   const frisch = () => {
     queryClient.invalidateQueries({ queryKey: ["site-menu-admin"] });
@@ -119,7 +119,7 @@ export default function MenueAdmin() {
         page_id: istSeite ? neuZiel.slice(6) : null,
         href: istSeite ? null : neuZiel.trim(),
         parent_id: aktiv.untermenues ? neuUnter || null : null,
-        bereich,
+        area: bereich,
         sort_order: (oben[oben.length - 1]?.sort_order ?? 0) + 10,
       });
       if (error) throw new Error(error.message);

@@ -16,17 +16,17 @@ geliehen.
 Die eigenen Tabellen, dazu eine Zeile in `app_modules`:
 
 ```sql
-INSERT INTO public.app_modules (key, label, description, enabled, sort_order, requires, art)
+INSERT INTO public.app_modules (key, label, description, enabled, sort_order, requires, kind)
 VALUES ('inventar', 'Inventar',
         'Was der Verein besitzt, wo es liegt und wer es geliehen hat.',
-        true, 150, NULL, 'grundfunktion')
+        true, 150, NULL, 'core')
 ON CONFLICT (key) DO NOTHING;
 ```
 
 - `requires` nur setzen, wenn das Modul auf einem anderen aufbaut. Die
   Abhängigkeit wird in `module_enabled()` rekursiv ausgewertet: Ist das
   Grundmodul aus, ist auch dieses aus – unabhängig vom eigenen Schalter.
-- `art` ist `grundfunktion` (eigener Bereich) oder `zusatz` (Erweiterung eines
+- `kind` ist `core` (eigener Bereich) oder `addon` (Erweiterung eines
   anderen Moduls). Steuert nur, wo es in der Verwaltung steht.
 - Rechte gehören **nicht** hierher, sondern in den `permission_catalog`. Modul
   und Recht beantworten verschiedene Fragen: „Gibt es das hier?" und „Darf
@@ -48,33 +48,33 @@ und er abgeschaltet ist.
 
 ## 3. Listen
 
-Überall, wo das Modul auftauchen soll, `modul` an den Eintrag schreiben.
+Überall, wo das Modul auftauchen soll, `module` an den Eintrag schreiben.
 Gefiltert wird zentral über `nurAktive()`:
 
 ```tsx
 // src/pages/intern/Dashboard.tsx
-{ title: "Inventar", desc: "…", icon: Package, path: "/intern/inventar", modul: "inventar" },
+{ title: "Inventar", desc: "…", icon: Package, path: "/intern/inventar", module: "inventar" },
 
 // src/pages/intern/Admin.tsx
-{ id: "inventar" as const, gruppe: "intern", label: "Inventar", …, modul: "inventar" },
+{ id: "inventar" as const, gruppe: "intern", label: "Inventar", …, module: "inventar" },
 ```
 
 Für einen Bereich im Mitgliederprofil eine Zeile in `profile_fields` mit
-`block_key` und `modul` – dann greifen beide Schalter, der des Bereichs und der
+`block_key` und `module` – dann greifen beide Schalter, der des Bereichs und der
 des Moduls.
 
 ## 4. Feldtypen
 
 Bringt das Modul einen eigenen Feldtyp für Formulare mit, bekommt er in
-`FIELD_TYPES` ein `modul`. Die Auswahl filtert danach von selbst:
+`FIELD_TYPES` ein `module`. Die Auswahl filtert danach von selbst:
 
 ```ts
-{ modul: "inventar", value: "ausleihe", label: "Ausleihe", … }
+{ module: "inventar", value: "ausleihe", label: "Ausleihe", … }
 ```
 
 ## Und die Tour?
 
-Kein Pflichtschritt, aber der Ort dafür: eine Zeile in `onboarding_schritte`
+Kein Pflichtschritt, aber der Ort dafür: eine Zeile in `onboarding_steps`
 mit `modul = 'inventar'`. Sie erscheint dann nur, wenn das Modul eingeschaltet
 ist, und verschwindet mit ihm – ohne eine weitere Abfrage. Siehe
 [onboarding.md](onboarding.md).

@@ -19,9 +19,6 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-backup-token",
-  // Woran der Umzug erkennt, ob diese Fassung schon ausgerollt ist. In der
-  // Lovable-Cloud sieht man das sonst nirgends.
-  "X-Backup-Export": "2",
 };
 
 /** PostgREST liefert höchstens 1000 Zeilen je Anfrage. */
@@ -50,11 +47,9 @@ Deno.serve(async (req) => {
   }
 
   let withFiles = false;
-  let withAccounts = false;
   try {
     const body = await req.json();
     withFiles = body?.files === true;
-    withAccounts = body?.accounts === true;
   } catch {
     // Kein Rumpf ist in Ordnung – dann eben nur die Daten.
   }
@@ -142,12 +137,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ── Konten ────────────────────────────────────────────────────────────────
-  //
-  // Nur für den Umzug, nie in der täglichen Sicherung: Darin stünden sonst die
-  // Passwort-Hashes aller Mitglieder 90 Tage lang in einem GitHub-Artefakt.
-  const konten = withAccounts ? await readAccounts(admin, warnungen) : null;
-
   return json({
     erzeugt_am: new Date().toISOString(),
     hinweis:
@@ -157,84 +146,9 @@ Deno.serve(async (req) => {
     zeilen,
     tabellen,
     dateien,
-    ...(konten ? { konten } : {}),
     warnungen,
   }, warnungen.length > 0 ? 207 : 200);
 });
-
-interface Accounts {
-  /** Zeilen in der Form von auth.users. */
-  users: Record<string, unknown>[];
-  /** Zeilen in der Form von auth.identities. */
-  identities: Record<string, unknown>[];
-  /** true, wenn die Passwort-Hashes dabei sind. */
-  passwoerter: boolean;
-}
-
-/**
- * Die Konten aus `auth`, am liebsten samt Passwort.
- *
- * Mit Passwort geht es nur über `transfer_accounts()`, die in der Datenbank
- * angelegt sein muss (supabase/transfer/export-accounts.sql). Fehlt sie, gibt
- * es die Konten ohne Passwort über die Verwaltungsschnittstelle. Dann müssen
- * alle einmal „Passwort vergessen" wählen, aber alles, was an einem Konto
- * hängt, bleibt beim richtigen Menschen.
- */
-async function readAccounts(
-  admin: SupabaseClient,
-  warnungen: string[]
-): Promise<Accounts> {
-  const { data, error } = await admin.rpc("transfer_accounts");
-  if (!error && data) {
-    const d = data as { users?: Record<string, unknown>[]; identities?: Record<string, unknown>[] };
-    return { users: d.users ?? [], identities: d.identities ?? [], passwoerter: true };
-  }
-
-  warnungen.push(
-    `Konten ohne Passwort: transfer_accounts() ist nicht aufrufbar (${error?.message ?? "keine Antwort"}).`
-  );
-
-  const users: Record<string, unknown>[] = [];
-  const identities: Record<string, unknown>[] = [];
-  for (let page = 1; ; page++) {
-    const { data: list, error: listError } = await admin.auth.admin.listUsers({ page, perPage: PAGE });
-    if (listError) {
-      warnungen.push(`Konten: ${listError.message}`);
-      break;
-    }
-    for (const u of list.users) {
-      users.push({
-        id: u.id,
-        aud: u.aud,
-        role: u.role ?? "authenticated",
-        email: u.email ?? null,
-        phone: u.phone || null,
-        email_confirmed_at: u.email_confirmed_at ?? null,
-        invited_at: u.invited_at ?? null,
-        last_sign_in_at: u.last_sign_in_at ?? null,
-        created_at: u.created_at,
-        updated_at: u.updated_at ?? u.created_at,
-        raw_app_meta_data: u.app_metadata ?? {},
-        raw_user_meta_data: u.user_metadata ?? {},
-        banned_until: (u as { banned_until?: string }).banned_until ?? null,
-      });
-      for (const i of u.identities ?? []) {
-        identities.push({
-          id: i.identity_id ?? i.id,
-          provider_id: i.id,
-          user_id: i.user_id,
-          identity_data: i.identity_data ?? {},
-          provider: i.provider,
-          last_sign_in_at: i.last_sign_in_at ?? null,
-          created_at: i.created_at ?? null,
-          updated_at: i.updated_at ?? null,
-        });
-      }
-    }
-    if (list.users.length < PAGE) break;
-  }
-  return { users, identities, passwoerter: false };
-}
 
 /** Speicher-Ordner sind nicht rekursiv abfragbar – also selbst hinabsteigen. */
 async function walkBucket(

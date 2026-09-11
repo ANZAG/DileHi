@@ -12,7 +12,7 @@ export interface MenuEintrag {
  * Wo ein Eintrag erscheint. Die Kopfzeile wird im Fußbereich als Spalte
  * „Navigation" gespiegelt – deshalb gibt es dafür keinen eigenen Bereich.
  */
-export type MenuBereich = "kopf" | "fuss_rechtliches";
+export type MenuBereich = "header" | "footer_legal";
 
 interface Zeile {
   id: string;
@@ -23,13 +23,13 @@ interface Zeile {
   sort_order: number;
   is_visible: boolean;
   opens_new: boolean;
-  bereich: MenuBereich | null;
+  area: MenuBereich | null;
 }
 
 /** Solange die Datenbank leer ist oder die Abfrage scheitert. */
 const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
   // Eine Website ohne Menü wäre schlimmer als eine mit dem falschen.
-  kopf: [
+  header: [
     { path: "/", label: "Startseite" },
     { path: "/epochen/mittelalter", label: "Spätmittelalter" },
     { path: "/epochen/1815", label: "Napoleonik" },
@@ -41,7 +41,7 @@ const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
   // Hier ist der Notnagel nicht nur Bequemlichkeit: Ohne erreichbares
   // Impressum ist die Seite abmahnfähig. Wer die Einträge bewusst löscht,
   // bekommt sie deshalb zurück.
-  fuss_rechtliches: [
+  footer_legal: [
     { path: "/impressum", label: "Impressum" },
     { path: "/datenschutz", label: "Datenschutz" },
   ],
@@ -62,7 +62,7 @@ const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
  * auf – react-query fasst das über den gleichen Schlüssel zusammen, es bleibt
  * bei einer Anfrage.
  */
-export function useSiteMenu(bereich: MenuBereich = "kopf"): MenuEintrag[] {
+export function useSiteMenu(bereich: MenuBereich = "header"): MenuEintrag[] {
   const { data } = useQuery({
     queryKey: ["site-menu"],
     queryFn: async (): Promise<Record<MenuBereich, MenuEintrag[]>> => {
@@ -107,7 +107,7 @@ export function useSiteMenu(bereich: MenuBereich = "kopf"): MenuEintrag[] {
       const bauen = (fuer: MenuBereich): MenuEintrag[] => {
         // Steht die Spalte noch nicht in der Datenbank (Migration nicht
         // eingespielt), gilt alles als Kopfzeile – wie vorher.
-        const eigene = zeilen.filter((z) => (z.bereich ?? "kopf") === fuer);
+        const eigene = zeilen.filter((z) => (z.area ?? "header") === fuer);
         return eigene
           .filter((z) => !z.parent_id)
           .map((z) => {
@@ -122,7 +122,7 @@ export function useSiteMenu(bereich: MenuBereich = "kopf"): MenuEintrag[] {
           .filter((e): e is MenuEintrag => e !== null);
       };
 
-      return { kopf: bauen("kopf"), fuss_rechtliches: bauen("fuss_rechtliches") };
+      return { header: bauen("header"), footer_legal: bauen("footer_legal") };
     },
     staleTime: 60 * 60 * 1000,
     retry: 1,

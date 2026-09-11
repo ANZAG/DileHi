@@ -22,23 +22,23 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Beitragsstufe {
   key: string;
   label: string;
-  hinweis: string | null;
+  description: string | null;
   sort_order: number;
   is_active: boolean;
   /** Erstes Jahr ohne diese Stufe. null = wird angeboten. */
-  geloescht_ab: number | null;
+  removed_from: number | null;
 }
 
 export interface BeitragsstufeStatus extends Beitragsstufe {
-  angeboten: boolean;
+  offered: boolean;
   /** Aktive Mitglieder in dieser Stufe. */
-  mitglieder: number;
+  members: number;
   /** Ausgetretene, deren Profil noch auf die Stufe zeigt. */
-  ehemalige: number;
+  former_members: number;
   /** Letztes Jahr, für das ein Beitragssatz hinterlegt ist. */
-  letztes_datenjahr: number | null;
+  last_data_year: number | null;
   /** Ab diesem Jahr ist die Aufbewahrungsfrist abgelaufen. */
-  loeschbar_ab: number | null;
+  deletable_from: number | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -49,7 +49,7 @@ export function useBeitragsstufen() {
     queryFn: async (): Promise<Beitragsstufe[]> => {
       const { data, error } = await db
         .from("contribution_categories")
-        .select("key, label, hinweis, sort_order, is_active, geloescht_ab")
+        .select("key, label, description, sort_order, is_active, removed_from")
         .order("sort_order");
       if (error) throw new Error(error.message);
       return (data ?? []) as Beitragsstufe[];
@@ -63,7 +63,7 @@ export function useBeitragsstufenStatus(aktiv = true) {
   return useQuery({
     queryKey: ["beitragsstufen-status"],
     queryFn: async (): Promise<BeitragsstufeStatus[]> => {
-      const { data, error } = await supabase.rpc("beitragsstufen_status" as never);
+      const { data, error } = await supabase.rpc("contribution_category_status" as never);
       if (error) throw new Error(error.message);
       return (data ?? []) as BeitragsstufeStatus[];
     },
@@ -79,13 +79,13 @@ export function useBeitragsstufenStatus(aktiv = true) {
  * Satz einer inzwischen ausgelaufenen Stufe, obwohl die Zahlungen von damals
  * genau daran hängen.
  */
-export function stufenFuerJahr<T extends { key: string; is_active: boolean; geloescht_ab: number | null }>(
+export function stufenFuerJahr<T extends { key: string; is_active: boolean; removed_from: number | null }>(
   stufen: T[],
   jahr: number,
   hatSatz: (key: string) => boolean
 ): T[] {
   return stufen.filter((s) =>
-    s.is_active && (s.geloescht_ab == null || jahr < s.geloescht_ab)
+    s.is_active && (s.removed_from == null || jahr < s.removed_from)
       ? true
       : hatSatz(s.key)
   );

@@ -61,12 +61,12 @@ export default function ModuleAdmin() {
     if (!m.enabled) return null;
     // Eingeschaltet, aber wirkungslos: Das gehoert dazugesagt, sonst sucht
     // jemand den Bereich, dessen Schalter auf „an" steht.
-    if (!m.aktiv) return `Wirkt nicht, solange „${label(m.requires)}" abgeschaltet ist.`;
+    if (!m.active) return `Wirkt nicht, solange „${label(m.requires)}" abgeschaltet ist.`;
     return null;
   };
 
-  const grundfunktionen = module.filter((m) => m.art !== "zusatz");
-  const zusaetze = module.filter((m) => m.art === "zusatz");
+  const grundfunktionen = module.filter((m) => m.kind !== "addon");
+  const zusaetze = module.filter((m) => m.kind === "addon");
 
   return (
     <div>
@@ -128,7 +128,7 @@ function Liste({ titel, hinweis, module, schalten, grund, haengtDran }: {
           return (
             <li
               key={m.key}
-              className={`flex flex-wrap items-start gap-2 p-3 ${m.aktiv ? "" : "opacity-60"}`}
+              className={`flex flex-wrap items-start gap-2 p-3 ${m.active ? "" : "opacity-60"}`}
             >
               <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                 <span className="font-medium text-sm">{m.label}</span>

@@ -172,14 +172,14 @@ async function antragsTexte(betrag: number, modell: Beitragsmodell): Promise<Ant
   ]);
   const zeilen = (t: string) => t.split("\n").map((z) => z.trim()).filter(Boolean);
   return {
-    titel: titel.inhalt,
+    titel: titel.body,
     erklaerung: {
-      titel: erklaerung.titel,
-      zeilen: [...zeilen(erklaerung.inhalt), ...zeilen(beitragsSatz.inhalt)],
+      titel: erklaerung.title,
+      zeilen: [...zeilen(erklaerung.body), ...zeilen(beitragsSatz.body)],
     },
-    datenschutz: { titel: datenschutz.titel, text: datenschutz.inhalt },
-    zustimmungen: zeilen(zustimmungen.inhalt),
-    fussnote: zeilen(fussnote.inhalt),
+    datenschutz: { titel: datenschutz.title, text: datenschutz.body },
+    zustimmungen: zeilen(zustimmungen.body),
+    fussnote: zeilen(fussnote.body),
   };
 }
 
