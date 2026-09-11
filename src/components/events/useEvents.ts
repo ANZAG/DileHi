@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, differenceInCalendarDays } from "date-fns";
 import { getHessenHolidays } from "@/lib/holidays";
+import { calendarUrls } from "@/lib/publicAddresses";
 import type { Event, Attendee, SpanSegment, VisibilityFilter } from "./types";
 
 export function useEvents() {
@@ -127,22 +128,13 @@ export function useEvents() {
     enabled: !!user,
   });
 
-  // Abo- und Download-URL müssen getrennt bleiben:
-  // webcal:// öffnet das Kalenderprogramm, taugt aber nicht als Download-Link.
-  // Das .ics-Suffix im Pfad ist Pflicht – Outlook lehnt Abonnement-URLs ohne
-  // .ics-Endung ab. Supabase leitet Unterpfade an dieselbe Funktion weiter.
-  const fnBase = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-  const webcalBase = fnBase.replace(/^https?:\/\//, "webcal://");
-
-  const personalIcalPath = calendarToken
-    ? `/events-personal-ical/meine-termine.ics?token=${calendarToken}`
-    : null;
-  const icalPath = "/events-ical/veranstaltungen.ics";
-
-  const personalIcalUrl = personalIcalPath ? `${webcalBase}${personalIcalPath}` : null;
-  const personalIcalDownloadUrl = personalIcalPath ? `${fnBase}${personalIcalPath}` : null;
-  const icalUrl = `${webcalBase}${icalPath}`;
-  const icalDownloadUrl = `${fnBase}${icalPath}`;
+  // Über die eigene Seite, nicht direkt zur Datenbank: Ein Abo steht im
+  // Handy und soll den nächsten Umzug überleben (siehe publicAddresses.ts).
+  const calendars = calendarUrls(window.location.origin, calendarToken);
+  const personalIcalUrl = calendars.personal?.subscribe ?? null;
+  const personalIcalDownloadUrl = calendars.personal?.download ?? null;
+  const icalUrl = calendars.public.subscribe;
+  const icalDownloadUrl = calendars.public.download;
 
   const createEvent = useMutation({
     mutationFn: async () => {

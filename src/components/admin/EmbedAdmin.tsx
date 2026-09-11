@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { embedUrl } from "@/lib/publicAddresses";
 
 type Resource = "events" | "personas" | "gallery";
 
@@ -24,7 +25,9 @@ export default function EmbedAdmin() {
   const [limit, setLimit] = useState(3);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/embed/${resource}`;
+  // Über die eigene Seite: Der Schnipsel steht bei jemand anderem im
+  // Quelltext und soll einen Umzug der Datenbank überleben.
+  const base = embedUrl(window.location.origin, resource);
 
   const snippets = [
     {

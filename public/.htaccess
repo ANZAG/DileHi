@@ -2,6 +2,21 @@
   RewriteEngine On
   RewriteBase /
 
+  # Adressen, die nach draußen gehen – Kalender-Abos, Einbindungen auf
+  # fremden Seiten, die Sitemap –, laufen über diese Seite und werden von hier
+  # an die Edge Functions weitergeleitet. Zieht die Datenbank um, ändert sich
+  # nur das Ziel, nicht die Adresse im Handy oder auf der fremden Seite.
+  #
+  # __FUNCTIONS_URL__ setzt der Build ein (vite.config.ts). Die Pfade stehen
+  # auch in src/lib/publicAddresses.ts; ein Test prüft, dass beide passen.
+  #
+  # 302 statt 301: Ein 301 merken sich Kalenderprogramme für immer, und dann
+  # hilft beim nächsten Umzug auch diese Weiterleitung nicht mehr.
+  RewriteRule ^kalender/veranstaltungen\.ics$ __FUNCTIONS_URL__/events-ical/veranstaltungen.ics [R=302,L,QSA]
+  RewriteRule ^kalender/meine-termine\.ics$ __FUNCTIONS_URL__/events-personal-ical/meine-termine.ics [R=302,L,QSA]
+  RewriteRule ^einbindung/(events|personas|gallery)(\.js|\.html)?$ __FUNCTIONS_URL__/embed/$1$2 [R=302,L,QSA,E=EINBINDUNG:1]
+  RewriteRule ^sitemap\.xml$ __FUNCTIONS_URL__/sitemap [R=302,L]
+
   # Bestehende Dateien und Verzeichnisse direkt ausliefern
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
@@ -11,9 +26,14 @@
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# Caching: index.html nie cachen, damit neue Deployments sofort greifen
 <IfModule mod_headers.c>
+  # Caching: index.html nie cachen, damit neue Deployments sofort greifen
   <FilesMatch "index\.html$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
+
+  # Wer die Einbindung als Daten abruft (fetch von einer fremden Seite), geht
+  # durch diese Weiterleitung. Ohne die Freigabe hier bricht der Browser
+  # schon an ihr ab, bevor er die Funktion erreicht.
+  Header always set Access-Control-Allow-Origin "*" env=EINBINDUNG
 </IfModule>
