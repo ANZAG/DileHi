@@ -24,6 +24,12 @@ const BodySchema = z.object({
   contribution_interval: z.enum(["jaehrlich", "halbjaehrlich"]),
   statutes_accepted: z.literal(true),
   data_processing_accepted: z.literal(true),
+  // Die Antworten auf die Zusatzfragen. Stand hier bis zum 11.09.2026 nicht,
+  // und zod wirft unbekannte Felder stillschweigend weg: Kein einziger Antrag
+  // hat je eine Antwort gespeichert, obwohl das Formular sie abgefragt hat.
+  // Aufgefallen erst mit der Typprüfung. Was genau drinsteht, prüft
+  // zusatzAngaben() unten.
+  extra: z.unknown().optional(),
 });
 
 /**
