@@ -23,7 +23,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | DileHi ist umgezogen ([`umzug.md`](umzug.md)). Jetzt aufräumen, dann eine leere Installation ausprobieren |
-| Tests | 28 Dateien, 266 Prüfungen, alle grün |
+| Tests | 30 Dateien, 277 Prüfungen, alle grün |
 
 ---
 
@@ -421,6 +421,7 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 | --- | --- |
 | [`installation.md`](installation.md) | die Anleitung für einen neuen Verein |
 | [`umzug.md`](umzug.md) | der Umzug aus Lovable, Schritt für Schritt |
+| [`sharepoint.md`](sharepoint.md) | Dateiablage in SharePoint einrichten |
 | [`standalone.md`](standalone.md) | was für andere Vereine fehlte (teilweise veraltet, siehe unten) |
 | [`onboarding.md`](onboarding.md), [`module.md`](module.md) | Aufbau von Einführung und Modulen |
 | [`name-ding.md`](name-ding.md) | warum DING |
@@ -485,9 +486,14 @@ Offen:
 - [ ] **Mails von Supabase selbst** (Bestätigung einer neuen E-Mail-Adresse)
       laufen über Supabases eigenen Versand, zwei Mails pro Stunde. Unter
       Authentication → SMTP eigene Angaben eintragen.
-- [ ] **Quellensammlung**: 761 der 852 MB im Speicher sind ihre Dateien.
-      Kandidat für eine Ablage in SharePoint über Microsoft Graph, siehe
-      Gespräch vom 11. September.
+- [ ] **Quellensammlung in SharePoint** – gebaut am 11. September
+      (Migration `20260912090000_file_storage.sql`, Edge Function
+      `sharepoint-files`, Verwaltung → Dateiablage). Eigene App-Registrierung
+      mit `Sites.Selected`. Offen bei Eric: Einrichtung nach
+      [`sharepoint.md`](sharepoint.md), dann umschalten und die 51 Dateien
+      verschieben, die 13 grossen Scans nachreichen. Bekannte Lücke: Wird ein
+      Ordner der Quellensammlung gelöscht, bleiben die Dateien seiner Quellen
+      liegen (in Supabase wie in SharePoint).
 
 ### 4. Danach
 

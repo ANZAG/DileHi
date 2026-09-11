@@ -50,6 +50,13 @@ describe("Gemeinsame Werte", () => {
     expect(unionIn("src/hooks/useModule.ts", /kind: ([^;]+);/)).toEqual(inDb);
   });
 
+  it("Dateiablagen: Datenbank und Verwaltung kennen dieselben", async () => {
+    const inDb = await checkValues("app_settings_file_storage_check");
+    expect(inDb).toEqual(["sharepoint", "supabase"]);
+    expect(unionIn("src/components/admin/FileStorageAdmin.tsx", /type Storage = ([^;]+);/)).toEqual(inDb);
+    expect(unionIn("src/pages/intern/Sources.tsx", /\) as ("[a-z]+" \| "[a-z]+");/)).toEqual(inDb);
+  });
+
   it("kein Funktionsrumpf nennt noch einen alten Namen", async () => {
     // Umbenennen zieht Richtlinien und Fremdschlüssel mit, Funktionsrümpfe
     // nicht – dort steht der Name als Text und scheitert erst beim Aufruf.

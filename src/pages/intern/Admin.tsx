@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
-  UserCog2,
+  UserCog2, HardDrive,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -21,6 +21,7 @@ import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin"
 import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
 import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
 import EmbedAdmin from "@/components/admin/EmbedAdmin";
+import FileStorageAdmin from "@/components/admin/FileStorageAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
@@ -36,7 +37,7 @@ import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage";
 
 
 const Admin = () => {
@@ -120,6 +121,7 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , module: "embedding"},
+      { id: "ablage" as const, gruppe: "system", label: "Dateiablage", icon: HardDrive, desc: "Wo die Dateien der Quellensammlung liegen", module: "sources" },
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
@@ -268,6 +270,7 @@ const Admin = () => {
           {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
+          {activeTab === "ablage" && hasPermission("system.integrations") && <FileStorageAdmin />}
           {activeTab === "forum" && hasPermission("forum.categories_manage") && <ForumCategoriesAdmin />}
           {activeTab === "rollen" && canRoles && <RollenAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
