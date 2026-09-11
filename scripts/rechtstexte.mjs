@@ -330,9 +330,6 @@ const datenschutz = [
     zwecke: "Bereitstellung des Onlineangebotes; informationstechnische Infrastruktur; Sicherheitsmaßnahmen.",
     grundlagen: "Berechtigte Interessen (Art. 6 Abs. 1 S. 1 lit. f) DSGVO).",
     weiteres: [
-      "<strong>Anwendungsplattform:</strong> Die Anwendung wird über die Plattform <strong>Lovable</strong> " +
-      "(GPT Engineer, Inc.) bereitgestellt. Die Server stehen in der Europäischen Union.",
-
       "<strong>Datenbank, Anmeldung und Dateien:</strong> Für die Speicherung der Daten – Mitgliederdaten, " +
       "Kontaktanfragen, Forenbeiträge, hochgeladene Dateien – und für die Anmeldung setzen wir " +
       "<strong>Supabase</strong> (Supabase, Inc.) ein. Die Daten liegen auf Servern in der Europäischen Union " +

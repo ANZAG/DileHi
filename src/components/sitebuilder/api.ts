@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Datenzugriff für die Seiten.
  *
- * site_pages steht noch nicht in der erzeugten types.ts – die entsteht erst
- * bei der nächsten Neugenerierung durch Lovable. Damit die Zusicherungen nicht
- * durch alle Komponenten wandern, stehen sie gebündelt hier.
+ * Die Zusicherungen stammen aus der Zeit, als site_pages noch nicht in der
+ * erzeugten types.ts stand. Inzwischen steht sie dort; gebündelt bleiben sie
+ * hier, damit sie nicht durch alle Komponenten wandern.
  */
 const db = supabase as unknown as {
   from: (table: string) => any;

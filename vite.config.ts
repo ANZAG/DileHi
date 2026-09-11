@@ -2,7 +2,6 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
-import { componentTagger } from "lovable-tagger";
 import { FUNCTIONS_PLACEHOLDER, fillFunctionsUrl } from "./src/lib/publicAddresses";
 
 /**
@@ -48,11 +47,7 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
     },
-    plugins: [
-      react(),
-      mode === "development" && componentTagger(),
-      installationAddresses(env.VITE_SUPABASE_URL),
-    ].filter(Boolean),
+    plugins: [react(), installationAddresses(env.VITE_SUPABASE_URL)],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
