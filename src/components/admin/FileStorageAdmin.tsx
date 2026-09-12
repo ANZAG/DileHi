@@ -264,7 +264,7 @@ function Verschieben() {
               stehen in der Quellensammlung mit „Die Datei fehlt" – dort lässt sich die Datei nachreichen.
             </p>
           )}
-          {ergebnis.fehler.map((f) => <p key={f} className="text-destructive">{f}</p>)}
+          {ergebnis.fehler.map((f) => <p key={f} className="text-destructive break-words">{f}</p>)}
         </div>
       )}
     </div>
@@ -283,6 +283,7 @@ interface OhneDatei {
   id: string;
   title: string;
   epoch: string;
+  file_missing: boolean;
 }
 
 const mb = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
@@ -310,11 +311,14 @@ function Posteingang() {
     queryFn: () => invokeFunction<{ ordner: string; dateien: Eingang[] }>("sharepoint-files", { body: { action: "inbox" } }),
   });
 
-  const { data: ohneDatei = [] } = useQuery({
+  // Alles ohne Datei in SharePoint – auch die Quellen, die noch auf eine
+  // verlorene Datei zeigen und in der Quellensammlung „Die Datei fehlt"
+  // anzeigen. Gerade die warten ja auf einen Nachschub aus dem Korb.
+  const { data: ohneDatei = [], error: quellenFehler } = useQuery({
     queryKey: ["sources-ohne-datei"],
     queryFn: async () => {
       const { data, error } = await db.from("sources")
-        .select("id, title, epoch").is("drive_item_id", null).is("file_path", null).order("title");
+        .select("id, title, epoch, file_missing").is("drive_item_id", null).order("title");
       if (error) throw new Error(error.message);
       return (data ?? []) as OhneDatei[];
     },
@@ -346,6 +350,9 @@ function Posteingang() {
   };
 
   const dateien = data?.dateien ?? [];
+  // Wessen Datei verloren ging, steht oben: Danach sucht man hier zuerst.
+  const fehlende = ohneDatei.filter((q) => q.file_missing);
+  const leere = ohneDatei.filter((q) => !q.file_missing);
 
   return (
     <div className="space-y-3 border-t pt-6">
@@ -357,35 +364,49 @@ function Posteingang() {
       </p>
 
       {isLoading && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 size={15} className="animate-spin" /> Sehe nach …</p>}
-      {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+      {error && <p className="text-sm text-destructive break-words">{(error as Error).message}</p>}
+      {quellenFehler && (
+        <p className="text-sm text-destructive break-words">
+          Die Quellen liessen sich nicht laden: {(quellenFehler as Error).message}
+        </p>
+      )}
       {!isLoading && !error && dateien.length === 0 && (
         <p className="text-sm text-muted-foreground">Der Eingangskorb ist leer.</p>
       )}
 
       <ul className="space-y-2">
         {dateien.map((d) => (
-          <li key={d.id} className="rounded-lg border p-3 space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-medium text-sm break-all">{d.name}</span>
-              <span className="text-xs text-muted-foreground">{mb(d.size)} · {d.path}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+          <li key={d.id} className="rounded-lg border p-3 space-y-2 min-w-0">
+            <p className="font-medium text-sm break-words">{d.name}</p>
+            <p className="text-xs text-muted-foreground break-all">{mb(d.size)} · {d.path}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
               <select
-                className="h-9 rounded-md border bg-background px-2 text-sm max-w-full"
+                className="h-9 w-full sm:w-auto sm:flex-1 min-w-0 rounded-md border bg-background px-2 text-sm"
                 value={wahl[d.id] ?? ""}
                 onChange={(e) => setWahl((w) => ({ ...w, [d.id]: e.target.value }))}
               >
                 <option value="">Wohin gehört die Datei?</option>
-                {ohneDatei.length > 0 && (
+                {fehlende.length > 0 && (
+                  <optgroup label="Quelle, deren Datei fehlt">
+                    {fehlende.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                  </optgroup>
+                )}
+                {leere.length > 0 && (
                   <optgroup label="Quelle ohne Datei">
-                    {ohneDatei.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                    {leere.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
                   </optgroup>
                 )}
                 <optgroup label="Neue Quelle anlegen">
                   {kategorien.map((k) => <option key={k.value} value={`neu:${k.value}`}>Neue Quelle in „{k.label}"</option>)}
                 </optgroup>
               </select>
-              <Button size="sm" variant="outline" onClick={() => zuordnen(d)} disabled={!wahl[d.id] || laeuft === d.id}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="sm:shrink-0"
+                onClick={() => zuordnen(d)}
+                disabled={!wahl[d.id] || laeuft === d.id}
+              >
                 {laeuft === d.id && <Loader2 size={15} className="mr-1 animate-spin" />} Zuordnen
               </Button>
             </div>
