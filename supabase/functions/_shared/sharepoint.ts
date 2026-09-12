@@ -291,11 +291,16 @@ export async function createUploadSession(
 /**
  * Eine Datei, aber nur, wenn sie unter FOLDER liegt.
  * Mit Download-Adresse, die ohne Anmeldung gilt und nach Minuten verfällt.
+ *
+ * Ohne `$select`: Die Download-Adresse ist keine Eigenschaft, sondern eine
+ * Anmerkung an der Antwort (`@microsoft.graph.downloadUrl`). Steht sie in
+ * einer Auswahlliste, lässt Graph sie stillschweigend weg – die Antwort kam
+ * ohne sie, und jede Vorschau endete mit „SharePoint hat keine
+ * Download-Adresse geliefert".
  */
 export async function fileInFolder(target: SharePointTarget, itemId: string): Promise<DriveItem> {
   const item = await graphJson<DriveItem>(
-    `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}` +
-      "?$select=id,name,size,file,parentReference,@microsoft.graph.downloadUrl"
+    `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}`
   );
   if (!isInFolder(item.parentReference?.path)) {
     throw new Error("Diese Datei gehört nicht zur Ablage der Quellensammlung.");
