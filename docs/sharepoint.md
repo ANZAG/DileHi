@@ -90,6 +90,18 @@ ein Admin einmal frei – im **Graph Explorer** im Browser.
 
    → **Abfrage ausführen**. Die Antwort beginnt mit **201 Created**.
 
+   Kommt stattdessen **400 „Empty Payload"**, hat der Graph Explorer den Text
+   verschluckt: Er wirft den Anforderungstext weg, wenn die Methode danach von
+   GET auf POST wechselt. Also erst **POST** wählen, dann das JSON einfügen.
+   Hilft das nicht, geht dasselbe in **PowerShell**, das den Rumpf selbst
+   richtig verpackt:
+
+   ```powershell
+   Connect-MgGraph -Scopes "Sites.FullControl.All"
+   New-MgSitePermission -SiteId "<id aus Schritt 3>" -Roles "write" `
+     -GrantedToIdentities @(@{ Application = @{ Id = "<Anwendungs-ID>"; DisplayName = "DING Dateiablage" } })
+   ```
+
 ## 4. Die Geheimnisse in Supabase
 
 Supabase → Projekt → **Edge Functions → Secrets**:
