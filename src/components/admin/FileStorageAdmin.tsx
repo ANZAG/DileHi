@@ -174,8 +174,9 @@ function Einrichtung() {
           nichts – das ist gewollt.
         </li>
         <li>
-          In Supabase unter Edge Functions → Secrets eintragen: <code>SHAREPOINT_TENANT_ID</code>,{" "}
-          <code>SHAREPOINT_CLIENT_ID</code>, <code>SHAREPOINT_CLIENT_SECRET</code>.
+          In Supabase unter Edge Functions → Secrets eintragen: <code>SHAREPOINT_CLIENT_ID</code>,{" "}
+          <code>SHAREPOINT_CLIENT_SECRET</code> und <code>SHAREPOINT_TENANT_ID</code> – letzteres nur, wenn der
+          Mailversand über Microsoft noch nicht eingerichtet ist; sonst gilt <code>MS_TENANT_ID</code>.
         </li>
         <li>Hier „Verbindung prüfen", dann SharePoint wählen und speichern.</li>
       </ol>
