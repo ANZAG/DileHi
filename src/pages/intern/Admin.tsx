@@ -121,17 +121,17 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , module: "embedding"},
-      { id: "ablage" as const, gruppe: "system", label: "Dateiablage", icon: HardDrive, desc: "Wo die Dateien der Quellensammlung liegen", module: "sources" },
+      { id: "ablage" as const, gruppe: "intern", label: "Dateiablage", icon: HardDrive, desc: "Wo die Dateien der Quellensammlung liegen", module: "sources" },
     ] : []),
     ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , module: "applications"},
-      { id: "profilfelder" as const, gruppe: "system", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
+      { id: "profilfelder" as const, gruppe: "intern", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
       { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
-      { id: "forum" as const, gruppe: "system", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , module: "forum"},
+      { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , module: "forum"},
     ] : []),
     ...(hasPermission("events.moderate") ? [
       { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , module: "event_forms"},
@@ -144,7 +144,7 @@ const Admin = () => {
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Was eine Rolle darf" },
     ] : []),
     ...(canAudit ? [
-      { id: "audit" as const, gruppe: "system", label: "Audit-Log", icon: History, desc: "Wer hat was geändert" },
+      { id: "audit" as const, gruppe: "intern", label: "Audit-Log", icon: History, desc: "Wer hat was geändert" },
     ] : []),
   ];
 
@@ -156,6 +156,7 @@ const Admin = () => {
   for (const [schluessel, titel] of [
     ["personen", "Mitglieder und Anfragen"],
     ["website", "Öffentliche Website"],
+    ["intern", "Mitgliederbereich"],
     ["system", "Allgemeine Einstellungen"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
