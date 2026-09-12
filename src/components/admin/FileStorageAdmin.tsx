@@ -324,35 +324,68 @@ function Posteingang() {
     },
   });
 
-  const [wahl, setWahl] = useState<Record<string, string>>({});
-  const [laeuft, setLaeuft] = useState<string | null>(null);
-
-  const zuordnen = async (datei: Eingang) => {
-    const ziel = wahl[datei.id] ?? "";
-    if (!ziel) return;
-    setLaeuft(datei.id);
-    try {
-      const neu = ziel.startsWith("neu:");
-      await invokeFunction("sharepoint-files", {
-        body: neu
-          ? { action: "claim", driveItemId: datei.id, epoch: ziel.slice(4), title: datei.name }
-          : { action: "claim", driveItemId: datei.id, sourceId: ziel },
-      });
-      toast({ title: "Zugeordnet", description: datei.name });
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["sources-ohne-datei"] });
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
-    } catch (err) {
-      toast({ title: "Nicht zugeordnet", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setLaeuft(null);
-    }
-  };
-
   const dateien = data?.dateien ?? [];
   // Wessen Datei verloren ging, steht oben: Danach sucht man hier zuerst.
   const fehlende = ohneDatei.filter((q) => q.file_missing);
   const leere = ohneDatei.filter((q) => !q.file_missing);
+
+  const [wahl, setWahl] = useState<Record<string, string>>({});
+  const [laeuft, setLaeuft] = useState(false);
+  const [erledigt, setErledigt] = useState(0);
+  const [fehler, setFehler] = useState<string[]>([]);
+
+  const gewaehlt = dateien.filter((d) => wahl[d.id]).length;
+
+  /**
+   * Alle getroffenen Zuordnungen auf einmal.
+   *
+   * Eine nach der anderen, nicht alle gleichzeitig: Jede verschiebt eine
+   * Datei in SharePoint, und Graph nimmt es übel, wenn zwanzig Anfragen
+   * zugleich denselben Ordner anlegen wollen. Was scheitert, hält den Rest
+   * nicht auf und steht danach in der Liste.
+   */
+  const zuordnen = async () => {
+    const offen = dateien.filter((d) => wahl[d.id]);
+    if (offen.length === 0) return;
+    setLaeuft(true);
+    setErledigt(0);
+    setFehler([]);
+    const gescheitert: string[] = [];
+    const geschafft: string[] = [];
+
+    for (const [i, datei] of offen.entries()) {
+      const ziel = wahl[datei.id];
+      try {
+        await invokeFunction("sharepoint-files", {
+          body: ziel.startsWith("neu:")
+            ? { action: "claim", driveItemId: datei.id, epoch: ziel.slice(4), title: datei.name }
+            : { action: "claim", driveItemId: datei.id, sourceId: ziel },
+        });
+        geschafft.push(datei.id);
+      } catch (err) {
+        gescheitert.push(`${datei.name}: ${(err as Error).message}`);
+      }
+      setErledigt(i + 1);
+    }
+
+    // Nur die erledigten aus der Auswahl nehmen – was scheiterte, bleibt
+    // eingestellt, damit man es gleich noch einmal versuchen kann.
+    setWahl((w) => {
+      const rest = { ...w };
+      for (const id of geschafft) delete rest[id];
+      return rest;
+    });
+    setFehler(gescheitert);
+    setLaeuft(false);
+    if (geschafft.length > 0) {
+      toast({
+        title: geschafft.length === 1 ? "Eine Datei zugeordnet" : `${geschafft.length} Dateien zugeordnet`,
+      });
+    }
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["sources-ohne-datei"] });
+    queryClient.invalidateQueries({ queryKey: ["sources"] });
+  };
 
   return (
     <div className="space-y-3 border-t pt-6">
@@ -374,42 +407,53 @@ function Posteingang() {
         <p className="text-sm text-muted-foreground">Der Eingangskorb ist leer.</p>
       )}
 
+      {/* Erst alle Zuordnungen einstellen, dann ein Knopf für alle: Bei
+          vierzig Büchern ist jeder einzelne Klick einer zu viel. */}
+      {dateien.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 sticky top-0 bg-background py-2 z-10">
+          <Button onClick={zuordnen} disabled={gewaehlt === 0 || laeuft}>
+            {laeuft && <Loader2 size={15} className="mr-1 animate-spin" />}
+            {gewaehlt === 0
+              ? "Nichts ausgewählt"
+              : gewaehlt === 1 ? "Eine Datei zuordnen" : `${gewaehlt} Dateien zuordnen`}
+          </Button>
+          {laeuft && <span className="text-sm text-muted-foreground">{erledigt} von {gewaehlt}</span>}
+        </div>
+      )}
+
+      {fehler.length > 0 && (
+        <div className="text-sm space-y-1">
+          {fehler.map((f) => <p key={f} className="text-destructive break-words">{f}</p>)}
+        </div>
+      )}
+
       <ul className="space-y-2">
         {dateien.map((d) => (
           <li key={d.id} className="rounded-lg border p-3 space-y-2 min-w-0">
             <p className="font-medium text-sm break-words">{d.name}</p>
             <p className="text-xs text-muted-foreground break-all">{mb(d.size)} · {d.path}</p>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-              <select
-                className="h-9 w-full sm:w-auto sm:flex-1 min-w-0 rounded-md border bg-background px-2 text-sm"
-                value={wahl[d.id] ?? ""}
-                onChange={(e) => setWahl((w) => ({ ...w, [d.id]: e.target.value }))}
-              >
-                <option value="">Wohin gehört die Datei?</option>
-                {fehlende.length > 0 && (
-                  <optgroup label="Quelle, deren Datei fehlt">
-                    {fehlende.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
-                  </optgroup>
-                )}
-                {leere.length > 0 && (
-                  <optgroup label="Quelle ohne Datei">
-                    {leere.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
-                  </optgroup>
-                )}
-                <optgroup label="Neue Quelle anlegen">
-                  {kategorien.map((k) => <option key={k.value} value={`neu:${k.value}`}>Neue Quelle in „{k.label}"</option>)}
+            <select
+              className="h-9 w-full block rounded-md border bg-background px-2 text-sm"
+              aria-label={`Wohin gehört ${d.name}?`}
+              value={wahl[d.id] ?? ""}
+              disabled={laeuft}
+              onChange={(e) => setWahl((w) => ({ ...w, [d.id]: e.target.value }))}
+            >
+              <option value="">Wohin gehört die Datei?</option>
+              {fehlende.length > 0 && (
+                <optgroup label="Quelle, deren Datei fehlt">
+                  {fehlende.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
                 </optgroup>
-              </select>
-              <Button
-                size="sm"
-                variant="outline"
-                className="sm:shrink-0"
-                onClick={() => zuordnen(d)}
-                disabled={!wahl[d.id] || laeuft === d.id}
-              >
-                {laeuft === d.id && <Loader2 size={15} className="mr-1 animate-spin" />} Zuordnen
-              </Button>
-            </div>
+              )}
+              {leere.length > 0 && (
+                <optgroup label="Quelle ohne Datei">
+                  {leere.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                </optgroup>
+              )}
+              <optgroup label="Neue Quelle anlegen">
+                {kategorien.map((k) => <option key={k.value} value={`neu:${k.value}`}>Neue Quelle in „{k.label}"</option>)}
+              </optgroup>
+            </select>
           </li>
         ))}
       </ul>
