@@ -34,10 +34,21 @@ export interface DriveItem {
   "@microsoft.graph.downloadUrl"?: string;
 }
 
+/**
+ * Der Mandant – eure Microsoft-365-Organisation. Für Mailversand und Ablage
+ * ist das derselbe, deshalb reicht `MS_TENANT_ID`, wenn der Mailversand schon
+ * eingerichtet ist. Anwendungs-ID und Geheimnis bleiben getrennt: Das hier ist
+ * eine eigene App mit eigenen Rechten.
+ */
+function tenantId(): string {
+  return Deno.env.get("SHAREPOINT_TENANT_ID") || Deno.env.get("MS_TENANT_ID") || "";
+}
+
 /** Welche Geheimnisse fehlen – für eine Meldung, mit der man etwas anfangen kann. */
 export function missingSecrets(): string[] {
-  return ["SHAREPOINT_TENANT_ID", "SHAREPOINT_CLIENT_ID", "SHAREPOINT_CLIENT_SECRET"]
-    .filter((n) => !Deno.env.get(n));
+  const fehlt = ["SHAREPOINT_CLIENT_ID", "SHAREPOINT_CLIENT_SECRET"].filter((n) => !Deno.env.get(n));
+  if (!tenantId()) fehlt.unshift("SHAREPOINT_TENANT_ID");
+  return fehlt;
 }
 
 let token: { value: string; until: number } | null = null;
@@ -48,7 +59,7 @@ async function accessToken(): Promise<string> {
   if (fehlt.length > 0) {
     throw new Error(`SharePoint ist nicht eingerichtet. Es fehlt: ${fehlt.join(", ")}.`);
   }
-  const tenant = Deno.env.get("SHAREPOINT_TENANT_ID")!;
+  const tenant = tenantId();
   const resp = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
