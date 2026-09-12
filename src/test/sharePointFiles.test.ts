@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
 import { CHUNK, chunkRanges, uploadToSharePoint } from "@/lib/sharePointFiles";
-import { CHUNK as SERVER_CHUNK, isInFolder, safeFileName } from "../../supabase/functions/_shared/sharepoint";
+import { CHUNK as SERVER_CHUNK, fileInFolder, isInFolder, safeFileName } from "../../supabase/functions/_shared/sharepoint";
 
 /**
  * Dateien der Quellensammlung in SharePoint.
@@ -114,5 +114,40 @@ describe("Ordnerprüfung der Edge Function", () => {
     expect(safeFileName('Urkunde "Mainz": 1455?.pdf')).toBe("Urkunde _Mainz__ 1455_.pdf");
     expect(safeFileName("Brief an Großherzog Adolph.pdf")).toBe("Brief an Großherzog Adolph.pdf");
     expect(safeFileName(" .. ")).toBe("Datei");
+  });
+});
+
+describe("Download-Adresse", () => {
+  /*
+   * Die Adresse zum Herunterladen ist keine Eigenschaft der Datei, sondern
+   * eine Anmerkung an der Antwort. Wer sie in eine Auswahlliste schreibt,
+   * bekommt sie nicht – ohne Fehler, ohne Hinweis, einfach ohne Adresse.
+   * Genau daran scheiterten Vorschau und Herunterladen.
+   */
+  it("wird ohne Auswahlliste abgefragt", async () => {
+    const adressen: string[] = [];
+    vi.stubGlobal("Deno", { env: { get: () => "geheim" } });
+    vi.stubGlobal("fetch", vi.fn(async (adresse: string) => {
+      adressen.push(String(adresse));
+      if (String(adresse).includes("login.microsoftonline.com")) {
+        return new Response(JSON.stringify({ access_token: "abc", expires_in: 3600 }), { status: 200 });
+      }
+      return new Response(JSON.stringify({
+        id: "17",
+        name: "Codex Manesse.pdf",
+        parentReference: { path: "/drives/b!abc/root:/Quellensammlung/mittelalter" },
+        "@microsoft.graph.downloadUrl": "https://tenant.sharepoint.com/abholen",
+      }), { status: 200 });
+    }));
+
+    const datei = await fileInFolder(
+      { siteId: "s", siteName: "Vereinsablage", driveId: "b!abc", driveName: "Dokumente" },
+      "17"
+    );
+
+    expect(datei["@microsoft.graph.downloadUrl"]).toBe("https://tenant.sharepoint.com/abholen");
+    const abfrage = adressen.find((a) => a.includes("/items/"));
+    expect(abfrage).toBeTruthy();
+    expect(abfrage).not.toContain("$select");
   });
 });
