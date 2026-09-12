@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useKategorien } from "@/hooks/useKategorien";
 import { invokeFunction } from "@/lib/functionError";
 
 const db = supabase as unknown as { from: (t: string) => any };
@@ -153,6 +154,7 @@ export default function FileStorageAdmin() {
       </Button>
 
       {settings?.file_storage === "sharepoint" && <Verschieben />}
+      {settings?.file_storage === "sharepoint" && <Posteingang />}
     </div>
   );
 }
@@ -265,6 +267,131 @@ function Verschieben() {
           {ergebnis.fehler.map((f) => <p key={f} className="text-destructive">{f}</p>)}
         </div>
       )}
+    </div>
+  );
+}
+
+interface Eingang {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  mimeType: string | null;
+}
+
+interface OhneDatei {
+  id: string;
+  title: string;
+  epoch: string;
+}
+
+const mb = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
+
+/**
+ * Der Eingangskorb.
+ *
+ * Grosse Scans über den Browser hochzuladen ist muehsam. Wer den Ordner der
+ * SharePoint-Website mit dem Explorer verbindet, legt sie einfach hinein –
+ * hier tauchen sie dann auf und werden einer Quelle zugeordnet. Beim
+ * Zuordnen wandert die Datei in die Quellensammlung, damit der Korb leer
+ * bleibt und jede Datei an ihrem Platz liegt.
+ *
+ * Gesucht wird in der ganzen Bibliothek ausserhalb der Quellensammlung, nicht
+ * nur im Ordner „Posteingang": Wer seine Dateien woanders abgelegt hat, soll
+ * sie trotzdem finden.
+ */
+function Posteingang() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const kategorien = useKategorien();
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["sharepoint-inbox"],
+    queryFn: () => invokeFunction<{ ordner: string; dateien: Eingang[] }>("sharepoint-files", { body: { action: "inbox" } }),
+  });
+
+  const { data: ohneDatei = [] } = useQuery({
+    queryKey: ["sources-ohne-datei"],
+    queryFn: async () => {
+      const { data, error } = await db.from("sources")
+        .select("id, title, epoch").is("drive_item_id", null).is("file_path", null).order("title");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as OhneDatei[];
+    },
+  });
+
+  const [wahl, setWahl] = useState<Record<string, string>>({});
+  const [laeuft, setLaeuft] = useState<string | null>(null);
+
+  const zuordnen = async (datei: Eingang) => {
+    const ziel = wahl[datei.id] ?? "";
+    if (!ziel) return;
+    setLaeuft(datei.id);
+    try {
+      const neu = ziel.startsWith("neu:");
+      await invokeFunction("sharepoint-files", {
+        body: neu
+          ? { action: "claim", driveItemId: datei.id, epoch: ziel.slice(4), title: datei.name }
+          : { action: "claim", driveItemId: datei.id, sourceId: ziel },
+      });
+      toast({ title: "Zugeordnet", description: datei.name });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["sources-ohne-datei"] });
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+    } catch (err) {
+      toast({ title: "Nicht zugeordnet", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setLaeuft(null);
+    }
+  };
+
+  const dateien = data?.dateien ?? [];
+
+  return (
+    <div className="space-y-3 border-t pt-6">
+      <h3 className="font-medium">Eingangskorb</h3>
+      <p className="text-sm text-muted-foreground">
+        Dateien, die in der SharePoint-Website liegen, aber zu keiner Quelle gehören. Grosse Scans legst du am
+        besten mit dem Explorer in den Ordner „{data?.ordner ?? "Posteingang"}" – dann brauchst du den Browser
+        zum Hochladen nicht. Beim Zuordnen wandert die Datei in die Quellensammlung.
+      </p>
+
+      {isLoading && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 size={15} className="animate-spin" /> Sehe nach …</p>}
+      {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+      {!isLoading && !error && dateien.length === 0 && (
+        <p className="text-sm text-muted-foreground">Der Eingangskorb ist leer.</p>
+      )}
+
+      <ul className="space-y-2">
+        {dateien.map((d) => (
+          <li key={d.id} className="rounded-lg border p-3 space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-medium text-sm break-all">{d.name}</span>
+              <span className="text-xs text-muted-foreground">{mb(d.size)} · {d.path}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                className="h-9 rounded-md border bg-background px-2 text-sm max-w-full"
+                value={wahl[d.id] ?? ""}
+                onChange={(e) => setWahl((w) => ({ ...w, [d.id]: e.target.value }))}
+              >
+                <option value="">Wohin gehört die Datei?</option>
+                {ohneDatei.length > 0 && (
+                  <optgroup label="Quelle ohne Datei">
+                    {ohneDatei.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
+                  </optgroup>
+                )}
+                <optgroup label="Neue Quelle anlegen">
+                  {kategorien.map((k) => <option key={k.value} value={`neu:${k.value}`}>Neue Quelle in „{k.label}"</option>)}
+                </optgroup>
+              </select>
+              <Button size="sm" variant="outline" onClick={() => zuordnen(d)} disabled={!wahl[d.id] || laeuft === d.id}>
+                {laeuft === d.id && <Loader2 size={15} className="mr-1 animate-spin" />} Zuordnen
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

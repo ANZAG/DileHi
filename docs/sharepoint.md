@@ -130,6 +130,25 @@ Quellensammlung mit **„Die Datei fehlt"**. Wer die Quelle angelegt hat – ode
 wer die Dateiablage verwaltet –, kann dort die Datei **nachreichen**. Bei
 DileHi betrifft das die grossen Scans, die für Supabase zu gross waren.
 
+## 6. Der Eingangskorb – grosse Dateien ohne Browser
+
+Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
+über den Ordner:
+
+1. In SharePoint auf der Website **Dokumente** öffnen → **Synchronisieren**.
+   Der Ordner erscheint dann im Explorer unter „DileHi – Vereinsablage".
+2. Die Dateien in den Ordner **Posteingang** legen (DING legt ihn selbst an).
+3. In DING: **Verwaltung → Dateiablage → Eingangskorb**. Dort steht jede Datei,
+   die in der Website liegt und zu keiner Quelle gehört – auch aus anders
+   benannten Ordnern.
+4. Je Datei auswählen, wohin sie gehört: an eine vorhandene Quelle ohne Datei
+   oder als neue Quelle in einer Epoche. Beim Zuordnen wandert die Datei nach
+   `Quellensammlung/<Epoche>/`.
+
+Damit lassen sich auch die Lücken schliessen, die beim Umzug entstanden sind:
+Quellen, deren Datei zu gross war und die in der Quellensammlung mit
+**„Die Datei fehlt"** stehen.
+
 ---
 
 ## Wie es funktioniert
