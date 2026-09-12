@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requirePermission } from "../_shared/authz.ts";
 import {
-  createUploadSession, deleteFile, ensureFolder, fileInFolder, FOLDER, missingSecrets,
-  resolveTarget, uploadBytes, type DriveItem,
+  createUploadSession, deleteFile, ensureFolder, fileInFolder, FOLDER, INBOX, listUnsorted,
+  missingSecrets, moveIntoCollection, resolveTarget, uploadBytes, type DriveItem,
 } from "../_shared/sharepoint.ts";
 
 /**
@@ -30,6 +30,8 @@ import {
  *   download-url    Adresse zum Ansehen oder Herunterladen.
  *   delete          Quelle löschen, die Datei geht in den Papierkorb der Website.
  *   move            Eine Datei aus dem Supabase-Speicher nach SharePoint tragen.
+ *   inbox           Was im Eingangskorb liegt und noch zu keiner Quelle gehört.
+ *   claim           Eine Datei aus dem Eingangskorb einer Quelle zuordnen.
  */
 
 const corsHeaders = {
@@ -191,6 +193,53 @@ Deno.serve(async (req) => {
       case "move": {
         await requirePermission(admin, user.id, "system.integrations", "Keine Berechtigung für die Dateiablage.");
         return json(200, await moveOne(admin, await target(), String(body.sourceId ?? "")));
+      }
+
+      case "inbox": {
+        // Der Eingangskorb zeigt alles, was in der Bibliothek liegt und zu
+        // keiner Quelle gehört – deshalb nur für die Dateiablage-Verwaltung.
+        await requirePermission(admin, user.id, "system.integrations", "Keine Berechtigung für die Dateiablage.");
+        const t = await target();
+        await ensureFolder(t, INBOX);
+        const dateien = await listUnsorted(t);
+        const { data: belegt } = await admin.from("sources")
+          .select("drive_item_id").not("drive_item_id", "is", null);
+        const bekannt = new Set((belegt ?? []).map((z) => z.drive_item_id as string));
+        return json(200, { ordner: INBOX, dateien: dateien.filter((d) => !bekannt.has(d.id)) });
+      }
+
+      case "claim": {
+        await requirePermission(admin, user.id, "system.integrations", "Keine Berechtigung für die Dateiablage.");
+        const driveItemId = String(body.driveItemId ?? "");
+        if (!driveItemId) throw new Refusal("Es ist keine Datei ausgewählt.", 400);
+        const t = await target();
+        const sourceId = String(body.sourceId ?? "");
+
+        if (sourceId) {
+          const { data: source } = await admin.from("sources")
+            .select("id, epoch, drive_item_id").eq("id", sourceId).maybeSingle();
+          if (!source) throw new Refusal("Diese Quelle gibt es nicht.", 404);
+          if (source.drive_item_id) throw new Refusal("Diese Quelle hat schon eine Datei.", 409);
+          const item = await moveIntoCollection(t, driveItemId, source.epoch ?? "");
+          const { error } = await admin.from("sources")
+            .update({ ...fileColumns(item), file_path: null, file_missing: false }).eq("id", sourceId);
+          if (error) throw new Error(error.message);
+          return json(200, { ok: true, id: sourceId, name: item.name });
+        }
+
+        const epoch = String(body.epoch ?? "").trim();
+        if (!epoch) throw new Refusal("Für eine neue Quelle fehlt die Epoche.", 400);
+        const item = await moveIntoCollection(t, driveItemId, epoch);
+        const { data, error } = await asUser.from("sources").insert({
+          epoch,
+          title: String(body.title ?? item.name).slice(0, 300),
+          content: `Datei: ${item.name}`,
+          folder_id: body.folderId ?? null,
+          created_by: user.id,
+          ...fileColumns(item),
+        }).select("id").single();
+        if (error) throw new Error(`Quelle nicht angelegt: ${error.message}`);
+        return json(200, { ok: true, id: data.id, name: item.name });
       }
 
       default:

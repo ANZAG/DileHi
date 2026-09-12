@@ -13,6 +13,14 @@
 
 export const FOLDER = "Quellensammlung";
 
+/**
+ * Der Eingangskorb: Wer viele oder sehr grosse Dateien hat, legt sie mit dem
+ * Explorer oder im Browser in SharePoint ab, statt sie einzeln über die
+ * Website hochzuladen. In DING tauchen sie dann zum Zuordnen auf und wandern
+ * dabei in die Quellensammlung.
+ */
+export const INBOX = "Posteingang";
+
 /** Stückgrösse beim Hochladen. Graph verlangt ein Vielfaches von 320 KiB. */
 export const CHUNK = 320 * 1024 * 32; // 10 MiB
 
@@ -30,8 +38,18 @@ export interface DriveItem {
   name: string;
   size?: number;
   file?: { mimeType?: string };
+  folder?: { childCount?: number };
   parentReference?: { path?: string };
   "@microsoft.graph.downloadUrl"?: string;
+}
+
+/** Eine Datei im Eingangskorb, mit ihrem Weg ab der Bibliothek. */
+export interface UnsortedFile {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  mimeType: string | null;
 }
 
 /**
@@ -136,14 +154,107 @@ export async function resolveTarget(siteUrl: string): Promise<SharePointTarget> 
   return target;
 }
 
-/** Legt den Ordner für die Ablage an, falls es ihn noch nicht gibt. */
-export async function ensureFolder(target: SharePointTarget): Promise<void> {
-  const resp = await graph(`/drives/${target.driveId}/root:/${encodeURIComponent(FOLDER)}`);
-  if (resp.ok) return;
-  if (resp.status !== 404) throw new Error(`SharePoint: ${await graphReason(resp)}`);
-  await graphJson(`/drives/${target.driveId}/root/children`, {
+/**
+ * Ein Ordner in der Bibliothek, angelegt, falls es ihn noch nicht gibt.
+ * `unter` ist der Weg zum Elternordner, leer für die oberste Ebene.
+ *
+ * Nie „replace": Das ersetzte in SharePoint einen gleichnamigen Ordner samt
+ * Inhalt. Legen zwei Aufrufe ihn gleichzeitig an, gewinnt einer, der andere
+ * holt sich den vorhandenen.
+ */
+export async function ensureFolder(
+  target: SharePointTarget,
+  name = FOLDER,
+  unter = ""
+): Promise<DriveItem> {
+  const weg = (unter ? [...unter.split("/"), name] : [name]).map(encodeURIComponent).join("/");
+  const holen = () => graph(`/drives/${target.driveId}/root:/${weg}`);
+
+  const da = await holen();
+  if (da.ok) return await da.json() as DriveItem;
+  if (da.status !== 404) throw new Error(`SharePoint: ${await graphReason(da)}`);
+
+  const eltern = unter
+    ? `/drives/${target.driveId}/root:/${unter.split("/").map(encodeURIComponent).join("/")}:/children`
+    : `/drives/${target.driveId}/root/children`;
+  const angelegt = await graph(eltern, {
     method: "POST",
-    body: JSON.stringify({ name: FOLDER, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }),
+    body: JSON.stringify({ name, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }),
+  });
+  if (angelegt.ok) return await angelegt.json() as DriveItem;
+  if (angelegt.status === 409) {
+    const nochmal = await holen();
+    if (nochmal.ok) return await nochmal.json() as DriveItem;
+  }
+  throw new Error(`SharePoint: ${await graphReason(angelegt)}`);
+}
+
+/**
+ * Alles, was in der Bibliothek liegt, aber nicht in der Quellensammlung –
+ * der Eingangskorb. Absichtlich nicht nur `Posteingang`: Wer seine Dateien
+ * in einen anders benannten Ordner gelegt hat, soll sie trotzdem
+ * wiederfinden. Ordner bis zu vier Ebenen tief, höchstens `max` Dateien,
+ * damit eine grosse Bibliothek die Funktion nicht sprengt.
+ */
+export async function listUnsorted(target: SharePointTarget, max = 300): Promise<UnsortedFile[]> {
+  const gefunden: UnsortedFile[] = [];
+
+  const besuche = async (relativ: string, tiefe: number): Promise<void> => {
+    if (gefunden.length >= max || tiefe > 4) return;
+    const adresse = relativ === ""
+      ? `/drives/${target.driveId}/root/children`
+      : `/drives/${target.driveId}/root:/${relativ.split("/").map(encodeURIComponent).join("/")}:/children`;
+    const { value } = await graphJson<{ value: DriveItem[] }>(
+      `${adresse}?$select=id,name,size,file,folder&$top=200`
+    );
+    for (const eintrag of value) {
+      if (gefunden.length >= max) return;
+      const weg = relativ === "" ? eintrag.name : `${relativ}/${eintrag.name}`;
+      if (eintrag.folder) {
+        if (relativ === "" && eintrag.name === FOLDER) continue; // die Ablage selbst
+        await besuche(weg, tiefe + 1);
+      } else if (eintrag.file) {
+        gefunden.push({
+          id: eintrag.id,
+          name: eintrag.name,
+          path: weg,
+          size: eintrag.size ?? 0,
+          mimeType: eintrag.file.mimeType ?? null,
+        });
+      }
+    }
+  };
+
+  await besuche("", 0);
+  return gefunden;
+}
+
+/**
+ * Eine Datei aus dem Eingangskorb in die Quellensammlung schieben.
+ * Erst dort gilt sie als zugeordnet – danach greifen dieselben Prüfungen wie
+ * für jede andere Datei der Ablage.
+ */
+export async function moveIntoCollection(
+  target: SharePointTarget,
+  itemId: string,
+  epoch: string
+): Promise<DriveItem> {
+  const item = await graphJson<DriveItem>(
+    `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}` +
+      "?$select=id,name,size,file,parentReference"
+  );
+  if (!item.file) throw new Error("Das ist keine Datei, sondern ein Ordner.");
+  if (isInFolder(item.parentReference?.path)) return item; // liegt schon richtig
+
+  await ensureFolder(target);
+  const ziel = await ensureFolder(target, safeSegment(epoch), FOLDER);
+  return await graphJson<DriveItem>(`/drives/${target.driveId}/items/${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      parentReference: { id: ziel.id },
+      name: safeFileName(item.name),
+      "@microsoft.graph.conflictBehavior": "rename",
+    }),
   });
 }
 
