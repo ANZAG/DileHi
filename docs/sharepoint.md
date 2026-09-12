@@ -37,7 +37,10 @@ Im **Microsoft Entra Admin Center**: `https://entra.microsoft.com`
    - **Registrieren**
 2. Auf der Übersichtsseite zwei Werte notieren:
    - **Anwendungs-ID (Client)** – das wird `SHAREPOINT_CLIENT_ID`
-   - **Verzeichnis-ID (Mandant)** – das wird `SHAREPOINT_TENANT_ID`
+   - **Verzeichnis-ID (Mandant)** – das wird `SHAREPOINT_TENANT_ID`. Das ist
+     eure Organisation, nicht die App: derselbe Wert wie `MS_TENANT_ID` beim
+     Mailversand. Steht der schon in Supabase, kannst du dir diesen hier
+     sparen – DING greift dann darauf zurück.
 3. **Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel**
    - Beschreibung: DING, Ablauf: **24 Monate** → **Hinzufügen**
    - Die Spalte **Wert** sofort kopieren – er ist nur jetzt sichtbar. Das wird
@@ -93,9 +96,9 @@ Supabase → Projekt → **Edge Functions → Secrets**:
 
 | Name | Wert |
 | --- | --- |
-| `SHAREPOINT_TENANT_ID` | Verzeichnis-ID (Mandant) |
 | `SHAREPOINT_CLIENT_ID` | Anwendungs-ID (Client) |
 | `SHAREPOINT_CLIENT_SECRET` | der Wert des geheimen Clientschlüssels |
+| `SHAREPOINT_TENANT_ID` | Verzeichnis-ID (Mandant) – nur nötig, wenn `MS_TENANT_ID` fehlt |
 
 ## 5. In DING umschalten
 
