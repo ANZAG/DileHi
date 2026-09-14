@@ -46,6 +46,12 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Erinnerungen an ablaufende Nachweise zuerst anlegen – dann stehen sie in
+  // derselben Abendmail. Scheitert das, etwa weil das Modul noch nicht
+  // eingespielt ist, geht die Zusammenfassung trotzdem raus.
+  const { error: erinnerungsFehler } = await admin.rpc("certificate_reminders");
+  if (erinnerungsFehler) console.error("certificate_reminders:", erinnerungsFehler.message);
+
   const { data: digests, error } = await admin.rpc("pending_digests");
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
