@@ -89,6 +89,7 @@ const Contributions        = lazyPage(() => import("./pages/intern/Contributions
 const MemberMap            = lazyPage(() => import("./pages/intern/MemberMap"));
 const Inventar             = lazyPage(() => import("./pages/intern/Inventar"));
 const Beschluesse          = lazyPage(() => import("./pages/intern/Beschluesse"));
+const Auslagen             = lazyPage(() => import("./pages/intern/Auslagen"));
 // Formular und Anmeldungen liegen auf einer Seite mit zwei Reitern. Beide
 // Adressen bleiben gueltig und waehlen nur den Reiter vor.
 const EventFormPage        = lazyPage(() => import("./pages/intern/EventFormPage"));
@@ -158,6 +159,7 @@ const App = () => (
                 <Route path="/intern/karte" element={<ModulRoute k="member_map"><ProtectedRoute><MemberMap /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/inventar" element={<ModulRoute k="inventory"><ProtectedRoute><Inventar /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/beschluesse" element={<ModulRoute k="resolutions"><ProtectedRoute><Beschluesse /></ProtectedRoute></ModulRoute>} />
+                <Route path="/intern/auslagen" element={<ModulRoute k="expense_claims"><ProtectedRoute><Auslagen /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/formular" element={<ModulRoute k="event_forms"><ProtectedRoute><EventFormPage initialTab="formular" /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/auswertung" element={<ModulRoute k="event_forms"><ProtectedRoute><EventFormPage initialTab="anmeldungen" /></ProtectedRoute></ModulRoute>} />
                 <Route path="/intern/veranstaltungen/:eventId/anmeldung" element={<ModulRoute k="event_forms"><ProtectedRoute><EventRegistrationInternal /></ProtectedRoute></ModulRoute>} />
