@@ -53,7 +53,7 @@ describe("Gemeinsame Werte", () => {
   it("Dateiablagen: Datenbank und Verwaltung kennen dieselben", async () => {
     const inDb = await checkValues("app_settings_file_storage_check");
     expect(inDb).toEqual(["sharepoint", "supabase"]);
-    expect(unionIn("src/components/admin/FileStorageAdmin.tsx", /type Storage = ([^;]+);/)).toEqual(inDb);
+    expect(unionIn("src/components/admin/DateiablageWahl.tsx", /type Storage = ([^;]+);/)).toEqual(inDb);
     expect(unionIn("src/pages/intern/Sources.tsx", /\) as ("[a-z]+" \| "[a-z]+");/)).toEqual(inDb);
   });
 

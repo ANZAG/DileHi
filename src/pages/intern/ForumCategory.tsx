@@ -14,6 +14,7 @@ import ForumEditor from "@/components/forum/ForumEditor";
 import { createThread, fetchCategories, fetchReadState, fetchThreads, istUngelesen } from "@/components/forum/api";
 import { supabase } from "@/integrations/supabase/client";
 import { SEITE } from "@/lib/layout";
+import Brotkrumen from "@/components/forum/Brotkrumen";
 
 export default function ForumCategory() {
   const { slug } = useParams<{ slug: string }>();
@@ -86,6 +87,13 @@ export default function ForumCategory() {
   return (
     <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <Brotkrumen
+          teile={[
+            { label: "Mitgliederbereich", to: "/intern" },
+            { label: "Forum", to: "/intern/forum" },
+            { label: category.name },
+          ]}
+        />
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück">
             <Link to="/intern/forum"><ArrowLeft size={20} /></Link>

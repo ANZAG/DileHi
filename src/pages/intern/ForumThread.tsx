@@ -20,6 +20,7 @@ import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
 import { buildQuote } from "@/components/forum/quote";
 import ThreadModeration from "@/components/forum/ThreadModeration";
 import { SEITE } from "@/lib/layout";
+import Brotkrumen from "@/components/forum/Brotkrumen";
 
 interface Member { id: string; display_name: string }
 
@@ -156,6 +157,14 @@ export default function ForumThread() {
   return (
     <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <Brotkrumen
+          teile={[
+            { label: "Mitgliederbereich", to: "/intern" },
+            { label: "Forum", to: "/intern/forum" },
+            ...(rubrik ? [{ label: rubrik.name, to: zurueck }] : []),
+            { label: thread?.title ?? "Thema" },
+          ]}
+        />
         <div className="flex items-start gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück" className="shrink-0">
             <Link to={zurueck}><ArrowLeft size={20} /></Link>
