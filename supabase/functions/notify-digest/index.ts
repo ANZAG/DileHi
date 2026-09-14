@@ -51,6 +51,8 @@ Deno.serve(async (req) => {
   // eingespielt ist, geht die Zusammenfassung trotzdem raus.
   const { error: erinnerungsFehler } = await admin.rpc("certificate_reminders");
   if (erinnerungsFehler) console.error("certificate_reminders:", erinnerungsFehler.message);
+  const { error: inventarFehler } = await admin.rpc("inventory_reminders");
+  if (inventarFehler) console.error("inventory_reminders:", inventarFehler.message);
 
   const { data: digests, error } = await admin.rpc("pending_digests");
   if (error) {
