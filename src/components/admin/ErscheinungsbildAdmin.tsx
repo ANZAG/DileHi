@@ -49,6 +49,7 @@ interface Einstellungen {
   tax_number: string | null;
   exemption_notice_kind: "exemption" | "assessment_60a" | null;
   exemption_notice_date: string | null;
+  exemption_notice_period: string | null;
   tax_purposes: string | null;
   fees_deductible: boolean;
   volunteer_allowance: number;
@@ -291,12 +292,23 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
                   onChange={(e) => setze({ exemption_notice_date: e.target.value || null })}
                 />
               </div>
+              {(entwurf.exemption_notice_kind ?? "exemption") === "exemption" && (
+                <Feld
+                  label="Letzter Veranlagungszeitraum laut Bescheid"
+                  wert={entwurf.exemption_notice_period ?? ""}
+                  setze={(v) => setze({ exemption_notice_period: v })}
+                />
+              )}
               <div className="sm:col-span-2">
                 <Feld
                   label="Steuerbegünstigte Zwecke laut Bescheid"
                   wert={entwurf.tax_purposes ?? ""}
                   setze={(v) => setze({ tax_purposes: v })}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  So, wie es in der Zuwendungsbestätigung hinter „wegen Förderung“ passt, etwa „der Heimatpflege und
+                  Heimatkunde“.
+                </p>
               </div>
             </div>
             <BescheidHinweis art={entwurf.exemption_notice_kind ?? "exemption"} datum={entwurf.exemption_notice_date} />
