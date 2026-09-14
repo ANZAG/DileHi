@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // Tests gegen die Bühne (PGlite) bauen eine ganze Installation auf – alle
+    // Migrationen auf einer leeren Datenbank. Unter voller Last, wenn alle
+    // Testdateien gleichzeitig laufen, dauert das mehr als die fünf Sekunden,
+    // die Vitest von sich aus erlaubt; jede neue Migration macht es etwas
+    // länger. Zweimal liefen dadurch Prüfungen rot, die allein grün waren.
+    testTimeout: 30_000,
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

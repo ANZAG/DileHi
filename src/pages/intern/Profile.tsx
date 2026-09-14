@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PersonaEditor from "@/components/personas/PersonaEditor";
+import MeineNachweise from "@/components/nachweise/MeineNachweise";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
 import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder";
 import { useBeitragsmodell } from "@/hooks/useBeitragsmodell";
@@ -672,6 +673,9 @@ const Profile = () => {
               )}
             </div>
           )}
+
+          {/* Nachweise mit Ablaufdatum – nur mit dem Modul „Nachweise" */}
+          {bereichAn(profilfelder, "nachweise", module) && <MeineNachweise />}
 
           {/* Darstellungssteckbrief – nur intern sichtbar */}
           {bereichAn(profilfelder, "darstellung", module) && <PersonaEditor />}
