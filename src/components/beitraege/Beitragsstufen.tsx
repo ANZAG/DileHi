@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -19,19 +16,19 @@ import { beschreibung, meldung, nachfrageText, type Ergebnis } from "./meldungen
 /**
  * Beitragsstufen anlegen und wieder loswerden.
  *
- * Das Entfernen entscheidet die Datenbank, nicht dieser Dialog: Ob eine Stufe
+ * Stand bis zum 14. September als Fenster, das ein Knopf auf der Beitragsseite
+ * öffnete. Seit die Beiträge eine eigene Kachel in der Verwaltung haben, steht
+ * die Liste dort direkt – ein Fenster über einer Seite, die ohnehin nur dafür
+ * da ist, wäre ein Klick zu viel.
+ *
+ * Das Entfernen entscheidet die Datenbank, nicht diese Liste: Ob eine Stufe
  * gelöscht, stillgelegt oder erst zum nächsten Jahr vermerkt wird, hängt
  * davon ab, was an ihr hängt. Hier stehen die Zahlen, die zu dieser
- * Entscheidung führen, und hinterher das Ergebnis.
+ * Entscheidung führen, und hinterher das Ergebnis. Nur die Rückfrage vor dem
+ * Entfernen bleibt ein Fenster – sie soll aufhalten.
  */
-export default function BeitragsstufenDialog({
-  offen,
-  onOpenChange,
-}: {
-  offen: boolean;
-  onOpenChange: (offen: boolean) => void;
-}) {
-  const { data: stufen = [], isLoading } = useBeitragsstufenStatus(offen);
+export default function Beitragsstufen() {
+  const { data: stufen = [], isLoading } = useBeitragsstufenStatus(true);
   const { toast } = useToast();
   const qc = useQueryClient();
   const [neuOffen, setNeuOffen] = useState(false);
@@ -103,88 +100,77 @@ export default function BeitragsstufenDialog({
   });
 
   return (
-    <>
-      <Dialog open={offen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Beitragsstufen</DialogTitle>
-            <DialogDescription>
-              Wer wie viel zahlt. Regulär, ermässigt, Familie: Zu jeder Stufe gehört
-              ein eigener Beitragssatz je Jahr.
-            </DialogDescription>
-          </DialogHeader>
-
-          {isLoading ? (
-            <div className="py-8 flex justify-center">
-              <Loader2 className="animate-spin text-muted-foreground" size={20} />
-            </div>
-          ) : (
-            <ul className="divide-y">
-              {stufen.map((s) => (
-                <li key={s.key} className="py-3 flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium">{s.label}</span>
-                      {!s.offered && (
-                        <Badge variant="secondary" className="text-xs">Nicht mehr im Antrag</Badge>
-                      )}
-                      {s.removed_from != null && (
-                        <Badge variant="outline" className="text-xs">
-                          Läuft aus zum {s.removed_from}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{beschreibung(s)}</p>
-                  </div>
-
-                  {s.removed_from != null ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="shrink-0 h-8 text-xs"
-                      onClick={() => wiederAnbieten.mutate(s.key)}
-                    >
-                      <RotateCcw size={13} className="mr-1" /> Zurücknehmen
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="shrink-0 h-8 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={() => setNachfrage(s)}
-                      aria-label={`${s.label} entfernen`}
-                    >
-                      <Trash2 size={13} />
-                    </Button>
+    <div className="space-y-3">
+      {isLoading ? (
+        <div className="py-8 flex justify-center">
+          <Loader2 className="animate-spin text-muted-foreground" size={20} />
+        </div>
+      ) : (
+        <ul className="divide-y rounded-md border bg-background">
+          {stufen.map((s) => (
+            <li key={s.key} className="px-3 py-2.5 flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">{s.label}</span>
+                  {!s.offered && (
+                    <Badge variant="secondary" className="text-xs">Nicht mehr im Antrag</Badge>
                   )}
-                </li>
-              ))}
-            </ul>
-          )}
+                  {s.removed_from != null && (
+                    <Badge variant="outline" className="text-xs">
+                      Läuft aus zum {s.removed_from}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{beschreibung(s)}</p>
+              </div>
 
-          {neuOffen ? (
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Input
-                autoFocus
-                value={neuLabel}
-                onChange={(e) => setNeuLabel(e.target.value)}
-                placeholder="z. B. Ermässigt"
-                className="h-9 flex-1 min-w-40"
-              />
-              <Button size="sm" disabled={!neuLabel.trim() || anlegen.isPending} onClick={() => anlegen.mutate()}>
-                Anlegen
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setNeuOffen(false); setNeuLabel(""); }}>
-                Abbrechen
-              </Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="outline" className="self-start" onClick={() => setNeuOffen(true)}>
-              <Plus size={14} className="mr-1" /> Stufe hinzufügen
-            </Button>
-          )}
-        </DialogContent>
-      </Dialog>
+              {s.removed_from != null ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 h-8 text-xs"
+                  onClick={() => wiederAnbieten.mutate(s.key)}
+                >
+                  <RotateCcw size={13} className="mr-1" /> Zurücknehmen
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 h-8 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => setNachfrage(s)}
+                  aria-label={`${s.label} entfernen`}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {neuOffen ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            autoFocus
+            value={neuLabel}
+            onChange={(e) => setNeuLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && neuLabel.trim()) anlegen.mutate(); }}
+            placeholder="z. B. Ermässigt"
+            className="h-9 flex-1 min-w-40"
+          />
+          <Button size="sm" disabled={!neuLabel.trim() || anlegen.isPending} onClick={() => anlegen.mutate()}>
+            Anlegen
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setNeuOffen(false); setNeuLabel(""); }}>
+            Abbrechen
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" variant="outline" onClick={() => setNeuOffen(true)}>
+          <Plus size={14} className="mr-1" /> Stufe hinzufügen
+        </Button>
+      )}
 
       <AlertDialog open={!!nachfrage} onOpenChange={(o) => !o && setNachfrage(null)}>
         <AlertDialogContent>
@@ -207,6 +193,6 @@ export default function BeitragsstufenDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
