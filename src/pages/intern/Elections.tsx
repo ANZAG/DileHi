@@ -7,6 +7,8 @@ import { ArrowLeft, Plus, FolderPlus, RefreshCw, Users, Lock, ChevronDown, Chevr
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import ElectionCard from "@/components/elections/ElectionCard";
+import ErgebnisBildKnopf from "@/components/elections/ErgebnisBildKnopf";
+import { ergebnisVon } from "@/lib/ergebnisBild";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
 import { SEITE } from "@/lib/layout";
@@ -329,6 +331,11 @@ const Elections = () => {
               const isClosed = group.status === "closed";
               if (!isVorstand && groupElections.length === 0) return null;
               const open = isGroupOpen(group.id, gIdx);
+              // Alle geschlossenen Abstimmungen des Themas in einem Bild – bei
+              // einer JHV mit mehreren Wahlen braucht das Protokoll genau das.
+              const ergebnisseDesThemas = groupElections
+                .map((e) => ergebnisVon(e, results, getTotalPossibleVotes(e.group_id)))
+                .filter((e) => e !== null);
 
               return (
                 <div key={group.id} className="space-y-3">
@@ -353,6 +360,11 @@ const Elections = () => {
                       )}
                     </button>
                     <div className="flex gap-2 flex-wrap">
+                      <ErgebnisBildKnopf
+                        thema={group.title}
+                        ergebnisse={ergebnisseDesThemas}
+                        label={ergebnisseDesThemas.length === 1 ? "Ergebnis als Bild" : "Ergebnisse als Bild"}
+                      />
                       {isVorstand && (
                         <>
                           <button
@@ -437,6 +449,7 @@ const Elections = () => {
                           myVoteCount={getMyVoteCount(election)}
                           totalMembers={getTotalMembers(election.group_id)}
                           totalPossibleVotes={getTotalPossibleVotes(election.group_id)}
+                          groupTitle={group.title}
                           defaultOpen={idx === 0}
                         />
                       ))}
