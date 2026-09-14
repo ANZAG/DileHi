@@ -603,7 +603,25 @@ Offen:
         mit Warnung, wenn eine Zahlung den Freibetrag überschreitet. Die
         Beträge (voreingestellt 960 € und 3.300 €, Stand 2026 – **bitte
         prüfen**) stehen im Erscheinungsbild unter Gemeinnützigkeit.
-      - [ ] **Zuwendungsbestätigungen** nach amtlichem Muster
+      - [x] **Zuwendungsbestätigungen** (Modul `donation_receipts`, Migration
+        `20260915150000_donation_receipts.sql`, Seite `/intern/zuwendungen`,
+        Vorlage `src/lib/zuwendung.ts`): Spenden erfassen (Mitglied oder
+        jemand von aussen, Verzicht auf Erstattung als Häkchen),
+        Mitgliedsbeiträge nur, wenn sie laut Einstellung abziehbar sind – dann
+        auch „bezahlte Beiträge übernehmen". Ausstellen einzeln oder als
+        Sammelbestätigung je Person und Kalenderjahr über
+        `issue_donation_receipt`; die Datenbank lehnt ab bei fehlenden
+        Angaben, zu altem Bescheid (5 bzw. 3 Jahre, § 63 Abs. 5 AO, Gegenprobe
+        gemacht), fehlender Anschrift, gemischten Personen oder schon
+        bestätigten Zuwendungen. Nummer `JJJJ-NNN`, alle Angaben als
+        Momentaufnahme gespeichert (Doppel); bestätigte Zuwendungen sind
+        gesperrt, Zurücknehmen nur mit Grund. Gedruckt nach dem amtlichen
+        Muster für § 5 Abs. 1 Nr. 9 KStG über den Druckdialog des Browsers
+        („Als PDF speichern"), Betrag in Buchstaben. Mitglieder sehen ihre
+        Bestätigungen selbst. Neu im Erscheinungsbild: letzter
+        Veranlagungszeitraum. Nicht enthalten: Sachzuwendungen (eigenes
+        Muster). **Wortlaut vor dem ersten echten Einsatz mit dem aktuellen
+        BMF-Muster abgleichen.**
 - [ ] **Import von Mitgliederlisten** aus Excel/CSV und anderer
       Vereinssoftware, mit Vorschau und Zuordnung der Spalten (beschlossen am
       14. September).
