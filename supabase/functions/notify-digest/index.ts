@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
   if (erinnerungsFehler) console.error("certificate_reminders:", erinnerungsFehler.message);
   const { error: inventarFehler } = await admin.rpc("inventory_reminders");
   if (inventarFehler) console.error("inventory_reminders:", inventarFehler.message);
+  const { error: fristenFehler } = await admin.rpc("club_deadline_reminders");
+  if (fristenFehler) console.error("club_deadline_reminders:", fristenFehler.message);
 
   const { data: digests, error } = await admin.rpc("pending_digests");
   if (error) {
