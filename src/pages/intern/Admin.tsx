@@ -9,7 +9,7 @@ import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
-  UserCog2, Inbox, Coins, ShieldCheck, CalendarClock,
+  UserCog2, Inbox, Coins, ShieldCheck, CalendarClock, ShieldQuestion,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -26,6 +26,7 @@ import EmbedAdmin from "@/components/admin/EmbedAdmin";
 import FileStorageAdmin from "@/components/admin/FileStorageAdmin";
 import NachweiseAdmin from "@/components/admin/NachweiseAdmin";
 import FristenAdmin from "@/components/admin/FristenAdmin";
+import EinwilligungenAdmin from "@/components/admin/EinwilligungenAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
@@ -41,7 +42,7 @@ import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen";
 
 
 const Admin = () => {
@@ -140,6 +141,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.integrations") && dateiablage?.file_storage === "sharepoint" ? [
       { id: "ablage" as const, gruppe: "intern", label: "Eingangskorb", icon: Inbox, desc: "Dateien aus SharePoint zuordnen", module: "sources" },
+    ] : []),
+    ...(hasPermission("consents.manage") ? [
+      { id: "einwilligungen" as const, gruppe: "verein", label: "Einwilligungen", icon: ShieldQuestion, desc: "Fotofreigaben und Notfallkontakte", module: "consents" },
     ] : []),
     ...(hasPermission("deadlines.manage") ? [
       { id: "fristen" as const, gruppe: "verein", label: "Fristen", icon: CalendarClock, desc: "Finanzamt, Register, Versammlung, Versicherung", module: "club_deadlines" },
@@ -298,6 +302,7 @@ const Admin = () => {
           {activeTab === "beitraege" && hasPermission("system.settings") && <ErscheinungsbildAdmin teil="beitraege" />}
           {activeTab === "nachweise" && (hasPermission("certificates.manage") || hasPermission("certificates.view")) && <NachweiseAdmin />}
           {activeTab === "fristen" && hasPermission("deadlines.manage") && <FristenAdmin />}
+          {activeTab === "einwilligungen" && hasPermission("consents.manage") && <EinwilligungenAdmin />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "erstesschritte" && hasPermission("system.settings") && <OnboardingAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}

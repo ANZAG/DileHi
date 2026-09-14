@@ -9,6 +9,7 @@ import type { Event, Attendee } from "./types";
 import Linkify from "./Linkify";
 import TeilnehmerNachweise from "@/components/nachweise/TeilnehmerNachweise";
 import InventarBeiVeranstaltung from "@/components/inventar/InventarBeiVeranstaltung";
+import TeilnehmerFuersorge from "@/components/einwilligungen/TeilnehmerFuersorge";
 
 export interface EventBodyProps {
   ev: Event;
@@ -106,6 +107,7 @@ export default function EventBody({
             namen={Object.fromEntries(attendees.map((a) => [a.user_id, a.profiles?.display_name || "Mitglied"]))}
           />
         )}
+        {attendees.length > 0 && <TeilnehmerFuersorge eventId={ev.id} />}
         <InventarBeiVeranstaltung eventId={ev.id} />
       </div>
 
