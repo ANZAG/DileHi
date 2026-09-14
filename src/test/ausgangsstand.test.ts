@@ -67,7 +67,7 @@ describe("Eine leere Datenbank wird zur Installation", () => {
 
   it("bringt die Ablagen mit", async () => {
     const ablagen = await alle<{ id: string }>("select id from storage.buckets order by id");
-    expect(ablagen.map((a) => a.id)).toEqual(["documents", "forum-images", "gallery", "internal-files"]);
+    expect(ablagen.map((a) => a.id)).toEqual(["documents", "forum-images", "gallery", "internal-files", "receipts"]);
   });
 });
 

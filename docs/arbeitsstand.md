@@ -588,8 +588,21 @@ Offen:
         wer ohne Fotofreigabe ist (auch wer nie entschieden hat), wer am Tag
         der Veranstaltung minderjährig ist, und die Notfallkontakte – sonst
         niemand. Verwaltung: Übersicht, die mit „ohne Fotofreigabe" beginnt.
-      - [ ] **Auslagenerstattung** mit Belegfoto und Übersicht zu Ehrenamts-
-        und Übungsleiterpauschale – braucht einen privaten Speicherort
+      - [x] **Auslagen** (Modul `expense_claims`, Migration
+        `20260915140000_expense_claims.sql`, Seite `/intern/auslagen`):
+        Mitglieder reichen mit Foto oder PDF des Belegs ein, die Kasse
+        (`expenses.manage`, vergeben an Leitung und an alle Rollen mit
+        `contributions.manage`) genehmigt oder lehnt mit Vermerk ab und
+        markiert als erstattet; beide Seiten bekommen eine Benachrichtigung.
+        Ein Mitglied kann den Stand nicht selbst ändern und nach der Prüfung
+        nichts mehr (Trigger, Gegenprobe gemacht). Belege liegen im neuen
+        privaten Bucket `receipts`, Pfad `<Mitglied>/<Zeit>_<Datei>`, lesbar
+        nur für das Mitglied selbst und die Kasse – bewusst nicht in
+        `internal-files`, das alle Mitglieder lesen. Pauschalen: ausgezahlte
+        Ehrenamtspauschale und Übungsleiterfreibetrag je Mitglied und Jahr,
+        mit Warnung, wenn eine Zahlung den Freibetrag überschreitet. Die
+        Beträge (voreingestellt 960 € und 3.300 €, Stand 2026 – **bitte
+        prüfen**) stehen im Erscheinungsbild unter Gemeinnützigkeit.
       - [ ] **Zuwendungsbestätigungen** nach amtlichem Muster
 - [ ] **Import von Mitgliederlisten** aus Excel/CSV und anderer
       Vereinssoftware, mit Vorschau und Zuordnung der Spalten (beschlossen am
