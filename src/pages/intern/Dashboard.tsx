@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
-  FileText, Coins, MapPin, ClipboardList, ScrollText, Package, Gavel, Receipt,
+  FileText, Coins, MapPin, ClipboardList, ScrollText, Package, Gavel, Receipt, HandCoins,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
@@ -26,6 +26,7 @@ const baseCards = [
   { title: "Abstimmungen", desc: "Wahlen und Beschlüsse der MV.", icon: Vote, path: "/intern/abstimmungen", module: "elections" },
   { title: "Beschlüsse", desc: "Was Mitgliederversammlung und Vorstand beschlossen haben.", icon: Gavel, path: "/intern/beschluesse", module: "resolutions" },
   { title: "Auslagen", desc: "Auslagen mit Beleg einreichen und erstattet bekommen.", icon: Receipt, path: "/intern/auslagen", module: "expense_claims" },
+  { title: "Zuwendungen", desc: "Zuwendungsbestätigungen fürs Finanzamt.", icon: HandCoins, path: "/intern/zuwendungen", module: "donation_receipts" },
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", module: "documents" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
