@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Event, Attendee } from "./types";
 import Linkify from "./Linkify";
 import TeilnehmerNachweise from "@/components/nachweise/TeilnehmerNachweise";
+import InventarBeiVeranstaltung from "@/components/inventar/InventarBeiVeranstaltung";
 
 export interface EventBodyProps {
   ev: Event;
@@ -105,6 +106,7 @@ export default function EventBody({
             namen={Object.fromEntries(attendees.map((a) => [a.user_id, a.profiles?.display_name || "Mitglied"]))}
           />
         )}
+        <InventarBeiVeranstaltung eventId={ev.id} />
       </div>
 
       <div data-tour="termin-aktionen" className="flex flex-wrap items-center gap-2 justify-end">
