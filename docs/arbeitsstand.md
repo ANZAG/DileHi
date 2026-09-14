@@ -506,6 +506,41 @@ Offen:
 
 ### 4. Danach
 
+- [ ] **Ergebnisse von Abstimmungen als Bild herunterladen** (für das
+      Protokoll, beschlossen am 14. September). In Arbeit.
+- [ ] **Modul „Sitzungen" mit Protokoll** (Idee vom 14. September):
+      Tagesordnung, Anwesenheit samt Stellvertretungen und
+      Beschlussfähigkeit, verknüpfte Abstimmungen, Freigabe durch Vorsitz und
+      Protokollführung, Protokoll als PDF. Aufnahme vorerst mit dem
+      Discord-Bot Craig (eine Tonspur je Person), Upload nach SharePoint,
+      Transkript über einen Anbieter mit EU-Verarbeitung (Kandidaten:
+      Speechmatics, Azure Speech, AssemblyAI; vorher an einer echten Sitzung
+      vergleichen), Link und Rückmeldung per Webhook statt langer Laufzeit.
+      Tonspuren nach Freigabe automatisch löschen, Transkript nach Frist.
+      Einwilligung und Auftragsverarbeitung klären. Ein eigener Discord-Bot
+      erst später und nur als Zusatz, er bräuchte einen dauerhaft laufenden
+      Rechner.
+- [ ] **Zuschaltbare Module für Reenactment-Vereine** (beschlossen am
+      14. September):
+      - **Nachweise mit Ablaufdatum:** Pulverschein, Befähigungsnachweis,
+        Erste Hilfe, Anhänger-Führerschein, Schaukampf-Einweisung.
+        Erinnerung vor dem Ablauf; bei der Anmeldung zu einer Veranstaltung
+        sichtbar, wer was darf.
+      - **Inventar und Ausleihe:** Zelte, Lagerausstattung, Leihgewandung,
+        Waffen – Standort, Zustand, wer hat was, Reservierung für eine
+        Veranstaltung.
+- [ ] **Gemeinnützigkeit als Einstellung** (beschlossen am 14. September):
+      Bei der Einrichtung und im Erscheinungsbild abgefragt. Nur wenn
+      gesetzt, erscheinen: Zuwendungsbestätigungen nach amtlichem Muster,
+      Auslagenerstattung mit Belegfoto und Übersicht zu Ehrenamts- und
+      Übungsleiterpauschale, Fristen des Vereins (Einladungsfrist JHV,
+      Freistellungsbescheid, Vereinsregister nach Vorstandswahl,
+      Versicherungen), Beschlussregister, Einwilligungen (Fotofreigaben,
+      Minderjährige mit Notfallkontakten). Ohne die Einstellung bleiben die
+      Menüpunkte unsichtbar, nicht nur ausgegraut.
+- [ ] **Import von Mitgliederlisten** aus Excel/CSV und anderer
+      Vereinssoftware, mit Vorschau und Zuordnung der Spalten (beschlossen am
+      14. September).
 - [ ] **Einrichtungsassistent für neue Installationen**, wie bei WordPress
       (Wunsch vom 14. September): eine Seite, die Schritt für Schritt prüft
       und anzeigt, was steht und was fehlt – Datenbank erreichbar, Migrationen
