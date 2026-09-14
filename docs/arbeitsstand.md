@@ -576,8 +576,18 @@ Offen:
         die Oberfläche das Ergebnis erst nach Abschluss zeigt. Jetzt nur
         geschlossene – laufende nur für `elections.manage`
         (`20260915115000_election_results_closed.sql`).
-      - [ ] **Einwilligungen** (Fotofreigaben, Minderjährige mit
-        Notfallkontakten)
+      - [x] **Einwilligungen** (Modul `consents`, Migration
+        `20260915130000_consents.sql`): Arten pflegt die Verwaltung; „Fotos
+        und Videos" (Kennung `photos`) und „Name bei Veröffentlichungen"
+        kommen als Vorlage mit Hinweis auf den Widerruf. Mitglieder
+        entscheiden im Profil, Ja und Nein gleich gross; bei Minderjährigen
+        (aus dem Geburtsdatum) ist der Name eines Erziehungsberechtigten
+        Pflicht. Jede Entscheidung landet per Trigger mit Zeitpunkt im
+        Protokoll, gleiche Entscheidung noch einmal nicht. Notfallkontakte
+        je Mitglied. Die Leitung einer Veranstaltung sieht bei den Zusagen,
+        wer ohne Fotofreigabe ist (auch wer nie entschieden hat), wer am Tag
+        der Veranstaltung minderjährig ist, und die Notfallkontakte – sonst
+        niemand. Verwaltung: Übersicht, die mit „ohne Fotofreigabe" beginnt.
       - [ ] **Auslagenerstattung** mit Belegfoto und Übersicht zu Ehrenamts-
         und Übungsleiterpauschale – braucht einen privaten Speicherort
       - [ ] **Zuwendungsbestätigungen** nach amtlichem Muster
