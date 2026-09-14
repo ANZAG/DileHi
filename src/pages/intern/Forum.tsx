@@ -15,6 +15,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { fetchCategories, fetchCategoryStats, fetchUnreadThreads, saveCategory } from "@/components/forum/api";
 import { SEITE } from "@/lib/layout";
+import Brotkrumen from "@/components/forum/Brotkrumen";
 
 /**
  * Auswählbare Symbole für Rubriken.
@@ -95,6 +96,11 @@ export default function Forum() {
   return (
     <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <Brotkrumen
+          teile={nurUngelesen
+            ? [{ label: "Mitgliederbereich", to: "/intern" }, { label: "Forum", to: "/intern/forum" }, { label: "Ungelesen" }]
+            : [{ label: "Mitgliederbereich", to: "/intern" }, { label: "Forum" }]}
+        />
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück">
             <Link to="/intern"><ArrowLeft size={20} /></Link>
