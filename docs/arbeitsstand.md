@@ -545,14 +545,30 @@ Offen:
         Abendzusammenfassung einmal. Bei der Veranstaltung steht, was für sie
         reserviert ist. Offen: Fotos der Gegenstände.
 - [ ] **Gemeinnützigkeit als Einstellung** (beschlossen am 14. September):
-      Bei der Einrichtung und im Erscheinungsbild abgefragt. Nur wenn
-      gesetzt, erscheinen: Zuwendungsbestätigungen nach amtlichem Muster,
-      Auslagenerstattung mit Belegfoto und Übersicht zu Ehrenamts- und
-      Übungsleiterpauschale, Fristen des Vereins (Einladungsfrist JHV,
-      Freistellungsbescheid, Vereinsregister nach Vorstandswahl,
-      Versicherungen), Beschlussregister, Einwilligungen (Fotofreigaben,
-      Minderjährige mit Notfallkontakten). Ohne die Einstellung bleiben die
-      Menüpunkte unsichtbar, nicht nur ausgegraut.
+      Nur wenn gesetzt, erscheinen die Bereiche dafür. Ohne die Einstellung
+      bleiben sie unsichtbar, nicht nur ausgegraut.
+      - [x] **Grundlage** (Migration `20260915110000_nonprofit_deadlines.sql`):
+        Abfrage im Erscheinungsbild samt Finanzamt, Steuernummer, Art und
+        Datum des Bescheids, steuerbegünstigten Zwecken und ob
+        Mitgliedsbeiträge abziehbar sind (§ 10b Abs. 1 Satz 8 EStG). Das
+        Häkchen schaltet über einen Trigger das Modul `nonprofit`, das nicht
+        in der Modulliste steht; alle Bereiche hängen per `requires` daran.
+        Hinweis, bis wann der Bescheid für Zuwendungsbestätigungen reicht
+        (§ 63 Abs. 5 AO). Neue Verwaltungsgruppe „Vereinsführung". Die
+        Einrichtungsseite fragt noch nicht – das gehört in den
+        Einrichtungsassistenten.
+      - [x] **Fristen** (Modul `club_deadlines`): mit Wiederholung, Vorlauf
+        und zuständiger Rolle; beim Erledigen legt ein Trigger die nächste
+        an. Erinnerung einmal vor der Frist und einmal danach (bis 60 Tage)
+        über die Abendzusammenfassung. Vorschläge: Steuererklärung,
+        Bescheid wird zu alt, Mitgliederversammlung, Versicherung,
+        Vereinsregister nach Vorstandswahl.
+      - [ ] **Beschlussregister**
+      - [ ] **Einwilligungen** (Fotofreigaben, Minderjährige mit
+        Notfallkontakten)
+      - [ ] **Auslagenerstattung** mit Belegfoto und Übersicht zu Ehrenamts-
+        und Übungsleiterpauschale – braucht einen privaten Speicherort
+      - [ ] **Zuwendungsbestätigungen** nach amtlichem Muster
 - [ ] **Import von Mitgliederlisten** aus Excel/CSV und anderer
       Vereinssoftware, mit Vorschau und Zuordnung der Spalten (beschlossen am
       14. September).

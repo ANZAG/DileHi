@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
+import { datumDe, plusMonate, tageBis } from "@/lib/datum";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
@@ -43,6 +44,13 @@ interface Einstellungen {
   mail_transport: string;
   file_storage: "supabase" | "sharepoint";
   sharepoint_site_url: string | null;
+  is_nonprofit: boolean;
+  tax_office: string | null;
+  tax_number: string | null;
+  exemption_notice_kind: "exemption" | "assessment_60a" | null;
+  exemption_notice_date: string | null;
+  tax_purposes: string | null;
+  fees_deductible: boolean;
   calendar_timezone: string;
   contribution_model: string;
   contribution_retention_years: number;
@@ -120,6 +128,9 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // Quellensammlung und Eingangskorb fragen die Dateiablage getrennt ab.
       queryClient.invalidateQueries({ queryKey: ["file-storage-settings"] });
       queryClient.invalidateQueries({ queryKey: ["file-storage"] });
+      // Die Gemeinnützigkeit schaltet Bereiche frei oder ab.
+      queryClient.invalidateQueries({ queryKey: ["module"] });
+      queryClient.invalidateQueries({ queryKey: ["bescheid"] });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -230,6 +241,82 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           <Feld label="E-Mail" wert={entwurf.org_email ?? ""} setze={(v) => setze({ org_email: v })} />
           <Feld label="Telefon" wert={entwurf.org_phone ?? ""} setze={(v) => setze({ org_phone: v })} />
         </div>
+      </Abschnitt>
+
+      {/* ── Gemeinnützigkeit ─────────────────────────────────────────────── */}
+      <Abschnitt
+        titel="Gemeinnützigkeit"
+        hinweis="Ist der Verein vom Finanzamt als gemeinnützig anerkannt? Dann bietet DING zusätzlich Bereiche an, die nur dafür gebraucht werden, etwa Fristen und Zuwendungsbestätigungen. Ohne das Häkchen bleiben sie unsichtbar."
+      >
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={entwurf.is_nonprofit}
+            onChange={(e) => setze({ is_nonprofit: e.target.checked })}
+            className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+          />
+          <span className="text-sm">
+            Der Verein ist als gemeinnützig anerkannt
+            <span className="block text-xs text-muted-foreground">
+              Mit Freistellungsbescheid oder Feststellung nach § 60a AO.
+            </span>
+          </span>
+        </label>
+
+        {entwurf.is_nonprofit && (
+          <div className="mt-4 space-y-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Feld label="Finanzamt" wert={entwurf.tax_office ?? ""} setze={(v) => setze({ tax_office: v })} />
+              <Feld label="Steuernummer" wert={entwurf.tax_number ?? ""} setze={(v) => setze({ tax_number: v })} />
+              <div>
+                <Label className="text-sm">Art des Bescheids</Label>
+                <Select
+                  value={entwurf.exemption_notice_kind ?? "exemption"}
+                  onValueChange={(v) => setze({ exemption_notice_kind: v as "exemption" | "assessment_60a" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="exemption">Freistellungsbescheid</SelectItem>
+                    <SelectItem value="assessment_60a">Feststellung nach § 60a AO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm">Datum des Bescheids</Label>
+                <Input
+                  type="date"
+                  value={entwurf.exemption_notice_date ?? ""}
+                  onChange={(e) => setze({ exemption_notice_date: e.target.value || null })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Feld
+                  label="Steuerbegünstigte Zwecke laut Bescheid"
+                  wert={entwurf.tax_purposes ?? ""}
+                  setze={(v) => setze({ tax_purposes: v })}
+                />
+              </div>
+            </div>
+            <BescheidHinweis art={entwurf.exemption_notice_kind ?? "exemption"} datum={entwurf.exemption_notice_date} />
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={entwurf.fees_deductible}
+                onChange={(e) => setze({ fees_deductible: e.target.checked })}
+                className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
+              />
+              <span className="text-sm">
+                Mitgliedsbeiträge sind steuerlich abziehbar
+                <span className="block text-xs text-muted-foreground">
+                  Nicht abziehbar sind Beiträge an Vereine, die Sport, kulturelle Betätigungen der
+                  Freizeitgestaltung, Heimatpflege und Heimatkunde oder traditionelles Brauchtum fördern
+                  (§ 10b Abs. 1 Satz 8 EStG) – das betrifft viele Reenactment-Vereine. Spenden sind davon nicht
+                  betroffen. Im Zweifel die Steuerberatung fragen.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
       </Abschnitt>
 
       {/* ── Aussehen ─────────────────────────────────────────────────────── */}
@@ -709,5 +796,28 @@ function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Wie lange der Bescheid noch für Zuwendungsbestätigungen reicht.
+ *
+ * Ein Freistellungsbescheid höchstens fünf Jahre, eine Feststellung nach
+ * § 60a AO höchstens drei Jahre (§ 63 Abs. 5 AO). Danach darf der Verein keine
+ * Zuwendungsbestätigungen mehr ausstellen – das merkt man sonst erst, wenn
+ * jemand eine braucht.
+ */
+function BescheidHinweis({ art, datum }: { art: "exemption" | "assessment_60a"; datum: string | null }) {
+  if (!datum) return null;
+  const jahre = art === "assessment_60a" ? 3 : 5;
+  const bis = plusMonate(datum, jahre * 12);
+  const tage = tageBis(bis);
+  const farbe = tage < 0 ? "text-destructive" : tage < 180 ? "text-amber-700" : "text-muted-foreground";
+  return (
+    <p className={`text-xs ${farbe}`}>
+      {tage < 0
+        ? `Der Bescheid ist älter als ${jahre} Jahre. Zuwendungsbestätigungen darf der Verein erst mit einem neuen Bescheid wieder ausstellen.`
+        : `Für Zuwendungsbestätigungen reicht der Bescheid bis ${datumDe(bis)} (§ 63 Abs. 5 AO).`}
+    </p>
   );
 }
