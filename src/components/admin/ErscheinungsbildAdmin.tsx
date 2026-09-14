@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 import { readFunctionError } from "@/lib/functionError";
@@ -54,7 +56,17 @@ const db = supabase as unknown as { from: (t: string) => any };
  * das der Unterschied zwischen „Software" und „unsere Software mit ihrem
  * Namen darauf".
  */
-export default function ErscheinungsbildAdmin() {
+export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
+  /**
+   * Die Beitragseinstellungen stehen seit September 2026 im Mitgliederbereich
+   * der Verwaltung, der Rest bleibt hier. Beide schreiben in dieselbe Zeile
+   * `app_settings`, deshalb eine Komponente mit zwei Ansichten statt zwei
+   * Formularen, die sich gegenseitig überschreiben.
+   */
+  teil?: "erscheinungsbild" | "beitraege";
+}) {
+  const { hasPermission } = useAuth();
+  const [stufenOffen, setStufenOffen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [entwurf, setEntwurf] = useState<Einstellungen | null>(null);
@@ -177,7 +189,8 @@ export default function ErscheinungsbildAdmin() {
      * Lesereihenfolge am Desktop: erst wer der Verein ist, dann wie er
      * aussieht, dann was er verwaltet.
      */
-    <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
+    <div className={teil === "beitraege" ? "space-y-6 max-w-3xl" : "space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid"}>
+      {teil === "erscheinungsbild" && (<>
       {/* ── Verein ───────────────────────────────────────────────────────── */}
       <Abschnitt titel="Der Verein" hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
         <div className="grid sm:grid-cols-2 gap-3">
@@ -320,6 +333,9 @@ export default function ErscheinungsbildAdmin() {
         </div>
       </Abschnitt>
 
+      </>)}
+
+      {teil === "beitraege" && (<>
       {/* ── Beiträge ─────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="Beiträge"
@@ -340,7 +356,7 @@ export default function ErscheinungsbildAdmin() {
           </Select>
           <p className="text-xs text-muted-foreground mt-2">
             {entwurf.contribution_model === "fest" &&
-              "Je Mitgliedsart ein Betrag pro Jahr, etwa regulär, Student oder Rentner. Die Sätze selbst stehen im Bereich Beiträge."}
+              "Je Mitgliedsart ein Betrag pro Jahr, etwa regulär, Student oder Rentner. Die Sätze selbst stehen darunter bei den Beitragsstufen."}
             {entwurf.contribution_model === "umlage" &&
               "Kein Betrag im Voraus. Die Mitglieder verpflichten sich, sich anteilig an den Unkosten zu beteiligen; die Höhe steht erst nach der Abrechnung fest."}
             {entwurf.contribution_model === "keiner" &&
@@ -407,6 +423,20 @@ export default function ErscheinungsbildAdmin() {
         </div>
       </Abschnitt>
 
+      {hasPermission("contributions.manage") && (
+        <Abschnitt
+          titel="Beitragsstufen"
+          hinweis="Die Mitgliedsarten mit ihrem Jahresbetrag, etwa regulär, ermässigt oder Familie. Sie stehen im Aufnahmeantrag zur Auswahl."
+        >
+          <Button variant="outline" onClick={() => setStufenOffen(true)}>
+            Beitragsstufen bearbeiten
+          </Button>
+          <BeitragsstufenDialog offen={stufenOffen} onOpenChange={setStufenOffen} />
+        </Abschnitt>
+      )}
+      </>)}
+
+      {teil === "erscheinungsbild" && (<>
       {/* ── E-Mail ───────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="E-Mail-Versand"
@@ -434,6 +464,7 @@ export default function ErscheinungsbildAdmin() {
           </div>
         </div>
       </Abschnitt>
+      </>)}
 
       {/* Der Knopf bleibt beim Scrollen sichtbar – die Seite ist lang, und ein
           Speichern-Knopf, den man erst suchen muss, wird vergessen. */}

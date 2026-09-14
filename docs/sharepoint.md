@@ -1,153 +1,164 @@
 # Dateiablage in SharePoint einrichten
 
-Die Dateien der Quellensammlung können statt in Supabase in SharePoint liegen.
-Das lohnt sich für einen Verein mit Microsoft 365: viel Platz, keine Grenze von
-50 MB je Datei. Titel, Epoche, Ordner und wer was sehen darf bleiben in DING;
-nur die Datei liegt in SharePoint.
+Die Dateien der Quellensammlung können statt bei Supabase in SharePoint liegen.
+Das lohnt sich für einen Verein mit Microsoft 365: viel Platz und keine Grenze
+von 50 MB je Datei. Titel, Epoche, Ordner und wer was sehen darf, bleiben in
+DING; nur die Datei selbst liegt in SharePoint.
 
-DING bekommt dafür eine **eigene App-Registrierung**, getrennt von der für den
-Mailversand, mit dem Recht `Sites.Selected`. Damit sieht DING genau eine
-SharePoint-Website – die, die du ihm in Schritt 3 freigibst – und sonst nichts
-in eurem Microsoft 365.
+**Die Anleitung steht auch in DING selbst**, unter Verwaltung →
+Mitgliederbereich → Dateiablage → „SharePoint einrichten – Schritt für
+Schritt". Dort sind die Texte zum Einfügen schon mit euren Werten ausgefüllt.
+Diese Seite ist dieselbe Anleitung zum Nachlesen.
 
-Dauer: etwa eine halbe Stunde. Du brauchst ein Konto mit Admin-Rechten in
-Microsoft 365.
+Einmalig, etwa eine halbe Stunde. Du brauchst das Microsoft-365-Konto, mit dem
+ihr Benutzer und Lizenzen verwaltet.
 
 ---
 
-## 1. Eine SharePoint-Website anlegen
+## 1. Eine Ablage in SharePoint anlegen
 
-1. `https://<euer-name>.sharepoint.com` öffnen (bei DileHi etwa
-   `dilehi.sharepoint.com`).
-2. **+ Website erstellen** → **Teamwebsite**.
-3. Name: **Vereinsablage**. Datenschutzeinstellungen: **Privat**.
-4. Die Adresse der Website notieren, etwa
-   `https://dilehi.sharepoint.com/sites/Vereinsablage`.
+- Öffne **office.com**, melde dich an und wähle im Menü links **SharePoint**.
+- Klicke oben links auf **+ Website erstellen** und dann auf **Teamwebsite**.
+- Name: „Vereinsablage". Bei Datenschutz **Privat** wählen. Fertigstellen.
+- Die neue Website öffnet sich. Kopiere die Adresse aus der Adresszeile bis
+  einschliesslich „Vereinsablage", etwa
+  `https://verein.sharepoint.com/sites/Vereinsablage`. Sie kommt in DING ins
+  Feld **Adresse der SharePoint-Website**.
 
 Den Ordner „Quellensammlung" legt DING selbst an.
 
-## 2. Die App registrieren
+## 2. DING einen eigenen Zugang geben
 
-Im **Microsoft Entra Admin Center**: `https://entra.microsoft.com`
+So wie jedes Mitglied ein Konto hat, bekommt auch DING eines. Bei Microsoft
+heisst das „App-Registrierung".
 
-1. **Anwendungen → App-Registrierungen → Neue Registrierung**
-   - Name: **DING Dateiablage**
-   - Unterstützte Kontotypen: **Nur Konten in diesem Organisationsverzeichnis**
-   - Umleitungs-URI: leer lassen
-   - **Registrieren**
-2. Auf der Übersichtsseite zwei Werte notieren:
-   - **Anwendungs-ID (Client)** – das wird `SHAREPOINT_CLIENT_ID`
-   - **Verzeichnis-ID (Mandant)** – das wird `SHAREPOINT_TENANT_ID`. Das ist
-     eure Organisation, nicht die App: derselbe Wert wie `MS_TENANT_ID` beim
-     Mailversand. Steht der schon in Supabase, kannst du dir diesen hier
-     sparen – DING greift dann darauf zurück.
-3. **Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel**
-   - Beschreibung: DING, Ablauf: **24 Monate** → **Hinzufügen**
-   - Die Spalte **Wert** sofort kopieren – er ist nur jetzt sichtbar. Das wird
-     `SHAREPOINT_CLIENT_SECRET`. Nicht die „Geheimnis-ID" daneben.
-   - Einen Kalendereintrag für den Ablauf setzen. Danach funktioniert die
-     Ablage nicht mehr, bis ein neuer Schlüssel eingetragen ist.
-4. **API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph →
-   Anwendungsberechtigungen**
-   - **Sites.Selected** ankreuzen → **Berechtigungen hinzufügen**
-   - **Administratorzustimmung für … erteilen** → Ja. Der Status wird grün.
+- Öffne **entra.microsoft.com** und melde dich mit demselben Konto an.
+- Links **Anwendungen** → **App-Registrierungen** → oben **Neue Registrierung**.
+- Name: „DING Dateiablage". Alles andere so lassen und **Registrieren** klicken.
+- Auf der Übersicht stehen die **Anwendungs-ID (Client)** und die
+  **Verzeichnis-ID (Mandant)**. Beide brauchst du später.
 
-## 3. Der App die eine Website freigeben
+## 3. Ein Passwort für DING erzeugen
 
-`Sites.Selected` heisst: Die App darf zunächst gar nichts. Die Website gibt ihr
-ein Admin einmal frei – im **Graph Explorer** im Browser.
+- Links **Zertifikate & Geheimnisse** → **Neuer geheimer Clientschlüssel**.
+- Beschreibung „DING", Ablauf **24 Monate**, dann **Hinzufügen**.
+- In der Spalte **Wert** steht jetzt ein langes Passwort. Sofort kopieren und
+  sicher ablegen – Microsoft zeigt es nur dieses eine Mal. Nicht verwechseln
+  mit der „Geheimnis-ID" daneben.
+- Den Ablauftag in den Kalender eintragen. Danach braucht es ein neues
+  Passwort, sonst funktioniert die Ablage nicht mehr.
 
-1. `https://developer.microsoft.com/graph/graph-explorer` öffnen und oben
-   rechts **mit dem Admin-Konto anmelden**.
-2. Unter **Berechtigungen ändern** (Reiter unter dem Adressfeld)
-   **Sites.FullControl.All** suchen und **Zustimmen**. Das gilt nur für dich
-   im Graph Explorer, nicht für DING.
-3. **Die Kennung der Website holen.** Methode **GET**, Adresse:
+## 4. DING erlauben, eine Website zu benutzen
 
-   ```
-   https://graph.microsoft.com/v1.0/sites/dilehi.sharepoint.com:/sites/Vereinsablage
-   ```
+Das Recht heisst „Sites.Selected" und bedeutet: DING darf zunächst gar nichts.
+Welche Website es benutzen darf, legst du in Schritt 5 fest – nur diese eine,
+nicht euren übrigen SharePoint.
 
-   (euren Namen und den Namen der Website einsetzen) → **Abfrage ausführen**.
-   In der Antwort den Wert von `"id"` kopieren. Er sieht aus wie
-   `dilehi.sharepoint.com,1a2b…,3c4d…`.
-4. **Freigeben.** Methode **POST**, Adresse:
+- Links **API-Berechtigungen** → **Berechtigung hinzufügen** → **Microsoft Graph**.
+- **Anwendungsberechtigungen** wählen (nicht „Delegierte").
+- Ins Suchfeld „Sites.Selected" tippen, Häkchen setzen,
+  **Berechtigungen hinzufügen**.
+- Zurück in der Liste auf **Administratorzustimmung für … erteilen** und **Ja**.
+  In der Spalte Status steht jetzt ein grüner Haken.
 
-   ```
-   https://graph.microsoft.com/v1.0/sites/<id aus Schritt 3>/permissions
-   ```
+## 5. Die Website für DING freigeben
 
-   Unter **Anforderungstext**:
+Der einzige Schritt, der nach Programmieren aussieht. In DING stehen die Texte
+fertig ausgefüllt mit einem Knopf zum Kopieren.
 
-   ```json
-   {
-     "roles": ["write"],
-     "grantedToIdentities": [
-       { "application": { "id": "<Anwendungs-ID aus Schritt 2>", "displayName": "DING Dateiablage" } }
-     ]
-   }
-   ```
+- Öffne **developer.microsoft.com/graph/graph-explorer** und melde dich oben
+  rechts mit demselben Konto an.
+- Über dem grossen Textfeld: **Berechtigungen ändern** (englisch „Modify
+  permissions"). „Sites.FullControl.All" suchen und **Zustimmen**. Das erlaubt
+  nur dir hier im Graph Explorer, Freigaben zu setzen – DING bekommt dadurch
+  nichts.
+- Links steht **GET**, das bleibt so. Ins Adressfeld, mit euren Namen:
 
-   → **Abfrage ausführen**. Die Antwort beginnt mit **201 Created**.
+  ```
+  https://graph.microsoft.com/v1.0/sites/verein.sharepoint.com:/sites/Vereinsablage
+  ```
 
-   Kommt stattdessen **400 „Empty Payload"**, hat der Graph Explorer den Text
-   verschluckt: Er wirft den Anforderungstext weg, wenn die Methode danach von
-   GET auf POST wechselt. Also erst **POST** wählen, dann das JSON einfügen.
-   Hilft das nicht, geht dasselbe in **PowerShell**, das den Rumpf selbst
-   richtig verpackt:
+  Dann **Abfrage ausführen**.
+- In der Antwort die Zeile mit `"id":` suchen und den Text in Anführungszeichen
+  dahinter kopieren. Er fängt mit eurer SharePoint-Adresse an und enthält zwei
+  Kommas.
+- Jetzt **zuerst** GET auf **POST** umstellen und erst danach etwas einfügen –
+  andersherum verschluckt der Graph Explorer den Text und meldet
+  „Empty Payload". Ins Adressfeld:
 
-   ```powershell
-   Connect-MgGraph -Scopes "Sites.FullControl.All"
-   New-MgSitePermission -SiteId "<id aus Schritt 3>" -Roles "write" `
-     -GrantedToIdentities @(@{ Application = @{ Id = "<Anwendungs-ID>"; DisplayName = "DING Dateiablage" } })
-   ```
+  ```
+  https://graph.microsoft.com/v1.0/sites/KENNUNG-DER-WEBSITE/permissions
+  ```
 
-## 4. Die Geheimnisse in Supabase
+- Darunter im Reiter **Anforderungstext** („Request body"):
 
-Supabase → Projekt → **Edge Functions → Secrets**:
+  ```json
+  {
+    "roles": ["write"],
+    "grantedToIdentities": [
+      { "application": { "id": "ANWENDUNGS-ID", "displayName": "DING Dateiablage" } }
+    ]
+  }
+  ```
+
+  Dann **Abfrage ausführen**.
+
+| Antwort | Bedeutung |
+| --- | --- |
+| **201 Created** | geschafft |
+| 403 | In Schritt 4 fehlt die Zustimmung (der grüne Haken) |
+| 401 | Bei „Berechtigungen ändern" fehlt die Zustimmung |
+| 400 Empty Payload | erst POST wählen, dann den Text einfügen |
+
+Klappt es im Graph Explorer gar nicht, geht dasselbe in PowerShell:
+
+```powershell
+Connect-MgGraph -Scopes "Sites.FullControl.All"
+New-MgSitePermission -SiteId "KENNUNG-DER-WEBSITE" -Roles "write" `
+  -GrantedToIdentities @(@{ Application = @{ Id = "ANWENDUNGS-ID"; DisplayName = "DING Dateiablage" } })
+```
+
+## 6. Die Zugangsdaten bei Supabase hinterlegen
+
+Öffne **supabase.com**, wähle euer Projekt und links **Edge Functions** →
+**Secrets**. Leg diese Einträge an:
 
 | Name | Wert |
 | --- | --- |
-| `SHAREPOINT_CLIENT_ID` | Anwendungs-ID (Client) |
-| `SHAREPOINT_CLIENT_SECRET` | der Wert des geheimen Clientschlüssels |
-| `SHAREPOINT_TENANT_ID` | Verzeichnis-ID (Mandant) – nur nötig, wenn `MS_TENANT_ID` fehlt |
+| `SHAREPOINT_CLIENT_ID` | die Anwendungs-ID aus Schritt 2 |
+| `SHAREPOINT_CLIENT_SECRET` | das Passwort aus Schritt 3 |
+| `SHAREPOINT_TENANT_ID` | die Verzeichnis-ID aus Schritt 2 – nur nötig, wenn eure E-Mails noch nicht über Microsoft 365 verschickt werden (dann gilt `MS_TENANT_ID`, das ist derselbe Wert) |
 
-## 5. In DING umschalten
+## 7. Prüfen und umschalten
 
-**Verwaltung → Dateiablage**
+In DING unter **Verwaltung → Mitgliederbereich → Dateiablage**:
 
-1. **SharePoint** wählen, die Adresse der Website eintragen.
+1. **SharePoint** wählen und die Adresse der Website eintragen.
 2. **Verbindung prüfen.** Grün heisst: DING erreicht die Website und hat den
-   Ordner „Quellensammlung" angelegt. Rot nennt den Grund – meist ein fehlendes
-   Geheimnis oder die fehlende Freigabe aus Schritt 3.
-3. **Speichern.** Ab jetzt gehen neue Dateien nach SharePoint.
-4. **Nach SharePoint verschieben** trägt die Dateien hinüber, die schon im
-   Supabase-Speicher liegen. Eine nach der anderen; bricht es ab, einfach neu
-   starten.
+   Ordner „Quellensammlung" angelegt. Rot sagt, was fehlt – meistens Schritt 5
+   oder ein Tippfehler in Schritt 6.
+3. **Speichern.** Ab jetzt landen neue Dateien in SharePoint.
+4. **Nach SharePoint verschieben** trägt die Dateien hinüber, die schon bei
+   Supabase liegen. Bricht es ab, einfach neu starten.
 
 Quellen, deren Datei nicht auffindbar war, stehen danach in der
-Quellensammlung mit **„Die Datei fehlt"**. Wer die Quelle angelegt hat – oder
-wer die Dateiablage verwaltet –, kann dort die Datei **nachreichen**. Bei
-DileHi betrifft das die grossen Scans, die für Supabase zu gross waren.
+Quellensammlung mit **„Die Datei fehlt"**. Die Datei lässt sich dort
+nachreichen – oder über den Eingangskorb.
 
-## 6. Der Eingangskorb – grosse Dateien ohne Browser
+## 8. Der Eingangskorb – grosse Dateien ohne Browser
 
 Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
 über den Ordner:
 
 1. In SharePoint auf der Website **Dokumente** öffnen → **Synchronisieren**.
-   Der Ordner erscheint dann im Explorer unter „DileHi – Vereinsablage".
+   Der Ordner erscheint dann im Explorer.
 2. Die Dateien in den Ordner **Posteingang** legen (DING legt ihn selbst an).
-3. In DING: **Verwaltung → Dateiablage → Eingangskorb**. Dort steht jede Datei,
-   die in der Website liegt und zu keiner Quelle gehört – auch aus anders
-   benannten Ordnern.
-4. Je Datei auswählen, wohin sie gehört: an eine vorhandene Quelle ohne Datei
-   oder als neue Quelle in einer Epoche. Beim Zuordnen wandert die Datei nach
-   `Quellensammlung/<Epoche>/`.
-
-Damit lassen sich auch die Lücken schliessen, die beim Umzug entstanden sind:
-Quellen, deren Datei zu gross war und die in der Quellensammlung mit
-**„Die Datei fehlt"** stehen.
+3. In DING unter **Dateiablage → Eingangskorb** auf **Neu einlesen**. Dort steht
+   jede Datei, die in der Website liegt und zu keiner Quelle gehört – auch aus
+   anders benannten Ordnern.
+4. Bei jeder Datei auswählen, wohin sie gehört: an eine vorhandene Quelle oder
+   als neue Quelle in einer Epoche. Dann einmal **Dateien zuordnen** für alle.
+   Die Dateien wandern dabei nach `Quellensammlung/<Epoche>/`.
 
 ---
 
@@ -156,6 +167,8 @@ Quellen, deren Datei zu gross war und die in der Quellensammlung mit
 - **Hochladen** läuft im Browser direkt zu Microsoft, in Stücken von 10 MB.
   Die Edge Function `sharepoint-files` besorgt nur die Hochladeadresse und
   legt danach die Quelle an. Deshalb gilt die Grenze von Supabase nicht.
+- **Vorschau** über die Vorschau von SharePoint: Sie blättert seitenweise und
+  kann PDF, Word, Excel und PowerPoint. Die Adresse gilt nur kurz.
 - **Herunterladen** über eine Adresse, die Microsoft für Minuten ausstellt.
   Wer die Quelle nicht sehen darf, bekommt keine.
 - **Löschen** einer Quelle schiebt die Datei in den Papierkorb der
@@ -165,4 +178,5 @@ Quellen, deren Datei zu gross war und die in der Quellensammlung mit
   abrufen.
 
 Code: `supabase/functions/sharepoint-files`, `supabase/functions/_shared/sharepoint.ts`,
-`src/lib/sharePointFiles.ts`, `src/components/admin/FileStorageAdmin.tsx`.
+`src/lib/sharePointFiles.ts`, `src/components/admin/FileStorageAdmin.tsx`,
+`src/components/admin/SharePointAnleitung.tsx`.

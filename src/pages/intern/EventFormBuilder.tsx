@@ -19,7 +19,7 @@ import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import { useFormSettings } from "@/components/event-forms/formSettings";
 import { SEITE } from "@/lib/layout";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 /** Stabile Referenz – siehe Kommentar am Entwurfs-Effekt. */
 const EMPTY_FIELDS: FormField[] = [];
@@ -258,10 +258,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 flex-wrap">
-                <h1 className="font-serif text-2xl font-bold">Anmeldeformular</h1>
-                <TourKnopf tour="anmeldeformular" />
-              </div>
+              <SeitenTitel tour="anmeldeformular">Anmeldeformular</SeitenTitel>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
             </div>
           </div>
