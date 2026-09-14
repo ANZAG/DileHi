@@ -8,6 +8,9 @@ import type { Election, ElectionResult } from "./types";
 import { Hilfe } from "@/components/Hilfe";
 import { ergebnisVon } from "@/lib/ergebnisBild";
 import ErgebnisBildKnopf from "./ErgebnisBildKnopf";
+import { Link } from "react-router-dom";
+import { Gavel } from "lucide-react";
+import { modulAn, useModule } from "@/hooks/useModule";
 
 interface Props {
   election: Election;
@@ -33,6 +36,10 @@ const formatTimestamp = (iso: string) => {
 const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, defaultOpen = true, groupTitle = null }: Props) => {
   const { user, hasPermission } = useAuth();
   const isVorstand = hasPermission("elections.manage");
+  const { data: module } = useModule();
+  // Aus einer geschlossenen Abstimmung einen Beschluss machen – nur, wenn es
+  // das Beschlussregister gibt und man dort erfassen darf.
+  const kannBeschliessen = hasPermission("resolutions.manage") && modulAn(module, "resolutions");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -448,10 +455,21 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
             <p className="text-sm font-medium">
               Ergebnis ({totalVotes} von {totalPossibleVotes} möglichen Stimmen):
             </p>
-            <ErgebnisBildKnopf
-              thema={groupTitle}
-              ergebnisse={[ergebnisVon(election, results, totalPossibleVotes)].filter((e) => e !== null)}
-            />
+            <div className="flex flex-wrap gap-2">
+              {kannBeschliessen && (
+                <Link
+                  to={`/intern/beschluesse?aus=${election.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border hover:bg-muted shrink-0"
+                  title="Als Beschluss ins Register übernehmen"
+                >
+                  <Gavel size={14} /> Als Beschluss
+                </Link>
+              )}
+              <ErgebnisBildKnopf
+                thema={groupTitle}
+                ergebnisse={[ergebnisVon(election, results, totalPossibleVotes)].filter((e) => e !== null)}
+              />
+            </div>
           </div>
           {electionResults.map((r) => {
             const pct = totalVotes > 0 ? Math.round((r.vote_count / totalVotes) * 100) : 0;

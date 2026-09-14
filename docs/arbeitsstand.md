@@ -563,7 +563,19 @@ Offen:
         über die Abendzusammenfassung. Vorschläge: Steuererklärung,
         Bescheid wird zu alt, Mitgliederversammlung, Versicherung,
         Vereinsregister nach Vorstandswahl.
-      - [ ] **Beschlussregister**
+      - [x] **Beschlussregister** (Modul `resolutions`, Migration
+        `20260915120000_resolutions.sql`, Seite `/intern/beschluesse`):
+        Nummer fortlaufend je Jahr („2026/03", vergibt ein Trigger mit
+        Sperre gegen Doppelvergabe, von Hand überschreibbar), Gremium,
+        Wortlaut, Ausgang, Ergebnis, Sichtbarkeit (alle Mitglieder oder nur
+        Vorstand), Verweis auf Abstimmung und Protokoll, „aufgehoben durch".
+        Aus einer geschlossenen Abstimmung per Knopf „Als Beschluss" mit
+        Titel, Datum und Ergebnis vorausgefüllt.
+      - [x] **Nebenbei gefunden und geschlossen:** `get_election_results()`
+        gab jedem Mitglied die Stimmen laufender Abstimmungen heraus, obwohl
+        die Oberfläche das Ergebnis erst nach Abschluss zeigt. Jetzt nur
+        geschlossene – laufende nur für `elections.manage`
+        (`20260915115000_election_results_closed.sql`).
       - [ ] **Einwilligungen** (Fotofreigaben, Minderjährige mit
         Notfallkontakten)
       - [ ] **Auslagenerstattung** mit Belegfoto und Übersicht zu Ehrenamts-
