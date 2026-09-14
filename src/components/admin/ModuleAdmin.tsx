@@ -59,13 +59,20 @@ export default function ModuleAdmin() {
 
   const grund = (m: Modulstand) => {
     if (!m.enabled) return null;
+    // Die Bereiche für gemeinnützige Vereine hängen an einer Einstellung,
+    // nicht an einem Schalter hier – das gehört dazugesagt.
+    if (!m.active && m.requires === "nonprofit") {
+      return "Erscheint erst, wenn unter Allgemeine Einstellungen → Erscheinungsbild „Gemeinnützig“ angekreuzt ist.";
+    }
     // Eingeschaltet, aber wirkungslos: Das gehoert dazugesagt, sonst sucht
     // jemand den Bereich, dessen Schalter auf „an" steht.
     if (!m.active) return `Wirkt nicht, solange „${label(m.requires)}" abgeschaltet ist.`;
     return null;
   };
 
-  const grundfunktionen = module.filter((m) => m.kind !== "addon");
+  // „Gemeinnütziger Verein“ ist kein Bereich, sondern eine Eigenschaft des
+  // Vereins und wird im Erscheinungsbild eingestellt.
+  const grundfunktionen = module.filter((m) => m.kind !== "addon" && m.key !== "nonprofit");
   const zusaetze = module.filter((m) => m.kind === "addon");
 
   return (
