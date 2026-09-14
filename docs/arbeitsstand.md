@@ -506,6 +506,15 @@ Offen:
 
 ### 4. Danach
 
+- [ ] **Einrichtungsassistent für neue Installationen**, wie bei WordPress
+      (Wunsch vom 14. September): eine Seite, die Schritt für Schritt prüft
+      und anzeigt, was steht und was fehlt – Datenbank erreichbar, Migrationen
+      eingespielt, erster Admin, Vereinsdaten, Mailversand mit Probeversand,
+      SharePoint mit „Verbindung prüfen", Push-Schlüssel, Sicherung. Jeder
+      Schritt mit Ampel, Erklärung in einfacher Sprache und Knopf zum Prüfen.
+      Baut auf `/einrichtung` und den vorhandenen Prüfaktionen auf
+      (`mail-test`, `sharepoint-files` → `status`); fehlende Secrets meldet
+      eine Edge Function nur mit Namen, nie mit Wert.
 - [ ] **Startdaten für eine neue Installation:** im Kopfmenü nur die
       Startseite, im Fuß Impressum und Datenschutz, beide aus den Angaben
       unter Erscheinungsbild erzeugt statt ins Leere. Keine Epochen als

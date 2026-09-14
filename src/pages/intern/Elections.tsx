@@ -10,7 +10,7 @@ import ElectionCard from "@/components/elections/ElectionCard";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
 import { SEITE } from "@/lib/layout";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 const Elections = () => {
   const { user, hasPermission } = useAuth();
@@ -273,10 +273,7 @@ const Elections = () => {
         />
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-          <div className="flex items-center gap-1 flex-wrap">
-            <h1 className="font-serif text-2xl font-bold">Abstimmungen</h1>
-            <TourKnopf tour="abstimmungen" />
-          </div>
+          <SeitenTitel tour="abstimmungen">Abstimmungen</SeitenTitel>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={refreshAll}

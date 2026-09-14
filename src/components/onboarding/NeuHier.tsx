@@ -71,11 +71,33 @@ export function TourKnopf({ tour, titel = "Einführung" }: { tour: string; titel
       onClick={() => fuehrungStarten(tour)}
       aria-label={titel}
       title={titel}
-      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 px-2 text-xs rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
     >
       <HelpCircle size={15} />
       <span className="sr-only sm:not-sr-only">{titel}</span>
     </button>
+  );
+}
+
+/**
+ * Die Überschrift einer Seite mit dem Fragezeichen dahinter.
+ *
+ * Jede Seite hatte ihre eigene Zeile gebaut: mal text-xl, mal text-3xl, mal
+ * zwischen Zurück-Pfeil und Knöpfen, mal allein, mal mit der Zeilenhöhe der
+ * Schrift, mal ohne. Das Fragezeichen sass deshalb überall ein paar Pixel
+ * anders zur Schrift. Hier steht es einmal: gleiche Grösse, Zeilenhöhe genau
+ * eine Schrifthöhe, beides auf dieselbe Mitte.
+ */
+export function SeitenTitel({ tour, titel, children }: {
+  tour: string;
+  titel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1 flex-wrap min-w-0">
+      <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-none py-1">{children}</h1>
+      <TourKnopf tour={tour} titel={titel} />
+    </div>
   );
 }
 

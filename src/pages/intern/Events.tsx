@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -77,8 +77,7 @@ const EventsPage = () => {
             <Button variant="ghost" size="icon" asChild>
               <Link to="/intern"><ArrowLeft size={20} /></Link>
             </Button>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold">Veranstaltungen</h1>
-            <TourKnopf tour="veranstaltungen" />
+            <SeitenTitel tour="veranstaltungen">Veranstaltungen</SeitenTitel>
           </div>
           <div className="flex gap-2">
             <Button data-tour="knopf-kalender" variant="outline" size="sm" onClick={() => ev.setShowCalendarSync(true)}>

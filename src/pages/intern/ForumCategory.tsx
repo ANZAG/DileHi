@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import ForumEditor from "@/components/forum/ForumEditor";
-import { createThread, fetchCategories, fetchThreads } from "@/components/forum/api";
+import { createThread, fetchCategories, fetchReadState, fetchThreads, istUngelesen } from "@/components/forum/api";
 import { supabase } from "@/integrations/supabase/client";
 import { SEITE } from "@/lib/layout";
 
@@ -34,6 +34,12 @@ export default function ForumCategory() {
     queryKey: ["forum-threads", category?.id],
     queryFn: () => fetchThreads(category!.id),
     enabled: !!category?.id,
+  });
+
+  const { data: gelesen = {} } = useQuery({
+    queryKey: ["forum-read-state", user?.id],
+    queryFn: () => fetchReadState(user!.id),
+    enabled: !!user,
   });
 
   // Wer im Forum liest, kennt die Namen – hier reicht eine schlanke Liste.
@@ -145,18 +151,26 @@ export default function ForumCategory() {
           </div>
         ) : (
           <ul className="divide-y rounded-lg border bg-card overflow-hidden">
-            {laufend.map((t) => (
+            {laufend.map((t) => {
+              // Vorher stand nur an der Rubrik „3 neu", und man musste raten,
+              // welche drei. Jetzt trägt jedes neue Thema die Markierung selbst.
+              const neu = istUngelesen(t, gelesen[t.id]);
+              return (
               <li key={t.id}>
                 <Link
                   to={`/intern/forum/thema/${t.id}`}
-                  className="flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors group"
+                  className={`flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors group ${neu ? "bg-primary/5" : ""}`}
                 >
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 flex-wrap">
+                      {neu && <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />}
                       {t.is_pinned && <Pin size={13} className="text-primary shrink-0" aria-label="Angeheftet" />}
                       {t.is_locked && <Lock size={13} className="text-muted-foreground shrink-0" aria-label="Geschlossen" />}
                       {t.is_archived && <Archive size={13} className="text-muted-foreground shrink-0" aria-label="Archiviert" />}
-                      <span className="font-medium group-hover:text-primary transition-colors">{t.title}</span>
+                      <span className={`${neu ? "font-semibold" : "font-medium"} group-hover:text-primary transition-colors`}>{t.title}</span>
+                      {neu && (
+                        <span className="text-xs font-medium bg-primary text-primary-foreground rounded-full px-2 py-0.5">neu</span>
+                      )}
                     </span>
                     <span className="block text-xs text-muted-foreground mt-0.5">
                       {names[t.created_by] ?? "Mitglied"} · letzter Beitrag{" "}
@@ -168,7 +182,8 @@ export default function ForumCategory() {
                   </span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 

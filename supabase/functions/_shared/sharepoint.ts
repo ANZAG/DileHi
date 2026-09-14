@@ -309,6 +309,24 @@ export async function fileInFolder(target: SharePointTarget, itemId: string): Pr
 }
 
 /**
+ * Eine Vorschau zum Einbetten, so wie SharePoint sie selbst zeigt.
+ *
+ * Die Download-Adresse taugt dafür nicht: SharePoint schickt die Datei zum
+ * Speichern, nicht zum Anzeigen, und ein Scan von 466 MB müsste im Browser
+ * erst ganz geladen werden. Die Vorschau blättert seitenweise, kann PDF,
+ * Word, Excel und PowerPoint und gilt ohne Anmeldung für kurze Zeit.
+ */
+export async function previewUrl(target: SharePointTarget, itemId: string): Promise<string> {
+  await fileInFolder(target, itemId);
+  const antwort = await graphJson<{ getUrl?: string }>(
+    `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}/preview`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+  if (!antwort.getUrl) throw new Error("SharePoint hat für diese Datei keine Vorschau geliefert.");
+  return antwort.getUrl;
+}
+
+/**
  * Liegt ein Eltern-Pfad wie `/drives/…/root:/Quellensammlung/mittelalter`
  * unter FOLDER? Genau dieser Ordner oder darunter – nicht
  * „QuellensammlungPrivat", nicht ein Ordner gleichen Namens tiefer in der

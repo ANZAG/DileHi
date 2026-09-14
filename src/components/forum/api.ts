@@ -75,28 +75,59 @@ export async function fetchCategories(): Promise<ForumCategory[]> {
   return (data ?? []) as ForumCategory[];
 }
 
+/** Wann jemand welches Thema zuletzt geöffnet hat, je Thema. */
+export async function fetchReadState(userId: string): Promise<Record<string, string>> {
+  const { data, error } = await db
+    .from("forum_read_state")
+    .select("thread_id, last_read_at")
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  const gelesen: Record<string, string> = {};
+  for (const r of (data ?? []) as { thread_id: string; last_read_at: string }[]) {
+    gelesen[r.thread_id] = r.last_read_at;
+  }
+  return gelesen;
+}
+
+/**
+ * Ist ein Thema für diese Person neu?
+ *
+ * Nie geöffnet zählt als neu – sonst ist ein frisches Thema unsichtbar.
+ * Archiviertes nie: Dort passiert nichts mehr, und wer ein altes Archiv zum
+ * ersten Mal sah, bekam es bisher als Dutzend „neue" Themen gemeldet.
+ */
+export function istUngelesen(
+  thema: Pick<ForumThread, "last_post_at" | "is_archived">,
+  gelesenAm: string | undefined
+): boolean {
+  if (thema.is_archived) return false;
+  return !gelesenAm || new Date(gelesenAm) < new Date(thema.last_post_at);
+}
+
 /** Themenzahl und Zahl der ungelesenen Themen je Rubrik. */
 export async function fetchCategoryStats(userId?: string) {
   const { data: threads } = await db
     .from("forum_threads")
-    .select("id, category_id, last_post_at");
-  const { data: readState } = userId
-    ? await db.from("forum_read_state").select("thread_id, last_read_at").eq("user_id", userId)
-    : { data: [] };
-
-  const readAt = new Map<string, string>(
-    (readState ?? []).map((r: { thread_id: string; last_read_at: string }) => [r.thread_id, r.last_read_at])
-  );
+    .select("id, category_id, last_post_at, is_archived");
+  const gelesen = userId ? await fetchReadState(userId) : {};
 
   const stats: Record<string, { threads: number; unread: number }> = {};
-  for (const t of (threads ?? []) as { id: string; category_id: string; last_post_at: string }[]) {
+  for (const t of (threads ?? []) as Pick<ForumThread, "id" | "category_id" | "last_post_at" | "is_archived">[]) {
     const entry = (stats[t.category_id] ??= { threads: 0, unread: 0 });
     entry.threads += 1;
-    const seen = readAt.get(t.id);
-    // Nie geöffnet zählt als ungelesen – sonst ist ein neues Thema unsichtbar.
-    if (!seen || new Date(seen) < new Date(t.last_post_at)) entry.unread += 1;
+    if (istUngelesen(t, gelesen[t.id])) entry.unread += 1;
   }
   return stats;
+}
+
+/** Alle ungelesenen Themen über alle Rubriken, das mit dem jüngsten Beitrag zuerst. */
+export async function fetchUnreadThreads(userId: string): Promise<ForumThread[]> {
+  const [{ data, error }, gelesen] = await Promise.all([
+    db.from("forum_threads").select("*").eq("is_archived", false).order("last_post_at", { ascending: false }),
+    fetchReadState(userId),
+  ]);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ForumThread[]).filter((t) => istUngelesen(t, gelesen[t.id]));
 }
 
 export async function fetchThreads(categoryId: string): Promise<ForumThread[]> {
