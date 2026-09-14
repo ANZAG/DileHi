@@ -534,9 +534,16 @@ Offen:
         Zusagen, wer einen am Veranstaltungsende gültigen Nachweis hat.
         Offen: Scans der Nachweise – dafür müssen die Speicherregeln von
         internal-files erst einen privaten Ordner kennen.
-      - **Inventar und Ausleihe:** Zelte, Lagerausstattung, Leihgewandung,
-        Waffen – Standort, Zustand, wer hat was, Reservierung für eine
-        Veranstaltung.
+      - [x] **Inventar und Ausleihe** (Modul `inventory`, abgeschaltet
+        ausgeliefert; Migration `20260915100000_inventory.sql`, Seite
+        `/intern/inventar`). Gegenstände mit Kategorie, Anzahl, Lagerort,
+        Zustand und optional Leihgabe eines Mitglieds. Reservieren für einen
+        Zeitraum oder eine Veranstaltung; Ausgeben und Zurücknehmen nur durch
+        die Inventarverwaltung. Ein Trigger verhindert Doppelbuchung und
+        Ausleihe von Ausgesondertem; ausgegeben und nicht zurück blockiert
+        auch über das Rückgabedatum hinaus. Überfällige Rückgaben meldet die
+        Abendzusammenfassung einmal. Bei der Veranstaltung steht, was für sie
+        reserviert ist. Offen: Fotos der Gegenstände.
 - [ ] **Gemeinnützigkeit als Einstellung** (beschlossen am 14. September):
       Bei der Einrichtung und im Erscheinungsbild abgefragt. Nur wenn
       gesetzt, erscheinen: Zuwendungsbestätigungen nach amtlichem Muster,

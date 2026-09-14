@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
-  FileText, Coins, MapPin, ClipboardList, ScrollText,
+  FileText, Coins, MapPin, ClipboardList, ScrollText, Package,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
@@ -27,6 +27,7 @@ const baseCards = [
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", module: "documents" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
+  { title: "Inventar", desc: "Was der Verein hat, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },
 ];
 
 const Dashboard = () => {
