@@ -6,7 +6,7 @@ von 50 MB je Datei. Titel, Epoche, Ordner und wer was sehen darf, bleiben in
 DING; nur die Datei selbst liegt in SharePoint.
 
 **Die Anleitung steht auch in DING selbst**, unter Verwaltung →
-Mitgliederbereich → Dateiablage → „SharePoint einrichten – Schritt für
+Allgemeine Einstellungen → Erscheinungsbild → Dateiablage → „SharePoint einrichten – Schritt für
 Schritt". Dort sind die Texte zum Einfügen schon mit euren Werten ausgefüllt.
 Diese Seite ist dieselbe Anleitung zum Nachlesen.
 
@@ -127,18 +127,18 @@ New-MgSitePermission -SiteId "KENNUNG-DER-WEBSITE" -Roles "write" `
 | --- | --- |
 | `SHAREPOINT_CLIENT_ID` | die Anwendungs-ID aus Schritt 2 |
 | `SHAREPOINT_CLIENT_SECRET` | das Passwort aus Schritt 3 |
-| `SHAREPOINT_TENANT_ID` | die Verzeichnis-ID aus Schritt 2 – nur nötig, wenn eure E-Mails noch nicht über Microsoft 365 verschickt werden (dann gilt `MS_TENANT_ID`, das ist derselbe Wert) |
+| `MS_TENANT_ID` | die Verzeichnis-ID aus Schritt 2 – dieselbe wie beim Mailversand über Microsoft 365. Steht sie dort schon, ist nichts zu tun. |
 
 ## 7. Prüfen und umschalten
 
-In DING unter **Verwaltung → Mitgliederbereich → Dateiablage**:
+In DING unter **Verwaltung → Allgemeine Einstellungen → Erscheinungsbild → Dateiablage**:
 
 1. **SharePoint** wählen und die Adresse der Website eintragen.
 2. **Verbindung prüfen.** Grün heisst: DING erreicht die Website und hat den
    Ordner „Quellensammlung" angelegt. Rot sagt, was fehlt – meistens Schritt 5
    oder ein Tippfehler in Schritt 6.
-3. **Speichern.** Ab jetzt landen neue Dateien in SharePoint.
-4. **Nach SharePoint verschieben** trägt die Dateien hinüber, die schon bei
+3. **Speichern** (unten im Erscheinungsbild). Ab jetzt landen neue Dateien in SharePoint, und unter Mitgliederbereich erscheint der Eingangskorb.
+4. Im **Eingangskorb** trägt **Nach SharePoint verschieben** die Dateien hinüber, die schon bei
    Supabase liegen. Bricht es ab, einfach neu starten.
 
 Quellen, deren Datei nicht auffindbar war, stehen danach in der
@@ -153,7 +153,7 @@ Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
 1. In SharePoint auf der Website **Dokumente** öffnen → **Synchronisieren**.
    Der Ordner erscheint dann im Explorer.
 2. Die Dateien in den Ordner **Posteingang** legen (DING legt ihn selbst an).
-3. In DING unter **Dateiablage → Eingangskorb** auf **Neu einlesen**. Dort steht
+3. In DING unter **Verwaltung → Mitgliederbereich → Eingangskorb** auf **Neu einlesen**. Dort steht
    jede Datei, die in der Website liegt und zu keiner Quelle gehört – auch aus
    anders benannten Ordnern.
 4. Bei jeder Datei auswählen, wohin sie gehört: an eine vorhandene Quelle oder
@@ -179,4 +179,4 @@ Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
 
 Code: `supabase/functions/sharepoint-files`, `supabase/functions/_shared/sharepoint.ts`,
 `src/lib/sharePointFiles.ts`, `src/components/admin/FileStorageAdmin.tsx`,
-`src/components/admin/SharePointAnleitung.tsx`.
+`src/components/admin/DateiablageWahl.tsx`, `src/components/admin/SharePointAnleitung.tsx`, `src/components/admin/anleitung/Bausteine.tsx`.

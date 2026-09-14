@@ -65,7 +65,8 @@ function tenantId(): string {
 /** Welche Geheimnisse fehlen – für eine Meldung, mit der man etwas anfangen kann. */
 export function missingSecrets(): string[] {
   const fehlt = ["SHAREPOINT_CLIENT_ID", "SHAREPOINT_CLIENT_SECRET"].filter((n) => !Deno.env.get(n));
-  if (!tenantId()) fehlt.unshift("SHAREPOINT_TENANT_ID");
+  // Gemeldet wird der gemeinsame Name, so steht er in beiden Anleitungen.
+  if (!tenantId()) fehlt.unshift("MS_TENANT_ID");
   return fehlt;
 }
 
