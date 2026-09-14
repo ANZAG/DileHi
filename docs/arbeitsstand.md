@@ -517,15 +517,23 @@ Offen:
       Speechmatics, Azure Speech, AssemblyAI; vorher an einer echten Sitzung
       vergleichen), Link und Rückmeldung per Webhook statt langer Laufzeit.
       Tonspuren nach Freigabe automatisch löschen, Transkript nach Frist.
+      **Gewünscht ist direktes Speech-to-Text** (14. September): mitlaufendes
+      Transkript während der Sitzung statt Aufnahme und späterem Upload.
       Einwilligung und Auftragsverarbeitung klären. Ein eigener Discord-Bot
       erst später und nur als Zusatz, er bräuchte einen dauerhaft laufenden
       Rechner.
 - [ ] **Zuschaltbare Module für Reenactment-Vereine** (beschlossen am
       14. September):
-      - **Nachweise mit Ablaufdatum:** Pulverschein, Befähigungsnachweis,
-        Erste Hilfe, Anhänger-Führerschein, Schaukampf-Einweisung.
-        Erinnerung vor dem Ablauf; bei der Anmeldung zu einer Veranstaltung
-        sichtbar, wer was darf.
+      - [x] **Nachweise mit Ablaufdatum** (Modul `certificates`, abgeschaltet
+        ausgeliefert; Migration `20260915090000_certificates.sql`). Arten legt
+        die Verwaltung an (Gültigkeit in Monaten, Vorlauf der Erinnerung).
+        Mitglieder tragen im Profil ein, die Verwaltung prüft; eine Änderung
+        durch das Mitglied hebt die Prüfung auf (Trigger). Erinnerung einmal
+        vor dem Ablauf und einmal danach (höchstens 30 Tage zurück) über die
+        Abendzusammenfassung. Die Leitung einer Veranstaltung sieht an den
+        Zusagen, wer einen am Veranstaltungsende gültigen Nachweis hat.
+        Offen: Scans der Nachweise – dafür müssen die Speicherregeln von
+        internal-files erst einen privaten Ordner kennen.
       - **Inventar und Ausleihe:** Zelte, Lagerausstattung, Leihgewandung,
         Waffen – Standort, Zustand, wer hat was, Reservierung für eine
         Veranstaltung.
