@@ -20,7 +20,7 @@ import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder
 import { useBeitragsmodell } from "@/hooks/useBeitragsmodell";
 import { useBeitragsstufen } from "@/hooks/useBeitragsstufen";
 import { useModule } from "@/hooks/useModule";
-import { SEITE } from "@/lib/layout";
+import { SEITE, ZWEISPALTIG } from "@/lib/layout";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -383,7 +383,7 @@ const Profile = () => {
           * rechte). Sie ist nach Wichtigkeit sortiert: erst wer man ist, dann
           * was man mitbringt, zuletzt Einstellungen und Unterlagen.
           */}
-        <div className="space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
+        <div className={ZWEISPALTIG}>
           <ErsteSchritte />
 
           {/* Personal info */}
