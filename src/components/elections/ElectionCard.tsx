@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import type { Election, ElectionResult } from "./types";
 import { Hilfe } from "@/components/Hilfe";
+import { ergebnisVon } from "@/lib/ergebnisBild";
+import ErgebnisBildKnopf from "./ErgebnisBildKnopf";
 
 interface Props {
   election: Election;
@@ -15,6 +17,8 @@ interface Props {
   totalMembers: number;
   totalPossibleVotes: number;
   defaultOpen?: boolean;
+  /** Das Thema, zu dem die Abstimmung gehört – steht auf dem Ergebnisbild als Überschrift. */
+  groupTitle?: string | null;
 }
 
 const formatTimestamp = (iso: string) => {
@@ -26,7 +30,7 @@ const formatTimestamp = (iso: string) => {
   );
 };
 
-const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, defaultOpen = true }: Props) => {
+const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, totalPossibleVotes, defaultOpen = true, groupTitle = null }: Props) => {
   const { user, hasPermission } = useAuth();
   const isVorstand = hasPermission("elections.manage");
   const { toast } = useToast();
@@ -440,9 +444,15 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
       {/* Results */}
       {election.status === "closed" && electionResults.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-sm font-medium">
-            Ergebnis ({totalVotes} von {totalPossibleVotes} möglichen Stimmen):
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              Ergebnis ({totalVotes} von {totalPossibleVotes} möglichen Stimmen):
+            </p>
+            <ErgebnisBildKnopf
+              thema={groupTitle}
+              ergebnisse={[ergebnisVon(election, results, totalPossibleVotes)].filter((e) => e !== null)}
+            />
+          </div>
           {electionResults.map((r) => {
             const pct = totalVotes > 0 ? Math.round((r.vote_count / totalVotes) * 100) : 0;
             return (
