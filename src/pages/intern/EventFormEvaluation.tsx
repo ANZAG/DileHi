@@ -40,7 +40,7 @@ import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
 import EvalResponsesTable from "@/components/evaluation/EvalResponsesTable";
 import { SEITE } from "@/lib/layout";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 interface ProgramItem {
   point: string;
@@ -594,10 +594,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 flex-wrap">
-                <h1 className="font-serif text-xl sm:text-2xl font-bold">Anmeldungen</h1>
-                <TourKnopf tour="auswertung" />
-              </div>
+              <SeitenTitel tour="auswertung">Anmeldungen</SeitenTitel>
               {event && <p className="text-sm text-muted-foreground truncate">{event.title}</p>}
             </div>
           </div>

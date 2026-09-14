@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput, AlertTriangle } from "lucide-react";
 import {
-  attachFile, deleteSourceWithFile, downloadUrl, registerSource, uploadToSharePoint,
+  attachFile, deleteSourceWithFile, downloadUrl, previewUrl as sharePointPreview, registerSource, uploadToSharePoint,
 } from "@/lib/sharePointFiles";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +45,18 @@ interface SourceRow {
 
 /** Der Name, an dem sich ablesen lässt, was für eine Datei es ist. */
 const fileLabel = (s: SourceRow) => s.file_name ?? s.file_path ?? "";
+
+/**
+ * Was die Vorschau von SharePoint zeigen kann – mehr als der Browser allein,
+ * auch Word, Excel und PowerPoint.
+ */
+const SHAREPOINT_PREVIEW = [
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf", "txt", ...IMAGE_EXTENSIONS,
+];
+const kannVorschau = (s: SourceRow) =>
+  s.drive_item_id
+    ? SHAREPOINT_PREVIEW.includes(getFileExtension(fileLabel(s)))
+    : isPreviewable(fileLabel(s));
 
 interface UploadProgress {
   fileName: string;
@@ -330,20 +342,29 @@ const Sources = () => {
   const previewSourceFile = async (s: SourceRow) => {
     if (s.drive_item_id) {
       try {
-        const d = await downloadUrl(s.id);
-        // SharePoint liefert Dateien zum Herunterladen aus, nicht zum Anzeigen.
-        // Für die Vorschau deshalb erst laden und dann zeigen – bei sehr
-        // grossen Scans lieber gleich herunterladen.
-        if ((d.size ?? 0) > 60 * 1024 * 1024) {
-          toast({ title: "Zu gross für die Vorschau", description: "Bitte herunterladen." });
+        // Bilder direkt: Sie sind klein, und ein Bild zeigt der Browser auch
+        // dann an, wenn SharePoint es eigentlich zum Speichern schickt.
+        if (IMAGE_EXTENSIONS.includes(getFileExtension(fileLabel(s)))) {
+          const d = await downloadUrl(s.id);
+          setPreviewTitle(s.title);
+          setPreviewIsImage(true);
+          setPreviewUrl(d.url);
           return;
         }
-        const blob = await (await fetch(d.url)).blob();
+        // Alles andere über die Vorschau von SharePoint. Die alte Fassung lud
+        // die ganze Datei in den Browser und gab ab 60 MB auf – ausgerechnet
+        // bei den Scans, für die eine Vorschau gedacht ist. Diese blättert
+        // seitenweise, und die Grösse spielt keine Rolle.
+        const { url } = await sharePointPreview(s.id);
         setPreviewTitle(s.title);
-        setPreviewIsImage((d.mimeType ?? blob.type).startsWith("image/"));
-        setPreviewUrl(URL.createObjectURL(blob));
+        setPreviewIsImage(false);
+        setPreviewUrl(url);
       } catch (err) {
-        toast({ title: "Vorschau-Fehler", description: (err as Error).message, variant: "destructive" });
+        toast({
+          title: "Keine Vorschau möglich",
+          description: `${(err as Error).message} Herunterladen geht trotzdem.`,
+          variant: "destructive",
+        });
       }
       return;
     }
@@ -620,7 +641,7 @@ const Sources = () => {
               previewIsImage ? (
                 <img src={previewUrl} alt={previewTitle} className="max-w-full max-h-[70vh] object-contain mx-auto" />
               ) : (
-                <iframe src={previewUrl} className="w-full h-[70vh] border rounded" title={previewTitle} />
+                <iframe src={previewUrl} className="w-full h-[70vh] border rounded" title={previewTitle} allow="fullscreen" />
               )
             )}
           </DialogContent>
@@ -711,7 +732,7 @@ const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onAttach
               <ExternalLink size={12} /> Link öffnen
             </a>
           )}
-          {hasFile && isPreviewable(fileLabel(s)) && (
+          {hasFile && kannVorschau(s) && (
             <button onClick={() => onPreview(s)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
               <Eye size={12} /> Vorschau
             </button>

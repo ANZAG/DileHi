@@ -8,7 +8,7 @@ import {
   FileText, Coins, MapPin, ClipboardList, ScrollText,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
 import { SEITE } from "@/lib/layout";
 
@@ -84,10 +84,7 @@ const Dashboard = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex flex-col gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-1 flex-wrap">
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold">Mitgliederbereich</h1>
-              <TourKnopf tour="start" titel="Rundgang" />
-            </div>
+            <SeitenTitel tour="start" titel="Rundgang">Mitgliederbereich</SeitenTitel>
             <div className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-x-1 gap-y-1.5">
               <span className="break-all sm:break-normal">Angemeldet als {user?.email}</span>
               {roles.map((r) => (

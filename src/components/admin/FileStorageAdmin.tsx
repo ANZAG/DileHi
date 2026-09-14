@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useKategorien } from "@/hooks/useKategorien";
 import { invokeFunction } from "@/lib/functionError";
+import SharePointAnleitung from "./SharePointAnleitung";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -85,7 +86,8 @@ export default function FileStorageAdmin() {
     !!settings && (storage !== settings.file_storage || siteUrl.trim() !== (settings.sharepoint_site_url ?? ""));
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8">
+      <div className="space-y-8 max-w-2xl">
       <div>
         <h2 className="font-serif text-lg font-semibold">Dateiablage</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -145,7 +147,7 @@ export default function FileStorageAdmin() {
               </p>
             )}
           </div>
-          <Einrichtung />
+          <SharePointAnleitung siteUrl={siteUrl} />
         </div>
       )}
 
@@ -153,36 +155,11 @@ export default function FileStorageAdmin() {
         {speichere && <Loader2 size={15} className="mr-1 animate-spin" />} Speichern
       </Button>
 
+      </div>
+
       {settings?.file_storage === "sharepoint" && <Verschieben />}
       {settings?.file_storage === "sharepoint" && <Posteingang />}
     </div>
-  );
-}
-
-/** Kurz, was vorher in Microsoft 365 einzurichten ist. Ausführlich: docs/sharepoint.md. */
-function Einrichtung() {
-  return (
-    <details className="rounded-lg border bg-muted/30 p-3 text-sm">
-      <summary className="cursor-pointer font-medium">SharePoint einrichten</summary>
-      <ol className="mt-3 space-y-2 text-muted-foreground list-decimal pl-5">
-        <li>In SharePoint eine Website für den Verein anlegen, etwa „Vereinsablage". Ihre Adresse kommt oben ins Feld.</li>
-        <li>
-          Im Microsoft Entra Admin Center eine App registrieren, etwa „DING Dateiablage". Unter
-          API-Berechtigungen: Microsoft Graph → Anwendungsberechtigung <code>Sites.Selected</code>, dann
-          Administratorzustimmung erteilen. Einen geheimen Clientschlüssel anlegen.
-        </li>
-        <li>
-          Dieser App im Graph Explorer die eine Website freigeben (Schreibrecht). Ohne diesen Schritt sieht die App
-          nichts – das ist gewollt.
-        </li>
-        <li>
-          In Supabase unter Edge Functions → Secrets eintragen: <code>SHAREPOINT_CLIENT_ID</code>,{" "}
-          <code>SHAREPOINT_CLIENT_SECRET</code> und <code>SHAREPOINT_TENANT_ID</code> – letzteres nur, wenn der
-          Mailversand über Microsoft noch nicht eingerichtet ist; sonst gilt <code>MS_TENANT_ID</code>.
-        </li>
-        <li>Hier „Verbindung prüfen", dann SharePoint wählen und speichern.</li>
-      </ol>
-    </details>
   );
 }
 
@@ -306,7 +283,7 @@ function Posteingang() {
   const queryClient = useQueryClient();
   const kategorien = useKategorien();
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["sharepoint-inbox"],
     queryFn: () => invokeFunction<{ ordner: string; dateien: Eingang[] }>("sharepoint-files", { body: { action: "inbox" } }),
   });
@@ -389,11 +366,26 @@ function Posteingang() {
 
   return (
     <div className="space-y-3 border-t pt-6">
-      <h3 className="font-medium">Eingangskorb</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-medium">Eingangskorb</h3>
+        {/* SharePoint meldet nicht von sich aus, wenn jemand etwas in den
+            Ordner legt. Gelesen wird beim Öffnen der Seite und beim Zurückkehren
+            in den Tab – und hier, wenn man gerade etwas hineingezogen hat. */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {dataUpdatedAt > 0 && (
+            <span>
+              Stand {new Date(dataUpdatedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching || laeuft}>
+            <RefreshCw size={14} className={`mr-1 ${isFetching ? "animate-spin" : ""}`} /> Neu einlesen
+          </Button>
+        </div>
+      </div>
       <p className="text-sm text-muted-foreground">
         Dateien, die in der SharePoint-Website liegen, aber zu keiner Quelle gehören. Grosse Scans legst du am
         besten mit dem Explorer in den Ordner „{data?.ordner ?? "Posteingang"}" – dann brauchst du den Browser
-        zum Hochladen nicht. Beim Zuordnen wandert die Datei in die Quellensammlung.
+        zum Hochladen nicht. Beim Zuordnen wandert die Datei in die Quellensammlung. Was du hineinlegst, während diese Seite offen ist, holt „Neu einlesen".
       </p>
 
       {isLoading && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 size={15} className="animate-spin" /> Sehe nach …</p>}
@@ -427,7 +419,7 @@ function Posteingang() {
         </div>
       )}
 
-      <ul className="space-y-2">
+      <ul className="grid gap-2 lg:grid-cols-2">
         {dateien.map((d) => (
           <li key={d.id} className="rounded-lg border p-3 space-y-2 min-w-0">
             <p className="font-medium text-sm break-words">{d.name}</p>

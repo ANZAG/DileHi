@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { requirePermission } from "../_shared/authz.ts";
 import {
   createUploadSession, deleteFile, ensureFolder, fileInFolder, FOLDER, INBOX, listUnsorted,
-  missingSecrets, moveIntoCollection, resolveTarget, uploadBytes, type DriveItem,
+  missingSecrets, moveIntoCollection, previewUrl, resolveTarget, uploadBytes, type DriveItem,
 } from "../_shared/sharepoint.ts";
 
 /**
@@ -28,6 +28,7 @@ import {
  *   register        Die hochgeladene Datei als Quelle anlegen.
  *   attach          Eine hochgeladene Datei an eine bestehende Quelle hängen.
  *   download-url    Adresse zum Ansehen oder Herunterladen.
+ *   preview-url     Vorschau zum Einbetten, blättert seitenweise.
  *   delete          Quelle löschen, die Datei geht in den Papierkorb der Website.
  *   move            Eine Datei aus dem Supabase-Speicher nach SharePoint tragen.
  *   inbox           Was im Eingangskorb liegt und noch zu keiner Quelle gehört.
@@ -171,6 +172,14 @@ Deno.serve(async (req) => {
         const downloadUrl = item["@microsoft.graph.downloadUrl"];
         if (!downloadUrl) throw new Error("SharePoint hat keine Download-Adresse geliefert.");
         return json(200, { url: downloadUrl, name: item.name, mimeType: item.file?.mimeType ?? null, size: item.size ?? null });
+      }
+
+      case "preview-url": {
+        // Wie beim Herunterladen: Wer die Quelle nicht sieht, bekommt nichts.
+        const { data: source } = await asUser.from("sources")
+          .select("drive_item_id").eq("id", String(body.sourceId ?? "")).maybeSingle();
+        if (!source?.drive_item_id) throw new Refusal("Diese Quelle hat keine Datei in SharePoint.", 404);
+        return json(200, { url: await previewUrl(await target(), source.drive_item_id) });
       }
 
       case "delete": {

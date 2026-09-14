@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ForumEditor from "@/components/forum/ForumEditor";
 import PostBody from "@/components/forum/PostBody";
 import {
-  createPost, createPollPost, fetchPosts, fetchThread, markRead,
+  createPost, createPollPost, fetchCategories, fetchPosts, fetchThread, markRead,
   removePost, restorePost, updatePost,
 } from "@/components/forum/api";
 import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
@@ -45,6 +45,12 @@ export default function ForumThread() {
     enabled: !!threadId,
   });
 
+  // Zurück führt in die Rubrik, aus der man kam, nicht an den Anfang des
+  // Forums – dort müsste man sie erst wieder heraussuchen.
+  const { data: rubriken = [] } = useQuery({ queryKey: ["forum-categories"], queryFn: fetchCategories });
+  const rubrik = rubriken.find((c) => c.id === thread?.category_id);
+  const zurueck = rubrik ? `/intern/forum/${rubrik.slug}` : "/intern/forum";
+
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["forum-posts", threadId],
     queryFn: () => fetchPosts(threadId!),
@@ -66,6 +72,8 @@ export default function ForumThread() {
     if (threadId && user) {
       markRead(threadId, user.id).then(() => {
         queryClient.invalidateQueries({ queryKey: ["forum-category-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["forum-read-state"] });
+        queryClient.invalidateQueries({ queryKey: ["forum-unread"] });
       });
     }
   }, [threadId, user, queryClient, posts.length]);
@@ -150,7 +158,7 @@ export default function ForumThread() {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-start gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild aria-label="Zurück" className="shrink-0">
-            <Link to="/intern/forum"><ArrowLeft size={20} /></Link>
+            <Link to={zurueck}><ArrowLeft size={20} /></Link>
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="font-serif text-xl sm:text-2xl font-bold break-words">{thread?.title}</h1>
@@ -243,7 +251,7 @@ export default function ForumThread() {
                 <>
                   <PostBody html={p.body} />
                   <div className="mt-2 -mb-1 flex justify-end gap-1">
-                    {(p.created_by === user?.id || canModerate) && (
+                    {((p.created_by === user?.id && !closed) || canModerate) && (
                       <Button
                         variant="ghost" size="sm"
                         className="h-7 px-2 text-xs text-muted-foreground"

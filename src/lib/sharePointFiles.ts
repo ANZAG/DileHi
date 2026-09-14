@@ -102,6 +102,14 @@ export function downloadUrl(sourceId: string) {
   );
 }
 
+/**
+ * Adresse einer Vorschau zum Einbetten. Blättert seitenweise, deshalb auch für
+ * grosse Scans – die Download-Adresse müsste erst die ganze Datei laden.
+ */
+export function previewUrl(sourceId: string) {
+  return invokeFunction<{ url: string }>("sharepoint-files", { body: { action: "preview-url", sourceId } });
+}
+
 /** Quelle löschen; eine Datei in SharePoint geht in den Papierkorb der Website. */
 export function deleteSourceWithFile(sourceId: string) {
   return invokeFunction("sharepoint-files", { body: { action: "delete", sourceId } });

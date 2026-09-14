@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Save } from "lucide-react";
+import { ChevronDown, Loader2, RotateCcw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -165,112 +165,144 @@ export default function OnboardingAdmin() {
         </Button>
       </div>
 
-      {touren.map(({ tour, schritte: liste }) => (
-        <section key={tour} className="mb-8">
-          <h3 className="font-serif text-base font-semibold mb-3">
-            {TOUR_TITEL[tour] ?? tour}
-          </h3>
-          <div className="space-y-4">
-            {liste.map((s) => {
-              const Icon = zeichen(s.icon);
-              const aktiv = (entwurf[s.key]?.is_active as boolean | undefined) ?? s.is_active;
-              return (
-                <div key={s.key} className="p-4 rounded-lg border bg-card space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Icon size={16} className="text-primary shrink-0" />
-                      <span className="text-xs text-muted-foreground font-mono truncate">{s.key}</span>
-                      {s.task && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
-                          Aufgabe
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {s.defaults && (
-                        <button
-                          type="button"
-                          onClick={() => zuruecksetzen(s)}
-                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                        >
-                          <RotateCcw size={12} /> Auslieferungszustand
-                        </button>
-                      )}
-                      <Switch
-                        checked={aktiv}
-                        onCheckedChange={(v) => setze(s.key, "is_active", v)}
-                        aria-label={`${s.title} zeigen`}
-                      />
-                    </div>
-                  </div>
+      {/* Zugeklappt statt ausgebreitet: Sechs Touren mit gut dreissig
+          Schritten waren untereinander eine Wand aus Eingabefeldern. Offen ist
+          nur, woran man gerade arbeitet; die Zeile verrät vorher schon, ob ein
+          Schritt ausgeblendet oder geändert ist. */}
+      <div className="space-y-3">
+        {touren.map(({ tour, schritte: liste }) => (
+          <details key={tour} className="group/tour rounded-lg border">
+            <summary className="flex items-center gap-3 cursor-pointer select-none list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <ChevronDown size={16} className="text-muted-foreground shrink-0 transition-transform -rotate-90 group-open/tour:rotate-0" />
+              <span className="font-serif text-base font-semibold flex-1 min-w-0">{TOUR_TITEL[tour] ?? tour}</span>
+              <span className="text-xs text-muted-foreground shrink-0">
+                {liste.length} {liste.length === 1 ? "Schritt" : "Schritte"}
+              </span>
+            </summary>
 
+            <div className="space-y-2 px-4 pb-4">
+              {liste.map((s) => {
+                const Icon = zeichen(s.icon);
+                const aktiv = (entwurf[s.key]?.is_active as boolean | undefined) ?? s.is_active;
+                return (
+                  <details key={s.key} className="group/schritt rounded-lg border bg-card">
+                    <summary className="flex items-center gap-2 cursor-pointer select-none list-none p-3 [&::-webkit-details-marker]:hidden">
+                      <ChevronDown size={14} className="text-muted-foreground shrink-0 transition-transform -rotate-90 group-open/schritt:rotate-0" />
+                      <Icon size={16} className="text-primary shrink-0" />
+                      <span className={`text-sm font-medium flex-1 min-w-0 truncate ${aktiv ? "" : "text-muted-foreground"}`}>
+                        {wert(s, "title") || s.key}
+                      </span>
+                      {entwurf[s.key] && <span className="text-xs text-primary shrink-0">geändert</span>}
+                      {s.task && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Aufgabe</span>
+                      )}
+                      {!aktiv && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">ausgeblendet</span>
+                      )}
+                    </summary>
+
+                    <div className="space-y-3 px-3 pb-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground font-mono truncate">{s.key}</span>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {s.defaults && (
+                            <button
+                              type="button"
+                              onClick={() => zuruecksetzen(s)}
+                              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                            >
+                              <RotateCcw size={12} /> Auslieferungszustand
+                            </button>
+                          )}
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                            Zeigen
+                            <Switch
+                              checked={aktiv}
+                              onCheckedChange={(v) => setze(s.key, "is_active", v)}
+                              aria-label={`${s.title} zeigen`}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Überschrift</Label>
+                        <Input
+                          className="h-9"
+                          value={wert(s, "title")}
+                          onChange={(e) => setze(s.key, "title", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Text</Label>
+                        <Textarea
+                          rows={3}
+                          value={wert(s, "text")}
+                          onChange={(e) => setze(s.key, "text", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">
+                          Tipp <span className="text-muted-foreground font-normal">(optional)</span>
+                        </Label>
+                        <Input
+                          className="h-9"
+                          value={wert(s, "tip")}
+                          onChange={(e) => setze(s.key, "tip", e.target.value || null)}
+                        />
+                      </div>
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          </details>
+        ))}
+
+        <details className="group/tour rounded-lg border">
+          <summary className="flex items-center gap-3 cursor-pointer select-none list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <ChevronDown size={16} className="text-muted-foreground shrink-0 transition-transform -rotate-90 group-open/tour:rotate-0" />
+            <span className="font-serif text-base font-semibold flex-1 min-w-0">Hilfe am Feld</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              {hilfen.length} {hilfen.length === 1 ? "Text" : "Texte"}
+            </span>
+          </summary>
+
+          <div className="px-4 pb-4">
+            <p className="text-sm text-muted-foreground max-w-prose mb-3">
+              Erscheint hinter dem Fragezeichen neben schwierigen Feldern. Wer den Text
+              leert, blendet das Fragezeichen aus.
+            </p>
+            <div className="space-y-4">
+              {hilfen.map((h) => (
+                <div key={h.key} className="p-4 rounded-lg border bg-card space-y-3">
+                  <span className="text-xs text-muted-foreground font-mono">{h.key}</span>
                   <div>
                     <Label className="text-xs">Überschrift</Label>
                     <Input
                       className="h-9"
-                      value={wert(s, "title")}
-                      onChange={(e) => setze(s.key, "title", e.target.value)}
+                      value={(hilfeEntwurf[h.key]?.title as string | undefined) ?? h.title ?? ""}
+                      onChange={(e) =>
+                        setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], title: e.target.value } }))
+                      }
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Text</Label>
                     <Textarea
-                      rows={3}
-                      value={wert(s, "text")}
-                      onChange={(e) => setze(s.key, "text", e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">
-                      Tipp <span className="text-muted-foreground font-normal">(optional)</span>
-                    </Label>
-                    <Input
-                      className="h-9"
-                      value={wert(s, "tip")}
-                      onChange={(e) => setze(s.key, "tip", e.target.value || null)}
+                      rows={2}
+                      value={(hilfeEntwurf[h.key]?.text as string | undefined) ?? h.text}
+                      onChange={(e) =>
+                        setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], text: e.target.value } }))
+                      }
                     />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-
-      <section>
-        <h3 className="font-serif text-base font-semibold mb-1">Hilfe am Feld</h3>
-        <p className="text-sm text-muted-foreground max-w-prose mb-3">
-          Erscheint hinter dem Fragezeichen neben schwierigen Feldern. Wer den Text
-          leert, blendet das Fragezeichen aus.
-        </p>
-        <div className="space-y-4">
-          {hilfen.map((h) => (
-            <div key={h.key} className="p-4 rounded-lg border bg-card space-y-3">
-              <span className="text-xs text-muted-foreground font-mono">{h.key}</span>
-              <div>
-                <Label className="text-xs">Überschrift</Label>
-                <Input
-                  className="h-9"
-                  value={(hilfeEntwurf[h.key]?.title as string | undefined) ?? h.title ?? ""}
-                  onChange={(e) =>
-                    setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], title: e.target.value } }))
-                  }
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Text</Label>
-                <Textarea
-                  rows={2}
-                  value={(hilfeEntwurf[h.key]?.text as string | undefined) ?? h.text}
-                  onChange={(e) =>
-                    setHilfeEntwurf((x) => ({ ...x, [h.key]: { ...x[h.key], text: e.target.value } }))
-                  }
-                />
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }

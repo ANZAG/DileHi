@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
-  UserCog2, HardDrive,
+  UserCog2, HardDrive, Coins,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -35,9 +35,9 @@ import KategorienAdmin from "@/components/admin/KategorienAdmin";
 import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
 import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
-import { NeuHier, TourKnopf } from "@/components/onboarding/NeuHier";
+import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege";
 
 
 const Admin = () => {
@@ -128,6 +128,7 @@ const Admin = () => {
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , module: "applications"},
       { id: "profilfelder" as const, gruppe: "intern", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
+      { id: "beitraege" as const, gruppe: "intern", label: "Beiträge", icon: Coins, desc: "Beitragsmodell, Bankverbindung, Stufen", module: "contributions" },
       { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
@@ -147,6 +148,10 @@ const Admin = () => {
       { id: "audit" as const, gruppe: "intern", label: "Audit-Log", icon: History, desc: "Wer hat was geändert" },
     ] : []),
   ];
+
+  // Bausteine, die ihre Abschnitte selbst als Karten zeichnen. Ein Rahmen
+  // darum ergab Kasten im Kasten – im Profil gibt es den auch nicht.
+  const EIGENE_KARTEN = new Set<AdminTab>(["erscheinungsbild", "beitraege"]);
 
   // Kacheln abgeschalteter Module fallen hier weg – an einer Stelle, nicht in
   // jeder Zeile der Liste darueber.
@@ -187,8 +192,7 @@ const Admin = () => {
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={16} /> Zurück
           </Link>
-          <h1 className="font-serif text-2xl font-bold">Verwaltung</h1>
-          <TourKnopf tour="verwaltung" />
+          <SeitenTitel tour="verwaltung">Verwaltung</SeitenTitel>
         </div>
 
         <NeuHier
@@ -253,7 +257,7 @@ const Admin = () => {
           )}
         </div>
 
-        <div className="p-5 rounded-lg border bg-card">
+        <div className={EIGENE_KARTEN.has(activeTab) ? "" : "p-5 rounded-lg border bg-card"}>
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
           {activeTab === "messages" && <ContactMessages />}
@@ -264,6 +268,7 @@ const Admin = () => {
           {activeTab === "vorlagen" && hasPermission("system.settings") && <VorlagenAdmin />}
           {activeTab === "aufnahmeantrag" && hasPermission("system.settings") && <AufnahmeantragAdmin />}
           {activeTab === "profilfelder" && hasPermission("system.settings") && <ProfilfelderAdmin />}
+          {activeTab === "beitraege" && hasPermission("system.settings") && <ErscheinungsbildAdmin teil="beitraege" />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "erstesschritte" && hasPermission("system.settings") && <OnboardingAdmin />}
           {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}

@@ -143,17 +143,6 @@ export default function OnboardingTour() {
       return true;
     };
 
-    // Die Zielseite kann noch laden, und nach dem Scrollen stimmen die Masse
-    // erst danach. Deshalb ein paar Versuche statt eines einzigen.
-    let uhr = 0;
-    if (!messen()) {
-      let versuche = 0;
-      uhr = window.setInterval(() => {
-        versuche += 1;
-        if (messen() || versuche > 12) window.clearInterval(uhr);
-      }, 120);
-    }
-
     const neuMessen = () => {
       if (bild) return;
       bild = window.requestAnimationFrame(() => {
@@ -161,12 +150,42 @@ export default function OnboardingTour() {
         messen();
       });
     };
+
+    /*
+     * Nachmessen, bis die Seite sich gesetzt hat.
+     *
+     * Einmal messen reichte nicht. Beim Termin klappt der Eintrag gerade erst
+     * auf, in der Verwaltung wechselt der Reiter, bei den Abstimmungen
+     * verschwindet der Streifen „Neu hier?" und schiebt alles hoch, und jede
+     * Seite gleitet beim Aufbau noch ein Stück nach oben. Der Rahmen blieb
+     * dort stehen, wo das Ziel eben noch war – um einen halben Termin, neben
+     * einem Mülleimer, quer über dem Text.
+     *
+     * Deshalb in den ersten Sekunden jedes Bild, danach bei jeder
+     * Grössenänderung der Seite. Gleiche Masse zeichnen nichts neu (siehe
+     * messen), es kostet also nur die Messung selbst.
+     */
+    messen();
+    const beginn = performance.now();
+    let schleife = 0;
+    const setzen = () => {
+      messen();
+      if (!abgebrochen && performance.now() - beginn < 2500) {
+        schleife = window.requestAnimationFrame(setzen);
+      }
+    };
+    schleife = window.requestAnimationFrame(setzen);
+
+    const beobachter = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(neuMessen);
+    beobachter?.observe(document.body);
+
     window.addEventListener("resize", neuMessen);
     window.addEventListener("scroll", neuMessen, true);
     return () => {
       abgebrochen = true;
-      if (uhr) window.clearInterval(uhr);
+      if (schleife) window.cancelAnimationFrame(schleife);
       if (bild) window.cancelAnimationFrame(bild);
+      beobachter?.disconnect();
       window.removeEventListener("resize", neuMessen);
       window.removeEventListener("scroll", neuMessen, true);
     };

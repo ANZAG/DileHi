@@ -1,17 +1,19 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, MessageSquare, Plus, Megaphone, CalendarDays, Wrench, BookOpen,
-  Users, Lightbulb, Shield, Swords, Target, Hammer, Tent, Coins,
+  Users, Lightbulb, Shield, Swords, Target, Hammer, Tent, Coins, CircleDot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { fetchCategories, fetchCategoryStats, saveCategory } from "@/components/forum/api";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
+import { fetchCategories, fetchCategoryStats, fetchUnreadThreads, saveCategory } from "@/components/forum/api";
 import { SEITE } from "@/lib/layout";
 
 /**
@@ -49,6 +51,22 @@ export default function Forum() {
     enabled: !!user,
   });
 
+  /*
+   * „Ungelesen" als eigene Ansicht über alle Rubriken.
+   *
+   * Wer nach ein paar Tagen wiederkommt, will wissen, was los war – nicht
+   * sieben Rubriken nacheinander öffnen. Die Ansicht steht in der Adresse,
+   * damit „Zurück" aus einem Thema wieder hier landet.
+   */
+  const [params, setParams] = useSearchParams();
+  const nurUngelesen = params.get("ansicht") === "ungelesen";
+  const { data: ungelesen = [] } = useQuery({
+    queryKey: ["forum-unread", user?.id],
+    queryFn: () => fetchUnreadThreads(user!.id),
+    enabled: !!user,
+  });
+  const rubrikName = (id: string) => categories.find((c) => c.id === id)?.name ?? "";
+
   // Mitglieder duerfen vorschlagen; freigeschaltet wird in der Verwaltung.
   const propose = useMutation({
     mutationFn: () =>
@@ -85,11 +103,24 @@ export default function Forum() {
             <h1 className="font-serif text-2xl sm:text-3xl font-bold">Forum</h1>
             <p className="text-sm text-muted-foreground">Absprachen, Fragen und alles dazwischen</p>
           </div>
-          {!proposing && (
-            <Button variant="outline" size="sm" onClick={() => setProposing(true)}>
-              <Plus size={15} className="mr-1" /> Rubrik vorschlagen
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {(ungelesen.length > 0 || nurUngelesen) && (
+              <Button
+                variant={nurUngelesen ? "default" : "outline"}
+                size="sm"
+                aria-pressed={nurUngelesen}
+                onClick={() => setParams(nurUngelesen ? {} : { ansicht: "ungelesen" })}
+              >
+                <CircleDot size={15} className="mr-1" /> Ungelesen
+                {ungelesen.length > 0 && <span className="ml-1 tabular-nums">({ungelesen.length})</span>}
+              </Button>
+            )}
+            {!proposing && !nurUngelesen && (
+              <Button variant="outline" size="sm" onClick={() => setProposing(true)}>
+                <Plus size={15} className="mr-1" /> Rubrik vorschlagen
+              </Button>
+            )}
+          </div>
         </div>
 
         {proposing && (
@@ -118,7 +149,39 @@ export default function Forum() {
           </div>
         )}
 
-        {isLoading ? (
+        {nurUngelesen ? (
+          ungelesen.length === 0 ? (
+            <div className="py-16 text-center border rounded-lg bg-card">
+              <MessageSquare className="mx-auto mb-3 text-muted-foreground" size={30} />
+              <p className="text-sm text-muted-foreground">Alles gelesen.</p>
+            </div>
+          ) : (
+            <ul className="divide-y rounded-lg border bg-card overflow-hidden">
+              {ungelesen.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    to={`/intern/forum/thema/${t.id}`}
+                    className="flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors group"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold group-hover:text-primary transition-colors break-words">
+                        {t.title}
+                      </span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        {rubrikName(t.category_id)} · letzter Beitrag{" "}
+                        {formatDistanceToNow(parseISO(t.last_post_at), { locale: de, addSuffix: true })}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                      {t.post_count} {t.post_count === 1 ? "Beitrag" : "Beiträge"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : isLoading ? (
           <div className="py-16 text-center text-sm text-muted-foreground">Lade Rubriken …</div>
         ) : (
           <div className="space-y-2">
@@ -163,7 +226,7 @@ export default function Forum() {
           </div>
         )}
 
-        {proposed.length > 0 && (
+        {!nurUngelesen && proposed.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold text-muted-foreground mb-2">
               Vorgeschlagen {canManage ? "– warten auf Freigabe" : ""}
