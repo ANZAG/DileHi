@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Hilfe } from "@/components/Hilfe";
 import { useDefaultRole } from "@/hooks/useDefaultRole";
 import { invokeFunction } from "@/lib/functionError";
+import MitgliederImport from "./MitgliederImport";
 import {
   Select,
   SelectContent,
@@ -457,9 +458,12 @@ const MemberRegistry = () => {
 
       {/* Invite form */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-sm">
-          Neues Mitglied einladen<Hilfe k="einladung_rolle" />
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-semibold text-sm">
+            Neues Mitglied einladen<Hilfe k="einladung_rolle" />
+          </h3>
+          <MitgliederImport rollen={roleCatalog} standardRolle={inviteRole} />
+        </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
             type="email"

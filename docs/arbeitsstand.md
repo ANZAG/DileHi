@@ -622,9 +622,22 @@ Offen:
         Veranlagungszeitraum. Nicht enthalten: Sachzuwendungen (eigenes
         Muster). **Wortlaut vor dem ersten echten Einsatz mit dem aktuellen
         BMF-Muster abgleichen.**
-- [ ] **Import von Mitgliederlisten** aus Excel/CSV und anderer
-      Vereinssoftware, mit Vorschau und Zuordnung der Spalten (beschlossen am
-      14. September).
+- [x] **Import von Mitgliederlisten** (Verwaltung → Mitglieder, Knopf „Aus
+      Datei importieren"; `src/lib/import.ts`, `MitgliederImport.tsx`, Edge
+      Function `import-members`). Liest .xlsx ohne zusätzliche Bibliothek
+      (eigener ZIP-Leser über `DecompressionStream`, Excel-Datum und
+      führende Nullen bei PLZ) und CSV mit Semikolon, Komma oder Tabulator in
+      UTF-8 oder Windows-1252; altes .xls wird mit Hinweis abgelehnt.
+      Spaltennamen anderer Programme („Name", „Str.", „Hausnr.", „Mitglied
+      seit", „Beitragsart") werden erkannt und sind änderbar; Vorlage als CSV
+      zum Herunterladen. Vorschau je Zeile: wird angelegt, schon da, doppelt,
+      Fehler – mit Hinweisen zu unlesbarem Datum oder unbekannter
+      Mitgliedsart. Angelegt wird in Teilen zu 25; vorhandene Konten werden
+      übersprungen, nicht umgerollt; keine Willkommensmail je Person, die
+      Einladung per Mail ist wählbar (sonst „Passwort vergessen").
+      **Nicht in der Oberfläche getestet** (kein Login); Leser und Prüfung
+      mit 18 Tests abgedeckt, die Edge Function nur über `deno check` im
+      Deploy-Lauf.
 - [ ] **Einrichtungsassistent für neue Installationen**, wie bei WordPress
       (Wunsch vom 14. September): eine Seite, die Schritt für Schritt prüft
       und anzeigt, was steht und was fehlt – Datenbank erreichbar, Migrationen
