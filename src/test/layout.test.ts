@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { LESEBREITE, SEITE } from "@/lib/layout";
+import { LESEBREITE, SEITE, ZWEISPALTIG } from "@/lib/layout";
 
 const seiten = readdirSync("src/pages/intern")
   .filter((f) => f.endsWith(".tsx"))
@@ -53,9 +53,10 @@ describe("Das Profil nutzt die Breite", () => {
   const profil = readFileSync("src/pages/intern/Profile.tsx", "utf-8");
 
   it("stellt die Kästen ab dem grossen Bildschirm zweispaltig", () => {
-    expect(profil).toContain("lg:columns-2");
+    expect(profil).toContain("className={ZWEISPALTIG}");
+    expect(ZWEISPALTIG).toContain("lg:columns-2");
     // Ohne das reisst ein Kasten mitten in der Spalte auseinander.
-    expect(profil).toContain("lg:[&>*]:break-inside-avoid");
+    expect(ZWEISPALTIG).toContain("lg:[&>*]:break-inside-avoid");
   });
 
   it("beginnt mit den persönlichen Daten und der Mitgliedschaft", () => {
@@ -64,5 +65,21 @@ describe("Das Profil nutzt die Breite", () => {
     const stellen = reihenfolge.map((t) => profil.indexOf(`>${t}</h2>`));
     expect(stellen.every((i) => i > 0)).toBe(true);
     expect([...stellen].sort((a, b) => a - b)).toEqual(stellen);
+  });
+});
+
+describe("Zwei Spalten aus Kästen", () => {
+  it("geben jedem Kasten Abstand, nicht nur dem ersten", () => {
+    // `lg:space-y-0` setzt in Tailwind auch den unteren Rand auf null und
+    // gewinnt mit dem längeren Selektor gegen `[&>*]:mb-6`. Dann klebten alle
+    // Kästen ab dem zweiten aneinander – im Profil und im Erscheinungsbild.
+    expect(ZWEISPALTIG).toContain("lg:[&>*]:mb-6");
+    expect(ZWEISPALTIG.split(" ")).not.toContain("lg:space-y-0");
+
+    const erscheinungsbild = readFileSync("src/components/admin/ErscheinungsbildAdmin.tsx", "utf-8");
+    expect(erscheinungsbild).toContain("className={ZWEISPALTIG}");
+    const selbstGebaut = [...seiten.map((x) => x.inhalt), erscheinungsbild]
+      .filter((inhalt) => inhalt.includes("lg:space-y-0 lg:columns-2"));
+    expect(selbstGebaut).toEqual([]);
   });
 });

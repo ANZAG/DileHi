@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ArrowLeft, Check, X, Pencil, Banknote, CalendarIcon, LayoutGrid, List, Settings2 } from "lucide-react";
+import { ArrowLeft, Check, X, Pencil, Banknote, CalendarIcon, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
 import { useBeitragsstufenStatus, stufenFuerJahr } from "@/hooks/useBeitragsstufen";
 import { SEITE } from "@/lib/layout";
 
@@ -770,7 +769,6 @@ function Beitragssaetze({ jahr, saetze, canEdit }: {
   canEdit: boolean;
 }) {
   const { data: stufen = [] } = useBeitragsstufenStatus(canEdit);
-  const [verwaltung, setVerwaltung] = useState(false);
 
   const satzVon = (key: string) =>
     saetze.find((r) => r.year === jahr && (r.category ?? "aktiv") === key)?.amount ?? null;
@@ -794,19 +792,7 @@ function Beitragssaetze({ jahr, saetze, canEdit }: {
             />
           </span>
         ))}
-        {canEdit && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-xs"
-            onClick={() => setVerwaltung(true)}
-          >
-            <Settings2 size={13} className="mr-1" /> Stufen
-          </Button>
-        )}
       </div>
-
-      <BeitragsstufenDialog offen={verwaltung} onOpenChange={setVerwaltung} />
     </div>
   );
 }
