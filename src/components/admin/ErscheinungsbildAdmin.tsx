@@ -11,7 +11,9 @@ import { useAuth } from "@/hooks/useAuth";
 import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
-import { readFunctionError } from "@/lib/functionError";
+import { invokeFunction, readFunctionError } from "@/lib/functionError";
+import DateiablageWahl from "./DateiablageWahl";
+import MailAnleitung from "./MailAnleitung";
 
 interface Einstellungen {
   org_name: string;
@@ -38,6 +40,8 @@ interface Einstellungen {
   mail_from_name: string | null;
   mail_reply_to: string | null;
   mail_transport: string;
+  file_storage: "supabase" | "sharepoint";
+  sharepoint_site_url: string | null;
   calendar_timezone: string;
   contribution_model: string;
   contribution_retention_years: number;
@@ -87,7 +91,21 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
 
   const speichern = useMutation({
     mutationFn: async (werte: Einstellungen) => {
-      const { error } = await db.from("app_settings").update(werte).eq("id", true);
+      const { file_storage, sharepoint_site_url, ...rest } = werte;
+      // Die Dateiablage nicht direkt in die Tabelle schreiben: Die Edge
+      // Function prüft beim Umschalten auf SharePoint erst die Verbindung.
+      // Sonst stünde „SharePoint" in den Einstellungen, und erst das nächste
+      // Hochladen würde merken, dass es nicht geht. Zuerst, damit bei einem
+      // Fehler auch der Rest nicht halb gespeichert ist.
+      const ablageGeaendert =
+        !!data &&
+        (file_storage !== data.file_storage || (sharepoint_site_url ?? "") !== (data.sharepoint_site_url ?? ""));
+      if (ablageGeaendert) {
+        await invokeFunction("sharepoint-files", {
+          body: { action: "settings", fileStorage: file_storage, siteUrl: sharepoint_site_url ?? "" },
+        });
+      }
+      const { error } = await db.from("app_settings").update(rest).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -99,6 +117,9 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // Die Aufbewahrungsfrist bestimmt, ab wann eine Beitragsstufe endgueltig
       // weg darf – die Verwaltung zeigt diese Jahreszahl an.
       queryClient.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
+      // Quellensammlung und Eingangskorb fragen die Dateiablage getrennt ab.
+      queryClient.invalidateQueries({ queryKey: ["file-storage-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["file-storage"] });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -189,6 +210,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
      * Lesereihenfolge am Desktop: erst wer der Verein ist, dann wie er
      * aussieht, dann was er verwaltet.
      */
+    <div>
     <div className={teil === "beitraege" ? "space-y-6 max-w-3xl" : "space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid"}>
       {teil === "erscheinungsbild" && (<>
       {/* ── Verein ───────────────────────────────────────────────────────── */}
@@ -464,11 +486,25 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           </div>
         </div>
       </Abschnitt>
+
+      {hasPermission("system.integrations") && (
+        <Abschnitt
+          titel="Dateiablage"
+          hinweis="Wohin die Dateien der Quellensammlung gehen. Titel, Epoche und wer was sehen darf, bleiben immer in DING; nur die Datei selbst liegt woanders."
+        >
+          <DateiablageWahl
+            storage={entwurf.file_storage}
+            siteUrl={entwurf.sharepoint_site_url ?? ""}
+            setze={setze}
+          />
+        </Abschnitt>
+      )}
       </>)}
+    </div>
 
       {/* Der Knopf bleibt beim Scrollen sichtbar – die Seite ist lang, und ein
           Speichern-Knopf, den man erst suchen muss, wird vergessen. */}
-      <div className="flex justify-end sticky bottom-4 z-10">
+      <div className="flex justify-end sticky bottom-4 z-10 mt-4 lg:mt-0">
         <Button
           className="shadow-lg"
           disabled={speichern.isPending}
@@ -620,14 +656,6 @@ function BildKasten({ titel, adresse, ersatz, ersatzHinweis, laedt, hinweis, for
 }
 
 /**
- * Was jemand tun muss, damit der Mailversand läuft.
- *
- * Die Zugangsdaten gehören nicht in diese Tabelle – sie ist für jedes Mitglied
- * lesbar. Sie stehen als Secrets beim Backend. Nur weiss das niemand, der zum
- * ersten Mal hier sitzt, und ohne die Namen der Secrets sucht man sich dumm.
- * Deshalb stehen sie hier, samt der Reihenfolge, in der man vorgeht.
- */
-/**
  * Probeversand an die eigene Adresse.
  *
  * Die Meldung des Mailservers steht danach im Klartext da. Genau daran
@@ -684,80 +712,5 @@ function Probeversand({ ungespeichert }: { ungespeichert: boolean }) {
         </p>
       )}
     </div>
-  );
-}
-
-function MailAnleitung({ weg }: { weg: string }) {
-  const graph = weg === "microsoft_graph";
-  return (
-    <details className="rounded-lg border bg-muted/30 p-3 text-sm">
-      <summary className="cursor-pointer font-medium">
-        {graph ? "Microsoft 365 einrichten" : "SMTP einrichten"}
-      </summary>
-
-      {graph ? (
-        <div className="mt-3 space-y-2 text-muted-foreground">
-          <p>
-            Sinnvoll, wenn der Verein ohnehin Microsoft 365 hat. Mails gehen dann aus dem echten
-            Postfach heraus und landen seltener im Spam.
-          </p>
-          <ol className="list-decimal ml-5 space-y-1">
-            <li>Im Microsoft-Entra-Portal unter „App-Registrierungen" eine neue Anwendung anlegen.</li>
-            <li>
-              Unter „API-Berechtigungen" die Anwendungsberechtigung <code>Mail.Send</code> hinzufügen
-              und als Administrator bestätigen.
-            </li>
-            <li>Unter „Zertifikate &amp; Geheimnisse" ein neues Geheimnis erzeugen und sofort kopieren. Es wird nur einmal angezeigt.</li>
-            <li>Die vier Werte beim Backend als Secrets hinterlegen:</li>
-          </ol>
-          <ul className="ml-5 space-y-0.5 font-mono text-xs">
-            <li>MS_TENANT_ID</li>
-            <li>MS_CLIENT_ID</li>
-            <li>MS_CLIENT_SECRET</li>
-            <li>MS_SENDER_EMAIL</li>
-          </ul>
-          <p>
-            Die Absenderadresse muss ein echtes Postfach in derselben Organisation sein.
-            Ist <code>MS_SENDER_EMAIL</code> gesetzt, gilt dieser Wert; sonst wird die
-            Absenderadresse aus diesem Formular verwendet.
-          </p>
-          <p>
-            Der Absendername ändert nur die Anzeige. Verschickt wird immer aus dem Postfach
-            oben. Eine fremde Absenderadresse verlangt in Microsoft 365 gesonderte Rechte.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-3 space-y-2 text-muted-foreground">
-          <p>
-            Der einfache Weg: Es reicht, was jeder Mailanbieter mitgibt, also Serveradresse, Benutzername
-            und Passwort. Am besten ein eigenes Postfach für die Anwendung, damit ein geändertes
-            Passwort nicht die halbe Website lahmlegt.
-          </p>
-          <ol className="list-decimal ml-5 space-y-1">
-            <li>Beim Mailanbieter ein Postfach anlegen, etwa <code>noreply@verein.de</code>.</li>
-            <li>Die Zugangsdaten beim Backend als Secrets hinterlegen:</li>
-          </ol>
-          <ul className="ml-5 space-y-0.5 font-mono text-xs">
-            <li>SMTP_HOST</li>
-            <li>SMTP_PORT (587 mit STARTTLS, 465 mit SSL; ohne Angabe wird 587 benutzt)</li>
-            <li>SMTP_USER</li>
-            <li>SMTP_PASSWORD</li>
-          </ul>
-          <ol className="list-decimal ml-5 space-y-1" start={3}>
-            <li>Oben „SMTP" wählen, Absenderadresse eintragen und speichern.</li>
-            <li>Mit dem Probeversand prüfen, ob es klappt.</li>
-          </ol>
-          <p>
-            Das Passwort gehört zu den Secrets und nicht in dieses Formular: Die tägliche
-            Sicherung schreibt alle Tabellen nach GitHub, und ein hier eingetragenes Passwort läge
-            in jeder Sicherungsdatei.
-          </p>
-          <p>
-            Bleibt die Absenderadresse leer, wird <code>SMTP_USER</code> als Absender genommen.
-            Viele Anbieter lassen ohnehin nur Adressen des eigenen Postfachs zu.
-          </p>
-        </div>
-      )}
-    </details>
   );
 }

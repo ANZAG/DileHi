@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
 // beim Suchen zaehlt die Form, bevor man den Text liest.
 import {
   ArrowLeft, Users, UserCog, Image, Palette, BookOpen, Tags, Mail, MailPlus,
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
-  UserCog2, HardDrive, Coins,
+  UserCog2, Inbox, Coins,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -50,6 +52,18 @@ const Admin = () => {
   // vorzeitiges return fuer Leute ohne Zugang, und ein Hook dahinter liefe
   // nicht bei jedem Aufbau.
   const { data: module } = useModule();
+  // Den Eingangskorb gibt es nur, wenn die Dateien in SharePoint liegen.
+  // Derselbe Schlüssel wie im Eingangskorb selbst, also eine Abfrage für beide.
+  const { data: dateiablage } = useQuery({
+    queryKey: ["file-storage-settings"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
+        .from("app_settings").select("file_storage, sharepoint_site_url").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as { file_storage: string; sharepoint_site_url: string | null };
+    },
+    enabled: canAdmin,
+  });
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   // ?reiter=… öffnet einen bestimmten Reiter, etwa beim Zurück aus dem
@@ -121,10 +135,12 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("system.integrations") ? [
       { id: "embed" as const, gruppe: "website", label: "Einbindung", icon: Code2, desc: "Inhalte auf fremden Seiten zeigen" , module: "embedding"},
-      { id: "ablage" as const, gruppe: "intern", label: "Dateiablage", icon: HardDrive, desc: "Wo die Dateien der Quellensammlung liegen", module: "sources" },
+    ] : []),
+    ...(hasPermission("system.integrations") && dateiablage?.file_storage === "sharepoint" ? [
+      { id: "ablage" as const, gruppe: "intern", label: "Eingangskorb", icon: Inbox, desc: "Dateien aus SharePoint zuordnen", module: "sources" },
     ] : []),
     ...(hasPermission("system.settings") ? [
-      { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, Schriften, E-Mail" },
+      { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, E-Mail, Dateiablage" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , module: "applications"},
       { id: "profilfelder" as const, gruppe: "intern", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
