@@ -51,6 +51,8 @@ interface Einstellungen {
   exemption_notice_date: string | null;
   tax_purposes: string | null;
   fees_deductible: boolean;
+  volunteer_allowance: number;
+  trainer_allowance: number;
   calendar_timezone: string;
   contribution_model: string;
   contribution_retention_years: number;
@@ -315,6 +317,32 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
                 </span>
               </span>
             </label>
+            <div className="grid sm:grid-cols-2 gap-3 pt-2">
+              <div>
+                <Label className="text-sm">Ehrenamtspauschale je Jahr (€)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={entwurf.volunteer_allowance ?? 960}
+                  onChange={(e) => setze({ volunteer_allowance: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Übungsleiterfreibetrag je Jahr (€)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={entwurf.trainer_allowance ?? 3300}
+                  onChange={(e) => setze({ trainer_allowance: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                § 3 Nr. 26a und Nr. 26 EStG, voreingestellt auf den Stand 2026. Gebraucht bei den Pauschalen unter
+                Auslagen; ändert der Gesetzgeber die Beträge, hier anpassen.
+              </p>
+            </div>
           </div>
         )}
       </Abschnitt>
