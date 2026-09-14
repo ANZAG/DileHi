@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import BeitragsstufenDialog from "@/components/beitraege/BeitragsstufenDialog";
+import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
+import { ZWEISPALTIG } from "@/lib/layout";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
@@ -70,7 +71,6 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
   teil?: "erscheinungsbild" | "beitraege";
 }) {
   const { hasPermission } = useAuth();
-  const [stufenOffen, setStufenOffen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [entwurf, setEntwurf] = useState<Einstellungen | null>(null);
@@ -211,7 +211,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
      * aussieht, dann was er verwaltet.
      */
     <div>
-    <div className={teil === "beitraege" ? "space-y-6 max-w-3xl" : "space-y-6 lg:space-y-0 lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid"}>
+    <div className={ZWEISPALTIG}>
       {teil === "erscheinungsbild" && (<>
       {/* ── Verein ───────────────────────────────────────────────────────── */}
       <Abschnitt titel="Der Verein" hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
@@ -378,7 +378,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           </Select>
           <p className="text-xs text-muted-foreground mt-2">
             {entwurf.contribution_model === "fest" &&
-              "Je Mitgliedsart ein Betrag pro Jahr, etwa regulär, Student oder Rentner. Die Sätze selbst stehen darunter bei den Beitragsstufen."}
+              "Je Mitgliedsart ein Betrag pro Jahr, etwa regulär, Student oder Rentner. Die Stufen stehen daneben, die Beträge je Jahr im Bereich Beiträge."}
             {entwurf.contribution_model === "umlage" &&
               "Kein Betrag im Voraus. Die Mitglieder verpflichten sich, sich anteilig an den Unkosten zu beteiligen; die Höhe steht erst nach der Abrechnung fest."}
             {entwurf.contribution_model === "keiner" &&
@@ -448,12 +448,9 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       {hasPermission("contributions.manage") && (
         <Abschnitt
           titel="Beitragsstufen"
-          hinweis="Die Mitgliedsarten mit ihrem Jahresbetrag, etwa regulär, ermässigt oder Familie. Sie stehen im Aufnahmeantrag zur Auswahl."
+          hinweis="Wer wie viel zahlt: regulär, ermässigt, Familie. Die Stufen stehen im Aufnahmeantrag zur Auswahl; die Beträge je Jahr trägt die Kasse im Bereich Beiträge ein."
         >
-          <Button variant="outline" onClick={() => setStufenOffen(true)}>
-            Beitragsstufen bearbeiten
-          </Button>
-          <BeitragsstufenDialog offen={stufenOffen} onOpenChange={setStufenOffen} />
+          <Beitragsstufen />
         </Abschnitt>
       )}
       </>)}
