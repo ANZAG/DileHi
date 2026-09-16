@@ -528,7 +528,8 @@ function sqlSchreiben(datei, { slug, titel, beschreibung, inhalt, kopf, noindex 
   const js = JSON.stringify({ content: inhalt, root: { props: { title: titel } } });
   if (js.includes("'")) throw new Error(`Einfache Anfuehrungszeichen in ${slug} – muessten in SQL verdoppelt werden.`);
   writeFileSync(datei, `${kopf}
-INSERT INTO public.site_pages (slug, title, content, draft_content, seo_description, noindex, is_published, published_at)
+INSERT INTO public.site_pages (slug, title, content, draft_content, seo_description, noindex,
+                              is_published, is_system, published_at)
 VALUES (
   '${slug}',
   '${titel}',
@@ -537,19 +538,23 @@ VALUES (
   '${beschreibung}',
   ${noindex},
   true,
+  true,
   now()
 )
-ON CONFLICT (slug) DO UPDATE
-SET title = EXCLUDED.title,
-    content = EXCLUDED.content,
-    draft_content = EXCLUDED.draft_content,
-    seo_description = EXCLUDED.seo_description,
-    noindex = EXCLUDED.noindex,
-    is_published = true;
+-- DO NOTHING, nicht DO UPDATE: In einer Installation, die laeuft, hat jemand
+-- diese Seite angefasst – Anwalt, Verein, beides. Eine Migration, die den Text
+-- ueberschreibt, nimmt ihm seine Fassung, ohne zu fragen. Neuer Text kommt
+-- ueber eine neue Migration, wenn wir ihn wollen.
+ON CONFLICT (slug) DO NOTHING;
 `, "utf-8");
 }
 
-const kopfHinweis = (was) => `-- ${was} als Editor-Seite
+const kopfHinweis = (was) => `-- ${was} als Editor-Seite, Teil der Startdaten
+--
+-- Eine frische Installation hat im Fuss zwei Links, und dahinter muss etwas
+-- stehen: Ohne Impressum ist eine Vereinsseite abmahnfaehig. Diese Migration
+-- legt die Seite an, falls es sie noch nicht gibt – in DileHi gibt es sie,
+-- dort passiert nichts.
 --
 -- Die veraenderlichen Angaben (Name, Anschrift, Vorstand, Registernummer,
 -- Mailadresse) stehen NICHT in diesem Text, sondern kommen ueber den Baustein
@@ -561,8 +566,8 @@ const kopfHinweis = (was) => `-- ${was} als Editor-Seite
 -- Die rechtliche Bewertung und Freigabe gehoert zu einem Anwalt.
 `;
 
-sqlSchreiben("supabase/migrations/20260908150000_seite_impressum.sql", {
-  slug: "impressum-neu",
+sqlSchreiben("supabase/migrations/20260916100100_startdaten_impressum.sql", {
+  slug: "impressum",
   titel: "Impressum",
   beschreibung: "Impressum und Kontaktdaten.",
   inhalt: impressum,
@@ -570,8 +575,8 @@ sqlSchreiben("supabase/migrations/20260908150000_seite_impressum.sql", {
   kopf: kopfHinweis("Impressum"),
 });
 
-sqlSchreiben("supabase/migrations/20260908160000_seite_datenschutz.sql", {
-  slug: "datenschutz-neu",
+sqlSchreiben("supabase/migrations/20260916100200_startdaten_datenschutz.sql", {
+  slug: "datenschutz",
   titel: "Datenschutzerklärung",
   beschreibung: "Informationen zur Verarbeitung personenbezogener Daten auf dieser Website und im Mitgliederbereich.",
   inhalt: datenschutz,
