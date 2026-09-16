@@ -31,7 +31,11 @@ const GERUEST = [
   "src/hooks/useSiteMenu.ts",
   "src/hooks/useKategorien.ts",
   "src/components/sitebuilder/auswahl.ts",
+  "src/hooks/useBranding.ts",
 ];
+
+/** Woran man DileHi erkennt. */
+const DILEHI = ["Diu lebendec", "Histôrje", "dilehi.de", "hero-medieval", "Wiesbaden"];
 
 /**
  * Der Code ohne seine Kommentare.
@@ -60,6 +64,35 @@ describe("Keine fremden Inhalte im Grundgerüst", () => {
       }
     });
   }
+
+  it("der Browserreiter trägt nicht den Namen eines fremden Vereins", () => {
+    // Was in index.html steht, sieht man, bevor die Anwendung geladen ist:
+    // im Reiter, in der Vorschau eines geteilten Links, beim ersten Besuch
+    // einer Suchmaschine. Den richtigen Titel setzt danach SEO.tsx aus den
+    // Vereinsdaten.
+    const html = readFileSync("index.html", "utf-8");
+    for (const wort of DILEHI) {
+      expect(html.includes(wort), `index.html: ${wort}`).toBe(false);
+    }
+    expect(html).toContain("<title>");
+  });
+
+  it("nennt ohne Vereinsdaten keinen Namen, der jemandem gehört", () => {
+    // Fällt die Abfrage aus, stand hier DileHis Name – auf der Seite eines
+    // fremden Vereins.
+    const code = ohneKommentare(readFileSync("src/hooks/useBranding.ts", "utf-8"));
+    for (const wort of DILEHI) {
+      expect(code.includes(wort), `useBranding: ${wort}`).toBe(false);
+    }
+    expect(code).toContain('org_name: "Verein"');
+  });
+
+  it("teilt kein Bild, das einem fremden Verein gehört", () => {
+    const code = ohneKommentare(readFileSync("src/components/SEO.tsx", "utf-8"));
+    expect(code.includes("hero-medieval")).toBe(false);
+    // Ohne hinterlegtes Bild gibt es schlicht keines.
+    expect(code).toContain("seoImageUrl");
+  });
 
   it("das Menü fällt auf die Startseite zurück, nicht auf unseres", () => {
     const text = readFileSync("src/hooks/useSiteMenu.ts", "utf-8");

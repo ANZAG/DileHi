@@ -3,26 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Diu lebendec Histôrje – Wiesbadener Living History Verein</title>
-    <meta name="description" content="Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen." />
-    <meta name="keywords" content="Living History, Nassau, Wiesbaden, Mittelalter, Napoleonik, Erster Weltkrieg, Geschichte, Reenactment, Verein" />
-    <meta name="author" content="Diu lebendec Histôrje e.V." />
-    
-    <!-- Sitewide Open Graph fallback (per-route og:title/description/url set via react-helmet) -->
-    <meta property="og:title" content="Diu lebendec Histôrje – Wiesbadener Living History Verein" />
-    <meta property="og:description" content="Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen." />
-    <meta property="og:url" content="https://www.dilehi.de/" />
+    <!--
+      Was hier steht, sieht man, bevor die Anwendung geladen ist: im
+      Browserreiter, in der Vorschau eines geteilten Links, beim ersten
+      Besuch einer Suchmaschine. Bis zum Probelauf stand hier DileHi — Name,
+      Beschreibung, Bild, Adresse. Eine fremde Installation trug damit im
+      Reiter den Namen eines fremden Vereins.
+
+      Deshalb neutral. Den richtigen Titel setzt die Anwendung, sobald sie
+      läuft: aus den Vereinsdaten, je Seite (src/components/SEO.tsx).
+    -->
+    <title>Vereinsprogramm</title>
+    <meta name="description" content="Mitgliederbereich und Website eines Vereins." />
+
+    <meta property="og:title" content="Vereinsprogramm" />
+    <meta property="og:description" content="Mitgliederbereich und Website eines Vereins." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://www.dilehi.de/hero-medieval.webp" />
     <meta property="og:locale" content="de_DE" />
-    <meta property="og:site_name" content="Diu lebendec Histôrje" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Diu lebendec Histôrje – Wiesbadener Living History Verein" />
-    <meta name="twitter:description" content="Wiesbadener Verein für Living History: Quellenbasierte Darstellungen nassauischer Geschichte vom Mittelalter bis zum Ersten Weltkrieg. Für Museen und Veranstaltungen." />
-    <meta name="twitter:image" content="https://www.dilehi.de/hero-medieval.webp" />
-    
+    <meta name="twitter:card" content="summary" />
+
     <!-- Favicon & Touch Icons -->
-    <link rel="icon" href="/favicon.ico" />
+    <!--
+      Zuerst das neutrale Zeichen, dann die .ico für ältere Browser. Wer unter
+      Erscheinungsbild ein eigenes Bild hinterlegt, bekommt es zur Laufzeit
+      eingesetzt (useBranding) — dann zählt keines von beiden mehr.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" />
 
     <!-- Als App auf dem Startbildschirm. Auf dem iPhone ist das zugleich die
          Voraussetzung fuer Push-Meldungen. -->
@@ -32,7 +39,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Histôrje" />
+    <meta name="apple-mobile-web-app-title" content="Verein" />
   </head>
 
   <body>

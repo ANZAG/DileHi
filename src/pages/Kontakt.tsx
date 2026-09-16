@@ -5,8 +5,8 @@ import KontaktFelder from "@/components/kontakt/KontaktFelder";
 const Kontakt = () => (
   <div className="container py-12 md:py-20 max-w-xl">
     <SEO
-      title="Kontakt - Diu lebendec Histôrje"
-      description="Haben Sie Fragen zu unserem Verein oder Interesse an einer Mitgliedschaft? Schreiben Sie uns eine Nachricht oder kontaktieren Sie uns direkt per E-Mail."
+      title="Kontakt"
+      description="Fragen zum Verein oder Interesse an einer Mitgliedschaft? Schreib uns eine Nachricht."
       url="/kontakt"
     />
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
