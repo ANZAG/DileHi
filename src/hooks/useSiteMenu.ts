@@ -26,18 +26,20 @@ interface Zeile {
   area: MenuBereich | null;
 }
 
-/** Solange die Datenbank leer ist oder die Abfrage scheitert. */
+/**
+ * Solange die Datenbank leer ist oder die Abfrage scheitert.
+ *
+ * Hier standen bis zum Probelauf DileHis sieben Menüpunkte — Spätmittelalter,
+ * Napoleonik, Erster Weltkrieg, Für Veranstalter, Über uns, Kontakt. Eine
+ * fremde Installation, deren Abfrage einmal scheitert, hätte damit das Menü
+ * eines fremden Vereins angezeigt, mit Links auf Seiten, die es bei ihr nicht
+ * gibt. „Eine Website ohne Menü ist schlimmer als eine mit dem falschen" war
+ * der Gedanke; er stimmt nicht, sobald das falsche Menü einem anderen gehört.
+ *
+ * Geblieben ist die Startseite — die gibt es in jeder Installation.
+ */
 const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
-  // Eine Website ohne Menü wäre schlimmer als eine mit dem falschen.
-  header: [
-    { path: "/", label: "Startseite" },
-    { path: "/epochen/mittelalter", label: "Spätmittelalter" },
-    { path: "/epochen/1815", label: "Napoleonik" },
-    { path: "/epochen/wk1", label: "Erster Weltkrieg" },
-    { path: "/fuer-veranstalter", label: "Für Veranstalter" },
-    { path: "/verein", label: "Über uns" },
-    { path: "/kontakt", label: "Kontakt" },
-  ],
+  header: [{ path: "/", label: "Startseite" }],
   // Hier ist der Notnagel nicht nur Bequemlichkeit: Ohne erreichbares
   // Impressum ist die Seite abmahnfähig. Wer die Einträge bewusst löscht,
   // bekommt sie deshalb zurück.

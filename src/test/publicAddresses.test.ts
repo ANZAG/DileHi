@@ -13,9 +13,14 @@ import {
 
 /**
  * Die Adressen, die das Programm nach draußen gibt, und die Weiterleitungen,
- * die sie auffangen, stehen an zwei Stellen: in publicAddresses.ts und in
- * public/.htaccess. Passen sie nicht zusammen, merkt es niemand, bis ein
+ * die sie auffangen, stehen an drei Stellen: in publicAddresses.ts, in
+ * public/.htaccess (Webspace mit Apache) und in public/_redirects (Netlify,
+ * Cloudflare Pages). Passen sie nicht zusammen, merkt es niemand, bis ein
  * Mitglied fragt, warum sein Kalender leer ist.
+ *
+ * Die dritte Datei kam aus dem Probelauf: Die Anleitung empfiehlt Netlify,
+ * ausgeliefert wurde aber nur eine .htaccess — dort hätte schon /einrichtung
+ * einen 404 gegeben.
  */
 
 const read = (p: string) => readFileSync(p, "utf-8").replace(/\r\n/g, "\n");
@@ -54,6 +59,37 @@ const functionExists = (target: string) => {
   return existsSync(`supabase/functions/${name}/index.ts`);
 };
 
+/**
+ * Die Weiterleitungen in der Sprache von Netlify und Cloudflare Pages:
+ * `von  nach  status`, Platzhalter `:name` für ein Wegstück, `*` für den Rest.
+ */
+const REDIRECTS = read("public/_redirects");
+
+const netlifyRegeln = REDIRECTS.split("\n")
+  .map((z) => z.trim())
+  .filter((z) => z && !z.startsWith("#"))
+  .map((z) => {
+    const [von, nach, status] = z.split(/\s+/);
+    return { von, nach, status };
+  });
+
+/** Wohin Netlify eine Adresse schickt – erste passende Regel gewinnt. */
+function netlify(path: string): { ziel: string; status: string } | undefined {
+  const ohneFrage = path.replace(/\?.*$/, "");
+  for (const r of netlifyRegeln) {
+    if (r.von.includes(":")) {
+      const muster = new RegExp("^" + r.von.replace(/:[a-z]+/g, "([^/]+)") + "$");
+      const m = ohneFrage.match(muster);
+      if (m) return { ziel: r.nach.replace(/:[a-z]+/g, m[1]), status: r.status };
+    } else if (r.von.endsWith("/*")) {
+      if (ohneFrage.startsWith(r.von.slice(0, -1))) return { ziel: r.nach, status: r.status };
+    } else if (r.von === ohneFrage) {
+      return { ziel: r.nach, status: r.status };
+    }
+  }
+  return undefined;
+}
+
 describe("Adressen nach draußen", () => {
   it("findet genug Regeln, um etwas zu prüfen", () => {
     expect(rules.length).toBeGreaterThanOrEqual(5);
@@ -88,9 +124,47 @@ describe("Adressen nach draußen", () => {
     expect(rewrite("/einbindung/irgendwas")).toBe("index.html");
   });
 
+  it("kennt dieselben Adressen auch für Netlify und Cloudflare Pages", () => {
+    // Ohne diese Datei gibt auf Netlify jede Unteradresse einen 404 – auch
+    // /einrichtung, also schon der erste Zugang.
+    expect(netlifyRegeln.length).toBeGreaterThanOrEqual(5);
+
+    for (const [path, fn] of [
+      [CALENDAR_PUBLIC_PATH, "events-ical"],
+      [CALENDAR_PERSONAL_PATH, "events-personal-ical"],
+    ]) {
+      const treffer = netlify(path);
+      expect(treffer?.ziel, path).toMatch(new RegExp(`^${FUNCTIONS_PLACEHOLDER}/${fn}/.+\\.ics$`));
+      expect(treffer?.status, path).toBe("302");
+    }
+
+    const admin = read("src/components/admin/EmbedAdmin.tsx");
+    const resources = [...admin.matchAll(/\{\s*key:\s*"([a-z]+)"/g)].map((m) => m[1]);
+    for (const r of resources) {
+      for (const suffix of ["", ".js", ".html"]) {
+        const path = `${EMBED_PATH}/${r}${suffix}`;
+        expect(netlify(path)?.ziel, path).toBe(`${FUNCTIONS_PLACEHOLDER}/embed/${r}${suffix}`);
+      }
+    }
+
+    expect(netlify("/sitemap.xml")?.ziel).toBe(`${FUNCTIONS_PLACEHOLDER}/sitemap`);
+
+    // Und alles andere ist die Anwendung, ohne dass sich die Adresse ändert.
+    const app = netlify("/intern/veranstaltungen");
+    expect(app?.ziel).toBe("/index.html");
+    expect(app?.status).toBe("200");
+    expect(netlify("/einrichtung")?.ziel).toBe("/index.html");
+  });
+
+  it("gibt die Einbindung auch auf Netlify für fremde Seiten frei", () => {
+    const headers = read("public/_headers");
+    expect(headers).toContain(`${EMBED_PATH}/*`);
+    expect(headers).toMatch(/Access-Control-Allow-Origin:\s*\*/);
+  });
+
   it("setzt beim Bauen überall die Adresse ein", () => {
     const url = "https://abcdefghijklmnopqrst.supabase.co";
-    for (const file of ["public/.htaccess", "public/robots.txt"]) {
+    for (const file of ["public/.htaccess", "public/robots.txt", "public/_redirects"]) {
       const text = read(file);
       expect(text, file).toContain(FUNCTIONS_PLACEHOLDER);
       const filled = fillFunctionsUrl(text, url);

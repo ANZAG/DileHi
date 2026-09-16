@@ -65,6 +65,35 @@ BEGIN
     SELECT 1 FROM public.site_menu WHERE area = 'footer_legal' AND href = '/datenschutz'
   );
 
+  -- Die Rollen heissen, wie sie ein fremder Verein nennen würde.
+  --
+  -- Im Ausgangsstand stehen DileHis Ämter: „1. Officiatus", „2. Officiatus",
+  -- „Herold", „Schatzmeister". Das ist unsere Sprache aus dem Reenactment —
+  -- ein Turnverein sucht darin vergeblich, wer die Software verwaltet.
+  --
+  -- Umbenannt werden nur die Beschriftungen und die Erklärungen, nicht die
+  -- Schlüssel: An `officiatus_1` und den anderen hängen über hundert
+  -- Rechtezuweisungen, und an einigen Stellen im Programm hängt Verhalten
+  -- daran (Symbol in der Mitgliederliste, die Rollen, die man nicht zum
+  -- Ausprobieren wechseln kann). Die Schlüssel sind technisch, sie stehen
+  -- nirgends vor einem Mitglied. Ihre Umbenennung gehört in den zweiten
+  -- Durchgang der englischen Bezeichner, zusammen mit den Stellen im Code.
+  --
+  -- Jeder Verein kann alles davon in der Verwaltung ändern — das hier ist nur
+  -- der Anfang, mit dem er etwas anfangen kann.
+  UPDATE public.role_catalog SET label = 'Admin',
+         description = 'Verwaltet die Installation, vergibt Rechte und Rollen'
+   WHERE key = 'officiatus_1';
+  UPDATE public.role_catalog SET label = 'Co-Admin',
+         description = 'Vertretung des Admins, mit denselben Aufgaben'
+   WHERE key = 'officiatus_2';
+  UPDATE public.role_catalog SET label = 'Medienbeauftragter',
+         description = 'Öffentlichkeitsarbeit: Website, Galerie, Ankündigungen'
+   WHERE key = 'herold';
+  UPDATE public.role_catalog SET label = 'Kassenwart',
+         description = 'Kasse, Beiträge und Mitgliedsunterlagen'
+   WHERE key = 'schatzmeister';
+
   -- Versandweg: SMTP ab Werk.
   --
   -- Microsoft Graph ist DileHis Weg und setzt Microsoft 365 samt eigener

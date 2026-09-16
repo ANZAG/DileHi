@@ -8,12 +8,14 @@
  * von Lovable hat genau das gezeigt.
  *
  * Deshalb laufen sie über die eigene Seite: `/kalender/…`, `/einbindung/…`.
- * Die .htaccess leitet von dort an die Funktionen weiter, und wohin, setzt
- * der Build ein (vite.config.ts). Zieht die Datenbank um, ändert sich nur
- * das Ziel der Weiterleitung, nicht die Adresse draußen.
+ * Die Weiterleitung von dort an die Funktionen steht in zwei Dateien —
+ * `public/.htaccess` für einen Webspace mit Apache, `public/_redirects` für
+ * Netlify und Cloudflare Pages —, und wohin sie zeigt, setzt der Build ein
+ * (vite.config.ts). Zieht die Datenbank um, ändert sich nur das Ziel der
+ * Weiterleitung, nicht die Adresse draußen.
  */
 
-/** Die Stelle in public/.htaccess und public/robots.txt, die der Build füllt. */
+/** Die Stelle in .htaccess, robots.txt und _redirects, die der Build füllt. */
 export const FUNCTIONS_PLACEHOLDER = "__FUNCTIONS_URL__";
 
 export const CALENDAR_PUBLIC_PATH = "/kalender/veranstaltungen.ics";
