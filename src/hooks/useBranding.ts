@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { woerter, type Woerter } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
 import { flaechenfarben, hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
 import { ladeSchriften } from "@/lib/schriften";
 
 export interface Branding {
+  /** Verein, e. V. oder Interessengemeinschaft – bestimmt die Wortwahl. */
+  org_form: string;
   org_name: string;
   org_short_name: string;
   org_tagline: string | null;
@@ -53,6 +56,7 @@ export interface Branding {
  * Functions nehmen (marke() in _shared/einstellungen.ts).
  */
 const VORGABE: Branding = {
+  org_form: "club",
   org_name: "Verein",
   org_short_name: "Verein",
   org_tagline: null,
@@ -137,6 +141,16 @@ export function useBranding() {
  * überschreiben damit die Vorgaben aus index.css – für beide Modi, hell wie
  * dunkel, weil sie eine Stufe spezifischer sind als `:root` bzw. `.dark`.
  */
+/**
+ * Die Wörter dieser Installation.
+ *
+ * `const w = useWoerter();` und dann `w.dokumente` statt „Vereinsdokumente".
+ * Kommt aus derselben Abfrage wie Name und Farben, kostet also nichts.
+ */
+export function useWoerter(): Woerter {
+  return woerter(useBranding().org_form);
+}
+
 export function useBrandingAnwenden() {
   const branding = useBranding();
   const { color_primary, color_dark, color_surface, faviconUrl, org_name, font_headings, font_body } = branding;

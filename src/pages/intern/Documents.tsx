@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -48,6 +49,7 @@ const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
 const VORSTAND_ONLY_CATEGORIES = ["vereinsshirts"];
 
 const Documents = () => {
+  const woerter = useWoerter();
   const { user, hasPermission } = useAuth();
   const canManageDocs = hasPermission("documents.manage");
   const canSeeVorstand = hasPermission("profiles.view_all");
@@ -157,7 +159,7 @@ const Documents = () => {
           <ArrowLeft size={16} /> Zurück
         </Link>
 
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6">Vereinsdokumente</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6">{woerter.dokumente}</h1>
 
         {canManageDocs && (
           <form onSubmit={handleUpload} className="p-4 rounded-lg border bg-card mb-8 space-y-4">

@@ -1,11 +1,57 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, LayoutGrid, List, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useModule, type Modulstand } from "@/hooks/useModule";
 
 const db = supabase as unknown as { from: (t: string) => any };
+
+/**
+ * Kacheln oder Liste.
+ *
+ * Neunzehn Module untereinander sind eine Liste zum Durchgehen; in Kacheln
+ * sieht man auf einen Blick, was an ist. Beides hat seinen Moment, deshalb
+ * beides — wie in der Beitragsübersicht. Die Wahl bleibt im Browser, sie
+ * gehört niemandem ausser dem, der gerade hinsieht.
+ */
+type Ansicht = "liste" | "kacheln";
+
+const GEMERKT = "ding.module.ansicht";
+
+function gemerkteAnsicht(): Ansicht {
+  try {
+    return localStorage.getItem(GEMERKT) === "kacheln" ? "kacheln" : "liste";
+  } catch {
+    // Ohne Zugriff auf den Speicher (privates Fenster) bleibt es bei der Liste.
+    return "liste";
+  }
+}
+
+function AnsichtWahl({ ansicht, setze }: { ansicht: Ansicht; setze: (a: Ansicht) => void }) {
+  return (
+    <div className="flex rounded-md border bg-background p-0.5">
+      {([
+        ["liste", List, "Liste"],
+        ["kacheln", LayoutGrid, "Kacheln"],
+      ] as const).map(([wert, Icon, titel]) => (
+        <button
+          key={wert}
+          type="button"
+          onClick={() => setze(wert)}
+          aria-pressed={ansicht === wert}
+          title={titel}
+          className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs ${
+            ansicht === wert ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon size={14} /> {titel}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Was diese Installation anbietet.
@@ -21,6 +67,15 @@ const db = supabase as unknown as { from: (t: string) => any };
  * etwas auszuprobieren.
  */
 export default function ModuleAdmin() {
+  const [ansicht, setAnsichtRoh] = useState<Ansicht>(gemerkteAnsicht);
+  const setAnsicht = (a: Ansicht) => {
+    setAnsichtRoh(a);
+    try {
+      localStorage.setItem(GEMERKT, a);
+    } catch {
+      // Nicht schlimm: Dann fängt der nächste Besuch wieder mit der Liste an.
+    }
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: module = [], isLoading } = useModule();
@@ -77,19 +132,23 @@ export default function ModuleAdmin() {
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="font-serif text-lg font-semibold">Module</h2>
-        <p className="text-sm text-muted-foreground max-w-prose">
-          Was diese Installation anbietet. Abgeschaltet verschwindet ein Bereich
-          samt Menüpunkt, Kachel und Verwaltung. Die Daten bleiben und kommen
-          beim Wiedereinschalten zurück.
-        </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-lg font-semibold">Module</h2>
+          <p className="text-sm text-muted-foreground max-w-prose">
+            Was diese Installation anbietet. Abgeschaltet verschwindet ein Bereich
+            samt Menüpunkt, Kachel und Verwaltung. Die Daten bleiben und kommen
+            beim Wiedereinschalten zurück.
+          </p>
+        </div>
+        <AnsichtWahl ansicht={ansicht} setze={setAnsicht} />
       </div>
 
       <Liste
         titel="Grundfunktionen"
         hinweis="Eigene Bereiche des Mitgliederbereichs oder der öffentlichen Seite."
         module={grundfunktionen}
+        ansicht={ansicht}
         schalten={schalten}
         grund={grund}
         haengtDran={haengtDran}
@@ -99,6 +158,7 @@ export default function ModuleAdmin() {
         titel="Zusätze"
         hinweis="Erweiterungen eines anderen Moduls. Sie stammen aus unserer eigenen Praxis: ein Verein, der nicht auf Lagern übernachtet, braucht sie nicht."
         module={zusaetze}
+        ansicht={ansicht}
         schalten={schalten}
         grund={grund}
         haengtDran={haengtDran}
@@ -113,10 +173,11 @@ export default function ModuleAdmin() {
   );
 }
 
-function Liste({ titel, hinweis, module, schalten, grund, haengtDran }: {
+function Liste({ titel, hinweis, module, schalten, grund, haengtDran, ansicht }: {
   titel: string;
   hinweis: string;
   module: Modulstand[];
+  ansicht: Ansicht;
   schalten: { mutate: (m: Modulstand) => void; isPending: boolean; variables?: Modulstand };
   grund: (m: Modulstand) => string | null;
   haengtDran: (key: string) => string[];
@@ -128,14 +189,24 @@ function Liste({ titel, hinweis, module, schalten, grund, haengtDran }: {
       <h3 className="font-serif text-base font-semibold">{titel}</h3>
       <p className="text-sm text-muted-foreground mb-3 max-w-prose">{hinweis}</p>
 
-      <ul className="divide-y rounded-lg border bg-card overflow-hidden">
+      <ul
+        className={
+          ansicht === "kacheln"
+            ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            : "divide-y rounded-lg border bg-card overflow-hidden"
+        }
+      >
         {module.map((m) => {
           const mit = haengtDran(m.key);
           const warnung = grund(m);
           return (
             <li
               key={m.key}
-              className={`flex flex-wrap items-start gap-2 p-3 ${m.active ? "" : "opacity-60"}`}
+              className={`${
+                ansicht === "kacheln"
+                  ? "flex flex-col gap-2 rounded-lg border bg-card p-3"
+                  : "flex flex-wrap items-start gap-2 p-3"
+              } ${m.active ? "" : "opacity-60"}`}
             >
               <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                 <span className="font-medium text-sm">{m.label}</span>
