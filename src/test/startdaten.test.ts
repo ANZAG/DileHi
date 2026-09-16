@@ -138,6 +138,100 @@ describe("Startdaten einer neuen Installation", () => {
     expect(text).not.toMatch(/Vorstand|Mitgliederversammlung|Beiträge|Epoche/i);
   });
 
+  it("gibt einer neuen Installation eine gebaute Startseite", async () => {
+    // Vorher bekam ein neuer Verein eine veröffentlichte Seite ohne einen
+    // einzigen Baustein: weisse Fläche zwischen Kopf und Fuss. Wer seine
+    // Adresse zum ersten Mal aufruft, soll nicht raten müssen, ob etwas
+    // kaputt ist.
+    const seiten = await seedRows<Seite>("site_pages");
+    const start = seiten.find((s) => s.slug === "startseite");
+
+    expect(start, "Startseite fehlt").toBeTruthy();
+    expect(start!.is_published).toBe(true);
+
+    const bloecke = (start!.content as { content?: { type: string }[] }).content ?? [];
+    expect(bloecke.length).toBeGreaterThan(3);
+
+    // Der Willkommensbereich oben und etwas zum Weiterklicken unten – ohne
+    // beides ist es keine Startseite, sondern ein Textblatt.
+    const arten = bloecke.map((b) => b.type);
+    expect(arten[0]).toBe("Willkommen");
+    expect(arten).toContain("Aktionskaesten");
+
+    // Jeder Baustein muss angezeigt werden können. Einen, den der Renderer
+    // nicht kennt, überspringt er stillschweigend – die Seite wäre dann
+    // wieder leer, ohne dass jemand einen Fehler sieht.
+    const renderer = readFileSync("src/components/sitebuilder/SeitenRenderer.tsx", "utf-8");
+    const bekannt = renderer.slice(
+      renderer.indexOf("const BAUSTEINE"),
+      renderer.indexOf("as unknown as Record<string, BausteinKomponente>")
+    );
+    for (const art of arten) {
+      expect(bekannt, `Baustein ${art} kennt der Renderer nicht`).toContain(art);
+    }
+  });
+
+  it("stellt auf die Startseite nichts, was einem anderen Verein gehört", async () => {
+    const seiten = await seedRows<Seite>("site_pages");
+    const text = JSON.stringify(seiten.find((s) => s.slug === "startseite")!.content);
+    // Erst einmal muss etwas dastehen – auf einer leeren Seite findet diese
+    // Prüfung nichts und wäre grün, ohne etwas geprüft zu haben.
+    expect(text.length).toBeGreaterThan(400);
+
+    // Keine Bilder aus unserem Bestand: Die mitgelieferten Dateien zeigen
+    // DileHis Leute. Ein fremder Verein fände sie auf seiner eigenen
+    // Startseite wieder.
+    for (const schluessel of ["hero-startseite", "gruppenfoto", "epochen"]) {
+      expect(text).not.toContain(schluessel);
+    }
+
+    // Und kein Wort, das nur zu einer Form der Organisation passt: Eine
+    // Interessengemeinschaft hat keinen Vorstand und keine Beiträge.
+    expect(text).not.toMatch(/Vorstand|Mitgliederversammlung|Satzung|Verein/i);
+  });
+
+  it("legt einen Platz für das eigene Titelbild an", async () => {
+    // Die Bildauswahl im Editor liest aus site_images. Ohne eine Zeile dort
+    // steht das Feld leer da, als gäbe es gar keine Bilder – und der Verein
+    // sucht, wo er seines hinlegen soll.
+    const bilder = await seedRows<{ slot: string; page: string; storage_path: string | null }>("site_images");
+    const titel = bilder.find((b) => b.slot === "titelbild-startseite");
+
+    expect(titel, "Platz für das Titelbild fehlt").toBeTruthy();
+    expect(titel!.page).toBe("Startseite");
+    // Ein Platz, kein Bild: Eine Datei mitzuliefern hiesse, das Foto eines
+    // anderen Vereins zu zeigen.
+    expect(titel!.storage_path).toBeNull();
+  });
+
+  it("lässt eine Startseite in Ruhe, an der schon jemand gebaut hat", async () => {
+    // Gegenprobe zur Schranke. Ohne sie wäre das ein UPDATE, das beim
+    // nächsten Ausrollen die Arbeit eines Jahres überschreibt.
+    const db = await leereDatenbank();
+    const dateien = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
+    const STARTSEITE = "20260916180000_startseite.sql";
+
+    for (const f of dateien.filter((f) => f < STARTSEITE)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+    await db.exec(`
+      update public.site_pages
+         set content = '{"content":[{"type":"Ueberschrift","props":{"text":"Unsere Seite"}}],"root":{}}'::jsonb
+       where slug = 'startseite';
+    `);
+    for (const f of dateien.filter((f) => f >= STARTSEITE)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+
+    const inhalt = JSON.stringify((await db.query<Seite>(
+      "select content from public.site_pages where slug = 'startseite'"
+    )).rows[0].content);
+    expect(inhalt).toContain("Unsere Seite");
+    expect(inhalt).not.toContain("Aktionskaesten");
+
+    await db.close();
+  });
+
   it("verschickt ab Werk über SMTP", async () => {
     const einstellungen = await seedRows<{ mail_transport: string }>("app_settings");
     expect(einstellungen).toHaveLength(1);

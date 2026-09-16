@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { Calendar, Users, MapPin, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSiteImage } from "@/hooks/useSiteImage";
-import { abstandKlasse, flaechenKlasse, type Abstand, type Hintergrund } from "./gestaltung";
+import { useBranding } from "@/hooks/useBranding";
+import { FARBGRUND, abstandKlasse, flaechenKlasse, type Abstand, type Hintergrund } from "./gestaltung";
 
 /**
  * Bausteine für die Startseite.
@@ -53,13 +54,36 @@ export function Willkommen({
   knopf2?: string; ziel2?: string;
   hoehe: "klein" | "mittel" | "gross";
 }) {
-  const bild = useSiteImage(bildSchluessel);
+  const bild = useSiteImage(bildSchluessel ?? "");
+  const marke = useBranding();
   const polster = { klein: "py-10", mittel: "py-16 md:py-20", gross: "py-24 md:py-32" };
+
+  // Ohne hinterlegtes Bild der Farbverlauf. Eine frische Installation hat noch
+  // kein Bild, und ein <img> ohne Adresse ist ein zerbrochenes Symbol quer über
+  // den ersten Eindruck.
+  const hatBild = Boolean(bildSchluessel && bild.src);
+
+  // Steht keine Überschrift da, steht der Name da. Der Willkommensbereich ist
+  // das Erste, was ein Besucher sieht; eine leere Zeile an dieser Stelle sieht
+  // nach Fehler aus. Und den Namen kennt die Installation ohnehin – ihn beim
+  // Einrichten ein zweites Mal abzutippen, wäre die Sorte Arbeit, die niemand
+  // versteht.
+  const titel = ueberschrift?.trim() || marke.org_name;
+
+  // Dasselbe für die Zeile darunter: Wer einen Untertitel gepflegt hat, will
+  // ihn nicht ein zweites Mal eintippen.
+  const einleitung = text?.trim() || marke.org_tagline || "";
 
   return (
     <section className={`relative flex items-center justify-center overflow-hidden ${polster[hoehe] ?? polster.mittel}`}>
-      <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
+      {hatBild ? (
+        <>
+          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
+        </>
+      ) : (
+        <div aria-hidden className={`absolute inset-0 ${FARBGRUND}`} />
+      )}
       <div className="relative z-10 container flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -68,13 +92,13 @@ export function Willkommen({
           className="text-center max-w-2xl"
         >
           <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg leading-tight">
-            {ueberschrift}
+            {titel}
           </h1>
-          {text && (
+          {einleitung && (
             <div
               className="text-sm md:text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto
                 [&>p]:mt-2 [&>p:first-child]:mt-0"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(text) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(einleitung) }}
             />
           )}
           {(knopf1 || knopf2) && (
