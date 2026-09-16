@@ -162,6 +162,25 @@ export function woerter(wert: string | null | undefined): Woerter {
   return form(wert).woerter;
 }
 
+/**
+ * Setzt die Wörter der Organisation in einen gespeicherten Text ein.
+ *
+ * Gedacht für Beschriftungen, die in der Datenbank stehen und trotzdem zur
+ * Form passen sollen: Die Ablage „{satzung}" heisst bei einem Verein
+ * „Satzung" und bei einer Interessengemeinschaft „Absprachen". Sobald jemand
+ * die Beschriftung selbst ändert, steht dort sein eigenes Wort — ein
+ * Platzhalter ist ein Vorschlag, keine Fessel.
+ *
+ * Ein Platzhalter, den das Wörterbuch nicht kennt, bleibt stehen, wie er ist.
+ * Er soll auffallen und nicht spurlos verschwinden.
+ */
+export function einsetzen(text: string, w: Woerter): string {
+  return (text ?? "").replace(/\{(\w+)\}/g, (ganz, name) => {
+    const wert = (w as unknown as Record<string, string>)[name];
+    return typeof wert === "string" ? wert : ganz;
+  });
+}
+
 /** Die Form einer Installation, mit Rückfall auf den Verein ohne Eintrag. */
 export function form(wert: string | null | undefined): FormBeschreibung {
   const key = (wert ?? "") as OrgForm;
