@@ -1,0 +1,112 @@
+# Der Probelauf: DING einmal aufsetzen wie ein fremder Verein
+
+DING ist erst dann ein Produkt, wenn jemand es ohne uns aufsetzen kann.
+Behaupten lässt sich das nicht — es muss einmal jemand tun. Dieser Zettel sagt,
+wie wir das machen und was dabei herauskommen soll.
+
+**Das Ziel ist nicht eine laufende Installation.** Die ist der Nebeneffekt. Das
+Ziel ist die Liste der Stellen, an denen [`installation.md`](installation.md)
+nicht reicht.
+
+---
+
+## Die Regeln
+
+1. **Nichts abkürzen.** Kein „das weiss ich schon", kein Griff in den SQL-Editor,
+   keine Abkürzung über die Kommandozeile. Was die Anleitung nicht sagt, wird
+   nicht getan.
+2. **Jeden Stolperstein sofort aufschreiben**, auch den kleinen: eine Beschriftung,
+   die anders heisst als in der Anleitung; ein Knopf, der woanders sitzt; ein
+   Wort, das man nachschlagen muss. Genau die kosten einen fremden Verein den
+   Abend, nicht die grossen Fehler.
+3. **Was hakt, ist ein Fehler in der Anleitung** — nicht im Kopf dessen, der sie
+   liest. Auch dann, wenn wir beim Lesen genau wissen, was gemeint war.
+4. **Die Zeit mitschreiben.** Die Anleitung verspricht „gut eine Stunde". Ob das
+   stimmt, ist selbst ein Ergebnis.
+
+## Was vorher dasteht
+
+| | |
+| --- | --- |
+| Datenbank | Supabase-Projekt **DING**, Kennung `nyloyirwppbetrkkyncw`, Frankfurt, leer seit 11. September |
+| Programmstand | Der Zweig `DING`, nachdem die Startdaten und der Einrichtungsassistent gemergt sind |
+| Website | `ding.dilehi.de`, danach hinter einem Verzeichnisschutz bei gn2 |
+
+Was Eric dafür bereithalten muss:
+
+- [ ] **Das Datenbank-Passwort des Projekts DING.** Es wurde beim Anlegen am
+      11. September vergeben und ist danach nicht mehr einsehbar. Liegt es
+      nicht vor: in Supabase unter *Settings → Database* zurücksetzen. Das ist
+      Schritt 1 der Anleitung und gehört zum Probelauf dazu.
+- [ ] **Einen Zugriffsschlüssel** des Supabase-Kontos (*Account → Access Tokens*).
+      Der vorhandene tut es auch — er gehört zum Konto, nicht zum Projekt.
+- [ ] **Ein Geheimnis für `SETUP_SECRET`**, irgendein langer Text.
+- [ ] **Kein SMTP.** Beim ersten Durchgang bewusst weglassen: Dann läuft genau
+      der Fall, für den der Einladungslink gebaut ist, und wir sehen, ob ein
+      Verein ohne eigenen Mailserver durchkommt. Im zweiten Durchgang gerne mit.
+
+## Warum eine Kopie des Projekts
+
+Ein fremder Verein hat ein eigenes GitHub-Projekt mit eigenen Geheimnissen. Wir
+haben eines — und darin stehen die Zugänge von DileHi. Der Ausrollen-Knopf in
+diesem Projekt zeigt auf DileHis Datenbank, nicht auf die leere.
+
+Deshalb bekommt der Probelauf eine eigene Kopie. Das ist keine Umständlichkeit,
+sondern der Weg selbst: Wer DING aufsetzt, fängt genau hier an.
+
+So entsteht sie — ein neues, **privates** Repository bei GitHub anlegen (etwa
+`DING-Probe`), dann:
+
+```
+git clone https://github.com/ANZAG/DileHi.git ding-probe
+cd ding-probe
+git checkout DING
+git remote set-url origin https://github.com/<konto>/DING-Probe.git
+git push -u origin DING:main
+```
+
+Der Verlauf von DileHi kommt dabei mit. Für den Probelauf ist das egal; für
+eine Weitergabe an einen echten Verein wäre es das nicht — dann ein Repository
+ohne Verlauf (`git checkout --orphan`).
+
+## Der Durchgang
+
+Ab hier gilt [`installation.md`](installation.md), Schritt für Schritt. Was wir
+dabei besonders ansehen:
+
+| Schritt | Worauf zu achten ist |
+| --- | --- |
+| 1. Datenbank anlegen | Das Projekt steht schon. Trotzdem lesen: Stimmt, was die Anleitung über Region, Passwort und die beiden Werte sagt? |
+| 2. Zugänge für den Ausrollen-Knopf | Die drei Geheimnisse und `SITE_URL` in der **Kopie**, nicht hier. `SITE_URL` ist `https://ding.dilehi.de` |
+| 3. Geheimnisse hinterlegen | Nur `SETUP_SECRET`. Sagt die Verwaltung später deutlich, dass der Rest fehlt? Das ist die Nagelprobe für den Einrichtungsassistenten |
+| 4. Alles ausrollen | Läuft der Ausgangsstand samt aller Migrationen in einer leeren Datenbank durch? Die Bühne sagt ja — hier zählt Supabase mit seinen Rechten (Fehler 20 und 34 im Arbeitsstand) |
+| 5. Website veröffentlichen | Die Anleitung nennt Netlify oder Vercel. Wir nehmen `ding.dilehi.de` über `probeseite.yml` — **das ist eine Abweichung**, und was sie verdeckt, gehört notiert |
+| 6. Ersten Zugang anlegen | Ohne Mailversand muss der Einladungslink auf der Seite stehen. Tut er das? |
+| Danach | Die Kachel **Einrichtung** aufrufen: Sagt sie die Wahrheit? Jeder Punkt, der grün ist, obwohl etwas fehlt, ist ein Fehler im Assistenten |
+
+## Was wir schon wissen
+
+Drei Stellen, an denen die Kopie nicht stimmt, bevor jemand sie anfasst. Sie
+gehören in den Probelauf und danach in die Anleitung:
+
+- **Der Deploy-Job in `.github/workflows/deploy.yml` lädt per FTP nach
+  dilehi.de.** In einer fremden Kopie ohne unsere FTP-Geheimnisse schlägt er
+  fehl, sobald jemand auf `main` pusht. Ein Verein, der Netlify nimmt, braucht
+  ihn gar nicht. Siehe „Der mitgelieferte Ausrollen-Knopf" in
+  [`installation.md`](installation.md).
+- **`index.html` und `public/robots.txt`** tragen die Adresse fest. Steht in der
+  Anleitung, Schritt 5 — der Probelauf zeigt, ob der Satz reicht.
+- **Die Rollen im Ausgangsstand heissen `officiatus_1`, `officiatus_2`,
+  `herold`, `schatzmeister`.** Das ist DileHis Sprache. Umbenennen geht in der
+  Verwaltung, aber ein fremder Verein sieht es als Erstes — notieren, ob es
+  stört.
+
+## Was danach passiert
+
+1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
+   nicht in ein Protokoll, das niemand liest.
+2. Was der Einrichtungsassistent falsch gesagt hat, wird an ihm behoben.
+3. Erst wenn ein zweiter Durchgang glatt läuft, ist die Anleitung fertig.
+4. Danach die Seite hinter den Verzeichnisschutz und als Vorführsystem nutzen
+   (siehe [`arbeitsstand.md`](arbeitsstand.md), Abschnitt „Die leere
+   Installation").
