@@ -87,7 +87,7 @@ export default function Inventar() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-none py-1">Inventar</h1>
-            <p className="text-sm text-muted-foreground mt-1">Was der Verein hat, wo es liegt und wer es gerade hat.</p>
+            <p className="text-sm text-muted-foreground mt-1">Was uns gehört, wo es liegt und wer es gerade hat.</p>
           </div>
           {verwalter && (
             <Button size="sm" onClick={() => setBearbeiten({ quantity: 1, condition: "good", category: kategorie ?? "" })}>
@@ -524,7 +524,7 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
           <Select value={werte.owner_id ?? KEINE} onValueChange={(v) => setze({ owner_id: v === KEINE ? null : v })}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value={KEINE}>Gehört dem Verein</SelectItem>
+              <SelectItem value={KEINE}>Gehört uns gemeinsam</SelectItem>
               {mitglieder.map((m) => <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>)}
             </SelectContent>
           </Select>

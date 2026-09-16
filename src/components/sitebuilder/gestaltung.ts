@@ -14,7 +14,7 @@ export type Hintergrund = "keine" | "karte" | "gedaempft" | "akzent_zart" | "akz
 export const TEXTFARBEN: { label: string; value: Textfarbe }[] = [
   { label: "Standard", value: "standard" },
   { label: "Gedämpft (grau)", value: "gedaempft" },
-  { label: "Vereinsfarbe", value: "akzent" },
+  { label: "Eure Farbe", value: "akzent" },
   { label: "Hell (auf dunklem Grund)", value: "hell" },
 ];
 
@@ -22,8 +22,8 @@ export const HINTERGRUENDE: { label: string; value: Hintergrund }[] = [
   { label: "Ohne", value: "keine" },
   { label: "Kasten", value: "karte" },
   { label: "Gedämpft", value: "gedaempft" },
-  { label: "Vereinsfarbe, zart", value: "akzent_zart" },
-  { label: "Vereinsfarbe, kräftig", value: "akzent" },
+  { label: "Eure Farbe, zart", value: "akzent_zart" },
+  { label: "Eure Farbe, kräftig", value: "akzent" },
 ];
 
 const TEXT_KLASSEN: Record<Textfarbe, string> = {

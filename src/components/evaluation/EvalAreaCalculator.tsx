@@ -91,7 +91,7 @@ function printTentMap(spacing: number, eventTitle?: string) {
     </div>
     <div class="legend-item">
       <div class="legend-box" style="background:rgba(200,140,50,0.25);border:1px solid #c8903a;"></div>
-      Vereinszelte
+      Gemeinschaftszelte
     </div>
   </div>
 </body>
@@ -164,7 +164,7 @@ export default function EvalAreaCalculator({
           </div>
 
           <div>
-            <Label className="text-sm mb-2 block">Vereinszelte einplanen</Label>
+            <Label className="text-sm mb-2 block">Gemeinschaftszelte einplanen</Label>
             <div className="space-y-2">
               {CLUB_TENTS.map((ct) => (
                 <div key={ct.id} className="flex items-center gap-2">
@@ -195,7 +195,7 @@ export default function EvalAreaCalculator({
               <span>{memberTentArea.toFixed(1)} m²</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Vereinszelte (Einzelflächen)</span>
+              <span>Gemeinschaftszelte (Einzelflächen)</span>
               <span>{clubTentArea.toFixed(1)} m²</span>
             </div>
             <div className="flex justify-between font-semibold text-base pt-1 border-t">

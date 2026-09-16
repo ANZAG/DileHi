@@ -147,7 +147,7 @@ export default function RollenAdmin() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <p className="text-sm text-muted-foreground max-w-prose">
-          Welche Rollen es im Verein gibt. Was eine Rolle darf, stellst du unter
+          Welche Rollen es bei euch gibt. Was eine Rolle darf, stellst du unter
           Berechtigungen ein; wer welche hat, steht im Mitgliederregister.
         </p>
         {!neuOffen && (

@@ -6,7 +6,7 @@ const Kontakt = () => (
   <div className="container py-12 md:py-20 max-w-xl">
     <SEO
       title="Kontakt"
-      description="Fragen zum Verein oder Interesse an einer Mitgliedschaft? Schreib uns eine Nachricht."
+      description="Fragen an uns oder Interesse mitzumachen? Schreib uns eine Nachricht."
       url="/kontakt"
     />
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>

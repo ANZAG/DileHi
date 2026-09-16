@@ -156,7 +156,7 @@ const Login = () => {
           </div>
           <h1 className="font-serif text-2xl font-bold">Mitgliederbereich</h1>
           <p className="text-sm text-muted-foreground mt-2">
-            Der interne Bereich ist nur für Vereinsmitglieder zugänglich.
+            Der interne Bereich ist nur für Mitglieder zugänglich.
           </p>
         </div>
         {einrichtungNoetig && (

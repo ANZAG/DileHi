@@ -42,14 +42,21 @@ export interface FormBeschreibung {
    * gemeint. Alle Beschriftungen, in denen „Verein" steckt, kommen deshalb
    * von hier — an einer Stelle, damit sie sich nicht widersprechen.
    */
-  woerter: Woerter;
+  woerter: Grundwoerter;
 }
 
-export interface Woerter {
+export interface Grundwoerter {
   /** Die Organisation selbst: „der Verein", „die Interessengemeinschaft". */
   organisation: string;
   /** Mit Artikel, für Sätze: „des Vereins", „der Interessengemeinschaft". */
   organisationGenitiv: string;
+  /**
+   * Mit bestimmtem Artikel, für Überschriften: „Der Verein", „Die
+   * Interessengemeinschaft". Der Artikel steht mit im Wort, weil er sich
+   * zwischen den Formen ändert — „Der Interessengemeinschaft" wäre falsch,
+   * und in einer Beschriftung fällt so etwas sofort auf.
+   */
+  organisationBestimmt: string;
   /** Überschrift der Dokumentenseite. */
   dokumente: string;
   /** Die Gruppe, die führt — Überschrift in der Rollenverwaltung. */
@@ -58,6 +65,20 @@ export interface Woerter {
   satzung: string;
   /** Wer neu dazukommt. */
   beitritt: string;
+}
+
+/**
+ * Was die Oberfläche bekommt: die Wörter der Form plus die beiden, die
+ * ohnehin an der Form hängen — wie die Leitung heisst und wie die Leute
+ * heissen, die dabei sind. Sie stehen nur einmal da (in `FormBeschreibung`)
+ * und werden hier dazugelegt, damit sie nicht an zwei Stellen gepflegt
+ * werden müssen und auseinanderlaufen.
+ */
+export interface Woerter extends Grundwoerter {
+  /** Wie die Leitung heisst: „Vorstand", „Ansprechpartner". */
+  leitung: string;
+  /** Wie die Leute heissen, die dabei sind: „Mitglieder", „Mitmachende". */
+  mitglieder: string;
 }
 
 /**
@@ -91,6 +112,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     woerter: {
       organisation: "Verein",
       organisationGenitiv: "des Vereins",
+      organisationBestimmt: "Der Verein",
       dokumente: "Vereinsdokumente",
       leitungsgruppe: "Vereinsleitung",
       satzung: "Satzung",
@@ -112,6 +134,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     woerter: {
       organisation: "Verein",
       organisationGenitiv: "des Vereins",
+      organisationBestimmt: "Der Verein",
       dokumente: "Vereinsdokumente",
       leitungsgruppe: "Vereinsleitung",
       satzung: "Satzung",
@@ -142,6 +165,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     woerter: {
       organisation: "Interessengemeinschaft",
       organisationGenitiv: "der Interessengemeinschaft",
+      organisationBestimmt: "Die Interessengemeinschaft",
       dokumente: "Dokumente",
       leitungsgruppe: "Leitung",
       // Eine IG hat keine Satzung, aber meistens Absprachen, auf die sich
@@ -159,7 +183,8 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
  * `FORMEN[...].woerter.dokumente`.
  */
 export function woerter(wert: string | null | undefined): Woerter {
-  return form(wert).woerter;
+  const f = form(wert);
+  return { ...f.woerter, leitung: f.leitung, mitglieder: f.mitglieder };
 }
 
 /**

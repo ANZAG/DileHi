@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
+import { useWoerter } from "@/hooks/useBranding";
 import { Trash2, ChevronDown, Reply, MessageSquare } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,7 @@ import { sanitizePostHtml } from "@/components/forum/sanitize";
 
 const ContactMessages = () => {
   const { hasPermission } = useAuth();
+  const woerter = useWoerter();
   const canReply = hasPermission("contacts.reply");
   const canDelete = hasPermission("contacts.delete");
   const queryClient = useQueryClient();
@@ -111,7 +113,7 @@ const ContactMessages = () => {
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground max-w-prose">
         Was über das Kontaktformular der Website hereinkommt. Antworten kannst du
-        direkt hier – die Mail geht dann im Namen des Vereins raus, nicht von
+        direkt hier – die Mail geht dann im Namen {woerter.organisationGenitiv} raus, nicht von
         deiner eigenen Adresse.
       </p>
 

@@ -87,7 +87,7 @@ export const SCHRITTE: Durchlaufschritt[] = [
   {
     id: "leute",
     titel: "Die Ersten einladen",
-    warum: "Damit aus der Installation ein Verein wird.",
+    warum: "Damit aus der Installation eine Gemeinschaft wird, die miteinander arbeitet.",
     bereich: "members",
     pflicht: false,
   },

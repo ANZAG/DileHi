@@ -152,7 +152,7 @@ export function schritte(befund: Befund, erwartet: string[] = []): Schritt[] {
 
   liste.push({
     id: "verein",
-    titel: "Vereinsdaten",
+    titel: "Eure Daten",
     pflicht: true,
     ampel: vereinFehlt.length === 0 ? "gut" : vereinFehlt.length >= 3 ? "fehlt" : "teilweise",
     text:
