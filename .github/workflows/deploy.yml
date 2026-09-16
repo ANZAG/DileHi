@@ -5,6 +5,12 @@ on:
     branches:
       - main
       - DING
+      # Auch die Arbeitszweige. Vorher lief die Pruefung erst, wenn jemand
+      # einen Pull Request aufmachte - also oft Stunden nach dem Push, und
+      # bei einem Zweig ohne PR gar nicht. Gebaut wird hier nichts (der
+      # deploy-Job haengt an main), es kostet also nur die zwei Minuten
+      # Pruefung.
+      - 'claude/**'
   # Auch Pull Requests auf DING prüfen. Vorher liefen sie durch kein Raster:
   # Die Prüfung kam erst mit dem Push nach dem Merge, also nachdem jemand
   # entschieden hatte. Der deploy-Job unten hängt an einem Push auf main und

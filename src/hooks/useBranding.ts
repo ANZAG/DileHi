@@ -44,10 +44,17 @@ export interface Branding {
   footer_legal_label: string;
 }
 
-/** Fällt der Aufruf aus, sieht die Seite aus wie bisher – nicht kaputt. */
+/**
+ * Fällt der Aufruf aus, bleibt die Seite benutzbar – nur ohne Namen.
+ *
+ * Hier stand bis zum Probelauf DileHis Name. Eine fremde Installation, deren
+ * Abfrage einmal scheitert, hätte damit den Namen eines Wiesbadener Vereins
+ * im Kopf stehen gehabt. „Verein" ist dieselbe Vorgabe, die auch die Edge
+ * Functions nehmen (marke() in _shared/einstellungen.ts).
+ */
 const VORGABE: Branding = {
-  org_name: "Diu lebendec Histôrje e. V.",
-  org_short_name: "Diu lebendec Histôrje",
+  org_name: "Verein",
+  org_short_name: "Verein",
   org_tagline: null,
   logo_path: null,
   favicon_path: null,
@@ -117,6 +124,8 @@ export function useBranding() {
     ...branding,
     logoUrl: oeffentlicheAdresse(branding.logo_path),
     faviconUrl: oeffentlicheAdresse(branding.favicon_path),
+    // Das Bild, das bei einem geteilten Link erscheint. Ohne Eintrag keines –
+    // besser gar keins als das eines fremden Vereins.
     seoImageUrl: oeffentlicheAdresse(branding.seo_image_path),
   };
 }

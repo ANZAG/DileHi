@@ -22,7 +22,7 @@ interface SEOProps {
 const SEO = ({
   title,
   description,
-  image = "/hero-medieval.webp",
+  image,
   url,
   type = "website",
   noindex = false,
@@ -33,7 +33,11 @@ const SEO = ({
   title = title ?? [marke.org_name, marke.org_tagline].filter(Boolean).join(" – ");
   description = description ?? marke.seo_description ?? undefined;
   const fullUrl = url ? `${baseUrl}${url}` : (typeof window !== "undefined" ? window.location.href : baseUrl);
-  const fullImageUrl = image.startsWith('http') ? image : `${baseUrl}${image}`;
+  // Kein Bild als Vorgabe: Hier stand DileHis Hero-Bild, und eine fremde
+  // Installation teilte damit ein Foto aus Wiesbaden. Wer eines will, hinterlegt
+  // es unter Erscheinungsbild; die Seite reicht es dann durch.
+  const bild = image ?? marke.seoImageUrl;
+  const fullImageUrl = !bild ? undefined : bild.startsWith("http") ? bild : `${baseUrl}${bild}`;
 
   return (
     <Helmet>
@@ -48,15 +52,15 @@ const SEO = ({
       <meta property="og:description" content={description} />
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
-      <meta property="og:image" content={fullImageUrl} />
+      {fullImageUrl && <meta property="og:image" content={fullImageUrl} />}
       <meta property="og:site_name" content={marke.org_short_name} />
       <meta property="og:locale" content="de_DE" />
       
       {/* Twitter Card */}
-      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:card" content={fullImageUrl ? "summary_large_image" : "summary"} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={fullImageUrl} />
+      {fullImageUrl && <meta name="twitter:image" content={fullImageUrl} />}
 
       {/* JSON-LD */}
       {jsonLd && (
