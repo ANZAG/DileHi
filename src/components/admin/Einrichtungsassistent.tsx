@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
 import { schritte, fortschritt, erwarteteMigrationen, type Ampel, type Befund, type Schritt } from "@/lib/einrichtung";
 import { Kopierfeld } from "./anleitung/Bausteine";
+import Einrichtungsprozess from "./Einrichtungsprozess";
+import { zeigen } from "@/lib/einrichtungsprozess";
 
 /**
  * Der Einrichtungsassistent.
@@ -50,6 +52,22 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
   const liste = data ? schritte(data, erwartet) : [];
   const stand = fortschritt(liste);
 
+  /**
+   * Zwei Ansichten, ein Bauteil.
+   *
+   * Beim ersten Mal führt der Durchlauf Schritt für Schritt; wer ihn beendet
+   * oder auf „Später" geht, sieht die Liste mit den Ampeln. Beide lesen
+   * denselben Stand, es kann also nicht das eine etwas anderes behaupten als
+   * das andere.
+   */
+  const [durchlaufOffen, setDurchlaufOffen] = useState(true);
+  const durchlauf = data?.datenbank?.durchlauf;
+  if (durchlaufOffen && zeigen(durchlauf) && oeffne) {
+    return (
+      <Einrichtungsprozess oeffne={oeffne} schliessen={() => setDurchlaufOffen(false)} />
+    );
+  }
+
   const probeversand = async () => {
     setProbeLaeuft(true);
     try {
@@ -85,9 +103,16 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
               : "Der Stand wird gelesen …"}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw size={15} className={isFetching ? "animate-spin" : ""} /> Prüfen
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {zeigen(durchlauf) && oeffne ? (
+            <Button variant="outline" size="sm" onClick={() => setDurchlaufOffen(true)}>
+              Schritt für Schritt
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw size={15} className={isFetching ? "animate-spin" : ""} /> Prüfen
+          </Button>
+        </div>
       </div>
 
       {error ? (
