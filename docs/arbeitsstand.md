@@ -1,7 +1,9 @@
 # Arbeitsstand DING
 
-Stand: 16. September 2026. Der Umzug ist fertig: DileHi läuft im eigenen
-Supabase-Projekt, die Dateien liegen in SharePoint, Lovable ist abgeschaltet.
+Stand: 16. September 2026, abends. Der Umzug ist fertig — DileHi läuft im
+eigenen Supabase-Projekt, die Dateien liegen in SharePoint, Lovable ist
+abgeschaltet. Seitdem geht es darum, dass ein fremder Verein DING selbst
+aufsetzen kann.
 
 Diese Datei hält fest, was umgesetzt ist, an welchen Fehlern wir uns gestossen
 haben, was man über das Projekt wissen muss und was als Nächstes kommt. Sie
@@ -23,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 40 Dateien, 395 Prüfungen, alle grün — nachgesehen im Lauf von „Build & Deploy" zum Stand `31c5fd2` auf `DING` |
+| Tests | 43 Dateien, 424 Prüfungen, alle grün (16. September, hier gelaufen) |
 
 ---
 
@@ -390,6 +392,40 @@ nicht mehr gelistete Option gehen nicht verloren.
   Functions und Tests ziehen mit. Der zweite und dritte Durchgang stehen noch
   aus.
 
+### Startdaten und Einrichtungsassistent
+
+Beides am 16. September gebaut, beides für den Verein, der DING zum ersten Mal
+aufsetzt.
+
+- **Startdaten** (`20260916100000_startdaten.sql` und die beiden Rechtstexte
+  daneben): Der Ausgangsstand ist ein Abzug aus DileHis Datenbank und brachte
+  DileHis Kopfmenü und die drei Epochen mit — für einen fremden Verein ein Menü
+  ins Leere. Jetzt: im Kopf nur die Startseite, im Fuß Impressum und
+  Datenschutz mit den Seiten dahinter (Text aus `scripts/rechtstexte.mjs`, die
+  veränderlichen Angaben über den Baustein „Vereinsangaben"), keine
+  Kategorien, Versandweg SMTP.
+  **Die Schranke:** Das geschieht nur, solange keine Rolle vergeben und kein
+  Profil angelegt ist. Dieselbe Migration läuft über DileHis Datenbank, ohne
+  dort etwas anzufassen; ein Test spielt genau das durch und fällt durch,
+  sobald die Schranke fehlt.
+- **Einrichtungsassistent** (Verwaltung → Einrichtung): Eine Liste mit Ampeln —
+  Migrationen, erster Zugang, Vereinsdaten, Mailversand, öffentliche Seiten,
+  Dateiablage, Push, Sicherung, Web-Adresse. Zu jedem Punkt, der nicht grün
+  ist, steht der nächste Handgriff; fehlende Secrets stehen mit Namen da, nie
+  mit Wert. Der Probeversand hängt gleich daneben.
+  Die Auskunft kommt aus zwei Richtungen: `setup_status()` liest die Datenbank
+  (auch `supabase_migrations.schema_migrations`, das PostgREST nicht
+  ausliefert — daher SECURITY DEFINER mit Rechteprüfung in der ersten Zeile),
+  die Edge Function `einrichtung-status` sieht in den Secrets nach. Welche
+  Migrationen dieser Stand mitbringt, setzt der Build als Liste von Namen ein
+  (`vite.config.ts`); die SQL-Dateien selbst bleiben aus dem ausgelieferten
+  Verzeichnis heraus.
+- **Einladungen bleiben nicht liegen:** `invite-member` sagt jetzt, ob die Mail
+  rausging, und gibt sonst den Link zurück. Die Mitgliederverwaltung und die
+  Antragsprüfung zeigen ihn mit Kopierknopf — wie die Einrichtungsseite es
+  schon immer tat. Vorher stand dort „Einladung versendet", während niemand
+  eine bekam, und der einmalige Link war verloren.
+
 ### Neue Prüfungen
 
 | Test | Was er prüft |
@@ -411,6 +447,8 @@ Neu seit dem 11. September: `import.test.ts`, `auslagen.test.ts`,
 `nachweise.test.ts`, `inventar.test.ts`, `gemeinnuetzigkeit.test.ts`,
 `ergebnisBild.test.ts`, `sharePointFiles.test.ts`, `layout.test.ts`,
 `forumUngelesen.test.ts`.
+Am 16. September dazu: `startdaten.test.ts`, `einrichtung.test.ts` und
+`setupStatus.test.ts` (auf der Bühne, mit Rechteprüfung als Gegenprobe).
 
 ---
 
@@ -746,26 +784,10 @@ wirklich noch offen. In Reihenfolge, nicht als Sammlung.
 
 DING ist ein Produkt, und geprüft ist es erst, wenn ein fremder Verein es ohne
 uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
-(`nyloyirwppbetrkkyncw`, seit dem 11. September leer).
+(`nyloyirwppbetrkkyncw`, seit dem 11. September leer). Startdaten und
+Einrichtungsassistent stehen seit dem 16. September — als Nächstes kommt der
+Lauf selbst.
 
-- [ ] **Startdaten für eine neue Installation:** im Kopfmenü nur die
-      Startseite, im Fuß Impressum und Datenschutz, beide aus den Angaben unter
-      Erscheinungsbild erzeugt statt ins Leere. Keine Epochen als
-      Seitenkategorien. Versand ab Werk SMTP; ist SMTP nicht eingerichtet, sagt
-      die Verwaltung das deutlich, und die Einladungslinks stehen zum
-      Weitergeben da wie bei der Einrichtung. Als Migration mit Test — aber so,
-      dass sie beim Wiederholen im Umzug DileHis Menü nicht anfasst.
-- [ ] **Einrichtungsassistent für neue Installationen**, wie bei WordPress
-      (Wunsch vom 14. September): eine Seite, die Schritt für Schritt prüft und
-      anzeigt, was steht und was fehlt — Datenbank erreichbar, Migrationen
-      eingespielt, erster Admin, Vereinsdaten, Mailversand mit Probeversand,
-      SharePoint mit „Verbindung prüfen", Push-Schlüssel, Sicherung. Jeder
-      Schritt mit Ampel, Erklärung in einfacher Sprache und Knopf zum Prüfen.
-      Baut auf `/einrichtung` und den vorhandenen Prüfaktionen auf
-      (`mail-test`, `sharepoint-files` → `status`); die Bausteine für die
-      Anleitungen stehen seit dem 14. September in
-      `src/components/admin/anleitung/Bausteine.tsx`. Fehlende Secrets meldet
-      eine Edge Function nur mit Namen, nie mit Wert.
 - [ ] **DING streng nach [`installation.md`](installation.md) in das leere
       Projekt installieren.** Das ist der Probelauf der Anleitung: Was dabei
       hakt, ist ein Fehler in der Anleitung, nicht im Kopf dessen, der sie
@@ -826,18 +848,16 @@ uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
 
 ### Und was jetzt?
 
-Der Umzug ist abgehakt, damit ist der Weg frei für das, wofür DING gebaut ist:
-eine Installation, die ein fremder Verein selbst aufsetzt. In dieser
-Reihenfolge, **Abschnitt 2**:
+Startdaten und Einrichtungsassistent stehen. Damit ist der nächste Schritt der
+Probelauf selbst, und zwar streng nach [`installation.md`](installation.md):
 
-1. **Startdaten für eine neue Installation.** Ohne sie startet jede fremde
-   Installation mit DileHis Epochen und einem Menü ins Leere. Eine Migration
-   mit Test, überschaubar, und die Voraussetzung dafür, dass der Probelauf der
-   Anleitung überhaupt etwas aussagt. *In Arbeit seit dem 16. September.*
-2. **Einrichtungsassistent.** Er sagt dem fremden Verein, was noch fehlt, und
-   uns beim Probelauf, wo die Anleitung hakt. Die Prüfaktionen und die
-   Bausteine dafür sind da. *Danach.*
-3. **Die Installation ins leere Projekt** — der eigentliche Test.
+1. **DING in das leere Projekt `nyloyirwppbetrkkyncw` installieren.** Nichts
+   abkürzen, nichts „weil ich weiss, wie es geht" überspringen. Was hakt, ist
+   ein Fehler in der Anleitung.
+2. **Den Assistenten dabei mitlaufen lassen.** Er sollte am Ende grün sein —
+   und wo er etwas Falsches sagt, ist das ein Fehler in ihm.
+3. **Mit fremden Augen umsehen:** Wo klingt es noch nach DileHi?
 
-Das Modul „Sitzungen" ist das grösste offene Stück und das interessanteste,
-aber es macht DING nicht installierbarer. Es kommt danach.
+Danach die Probeseite hinter ein Passwort und der Vuozvolc-Nachbau. Das Modul
+„Sitzungen" ist das grösste offene Stück und das interessanteste, aber es macht
+DING nicht installierbarer. Es kommt danach.
