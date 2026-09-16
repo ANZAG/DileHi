@@ -77,7 +77,7 @@ const Sources = () => {
   const [showFolderForm, setShowFolderForm] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [form, setForm] = useState({ epoch: "mittelalter", title: "", content: "", url: "" });
+  const [form, setForm] = useState({ epoch: "", title: "", content: "", url: "" });
   const [folderDeleteConfirm, setFolderDeleteConfirm] = useState<string | null>(null);
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [uploadTitles, setUploadTitles] = useState<Record<string, string>>({});

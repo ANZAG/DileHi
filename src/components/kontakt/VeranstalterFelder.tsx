@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useKategorien } from "@/hooks/useKategorien";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -23,7 +24,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
  */
 
 const BESUCHERZAHLEN = ["bis 100", "100–500", "500–1000", "über 1000"];
-const EPOCHEN = ["Spätmittelalter", "Napoleonik", "Erster Weltkrieg", "Mehrere", "Offen"];
+/**
+ * Die Zeiten zur Auswahl, wenn ein Veranstalter anfragt.
+ *
+ * Hier standen unsere drei Epochen. Ein Verein, der etwas anderes darstellt,
+ * bekam Anfragen mit „Napoleonik" darin. Jetzt sind es die gepflegten
+ * Kategorien; dazu zwei Antworten, die immer passen.
+ */
+const IMMER_DABEI = ["Mehrere", "Offen"];
 
 /** Was in der Auswahl steht und was in der Mail landet, ist nicht dasselbe. */
 const BESUCHER_BESCHRIFTUNG: Record<string, string> = {
@@ -38,6 +46,8 @@ const LEER = {
 
 export default function VeranstalterFelder() {
   const { toast } = useToast();
+  const kategorien = useKategorien();
+  const epochen = [...kategorien.map((k) => k.label), ...IMMER_DABEI];
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(LEER);
 
@@ -110,11 +120,11 @@ export default function VeranstalterFelder() {
             werte={BESUCHERZAHLEN}
           />
         </Feld>
-        <Feld id="epoch" label="Gewünschte Epoche">
+        <Feld id="epoch" label="Gewünschte Zeit oder Thema">
           <Auswahl
             id="epoch" wert={form.epoch}
             setze={(v) => handleChange("epoch", v)}
-            werte={EPOCHEN}
+            werte={epochen}
           />
         </Feld>
       </div>

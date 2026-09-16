@@ -128,6 +128,16 @@ describe("Startdaten einer neuen Installation", () => {
     await db.close();
   });
 
+  it("gibt dem Forum vier Rubriken zum Anfangen", async () => {
+    const rubriken = await seedRows<{ name: string; status: string; slug: string }>("forum_categories");
+    expect(rubriken).toHaveLength(4);
+    for (const r of rubriken) expect(r.status).toBe("aktiv");
+
+    // Sie müssen zu jeder Form passen – nichts, was nur ein Verein hat.
+    const text = rubriken.map((r) => r.name).join(" ");
+    expect(text).not.toMatch(/Vorstand|Mitgliederversammlung|Beiträge|Epoche/i);
+  });
+
   it("verschickt ab Werk über SMTP", async () => {
     const einstellungen = await seedRows<{ mail_transport: string }>("app_settings");
     expect(einstellungen).toHaveLength(1);

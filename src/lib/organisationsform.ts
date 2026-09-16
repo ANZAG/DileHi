@@ -34,6 +34,30 @@ export interface FormBeschreibung {
   leitung: string;
   /** Wie die Leute heissen, die dabei sind. */
   mitglieder: string;
+  /**
+   * Die Wörter, mit denen die Oberfläche über die Organisation spricht.
+   *
+   * „Vereinsdokumente" ist für eine IG dasselbe wie „Herrenausstatter" für
+   * jemanden, der ein Hemd sucht: Man versteht es, aber man ist nicht
+   * gemeint. Alle Beschriftungen, in denen „Verein" steckt, kommen deshalb
+   * von hier — an einer Stelle, damit sie sich nicht widersprechen.
+   */
+  woerter: Woerter;
+}
+
+export interface Woerter {
+  /** Die Organisation selbst: „der Verein", „die Interessengemeinschaft". */
+  organisation: string;
+  /** Mit Artikel, für Sätze: „des Vereins", „der Interessengemeinschaft". */
+  organisationGenitiv: string;
+  /** Überschrift der Dokumentenseite. */
+  dokumente: string;
+  /** Die Gruppe, die führt — Überschrift in der Rollenverwaltung. */
+  leitungsgruppe: string;
+  /** Das Regelwerk, auf das sich alle geeinigt haben. */
+  satzung: string;
+  /** Wer neu dazukommt. */
+  beitritt: string;
 }
 
 /**
@@ -64,6 +88,14 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     vorstand: true,
     leitung: "Vorstand",
     mitglieder: "Mitglieder",
+    woerter: {
+      organisation: "Verein",
+      organisationGenitiv: "des Vereins",
+      dokumente: "Vereinsdokumente",
+      leitungsgruppe: "Vereinsleitung",
+      satzung: "Satzung",
+      beitritt: "Mitglied werden",
+    },
   },
   club: {
     key: "club",
@@ -77,6 +109,14 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     vorstand: true,
     leitung: "Vorstand",
     mitglieder: "Mitglieder",
+    woerter: {
+      organisation: "Verein",
+      organisationGenitiv: "des Vereins",
+      dokumente: "Vereinsdokumente",
+      leitungsgruppe: "Vereinsleitung",
+      satzung: "Satzung",
+      beitritt: "Mitglied werden",
+    },
   },
   interest_group: {
     key: "interest_group",
@@ -99,8 +139,28 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     vorstand: false,
     leitung: "Ansprechpartner",
     mitglieder: "Mitmachende",
+    woerter: {
+      organisation: "Interessengemeinschaft",
+      organisationGenitiv: "der Interessengemeinschaft",
+      dokumente: "Dokumente",
+      leitungsgruppe: "Leitung",
+      // Eine IG hat keine Satzung, aber meistens Absprachen, auf die sich
+      // alle geeinigt haben.
+      satzung: "Absprachen",
+      beitritt: "Mitmachen",
+    },
   },
 };
+
+/**
+ * Die Wörter dieser Installation.
+ *
+ * Kurzform für die Oberfläche: `woerter(form).dokumente` statt
+ * `FORMEN[...].woerter.dokumente`.
+ */
+export function woerter(wert: string | null | undefined): Woerter {
+  return form(wert).woerter;
+}
 
 /** Die Form einer Installation, mit Rückfall auf den Verein ohne Eintrag. */
 export function form(wert: string | null | undefined): FormBeschreibung {
