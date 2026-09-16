@@ -123,6 +123,34 @@ Verein gehört die Liste der Workflows einmal durchgesehen — `backup.yml` und
 `digest.yml` bleiben, sie sind für jeden Verein; alles mit FTP oder
 `dilehi.de` darin nicht.
 
+## Schritt 4, erster Knopfdruck
+
+**Der Ausrollen-Knopf begrüsst einen neuen Verein mit einer Fehlermeldung.**
+Der erste Schritt „Datenbank ansehen" fragt die Datenbank nach ihrem Stand und
+liest dabei `supabase_migrations.schema_migrations` — das Verzeichnis der
+eingespielten Migrationen. Das legt der Supabase-CLI aber erst beim ersten
+Einspielen an. In einem eben erstellten Projekt gibt es das Schema noch nicht,
+und statt des Stands stand in der Zusammenfassung:
+
+```
+ERROR: 42P01: relation "supabase_migrations.schema_migrations" does not exist
+```
+
+Nicht schlimm — der Rest lief durch —, aber es ist das Erste, was jemand sieht,
+der zum ersten Mal auf den Knopf drückt. Und es ist kein Randfall, sondern der
+Normalfall: **Jede neue Installation trifft es.**
+
+Behoben: zwei Abfragen statt einer, die zweite nur, wenn es das Verzeichnis
+gibt. Der Schritt „Verzeichnis zurücksetzen" hatte denselben Fehler und steigt
+jetzt mit einem Satz aus, statt zu scheitern. Und die Zusammenfassung zeigt
+keinen JSON-Block mehr, sondern eine Tabelle: Tabellen, Konten, Ablagen,
+Verzeichnis. Durchgespielt gegen drei Antworten (leeres Projekt, eingerichtetes
+Projekt, Datenbank antwortet nicht).
+
+Wieder Fehler 20 aus dem Arbeitsstand, in neuem Gewand: **Was auf der Bühne
+nicht vorkommt, sieht man dort nicht.** Die Bühne legt `schema_migrations`
+selbst an — ein frisches Supabase-Projekt hat es nicht.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
