@@ -101,6 +101,28 @@ gehören in den Probelauf und danach in die Anleitung:
   Verwaltung, aber ein fremder Verein sieht es als Erstes — notieren, ob es
   stört.
 
+## Gefunden, bevor der Lauf begann
+
+Die Kopie anzulegen war schon der erste Teil des Probelaufs — drei Stellen sind
+dabei aufgefallen, ohne dass jemand eine Datenbank angefasst hätte:
+
+1. **Der Job `deploy` in `.github/workflows/deploy.yml`** lädt per FTP nach
+   dilehi.de. In der Kopie ist er raus; übrig bleibt die Prüfung, die Datei
+   heisst dort `pruefen.yml`. Für einen fremden Verein steht der Hinweis jetzt
+   in [`installation.md`](installation.md), Schritt 5.
+2. **`probeseite.yml`** gehört zu `ding.dilehi.de` und lädt ebenfalls auf
+   unseren Webspace. In einer fremden Installation hat sie nichts zu suchen —
+   in der Kopie ist sie gelöscht.
+3. **`__pycache__/nulcpython-314.pyc`** lag im Verzeichnis und wurde
+   mitgeliefert. Ein Python-Rest, der nie dorthin gehörte; raus, und
+   `.gitignore` kennt ihn jetzt.
+
+Die ersten beiden sind derselbe Fehler in zwei Gewändern: **Was zu DileHis
+Betrieb gehört, wird mit ausgeliefert.** Vor einer Weitergabe an einen echten
+Verein gehört die Liste der Workflows einmal durchgesehen — `backup.yml` und
+`digest.yml` bleiben, sie sind für jeden Verein; alles mit FTP oder
+`dilehi.de` darin nicht.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
