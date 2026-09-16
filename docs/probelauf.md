@@ -191,6 +191,23 @@ gesagt.** `SETUP_SECRET` fehlt in Supabase → der Schritt „Erster Zugang" fü
 den Namen unter den fehlenden Geheimnissen auf. Zu sehen ist das aber erst,
 wenn die Website steht — also nach Schritt 5.
 
+## Schritt 5, und was der erste Blick zeigte
+
+Die Website stand, der erste Zugang hat funktioniert — und dann stand Eric vor
+einem leeren Mitgliederbereich. Genau der Fund, für den ein Probelauf da ist:
+Die Technik lief, aber niemand sagte, was jetzt zu tun ist.
+
+Daraus wurde der geführte Einrichtungsprozess (sieben Schritte, siehe
+[`arbeitsstand.md`](arbeitsstand.md)). Und beim Umsehen mit fremden Augen kam
+der Rest: Rollennamen aus unserer Ordnung („Officiatus", „Herold"), DileHis
+Name im Reiter, unser Wappen als Favicon, ein leeres Forum, eine leere
+Startseite, Dokumentablagen mit „Vereinsshirts", und überall „Verein" —
+obwohl eine Interessengemeinschaft keiner ist.
+
+**Merksatz für den zweiten Durchgang:** Was in der Datenbank steht, sieht man
+beim Ausrollen. Was im Programm steht, sieht man erst, wenn man die Seite
+aufmacht und so tut, als gehöre sie einem anderen.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
@@ -200,3 +217,7 @@ wenn die Website steht — also nach Schritt 5.
 4. Danach die Seite hinter den Verzeichnisschutz und als Vorführsystem nutzen
    (siehe [`arbeitsstand.md`](arbeitsstand.md), Abschnitt „Die leere
    Installation").
+
+**Offen im Probeprojekt:** Die vier Migrationen vom 16. September
+(Organisationsform, Durchlauf, Startseite, Dokumentablagen) sind dort noch
+nicht ausgerollt. Erst danach lässt sich der Durchlauf von vorne mitmachen.

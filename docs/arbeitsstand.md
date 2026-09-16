@@ -25,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 43 Dateien, 424 Prüfungen, alle grün (16. September, hier gelaufen) |
+| Tests | 48 Dateien, 497 Prüfungen, alle grün (16. September, hier gelaufen) |
 
 ---
 
@@ -426,6 +426,86 @@ aufsetzt.
   schon immer tat. Vorher stand dort „Einladung versendet", während niemand
   eine bekam, und der einmalige Link war verloren.
 
+### Die Form der Organisation
+
+In unserer Szene gibt es Vereine, eingetragene Vereine und
+Interessengemeinschaften. Sie unterscheiden sich nicht in der Technik, sondern
+darin, was es bei ihnen überhaupt gibt: Eine IG hat oft keinen Aufnahmeantrag,
+keine Beiträge und keinen Vorstand im Rechtssinn.
+
+- `app_settings.org_form` (`club`, `registered_club`, `interest_group`) —
+  angelegt am 16. September, für eine laufende Installation aus der
+  Registernummer erraten. `public_branding()` gibt sie mit heraus, kostet also
+  keine zusätzliche Abfrage.
+- [`src/lib/organisationsform.ts`](../src/lib/organisationsform.ts) sagt, was
+  die Form bedeutet: welche Module vorausgewählt sind, welche Felder Pflicht
+  sind (eine IG wird nicht nach ihrer Registernummer gefragt) und mit welchen
+  Wörtern die Oberfläche redet — „Vereinsdokumente" oder „Dokumente",
+  „Vereinsleitung" oder „Leitung", „Satzung" oder „Absprachen". An einer
+  Stelle, damit sich die Beschriftungen nicht widersprechen.
+- `useWoerter()` holt sie in jede Maske. `einsetzen()` setzt sie in
+  gespeicherte Texte ein: Eine Dokumentablage `{satzung}` heisst beim Verein
+  „Satzung" und bei der IG „Absprachen" — bis jemand sie selbst umbenennt.
+- Hart abgeschaltet wird nichts. Die Form ist die Vorauswahl, jede
+  Organisation entscheidet danach selbst.
+- `wortwahl.test.ts` hält die allgemeinen Masken frei von „Verein". Bereiche,
+  die es nur bei einem Verein gibt (Beiträge, Zuwendungen, Auslagen, Fristen),
+  dürfen das Wort behalten.
+
+### Der geführte Einrichtungsprozess
+
+Der Assistent sagt, was fehlt; er führt aber nicht. Wer zum ersten Mal in einem
+leeren Mitgliederbereich steht, weiss nicht, wo er anfangen soll. Seit dem
+16. September gibt es deshalb den Durchlauf: sieben Schritte, jeder mit einem
+Satz, warum er kommt.
+
+1. Was seid ihr? (die Form — alles Weitere hängt daran)
+2. Eure Daten (Impressum, Mails, Anträge)
+3. Wie es aussehen soll (Farben und Logo, solange die Lust noch da ist)
+4. Was ihr braucht (Module, vorausgewählt nach der Form)
+5. Wer was darf (Rollen)
+6. Wie Post rausgeht (Mailversand)
+7. Die Ersten einladen
+
+Er baut die Masken nicht nach, sondern führt in die echten aus der Verwaltung:
+Was dort eingestellt wird, muss später an derselben Stelle wiederzufinden sein.
+Der Stand steht in `app_settings.setup_step` / `setup_done_at` — in der
+Datenbank, nicht im Browser, denn es ist die Einrichtung der Organisation und
+nicht die eines Geräts. Wer einen Schritt überspringt, kommt weiter; die Kachel
+„Einrichtung" zeigt hinterher, was übrig blieb.
+
+Die einzige Maske, die er selbst baut, ist die Formwahl — sie zeigt, welche
+Bereiche sie abschalten würde, bevor jemand auf „Übernehmen" drückt.
+
+### Was einer leeren Installation gehört
+
+Der Ausgangsstand ist ein Abzug aus DileHis Datenbank, und an vielen Stellen
+stand noch DileHi im Programm. Am 16. September weggeräumt:
+
+- **Rollennamen:** „Officiatus" heisst für neue Installationen „Admin" und
+  „Co-Admin", „Herold" „Medienbeauftragte/r", „Schatzmeister" „Kassenwart".
+  Eigene Migration mit eigener Schranke (Vereinsname noch die Vorgabe) — in
+  den Startdaten hätte sie DileHis Probeprojekt nie erreicht, weil die dort
+  längst gelaufen waren.
+- **Reiter und Zeichen:** `index.html` und das Favicon zeigten DileHis Namen
+  und Wappen. Jetzt ein neutrales Zeichen; das eigene lädt jeder unter
+  Erscheinungsbild hoch.
+- **Forum:** vier allgemeine Rubriken zum Anfangen statt eines leeren Raums
+  mit dem Schild „Redet doch".
+- **Startseite:** eine gebaute Seite ab Werk statt weisser Fläche —
+  Willkommensbereich, ein Absatz über euch, die nächsten Termine (erscheint
+  erst, wenn es welche gibt) und zwei Aktionskästen. Ohne Bild zeigt der
+  Willkommensbereich einen Verlauf aus der eigenen Farbe: Ein mitgeliefertes
+  Foto wäre immer das Foto eines anderen Vereins. Überschrift und Unterzeile
+  bleiben leer und füllen sich mit Name und Untertitel der Organisation.
+- **Dokumentablagen:** standen an drei Stellen fest verdrahtet — im Programm,
+  in der Richtlinie auf der Tabelle und noch einmal in der auf dem
+  Dateispeicher, „Vereinsshirts" inklusive. Jetzt die Tabelle
+  `document_categories` mit `required_permission` (leer = alle Mitglieder,
+  `profiles.view_all` = die Leitung, `documents.manage` = die
+  Dokumentenverwaltung) und Verwaltung → Dokumentablagen. Ein Fremdschlüssel
+  hält eine Ablage fest, solange etwas darin liegt.
+
 ### Neue Prüfungen
 
 | Test | Was er prüft |
@@ -448,7 +528,10 @@ Neu seit dem 11. September: `import.test.ts`, `auslagen.test.ts`,
 `ergebnisBild.test.ts`, `sharePointFiles.test.ts`, `layout.test.ts`,
 `forumUngelesen.test.ts`.
 Am 16. September dazu: `startdaten.test.ts`, `einrichtung.test.ts` und
-`setupStatus.test.ts` (auf der Bühne, mit Rechteprüfung als Gegenprobe).
+`setupStatus.test.ts` (auf der Bühne, mit Rechteprüfung als Gegenprobe),
+`organisationsform.test.ts`, `einrichtungsprozess.test.ts`,
+`fremdeInhalte.test.ts` (kein DileHi im Grundgerüst),
+`dokumentkategorien.test.ts` und `wortwahl.test.ts`.
 
 ---
 
@@ -797,8 +880,15 @@ Lauf selbst.
       eigene Kopie des Projekts, weil der Ausrollen-Knopf hier auf DileHis
       Datenbank zeigt und ein fremder Verein ohnehin bei seinem eigenen
       Repository anfängt.
-- [ ] **Umsehen, als wäre man ein fremder Verein:** Wo klingt es noch nach uns?
-      Jetzt mit einer leeren Installation zu machen, nicht an DileHis Daten.
+- [x] **Umsehen, als wäre man ein fremder Verein:** Menü, Kategorien,
+      Rollennamen, Reiter und Favicon, Forum-Rubriken, Startseite,
+      Dokumentablagen und die Wortwahl sind durchgegangen (16. September).
+      Offen bleibt der Blick auf die Masken, die nur ein laufender Betrieb
+      zeigt — mit echten Daten im Probeprojekt.
+- [ ] **Die vier neuen Migrationen im Probeprojekt ausrollen** (Knopf
+      „Supabase ausrollen" in `ANZAG/DING`): Organisationsform, Durchlauf,
+      Startseite, Dokumentablagen. Danach den Durchlauf einmal von vorne
+      mitmachen, als wäre man ein fremder Verein.
 - [ ] **Probeseite hinter ein Passwort** (Verzeichnisschutz bei gn2) und als
       Vorführsystem nutzen.
 - [ ] **Vuozvolc-Nachbau:** Die drei Bausteine und die Schrift Antic Didone
@@ -827,8 +917,8 @@ Lauf selbst.
 
 - [ ] **Englische Bezeichner, zweiter Durchgang: Werte in den Inhalten.**
       Mitgliedsarten (`aktiv`, `foerder`), Beitragsintervall, Beitragsmodell
-      (`fest`), SEO-Typ, Dokumentkategorien (`satzung`, `vorstand`,
-      `vereinsshirts` — die stehen sogar in den Speicher-Richtlinien),
+      (`fest`), SEO-Typ, die Schlüssel der Dokumentablagen (stehen seit dem
+      16. September wenigstens nicht mehr in den Richtlinien),
       Schlüssel der Touren und Schritte, Anker im Markup, `pdf_texts.key`, die
       Namen der Seitenbausteine und ihrer Felder im Editor-Inhalt
       (`Textabschnitt`, `inhalt`, `ueberschrift`). Braucht Datenmigrationen
@@ -853,15 +943,19 @@ Lauf selbst.
 
 ### Und was jetzt?
 
-Startdaten und Einrichtungsassistent stehen. Damit ist der nächste Schritt der
-Probelauf selbst, und zwar streng nach [`installation.md`](installation.md):
+Startdaten, Einrichtungsassistent und der geführte Durchlauf stehen, und was
+nach DileHi klang, ist aus dem Grundgerüst heraus. Damit ist der nächste
+Schritt der Probelauf selbst, und zwar streng nach
+[`installation.md`](installation.md):
 
-1. **DING in das leere Projekt `nyloyirwppbetrkkyncw` installieren.** Nichts
-   abkürzen, nichts „weil ich weiss, wie es geht" überspringen. Was hakt, ist
-   ein Fehler in der Anleitung.
-2. **Den Assistenten dabei mitlaufen lassen.** Er sollte am Ende grün sein —
-   und wo er etwas Falsches sagt, ist das ein Fehler in ihm.
-3. **Mit fremden Augen umsehen:** Wo klingt es noch nach DileHi?
+1. **Die neuen Migrationen im Probeprojekt ausrollen** und den Durchlauf von
+   vorne mitmachen: Form wählen, Daten eintragen, Farben setzen, Module,
+   Rollen, Mailversand, erste Einladung. Wo er etwas Falsches sagt oder ins
+   Leere führt, ist das ein Fehler in ihm.
+2. **Die Startseite ansehen**, wie ein Besucher sie sieht — mit und ohne
+   eigenes Titelbild.
+3. **Mit fremden Augen umsehen:** Was jetzt noch nach DileHi klingt, zeigt
+   sich erst im Betrieb, mit Terminen, Dokumenten und Mitgliedern darin.
 
 Danach die Probeseite hinter ein Passwort und der Vuozvolc-Nachbau. Das Modul
 „Sitzungen" ist das grösste offene Stück und das interessanteste, aber es macht
