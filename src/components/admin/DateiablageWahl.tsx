@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { invokeFunction } from "@/lib/functionError";
+import { useWoerter } from "@/hooks/useBranding";
 import SharePointAnleitung from "./SharePointAnleitung";
 
 type Storage = "supabase" | "sharepoint";
@@ -34,6 +35,7 @@ export default function DateiablageWahl({ storage, siteUrl, setze }: {
   siteUrl: string;
   setze: (patch: { file_storage?: Storage; sharepoint_site_url?: string | null }) => void;
 }) {
+  const woerter = useWoerter();
   const [status, setStatus] = useState<Status | null>(null);
   const [pruefe, setPruefe] = useState(false);
 
@@ -79,7 +81,7 @@ export default function DateiablageWahl({ storage, siteUrl, setze }: {
           <span>
             <span className="font-medium text-sm">SharePoint (Microsoft 365)</span>
             <span className="block text-xs text-muted-foreground">
-              Für grosse Scans. Die Dateien liegen im Ordner „Quellensammlung" einer SharePoint-Website des Vereins.
+              Für grosse Scans. Die Dateien liegen im Ordner „Quellensammlung" einer SharePoint-Website {woerter.organisationGenitiv}.
             </span>
           </span>
         </label>
@@ -93,7 +95,7 @@ export default function DateiablageWahl({ storage, siteUrl, setze }: {
               id="sp-url"
               value={siteUrl}
               onChange={(e) => { setze({ sharepoint_site_url: e.target.value }); setStatus(null); }}
-              placeholder="https://verein.sharepoint.com/sites/Vereinsablage"
+              placeholder="https://beispiel.sharepoint.com/sites/Ablage"
             />
             <p className="text-xs text-muted-foreground mt-1">
               Die Adresse der Website, so wie sie im Browser steht, ohne alles hinter dem Namen der Website.

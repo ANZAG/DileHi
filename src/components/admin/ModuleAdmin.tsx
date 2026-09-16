@@ -156,7 +156,7 @@ export default function ModuleAdmin() {
 
       <Liste
         titel="Zusätze"
-        hinweis="Erweiterungen eines anderen Moduls. Sie stammen aus unserer eigenen Praxis: ein Verein, der nicht auf Lagern übernachtet, braucht sie nicht."
+        hinweis="Erweiterungen eines anderen Moduls. Sie stammen aus unserer eigenen Praxis: Wer nicht auf Lagern übernachtet, braucht sie nicht."
         module={zusaetze}
         ansicht={ansicht}
         schalten={schalten}
@@ -166,8 +166,8 @@ export default function ModuleAdmin() {
 
       <p className="text-xs text-muted-foreground mt-6 max-w-prose">
         Mitglieder, Rollen und Rechte, das Erscheinungsbild und die öffentlichen
-        Seiten stehen nicht in dieser Liste: Eine Vereinsverwaltung ohne
-        Mitglieder wäre keine.
+        Seiten stehen nicht in dieser Liste: Eine Verwaltung ohne Mitglieder
+        wäre keine.
       </p>
     </div>
   );

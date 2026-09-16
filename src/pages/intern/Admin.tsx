@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
@@ -58,6 +59,7 @@ const Admin = () => {
   // vorzeitiges return fuer Leute ohne Zugang, und ein Hook dahinter liefe
   // nicht bei jedem Aufbau.
   const { data: module } = useModule();
+  const woerter = useWoerter();
   // Den Eingangskorb gibt es nur, wenn die Dateien in SharePoint liegen.
   // Derselbe Schlüssel wie im Eingangskorb selbst, also eine Abfrage für beide.
   const { data: dateiablage } = useQuery({
@@ -173,10 +175,10 @@ const Admin = () => {
       { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , module: "event_forms"},
     ] : []),
     ...(hasPermission("system.modules") ? [
-      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche der Verein nutzt" },
+      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche ihr nutzt" },
     ] : []),
     ...(canRoles ? [
-      { id: "rollen" as const, gruppe: "system", label: "Rollen", icon: UserCog2, desc: "Welche Rollen es im Verein gibt" },
+      { id: "rollen" as const, gruppe: "system", label: "Rollen", icon: UserCog2, desc: "Welche Rollen es bei euch gibt" },
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Was eine Rolle darf" },
     ] : []),
     ...(canAudit ? [
@@ -199,7 +201,7 @@ const Admin = () => {
     ["intern", "Mitgliederbereich"],
     // Nur für gemeinnützige Vereine – ohne die Einstellung gibt es hier keine
     // Kachel, und eine leere Gruppe erscheint nicht.
-    ["verein", "Vereinsführung"],
+    ["verein", woerter.leitungsgruppe],
     ["system", "Allgemeine Einstellungen"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);

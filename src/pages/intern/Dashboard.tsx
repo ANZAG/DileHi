@@ -32,7 +32,7 @@ const baseCards = [
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", module: "documents" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
-  { title: "Inventar", desc: "Was der Verein hat, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },
+  { title: "Inventar", desc: "Was uns gehört, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },
 ];
 
 const Dashboard = () => {

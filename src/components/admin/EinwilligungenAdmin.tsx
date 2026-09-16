@@ -213,7 +213,7 @@ function Arten({ arten }: { arten: EinwilligungsArt[] }) {
     <section className="space-y-3 border-t pt-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="font-medium">Welche Einwilligungen der Verein einholt</h3>
+          <h3 className="font-medium">Welche Einwilligungen ihr einholt</h3>
           <p className="text-sm text-muted-foreground max-w-prose">
             Den Wortlaut einer Einwilligung, der schon zugestimmt wurde, nicht wesentlich ändern – die Zustimmung
             galt dem alten Text. Lieber eine neue anlegen und die alte ausschalten.

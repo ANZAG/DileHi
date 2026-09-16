@@ -85,7 +85,7 @@ export function Vereinsangaben({
     return (
       <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
         <p className="text-sm text-muted-foreground">
-          Diese Angaben stehen noch nicht in den Vereinsdaten. Die Systemverwaltung trägt sie unter
+          Diese Angaben stehen noch nicht in euren Daten. Die Systemverwaltung trägt sie unter
           Verwaltung → Erscheinungsbild ein.
         </p>
       </section>
