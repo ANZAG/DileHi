@@ -265,14 +265,25 @@ jobs:
             --data @/tmp/auth.json \
             | jq '{site_url, uri_allow_list, disable_signup}'
 
+      # Auch das, was NICHT gelaufen ist, gehört in die Zusammenfassung. Der
+      # Schritt „Anmeldung einstellen" überspringt sich still, wenn die
+      # Variable SITE_URL fehlt — und das merkt man sonst erst, wenn der erste
+      # Einladungslink auf localhost:3000 zeigt.
       - name: Was gelaufen ist
         if: always()
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
           echo "### Ausgerollt" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Verzeichnis zurückgesetzt: ${{ inputs.verzeichnis }}" >> $GITHUB_STEP_SUMMARY
           echo "- Migrationen: ${{ inputs.migrationen }}" >> $GITHUB_STEP_SUMMARY
           echo "- Edge Functions: ${{ inputs.funktionen }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$SITE_URL" ]; then
+            echo "- Anmeldung: Links in Mails zeigen auf $SITE_URL, Selbstregistrierung aus" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Anmeldung: nicht eingestellt.** Die Variable \`SITE_URL\` fehlt (Settings → Secrets and variables → Actions → Variables). Links in Mails zeigen dann auf \`localhost:3000\`." >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Die Geheimnisse der Funktionen (Mailversand, VAPID, SETUP_SECRET)" >> $GITHUB_STEP_SUMMARY
           echo "werden hier **nicht** gesetzt. Sie stehen im Supabase-Projekt" >> $GITHUB_STEP_SUMMARY

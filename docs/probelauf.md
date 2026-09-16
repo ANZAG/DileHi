@@ -151,6 +151,26 @@ Wieder Fehler 20 aus dem Arbeitsstand, in neuem Gewand: **Was auf der Bühne
 nicht vorkommt, sieht man dort nicht.** Die Bühne legt `schema_migrations`
 selbst an — ein frisches Supabase-Projekt hat es nicht.
 
+Zweiter Lauf, jetzt mit Tabelle statt Fehlermeldung:
+
+| | |
+| --- | --- |
+| Tabellen | 76 |
+| Konten | 0 |
+| Ablagen | 5 |
+| Verzeichnis der Migrationen | 19 Einträge, von 00000000000000 bis 20260916110000 |
+
+**Damit ist die grösste Unbekannte weg:** Der Ausgangsstand und alle achtzehn
+Migrationen laufen in einem echten, leeren Supabase-Projekt durch — mit den
+Rechten, die ein Projekt dort wirklich hat, nicht mit denen der Bühne.
+
+Dabei noch etwas aufgefallen: **Die Zusammenfassung schwieg über das, was
+nicht lief.** Der Schritt „Anmeldung einstellen" überspringt sich, wenn die
+Variable `SITE_URL` fehlt — still. Gemerkt hätte man es erst, wenn der erste
+Einladungslink auf `localhost:3000` zeigt; genau dieser Fall steht in der
+Anleitung unter „Wenn etwas klemmt". Jetzt sagt die Zusammenfassung in beiden
+Fällen, woran man ist.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
