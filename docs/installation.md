@@ -136,13 +136,25 @@ und im Profil steht, was als Nächstes einzurichten ist.
 
 ## Danach
 
-Im Mitgliederbereich unter **Verwaltung → System**:
+Im Mitgliederbereich unter **Verwaltung → Allgemeine Einstellungen** steht als
+Erstes die Kachel **Einrichtung**. Sie sieht nach, was schon steht und was
+fehlt — Migrationen, erster Zugang, Vereinsdaten, Mailversand, Impressum und
+Datenschutz, Sicherung — und sagt zu jedem Punkt, der nicht grün ist, den
+nächsten Handgriff. Fehlt ein Geheimnis, steht dort sein Name zum Kopieren;
+den Wert kennt nur ihr.
+
+Von Hand einzurichten ist danach noch:
 
 1. **Module** — was der Verein braucht. Alles Weitere richtet sich danach.
 2. **Erscheinungsbild** — Name, Anschrift, Logo, Farben, Schriften.
 3. **Rollen** — die Ämter des Vereins, und wer was darf.
 4. **Aufnahmeantrag**, **Textvorlagen** — die Texte prüfen.
 5. **Seiten** — die öffentliche Website zusammenstellen.
+
+Womit eine neue Installation anfängt: im Kopfmenü nur die Startseite, im Fuß
+Impressum und Datenschutz (beide sind angelegt und ziehen Name, Anschrift und
+Vorstand aus dem Erscheinungsbild), keine Kategorien, Versand über SMTP. Das
+Menü baut der Verein selbst, sobald seine Seiten stehen.
 
 Die Reihenfolge ist keine Empfehlung, sondern eine Abhängigkeit: Abgeschaltete
 Module verstecken Einstellungen, die man sonst vergeblich sucht.
