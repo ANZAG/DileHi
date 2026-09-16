@@ -114,6 +114,16 @@ fest und wollen einmal angefasst werden:
 - `index.html` — `og:url`, `og:image`, `twitter:image`
 - `public/robots.txt` — die `Sitemap:`-Zeile
 
+### Der mitgelieferte Ausrollen-Knopf für die Website
+
+`.github/workflows/deploy.yml` prüft bei jedem Push (Lint, Typen, Tests) und
+lädt danach per FTP hoch — das ist der Weg, den DileHi geht. Wer die Website
+wie oben bei Netlify oder Vercel veröffentlicht, braucht den zweiten Teil
+nicht: Der Job `deploy` am Ende der Datei kann weg, die Prüfung darüber lohnt
+sich. Bleibt er stehen, ohne dass `FTP_SERVER`, `FTP_USERNAME` und
+`FTP_PASSWORD` hinterlegt sind, scheitert er bei jedem Push auf `main` — ohne
+Schaden, aber mit einem roten Haken, den niemand braucht.
+
 ## 6. Ersten Zugang anlegen
 
 Die frische Website aufrufen und **/einrichtung** anhängen:
@@ -172,6 +182,7 @@ Module verstecken Einstellungen, die man sonst vergeblich sucht.
 | „Keine Rolle hat das Recht roles.manage" | Der Ausrollen-Knopf lief nicht durch. Sieh im Protokoll der Action nach |
 | `password authentication failed` | Beim Einfügen des Passworts in das GitHub-Geheimnis ist ein Zeilenumbruch mitgekommen. Der Workflow sagt im Schritt davor, ob das so ist |
 | `Remote migration versions not found in local migrations directory` | In der Datenbank steht schon etwas. Siehe den nächsten Abschnitt |
+| „Build & Deploy" ist rot, obwohl die Seite steht | Der FTP-Teil des mitgelieferten Workflows. Siehe Schritt 5 |
 
 ### Wenn im Projekt schon etwas steht
 

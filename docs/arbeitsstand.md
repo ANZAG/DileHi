@@ -731,6 +731,7 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 | Datei | Inhalt |
 | --- | --- |
 | [`installation.md`](installation.md) | die Anleitung für einen neuen Verein |
+| [`probelauf.md`](probelauf.md) | wie wir die Anleitung einmal gegen eine leere Installation fahren |
 | [`umzug.md`](umzug.md) | der Umzug aus Lovable, Schritt für Schritt |
 | [`sharepoint.md`](sharepoint.md) | Dateiablage in SharePoint einrichten |
 | [`standalone.md`](standalone.md) | was für andere Vereine fehlte (teilweise veraltet, siehe unten) |
@@ -791,7 +792,11 @@ Lauf selbst.
 - [ ] **DING streng nach [`installation.md`](installation.md) in das leere
       Projekt installieren.** Das ist der Probelauf der Anleitung: Was dabei
       hakt, ist ein Fehler in der Anleitung, nicht im Kopf dessen, der sie
-      liest.
+      liest. Wie er abläuft und was Eric dafür bereithalten muss, steht in
+      [`probelauf.md`](probelauf.md) — entschieden am 16. September: über eine
+      eigene Kopie des Projekts, weil der Ausrollen-Knopf hier auf DileHis
+      Datenbank zeigt und ein fremder Verein ohnehin bei seinem eigenen
+      Repository anfängt.
 - [ ] **Umsehen, als wäre man ein fremder Verein:** Wo klingt es noch nach uns?
       Jetzt mit einer leeren Installation zu machen, nicht an DileHis Daten.
 - [ ] **Probeseite hinter ein Passwort** (Verzeichnisschutz bei gn2) und als
