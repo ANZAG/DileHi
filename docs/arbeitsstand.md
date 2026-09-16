@@ -1,7 +1,7 @@
 # Arbeitsstand DING
 
-Stand: 16. September 2026. DileHi läuft im eigenen Supabase-Projekt, Lovable
-ist noch an — nur wegen dreizehn grosser Dateien.
+Stand: 16. September 2026. Der Umzug ist fertig: DileHi läuft im eigenen
+Supabase-Projekt, die Dateien liegen in SharePoint, Lovable ist abgeschaltet.
 
 Diese Datei hält fest, was umgesetzt ist, an welchen Fehlern wir uns gestossen
 haben, was man über das Projekt wissen muss und was als Nächstes kommt. Sie
@@ -19,10 +19,10 @@ neue Unterhaltung beginnt.
 | Zweig der Vereinsseite | `main` — jeder Push baut dilehi.de und lädt per FTP zu gn2 |
 | Datenbank von DileHi | Supabase-Projekt **DileHi**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt (bis 11. September hiess es DING) |
 | Test- und Vorführsystem | Supabase-Projekt **DING**, Kennung `nyloyirwppbetrkkyncw`, Frankfurt, angelegt am 11. September, noch völlig leer. Gehört zu `ding.dilehi.de` (`PROBE_SUPABASE_PROJECT_REF`) |
-| Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — nicht mehr in Gebrauch. **Noch nicht abschalten**: dort liegen die dreizehn grossen Scans |
+| Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — am 16. September abgeschaltet |
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
-| Plan | DileHi ist umgezogen ([`umzug.md`](umzug.md)). Jetzt die Dateien nach SharePoint, Lovable abschalten, dann eine leere Installation ausprobieren |
+| Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
 | Tests | 40 Dateien, 395 Prüfungen, alle grün — nachgesehen im Lauf von „Build & Deploy" zum Stand `31c5fd2` auf `DING` |
 
 ---
@@ -147,7 +147,7 @@ Prüfungen (Typen, Tests) für Pushes auf `DING` laufen jetzt in `deploy.yml`.
    (`nyloyirwppbetrkkyncw`; der kostenlose Tarif erlaubt zwei). Dort DING
    streng nach [`installation.md`](installation.md) installieren — das ist der
    Probelauf der Anleitung. Was dafür vorher fehlt, steht unten unter
-   „Was noch ansteht", Abschnitt 3.
+   „Was noch ansteht", Abschnitt 2.
 2. Klappt das, die Seite hinter ein Passwort setzen (Verzeichnisschutz bei
    gn2) und als Vorführsystem nutzen.
 3. Darin eine möglichst genaue Kopie von vuozvolc.de bauen, damit die sich
@@ -171,6 +171,10 @@ Probeseite, Kalender, Einbindung und Sitemap sprechen mit `hmrog…`. Die `.env`
 ist raus, `deploy.yml` holt Adresse und Schlüssel aus dem Projekt, `types.ts`
 kommt aus dem eigenen Projekt, Lovable-Reste sind entfernt, die Anmeldung steht
 auf `https://www.dilehi.de`, die tägliche Sicherung ist wieder grün.
+
+**Abgeschlossen am 16. September:** Die Dateiablage steht in SharePoint, alle
+Dateien sind drüben — auch die dreizehn grossen Scans, die nicht nach Supabase
+passten. Lovable ist abgeschaltet.
 
 **Entschieden am 11. September**, damit es nicht noch einmal aufgemacht wird:
 
@@ -610,6 +614,14 @@ so ist:
     danach von GET auf POST wechselt — daher der 400 „Empty Payload" beim
     Freigeben der Website. Steht jetzt in der Anleitung, mit dem
     PowerShell-Weg daneben.
+47. **Ein Lovable-Rest, wo keine Anwendung steht.** 206 Pakete im
+    `package-lock.json` zeigten mit ihrer `resolved`-Adresse nicht auf die
+    npm-Registry, sondern auf Lovables eigenen Spiegel
+    (`europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache`). Solange
+    Lovable lief, fiel das niemandem auf; jede frische Installation hing
+    daran. → Umgeschrieben auf `https://registry.npmjs.org/`. Beim Aufräumen
+    nach einem Umzug auch dort nachsehen, wo kein Programm steht: Sperrdatei,
+    Workflows, Kommentare.
 
 ---
 
@@ -699,36 +711,17 @@ Am 16. September Zeile für Zeile gegen den Zweig `DING` nachgesehen. Was
 erledigt ist, steht jetzt oben unter „Was umgesetzt ist"; was hier steht, ist
 wirklich noch offen. In Reihenfolge, nicht als Sammlung.
 
-### 1. Damit Lovable aus kann
+### 1. Was DileHi im Betrieb noch fehlt
 
-Das Einzige, was Geld kostet, solange es offen ist — und das Einzige, was auf
-einen Menschen wartet und nicht auf Code.
-
-- [ ] **SharePoint fertig einrichten** (Eric). Website „Vereinsablage" und App
-      „DING Dateiablage" stehen seit dem 11. September. Es fehlt der Rest nach
-      [`sharepoint.md`](sharepoint.md): der Website die Rechte geben
-      (`Sites.Selected`), Anwendungs-ID und Geheimnis in DING eintragen,
-      Verbindung prüfen, auf SharePoint umschalten.
-- [ ] **Die Dateien hinüber.** Die 51 aus Supabase holt die Verschiebe-Aktion,
-      die dreizehn grossen Scans (50 bis 466 MB, zusammen gut 2 GB) legt Eric
-      aus seiner lokalen Kopie mit dem Explorer in die SharePoint-Website und
-      ordnet sie im Eingangskorb zu. Auf diesem Weg braucht es den Pro-Tarif
-      bei Supabase nicht: die Grenze von 50 MB je Datei gilt nur noch für das,
-      was in Supabase bleibt.
-- [ ] **Quellen ohne Datei nachziehen.** Aus dem Umzug blieben Einträge übrig,
-      die auf keine oder auf eine verlorene Datei zeigen. Die Zahlen in dieser
-      Datei stammen aus zwei verschiedenen Momenten (13 fehlende Dateien, 10
-      Einträge ohne Ablage, später 39 ohne Verweis und 11 mit fehlender Datei)
-      — **vor dem Aufräumen einmal frisch zählen**, in der Datenbank, nicht
-      hier. Der Eingangskorb stellt beide Sorten oben in die Auswahl.
-- [ ] **Danach erst Lovable abschalten** (Eric): Verbindung zu GitHub trennen,
-      Projekt stilllegen. Vorher nicht — dort liegen die dreizehn Scans noch.
-- [ ] **Datenschutzerklärung** auf der Seite: den Satz zur Plattform Lovable im
-      Editor streichen. Die Vorlage in `scripts/rechtstexte.mjs` ist schon
-      angepasst.
-
-### 2. Was DileHi im Betrieb noch fehlt
-
+- [ ] **Datenschutzerklärung:** Steht auf der Seite noch der Satz zur Plattform
+      Lovable? Wenn ja, im Editor streichen — die Vorlage in
+      `scripts/rechtstexte.mjs` ist schon angepasst. Die Erklärung nennt jetzt
+      Supabase und, wo Dateien dort liegen, Microsoft 365.
+- [ ] **Quellen ohne Datei:** Aus dem Umzug blieben Einträge übrig, die auf
+      keine Datei zeigen. Einmal in der Datenbank zählen, was nach dem
+      Verschieben nach SharePoint noch übrig ist, und über den Eingangskorb
+      zuordnen oder den Eintrag bereinigen. Die Zahlen, die früher in dieser
+      Datei standen, waren aus zwei verschiedenen Momenten und taugen nicht.
 - [ ] **Probeversand** unter Verwaltung → Erscheinungsbild: Geht Mail über
       Microsoft 365 aus dem neuen Projekt?
 - [ ] **Mails von Supabase selbst** (Bestätigung einer neuen E-Mail-Adresse)
@@ -749,7 +742,7 @@ einen Menschen wartet und nicht auf Code.
 - [ ] **Bekannte Lücke:** Wird ein Ordner der Quellensammlung gelöscht, bleiben
       die Dateien seiner Quellen liegen — in Supabase wie in SharePoint.
 
-### 3. Die leere Installation — darum geht es eigentlich
+### 2. Die leere Installation — daran arbeiten wir jetzt
 
 DING ist ein Produkt, und geprüft ist es erst, wenn ein fremder Verein es ohne
 uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
@@ -785,7 +778,7 @@ uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
       sind da, die Seiten selbst noch nicht.
       ([`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md))
 
-### 4. Module, die noch fehlen
+### 3. Module, die noch fehlen
 
 - [ ] **Modul „Sitzungen" mit Protokoll** (Idee vom 14. September):
       Tagesordnung, Anwesenheit samt Stellvertretungen und Beschlussfähigkeit,
@@ -803,7 +796,7 @@ uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
       Das Beschlussregister, die Abstimmungen und das Ergebnisbild sind die
       Hälfte der Arbeit und stehen schon.
 
-### 5. Aufräumen, wenn Luft ist
+### 4. Aufräumen, wenn Luft ist
 
 - [ ] **Englische Bezeichner, zweiter Durchgang: Werte in den Inhalten.**
       Mitgliedsarten (`aktiv`, `foerder`), Beitragsintervall, Beitragsmodell
@@ -833,18 +826,17 @@ uns aufsetzen kann. Der Probelauf dafür ist das zweite Supabase-Projekt
 
 ### Und was jetzt?
 
-Drei Sachen liegen bei Eric und blockieren alles Weitere an den Dateien:
-SharePoint fertig einrichten, die Scans hineinlegen, dann Lovable abschalten.
-Solange das läuft, ist der nächste sinnvolle Schritt am Code **Abschnitt 3**,
-und darin in dieser Reihenfolge:
+Der Umzug ist abgehakt, damit ist der Weg frei für das, wofür DING gebaut ist:
+eine Installation, die ein fremder Verein selbst aufsetzt. In dieser
+Reihenfolge, **Abschnitt 2**:
 
 1. **Startdaten für eine neue Installation.** Ohne sie startet jede fremde
-   Installation mit DileHis Epochen und einem Menü ins Leere. Es ist eine
-   Migration mit Test, überschaubar, und sie ist die Voraussetzung dafür, dass
-   der Probelauf der Anleitung überhaupt etwas aussagt.
-2. **Einrichtungsassistent.** Er sagt dem fremden Verein, was noch fehlt,
-   und uns beim Probelauf, wo die Anleitung hakt. Die Prüfaktionen und die
-   Bausteine dafür sind da.
+   Installation mit DileHis Epochen und einem Menü ins Leere. Eine Migration
+   mit Test, überschaubar, und die Voraussetzung dafür, dass der Probelauf der
+   Anleitung überhaupt etwas aussagt. *In Arbeit seit dem 16. September.*
+2. **Einrichtungsassistent.** Er sagt dem fremden Verein, was noch fehlt, und
+   uns beim Probelauf, wo die Anleitung hakt. Die Prüfaktionen und die
+   Bausteine dafür sind da. *Danach.*
 3. **Die Installation ins leere Projekt** — der eigentliche Test.
 
 Das Modul „Sitzungen" ist das grösste offene Stück und das interessanteste,
