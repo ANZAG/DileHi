@@ -171,6 +171,26 @@ Einladungslink auf `localhost:3000` zeigt; genau dieser Fall steht in der
 Anleitung unter „Wenn etwas klemmt". Jetzt sagt die Zusammenfassung in beiden
 Fällen, woran man ist.
 
+## Schritt 3, und der Fund, den kein Test findet
+
+**`SETUP_SECRET` lag bei GitHub statt bei Supabase.** Beides heisst „Secrets",
+beides steht in der Anleitung, zwei Schritte auseinander — und niemand sagt
+etwas, wenn man es am falschen Ort ablegt: Der Ausrollen-Knopf braucht es
+nicht, und die Edge Function findet es nicht. Der erste Zugang wäre mit
+„Nicht möglich" gescheitert, und die Suche hätte beim Geheimnis selbst
+angefangen, nicht beim Ort.
+
+Das ist der Fund, für den ein Probelauf da ist: Kein Test findet ihn, keine
+Prüfung schlägt an, die Anleitung ist nicht falsch — sie ist nur nicht
+deutlich genug. Jetzt tragen die beiden Schritte den Ort im Titel („bei
+GitHub", „bei Supabase"), und ein Kasten in Schritt 2 sagt, dass zwei Orte
+denselben Namen tragen.
+
+Nebenbei die erste Bestätigung für den Einrichtungsassistenten: **Er hätte es
+gesagt.** `SETUP_SECRET` fehlt in Supabase → der Schritt „Erster Zugang" führt
+den Namen unter den fehlenden Geheimnissen auf. Zu sehen ist das aber erst,
+wenn die Website steht — also nach Schritt 5.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),

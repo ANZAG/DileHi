@@ -35,7 +35,14 @@ umbauen, ohne voneinander zu wissen. Was dabei herauskommt, steht unten unter
 > Schlüssels. Der `service_role`-Schlüssel daneben ist das Gegenteil: Er umgeht
 > alle Regeln und gehört nirgendwo hin ausser in die Servereinstellungen.
 
-## 2. Zugänge für den Ausrollen-Knopf
+## 2. Zugänge für den Ausrollen-Knopf — **bei GitHub**
+
+> **Achtung, zwei Orte heissen „Secrets".** Die drei Geheimnisse aus diesem
+> Schritt gehören zu **GitHub**; sie sagen dem Ausrollen-Knopf, welches
+> Supabase-Projekt er füllen soll. Die aus Schritt 3 gehören zu **Supabase**;
+> mit denen arbeiten die Edge Functions später im Betrieb. Wer eines am
+> falschen Ort ablegt, bekommt keine Fehlermeldung — es wirkt dort einfach
+> nicht. `SETUP_SECRET` bei GitHub ist der häufigste Fall.
 
 Im GitHub-Projekt unter **Settings → Secrets and variables → Actions** drei
 Geheimnisse anlegen:
@@ -60,9 +67,11 @@ kommen über Einladungen aus der Verwaltung.
 > jemand alle eure Supabase-Projekte verändern. Er gehört in die
 > GitHub-Geheimnisse und in keine Datei.
 
-## 3. Geheimnisse hinterlegen
+## 3. Geheimnisse hinterlegen — **bei Supabase**
 
-Im Supabase-Projekt unter **Edge Functions → Secrets**:
+Nicht bei GitHub, sondern im Supabase-Projekt unter **Edge Functions →
+Secrets** (linke Spalte im Supabase-Dashboard, ganz unten „Edge Functions",
+dann der Reiter „Secrets"):
 
 | Name | Wofür | Pflicht |
 | --- | --- | --- |
@@ -174,7 +183,7 @@ Module verstecken Einstellungen, die man sonst vergeblich sucht.
 | Zeichen | Grund |
 | --- | --- |
 | `/einrichtung` leitet sofort zur Anmeldung | Es gibt schon ein Konto mit Rolle. Der Weg ist zu |
-| „Nicht möglich" beim ersten Zugang | `SETUP_SECRET` fehlt oder stimmt nicht |
+| „Nicht möglich" beim ersten Zugang | `SETUP_SECRET` fehlt oder stimmt nicht — häufig liegt es bei GitHub statt bei Supabase, siehe Schritt 3 |
 | „Die Einrichtung geht nur über https" | Für die Adresse ist noch kein Zertifikat eingerichtet. Beim Hoster nachholen |
 | Link in der Mail führt zu `localhost:3000` | Die Variable `SITE_URL` fehlt, oder der Ausrollen-Knopf lief seitdem nicht |
 | Keine Mail | SMTP-Angaben fehlen. Der Einladungslink steht auf der Seite |
