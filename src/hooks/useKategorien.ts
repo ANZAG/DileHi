@@ -13,11 +13,15 @@ export interface Kategorie {
  * eingebaute Liste. Wer unter „Kategorien" etwas anlegte, fand es dort nicht
  * wieder. Jetzt lesen alle dieselbe Liste.
  */
-const NOTNAGEL: Kategorie[] = [
-  { value: "mittelalter", label: "Spätmittelalter" },
-  { value: "1815", label: "Napoleonik" },
-  { value: "wk1", label: "Erster Weltkrieg" },
-];
+/**
+ * Kein Notnagel mehr.
+ *
+ * Hier standen DileHis drei Epochen. Ein fremder Verein, der noch keine
+ * Kategorien gepflegt hat, bekam sie zur Auswahl angeboten — und hatte sie
+ * danach in seinen Daten stehen. Wer nichts gepflegt hat, soll eine leere
+ * Auswahl sehen und den Weg zur Verwaltung, nicht unsere Epochen.
+ */
+const NOTNAGEL: Kategorie[] = [];
 
 export function useKategorien(): Kategorie[] {
   const { data } = useQuery({

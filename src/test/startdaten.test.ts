@@ -85,6 +85,24 @@ describe("Startdaten einer neuen Installation", () => {
     expect(kategorien).toHaveLength(0);
   });
 
+  it("nennt die Rollen so, wie ein fremder Verein sie nennen würde", async () => {
+    const rollen = await seedRows<{ key: string; label: string; description: string | null }>("role_catalog");
+    const name = (key: string) => rollen.find((r) => r.key === key)?.label;
+
+    expect(name("officiatus_1")).toBe("Admin");
+    expect(name("officiatus_2")).toBe("Co-Admin");
+    expect(name("herold")).toBe("Medienbeauftragter");
+    expect(name("schatzmeister")).toBe("Kassenwart");
+
+    // Von DileHis Ämtern darf nichts mehr zu sehen sein.
+    const sichtbar = rollen.map((r) => `${r.label} ${r.description ?? ""}`).join(" ");
+    expect(sichtbar).not.toMatch(/Officiatus|Herold|Schatzmeister/i);
+
+    // Die Schlüssel bleiben: An ihnen hängen über hundert Rechtezuweisungen
+    // und einiges im Programm. Fällt einer weg, ist das kein Umbenennen mehr.
+    expect(rollen.map((r) => r.key)).toContain("officiatus_1");
+  });
+
   it("verschickt ab Werk über SMTP", async () => {
     const einstellungen = await seedRows<{ mail_transport: string }>("app_settings");
     expect(einstellungen).toHaveLength(1);
