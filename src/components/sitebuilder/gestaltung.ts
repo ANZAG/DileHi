@@ -75,6 +75,21 @@ export function flaechenKlasse(grund?: Hintergrund): string {
   return FLAECHEN_KLASSEN[grund ?? "keine"] ?? "";
 }
 
+/**
+ * Der Grund eines Kopfbereichs, solange kein Bild hinterlegt ist.
+ *
+ * Titelbild und Willkommensbereich waren auf ein Bild angewiesen: Fehlte es,
+ * stand dort ein <img> ohne Adresse – im Browser ein zerbrochenes Symbol, bei
+ * manchen sogar ein zweiter Ladeversuch der Seite selbst. Eine frische
+ * Installation hat aber noch kein einziges Bild, und die erste Seite, die
+ * jemand von seinem Verein sieht, soll nicht kaputt aussehen.
+ *
+ * Statt eines Ersatzbildes – das immer das Bild eines fremden Vereins waere –
+ * ein Verlauf aus der eigenen Vereinsfarbe. Er kostet nichts, laedt nicht, und
+ * er aendert sich mit, sobald jemand seine Farbe einstellt.
+ */
+export const FARBGRUND = "bg-gradient-to-br from-primary/25 via-background to-primary/10";
+
 export type Flaeche = "inhalt" | "voll";
 
 export const FLAECHEN: { label: string; value: Flaeche }[] = [
