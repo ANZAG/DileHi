@@ -10,6 +10,7 @@ import {
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
   UserCog2, Inbox, Coins, ShieldCheck, CalendarClock, ShieldQuestion, ClipboardCheck,
+  FolderOpen,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -28,6 +29,7 @@ import NachweiseAdmin from "@/components/admin/NachweiseAdmin";
 import FristenAdmin from "@/components/admin/FristenAdmin";
 import EinwilligungenAdmin from "@/components/admin/EinwilligungenAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
+import DokumentkategorienAdmin from "@/components/admin/DokumentkategorienAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
@@ -43,7 +45,7 @@ import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen" | "einrichtung";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen" | "einrichtung" | "dokumentablagen";
 
 
 const Admin = () => {
@@ -163,6 +165,9 @@ const Admin = () => {
     ] : []),
     ...(hasPermission("forum.categories_manage") ? [
       { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , module: "forum"},
+    ] : []),
+    ...(hasPermission("documents.manage") ? [
+      { id: "dokumentablagen" as const, gruppe: "intern", label: "Dokumentablagen", icon: FolderOpen, desc: "Wonach Dokumente sortiert sind und wer hineinsieht", module: "documents" },
     ] : []),
     ...(hasPermission("events.moderate") ? [
       { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , module: "event_forms"},
@@ -317,6 +322,7 @@ const Admin = () => {
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
           {activeTab === "ablage" && hasPermission("system.integrations") && <FileStorageAdmin />}
           {activeTab === "forum" && hasPermission("forum.categories_manage") && <ForumCategoriesAdmin />}
+          {activeTab === "dokumentablagen" && hasPermission("documents.manage") && <DokumentkategorienAdmin />}
           {activeTab === "rollen" && canRoles && <RollenAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
