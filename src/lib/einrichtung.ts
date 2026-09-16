@@ -42,6 +42,10 @@ export interface Vereinsstand {
   absender?: string | null;
   ablage?: string | null;
   sharepoint_site?: string | null;
+  /** Liegt ein Logo? Für den Schritt „Wie es aussehen soll". */
+  logo?: boolean;
+  /** Ist die Vereinsfarbe von der Vorgabe abgewichen? */
+  farbe_gesetzt?: boolean;
 }
 
 export interface Befund {
@@ -53,6 +57,8 @@ export interface Befund {
     verein?: Vereinsstand | null;
     seiten?: Record<string, boolean> | null;
     menue?: { kopf?: number; fuss?: number } | null;
+    /** Wie weit der geführte Durchlauf gekommen ist. */
+    durchlauf?: { schritt?: number; fertig_am?: string | null } | null;
   } | null;
   secrets?: {
     mail?: string[];

@@ -8,6 +8,8 @@ import { ladeSchriften } from "@/lib/schriften";
 export interface Branding {
   /** Verein, e. V. oder Interessengemeinschaft – bestimmt die Wortwahl. */
   org_form: string;
+  /** Wann der geführte Einrichtungsprozess beendet wurde; null = noch offen. */
+  setup_done_at: string | null;
   org_name: string;
   org_short_name: string;
   org_tagline: string | null;
@@ -57,6 +59,9 @@ export interface Branding {
  */
 const VORGABE: Branding = {
   org_form: "club",
+  // Ohne Antwort keine Aufforderung: Ein Hinweis „richte erst ein" auf einer
+  // laufenden Installation wäre schlimmer als keiner.
+  setup_done_at: new Date(0).toISOString(),
   org_name: "Verein",
   org_short_name: "Verein",
   org_tagline: null,
