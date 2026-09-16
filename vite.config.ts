@@ -36,6 +36,25 @@ function installationAddresses(supabaseUrl: string | undefined): Plugin {
   };
 }
 
+/**
+ * Die Versionen der Migrationen, die zu diesem Stand des Programms gehören.
+ *
+ * Der Einrichtungsassistent vergleicht sie mit dem, was in der Datenbank
+ * eingespielt ist, und sagt, wenn das Ausrollen vergessen wurde. Sie kommen
+ * als Liste von Namen in den Build – die Dateien selbst bleiben draussen: Ein
+ * Schema gehört nicht in ein öffentliches Verzeichnis.
+ */
+function migrationsVersionen(): string[] {
+  const ordner = path.resolve(__dirname, "supabase/migrations");
+  if (!fs.existsSync(ordner)) return [];
+  return fs
+    .readdirSync(ordner)
+    .filter((f) => f.endsWith(".sql"))
+    .map((f) => f.replace(/_.*$/, "").replace(/\.sql$/, ""))
+    .filter((v) => /^\d+$/.test(v))
+    .sort();
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -46,6 +65,9 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: false,
       },
+    },
+    define: {
+      __MIGRATIONEN__: JSON.stringify(migrationsVersionen()),
     },
     plugins: [react(), installationAddresses(env.VITE_SUPABASE_URL)],
     resolve: {

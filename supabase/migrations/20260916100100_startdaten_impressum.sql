@@ -1,0 +1,34 @@
+-- Impressum als Editor-Seite, Teil der Startdaten
+--
+-- Eine frische Installation hat im Fuss zwei Links, und dahinter muss etwas
+-- stehen: Ohne Impressum ist eine Vereinsseite abmahnfaehig. Diese Migration
+-- legt die Seite an, falls es sie noch nicht gibt – in DileHi gibt es sie,
+-- dort passiert nichts.
+--
+-- Die veraenderlichen Angaben (Name, Anschrift, Vorstand, Registernummer,
+-- Mailadresse) stehen NICHT in diesem Text, sondern kommen ueber den Baustein
+-- "Vereinsangaben" aus den Vereinsdaten. Ein anderer Verein traegt sie einmal
+-- ein und hat beide Seiten richtig, statt sie abzuschreiben und dabei eine
+-- Stelle zu uebersehen.
+--
+-- ENTWURF: Der Text beschreibt vollstaendig, was die Anwendung verarbeitet.
+-- Die rechtliche Bewertung und Freigabe gehoert zu einem Anwalt.
+
+INSERT INTO public.site_pages (slug, title, content, draft_content, seo_description, noindex,
+                              is_published, is_system, published_at)
+VALUES (
+  'impressum',
+  'Impressum',
+  '{"content":[{"type":"Ueberschrift","props":{"id":"Ueberschrift-e74be070","text":"Impressum","groesse":"gross","ausrichtung":"links","breite":"schmal","abstandOben":"weit","abstandUnten":"keiner","textfarbe":"standard","hintergrund":"keine"}},{"type":"Vereinsangaben","props":{"id":"Vereinsangaben-2b4a4c46","zweck":"impressum","ueberschrift":"","breite":"schmal","abstandOben":"klein","abstandUnten":"keiner"}},{"type":"Textabschnitt","props":{"id":"Textabschnitt-0a7ca0c0","inhalt":"<h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2><p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <a href=\"https://ec.europa.eu/consumers/odr/\" target=\"_blank\" rel=\"noreferrer\">https://ec.europa.eu/consumers/odr/</a>. Unsere E-Mail-Adresse finden Sie oben.</p><p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p><h2>Haftung für Inhalte</h2><p>Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Wir sind als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.</p><h2>Haftung für Links</h2><p>Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.</p><h2>Urheberrecht</h2><p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet und als solche gekennzeichnet. Die Bildnachweise finden sich bei den jeweiligen Darstellungen.</p><p>Fragen zum Datenschutz beantwortet die <a href=\"/datenschutz\">Datenschutzerklärung</a>.</p><p><small>Quelle: <a href=\"https://www.e-recht24.de\" target=\"_blank\" rel=\"noreferrer\">eRecht24</a></small></p>","breite":"schmal","abstandOben":"klein","abstandUnten":"weit","textfarbe":"standard","hintergrund":"keine"}}],"root":{"props":{"title":"Impressum"}}}'::jsonb,
+  '{"content":[{"type":"Ueberschrift","props":{"id":"Ueberschrift-e74be070","text":"Impressum","groesse":"gross","ausrichtung":"links","breite":"schmal","abstandOben":"weit","abstandUnten":"keiner","textfarbe":"standard","hintergrund":"keine"}},{"type":"Vereinsangaben","props":{"id":"Vereinsangaben-2b4a4c46","zweck":"impressum","ueberschrift":"","breite":"schmal","abstandOben":"klein","abstandUnten":"keiner"}},{"type":"Textabschnitt","props":{"id":"Textabschnitt-0a7ca0c0","inhalt":"<h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2><p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <a href=\"https://ec.europa.eu/consumers/odr/\" target=\"_blank\" rel=\"noreferrer\">https://ec.europa.eu/consumers/odr/</a>. Unsere E-Mail-Adresse finden Sie oben.</p><p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p><h2>Haftung für Inhalte</h2><p>Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Wir sind als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.</p><h2>Haftung für Links</h2><p>Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links umgehend entfernen.</p><h2>Urheberrecht</h2><p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet und als solche gekennzeichnet. Die Bildnachweise finden sich bei den jeweiligen Darstellungen.</p><p>Fragen zum Datenschutz beantwortet die <a href=\"/datenschutz\">Datenschutzerklärung</a>.</p><p><small>Quelle: <a href=\"https://www.e-recht24.de\" target=\"_blank\" rel=\"noreferrer\">eRecht24</a></small></p>","breite":"schmal","abstandOben":"klein","abstandUnten":"weit","textfarbe":"standard","hintergrund":"keine"}}],"root":{"props":{"title":"Impressum"}}}'::jsonb,
+  'Impressum und Kontaktdaten.',
+  true,
+  true,
+  true,
+  now()
+)
+-- DO NOTHING, nicht DO UPDATE: In einer Installation, die laeuft, hat jemand
+-- diese Seite angefasst – Anwalt, Verein, beides. Eine Migration, die den Text
+-- ueberschreibt, nimmt ihm seine Fassung, ohne zu fragen. Neuer Text kommt
+-- ueber eine neue Migration, wenn wir ihn wollen.
+ON CONFLICT (slug) DO NOTHING;
