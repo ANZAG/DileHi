@@ -5,9 +5,14 @@ on:
     branches:
       - main
       - DING
+  # Auch Pull Requests auf DING prüfen. Vorher liefen sie durch kein Raster:
+  # Die Prüfung kam erst mit dem Push nach dem Merge, also nachdem jemand
+  # entschieden hatte. Der deploy-Job unten hängt an einem Push auf main und
+  # bleibt davon unberührt – ein Pull Request lädt nichts hoch.
   pull_request:
     branches:
       - main
+      - DING
 jobs:
   seo-checks:
     runs-on: ubuntu-latest
