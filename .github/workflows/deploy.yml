@@ -1,24 +1,42 @@
 name: Build & Deploy
+
+# ACHTUNG, ZIEL PRÜFEN.
+#
+# Diese Datei lädt die gebaute Seite per FTP irgendwohin — und wohin, steht
+# hier in der Datei, nicht im Zugang. Die drei FTP-Geheimnisse bringen den
+# Ablauf nur bis ins Konto; dort liegen bei den meisten Hostern mehrere
+# Verzeichnisse nebeneinander, eines je Domain.
+#
+# Wer DING kopiert, ändert als Erstes die Zeile `ZIEL:` ganz unten im Schritt
+# „Deploy via FTPS". Sonst lädt die Kopie in das Verzeichnis des Vereins, von
+# dem sie abstammt, und `mirror --delete` räumt dort auf, was nicht im Build
+# steht. Beinahe genau so ist es schon einmal gelaufen: Eine Kopie zeigte
+# weiter auf die Seite eines laufenden Vereins und scheiterte nur daran, dass
+# die FTP-Geheimnisse in ihrem Projekt fehlten.
+#
+# Ohne FTP_SERVER, FTP_USERNAME und FTP_PASSWORD läuft der Schritt ins Leere —
+# gebaut und geprüft wird trotzdem alles. Wer die Seite von einem Hoster bauen
+# lässt (Netlify, Vercel, Cloudflare Pages), braucht nur die Prüfung und kann
+# den Job `deploy` ganz löschen; siehe docs/installation.md, Schritt 5.
+
 on:
-  # DING wird nur geprüft; hochgeladen wird allein aus main (siehe deploy).
+  # Hochgeladen wird allein aus main (siehe deploy); sonst wird nur geprüft.
   push:
     branches:
       - main
-      - DING
-      # Auch die Arbeitszweige. Vorher lief die Pruefung erst, wenn jemand
-      # einen Pull Request aufmachte - also oft Stunden nach dem Push, und
+      # Auch die Arbeitszweige. Vorher lief die Prüfung erst, wenn jemand
+      # einen Pull Request aufmachte – also oft Stunden nach dem Push, und
       # bei einem Zweig ohne PR gar nicht. Gebaut wird hier nichts (der
-      # deploy-Job haengt an main), es kostet also nur die zwei Minuten
-      # Pruefung.
+      # deploy-Job hängt an main), es kostet also nur die zwei Minuten
+      # Prüfung.
       - 'claude/**'
-  # Auch Pull Requests auf DING prüfen. Vorher liefen sie durch kein Raster:
-  # Die Prüfung kam erst mit dem Push nach dem Merge, also nachdem jemand
+  # Auch Pull Requests prüfen. Vorher liefen sie durch kein Raster: Die
+  # Prüfung kam erst mit dem Push nach dem Merge, also nachdem jemand
   # entschieden hatte. Der deploy-Job unten hängt an einem Push auf main und
   # bleibt davon unberührt – ein Pull Request lädt nichts hoch.
   pull_request:
     branches:
       - main
-      - DING
 jobs:
   seo-checks:
     runs-on: ubuntu-latest

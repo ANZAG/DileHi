@@ -34,12 +34,18 @@ try {
   const html = lies("index.html");
   if (!/<html[^>]*\slang=/.test(html)) fehler.push("index.html: <html lang> fehlt");
   if (!/name=["']viewport["']/.test(html)) fehler.push("index.html: viewport-Angabe fehlt");
-  if (!/<title>[^<]{10,}<\/title>/.test(html)) fehler.push("index.html: <title> fehlt oder ist zu kurz");
+  // Nur „steht überhaupt etwas da?". Zehn Zeichen verlangte diese Regel
+  // früher, gegen den vergessenen Stummel-Titel — und sperrte damit den
+  // einzigen Titel, der hier richtig ist: den Namen des Programms. „DING" hat
+  // vier Buchstaben und ist kein Versehen. Was eine Installation im Betrieb
+  // zeigt, kommt ohnehin nicht von hier, sondern aus den Vereinsdaten
+  // (src/components/SEO.tsx); dieser Titel gilt nur, solange nichts geladen
+  // ist.
+  if (!/<title>\s*[^<\s][^<]*<\/title>/.test(html)) fehler.push("index.html: <title> fehlt oder ist leer");
   // Kein og:image in index.html verlangen: Ein Bild, das jeder Installation
   // mitgegeben wird, ist das Bild eines fremden Vereins. Wer eines hinterlegt
   // (Erscheinungsbild → Bild für geteilte Links), bekommt es zur Laufzeit aus
   // den Vereinsdaten (src/components/SEO.tsx).
-  if (!/<title>[^<]*<\/title>/.test(html)) hinweise.push("index.html: <title> fehlt");
 } catch (e) {
   fehler.push(`index.html nicht lesbar: ${e.message}`);
 }
