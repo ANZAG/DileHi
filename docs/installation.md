@@ -187,8 +187,14 @@ der Deploy die Passwortdatei:
 3. **Den Hoster fragen.** „Wie lautet der absolute Serverpfad zum
    Dokumentenstamm von `euer-verein.de`?" ist eine Zwei-Minuten-Frage.
 
-**Ihr müsst nicht raten.** Nach dem Deploy ruft der Schritt „Schutz nachsehen"
-die Seite auf und schreibt in die Zusammenfassung, was zurückkam:
+**Ihr müsst nicht raten, und ihr könnt nichts blockieren.** Fehlt eine der drei
+Angaben oder ist der Pfad nicht absolut, wird der Schutz *nicht* gesetzt — der
+Lauf läuft aber weiter und schreibt gross in die Zusammenfassung, dass die
+Seite öffentlich ist. Eine halb eingetragene freiwillige Einstellung hält die
+Auslieferung nicht an.
+
+Nach dem Deploy ruft der Schritt „Schutz nachsehen" die Seite auf und schreibt
+in die Zusammenfassung, was zurückkam:
 
 | Antwort | Bedeutung |
 | --- | --- |
