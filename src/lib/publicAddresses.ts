@@ -21,6 +21,13 @@ export const FUNCTIONS_PLACEHOLDER = "__FUNCTIONS_URL__";
 export const CALENDAR_PUBLIC_PATH = "/kalender/veranstaltungen.ics";
 export const CALENDAR_PERSONAL_PATH = "/kalender/meine-termine.ics";
 export const EMBED_PATH = "/einbindung";
+/**
+ * Die Sitemap und llms.txt liegen an ihren üblichen Adressen, gebaut werden
+ * sie aber aus der Datenbank. Beide standen einmal als feste Datei in
+ * `public/` und beschrieben einen Wiesbadener Verein.
+ */
+export const SITEMAP_PATH = "/sitemap.xml";
+export const LLMS_PATH = "/llms.txt";
 
 /** Die Adresse der Edge Functions eines Projekts. */
 export function functionsUrl(supabaseUrl: string): string {

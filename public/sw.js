@@ -17,9 +17,12 @@
  *     Anwendung, und die fragt nach.
  */
 
-// v2, weil v1 vergiftete Eintraege enthalten kann – siehe unten. Ein neuer
-// Name heisst: Beim Aktivieren wird der alte Zwischenspeicher geloescht.
-const CACHE = "dilehi-v2";
+// Ein neuer Name heisst: Beim Aktivieren wird der alte Zwischenspeicher
+// geloescht. Deshalb wird er hochgezaehlt, wenn etwas haengenbleiben koennte –
+// v2 wegen vergifteter Eintraege in v1, v3, weil in v2 noch DileHis Symbole
+// lagen (favicon.ico, apple-touch-icon.png). Der Name selbst gehoert keinem
+// Verein mehr.
+const CACHE = "ding-v3";
 const OFFLINE_URL = "/index.html";
 
 self.addEventListener("install", (event) => {

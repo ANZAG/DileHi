@@ -11,9 +11,8 @@ import {
   istErledigt,
   naechsterSchritt,
   fortschritt,
-  FORM_REIHENFOLGE,
 } from "@/lib/einrichtungsprozess";
-import { FORMEN, modulVorauswahl, type OrgForm } from "@/lib/organisationsform";
+import OrganisationsformWahl from "./OrganisationsformWahl";
 
 /**
  * Der geführte Durchlauf durch die Einrichtung.
@@ -22,7 +21,8 @@ import { FORMEN, modulVorauswahl, type OrgForm } from "@/lib/organisationsform";
  * Kachel „Einrichtung" sagt ihm, was fehlt — dieser Durchlauf führt ihn
  * hindurch: eine Frage nach der anderen, jede mit einem Satz, warum sie kommt.
  *
- * Er baut die Masken nicht nach, sondern zeigt die echten aus der Verwaltung.
+ * Er baut die Masken nicht nach, sondern zeigt die echten aus der Verwaltung —
+ * auch die Formwahl, die es seit dem Probelauf unter Erscheinungsbild gibt.
  * Zwei Gründe: Was hier eingestellt wird, muss später an derselben Stelle
  * wiederzufinden sein. Und eine zweite Maske für dieselbe Sache läuft
  * auseinander, sobald jemand eine von beiden ändert.
@@ -119,10 +119,13 @@ export default function Einrichtungsprozess({
       </div>
 
       {schritt.id === "form" ? (
-        <FormWahl
-          befund={befund}
-          weiter={() => merken(index + 1)}
-          laeuft={laeuft}
+        // Dieselbe Maske wie unter Erscheinungsbild – der Durchlauf baut sie
+        // nicht nach. Was hier eingestellt wird, muss später an derselben
+        // Stelle wiederzufinden sein.
+        <OrganisationsformWahl
+          wert={befund.datenbank?.verein?.org_form}
+          nachSpeichern={() => merken(index + 1)}
+          knopf="Übernehmen und weiter"
         />
       ) : (
         <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -174,114 +177,4 @@ function bereichsname(bereich?: string): string {
     default:
       return "der Verwaltung";
   }
-}
-
-/**
- * Der erste Schritt: Verein, e. V. oder Interessengemeinschaft.
- *
- * Die einzige Maske, die der Durchlauf selbst baut — es gibt sie sonst
- * nirgends, und sie entscheidet über alles Weitere. Die Module werden dabei
- * nicht heimlich umgestellt: Was passieren würde, steht daneben, bevor jemand
- * auf „Übernehmen" drückt.
- */
-function FormWahl({
-  befund,
-  weiter,
-  laeuft,
-}: {
-  befund: Befund;
-  weiter: () => void;
-  laeuft: boolean;
-}) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [wahl, setWahl] = useState<OrgForm>(
-    (befund.datenbank?.verein?.org_form as OrgForm) ?? "club"
-  );
-  const [speichert, setSpeichert] = useState(false);
-
-  const vorhandene = useQuery({
-    queryKey: ["module-keys"],
-    queryFn: async (): Promise<string[]> => {
-      const { data, error } = await db.from("app_modules").select("key");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((m: { key: string }) => m.key);
-    },
-  });
-
-  const wahlAnwenden = modulVorauswahl(wahl, vorhandene.data ?? []);
-
-  const uebernehmen = async () => {
-    setSpeichert(true);
-    try {
-      const { error } = await db.from("app_settings").update({ org_form: wahl }).eq("id", true);
-      if (error) throw new Error(error.message);
-
-      // Die Module der Form nachziehen. Einzeln, damit ein Fehler bei einem
-      // nicht die anderen mitnimmt.
-      for (const [keys, enabled] of [
-        [wahlAnwenden.an, true],
-        [wahlAnwenden.aus, false],
-      ] as const) {
-        for (const key of keys) {
-          await db.from("app_modules").update({ enabled }).eq("key", key);
-        }
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
-      queryClient.invalidateQueries({ queryKey: ["module"] });
-      toast({ title: "Übernommen", description: FORMEN[wahl].label });
-      weiter();
-    } catch (e) {
-      toast({ title: "Ging nicht", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setSpeichert(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="grid gap-2">
-        {FORM_REIHENFOLGE.map((key) => {
-          const f = FORMEN[key];
-          const gewaehlt = wahl === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setWahl(key)}
-              aria-pressed={gewaehlt}
-              className={`rounded-lg border p-3 text-left transition ${
-                gewaehlt ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50"
-              }`}
-            >
-              <span className="block font-medium">{f.label}</span>
-              <span className="mt-0.5 block text-sm text-muted-foreground">{f.text}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-        <p className="font-medium">Was das ändert</p>
-        <p className="mt-1 text-muted-foreground">
-          Die Leitung heisst bei euch <strong>{FORMEN[wahl].leitung}</strong>, wer dabei
-          ist, sind <strong>{FORMEN[wahl].mitglieder}</strong>.
-          {wahlAnwenden.aus.length > 0 ? (
-            <>
-              {" "}
-              Diese Bereiche bleiben aus, weil es sie bei euch nicht gibt:{" "}
-              {wahlAnwenden.aus.join(", ")}. Anschalten könnt ihr sie jederzeit.
-            </>
-          ) : (
-            " Alle Bereiche stehen euch offen."
-          )}
-        </p>
-      </div>
-
-      <Button onClick={uebernehmen} disabled={speichert || laeuft}>
-        <Check size={16} /> Übernehmen und weiter
-      </Button>
-    </div>
-  );
 }
