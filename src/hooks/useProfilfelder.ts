@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { FormField } from "@/components/event-forms/types";
-import { modulAn, type Modulstand } from "./useModule";
+import { moduleOn, type ModuleState } from "./useModule";
 
 /**
  * Was im Mitgliederprofil steht.
@@ -57,14 +57,14 @@ export function useProfilfelder() {
 export function bereichAn(
   felder: Profilfeld[],
   key: string,
-  module?: Modulstand[]
+  module?: ModuleState[]
 ): boolean {
   const eintrag = felder.find((f) => f.block_key === key);
   if (!eintrag) return true;
   // Zwei Schalter, beide muessen an sein: der Bereich selbst und das Modul
   // dahinter. „Meine Zelte" im Profil ohne Lagerlogistik in der Auswertung
   // waere eine Liste, die nirgends ankommt.
-  return eintrag.is_active && modulAn(module, eintrag.module);
+  return eintrag.is_active && moduleOn(module, eintrag.module);
 }
 
 /** Die frei zusammengestellten Fragen, in ihrer Reihenfolge. */

@@ -34,7 +34,7 @@ import {
 } from "@/components/event-forms/types";
 import { autoLayout, type TentItem } from "@/components/evaluation/TentVisualizer";
 import EventMapSettings from "@/components/evaluation/EventMapSettings";
-import { useModule, modulAn } from "@/hooks/useModule";
+import { useModule, moduleOn } from "@/hooks/useModule";
 import EvalSummaryCards from "@/components/evaluation/EvalSummaryCards";
 import EvalLogistics from "@/components/evaluation/EvalLogistics";
 import EvalAreaCalculator from "@/components/evaluation/EvalAreaCalculator";
@@ -717,16 +717,16 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
 
         <EvalCoverage items={summary.coverage} />
 
-        {modulAn(module, "catering") && <EvalCatering
+        {moduleOn(module, "catering") && <EvalCatering
           days={summary.cateringDays}
           dietOptions={summary.dietOptions}
           allergies={summary.allergyNotes}
           hasDiet={summary.hasDiet}
         />}
 
-        {modulAn(module, "helpers") && <EvalHelperTasks tasks={summary.helperResults} />}
+        {moduleOn(module, "helpers") && <EvalHelperTasks tasks={summary.helperResults} />}
 
-        {modulAn(module, "carpools") && <EvalLogistics
+        {moduleOn(module, "carpools") && <EvalLogistics
           carsCount={summary.carsCount}
           canTowCount={summary.canTowCount}
           trailerCount={summary.trailerCount}
@@ -784,7 +784,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             Der Rechner darunter zeigt ihn seit jeher an und rechnet mit dem
             Massstab – nur konnte ihn niemand hinterlegen, weil dieser Editor
             nirgends eingebunden war. Eine halb verkabelte Funktion. */}
-        {modulAn(module, "camp_logistics") && canModerate && eventId && form?.id && (
+        {moduleOn(module, "camp_logistics") && canModerate && eventId && form?.id && (
           <EventMapSettings
             eventId={eventId}
             formId={form.id}
@@ -794,7 +794,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           />
         )}
 
-        {modulAn(module, "camp_logistics") && <EvalAreaCalculator
+        {moduleOn(module, "camp_logistics") && <EvalAreaCalculator
           spacing={spacing}
           setSpacing={setSpacing}
           selectedClubTents={selectedClubTents}

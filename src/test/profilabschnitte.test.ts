@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { beitragseinzugZeigen, mitgliedsartZeigen } from "@/lib/profilabschnitte";
-import type { Modulstand } from "@/hooks/useModule";
+import type { ModuleState } from "@/hooks/useModule";
 
 /**
  * Das Profil und die abgeschalteten Bereiche.
@@ -21,8 +21,8 @@ import type { Modulstand } from "@/hooks/useModule";
  * ein Modul, dessen Voraussetzung fehlt. (Dieser Test hat genau diesen
  * Fehler beim ersten Versuch gefunden – in sich selbst.)
  */
-const modul = (key: string, active: boolean): Modulstand =>
-  ({ key, active, enabled: active } as Modulstand);
+const modul = (key: string, active: boolean): ModuleState =>
+  ({ key, active, enabled: active } as ModuleState);
 
 describe("Der Beitragseinzug im Profil", () => {
   it("bleibt weg, solange das Modul aus ist", () => {

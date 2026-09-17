@@ -4,7 +4,7 @@ import { Check, LayoutGrid, List, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useModule, type Modulstand } from "@/hooks/useModule";
+import { useModule, type ModuleState } from "@/hooks/useModule";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -81,7 +81,7 @@ export default function ModuleAdmin() {
   const { data: module = [], isLoading } = useModule();
 
   const schalten = useMutation({
-    mutationFn: async (m: Modulstand) => {
+    mutationFn: async (m: ModuleState) => {
       const { error } = await db.from("app_modules")
         .update({ enabled: !m.enabled }).eq("key", m.key);
       if (error) throw new Error(error.message);
@@ -112,7 +112,7 @@ export default function ModuleAdmin() {
   const haengtDran = (key: string) =>
     module.filter((m) => m.requires === key && m.enabled).map((m) => m.label);
 
-  const grund = (m: Modulstand) => {
+  const grund = (m: ModuleState) => {
     if (!m.enabled) return null;
     // Die Bereiche für gemeinnützige Vereine hängen an einer Einstellung,
     // nicht an einem Schalter hier – das gehört dazugesagt.
@@ -176,10 +176,10 @@ export default function ModuleAdmin() {
 function Liste({ titel, hinweis, module, schalten, grund, haengtDran, ansicht }: {
   titel: string;
   hinweis: string;
-  module: Modulstand[];
+  module: ModuleState[];
   ansicht: Ansicht;
-  schalten: { mutate: (m: Modulstand) => void; isPending: boolean; variables?: Modulstand };
-  grund: (m: Modulstand) => string | null;
+  schalten: { mutate: (m: ModuleState) => void; isPending: boolean; variables?: ModuleState };
+  grund: (m: ModuleState) => string | null;
   haengtDran: (key: string) => string[];
 }) {
   if (module.length === 0) return null;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CameraOff, ChevronDown, HeartPulse } from "lucide-react";
-import { modulAn, useModule } from "@/hooks/useModule";
+import { moduleOn, useModule } from "@/hooks/useModule";
 import { db } from "@/hooks/useEinwilligungen";
 
 interface Zeile {
@@ -21,7 +21,7 @@ interface Zeile {
  */
 export default function TeilnehmerFuersorge({ eventId }: { eventId: string }) {
   const { data: module } = useModule();
-  const an = modulAn(module, "consents");
+  const an = moduleOn(module, "consents");
   const [offen, setOffen] = useState(false);
 
   const { data: zeilen = [] } = useQuery({

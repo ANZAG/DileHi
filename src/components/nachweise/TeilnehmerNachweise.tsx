@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck, ShieldCheck } from "lucide-react";
-import { modulAn, useModule } from "@/hooks/useModule";
+import { moduleOn, useModule } from "@/hooks/useModule";
 import { db } from "@/hooks/useNachweise";
 
 interface Zeile {
@@ -23,7 +23,7 @@ export default function TeilnehmerNachweise({ eventId, namen }: {
   namen: Record<string, string>;
 }) {
   const { data: module } = useModule();
-  const an = modulAn(module, "certificates");
+  const an = moduleOn(module, "certificates");
 
   const { data: zeilen = [] } = useQuery({
     queryKey: ["event-attendee-certificates", eventId],
