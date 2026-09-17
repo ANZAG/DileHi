@@ -133,7 +133,34 @@ Netlify oder Vercel veröffentlicht, braucht den zweiten Teil nicht: Der Job
 
 Mehr Actions als diese vier braucht eine Installation nicht: `supabase.yml`
 (Schritt 4), `deploy.yml` (dieser Schritt), `backup.yml` (die tägliche
-Sicherung, Schritt 3) und `digest.yml` (die abendliche Zusammenfassung). Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
+Sicherung, Schritt 3) und `digest.yml` (die abendliche Zusammenfassung).
+
+### Die ganze Seite hinter ein Passwort (freiwillig)
+
+Für ein Vorführsystem oder eine Probeinstallation, die noch niemand sehen
+soll. `deploy.yml` legt dann beim Bauen einen Verzeichnisschutz an — Apache
+fragt vor der **ganzen** Seite nach Benutzer und Passwort, öffentliche Seiten
+eingeschlossen.
+
+| Wo | Name | Wert |
+| --- | --- | --- |
+| Secrets | `SITE_PASSWORT_BENUTZER` | Der Benutzername |
+| Secrets | `SITE_PASSWORT` | Das Passwort im Klartext. Es wird beim Bauen verschlüsselt und steht nirgends im Repository |
+| Variables | `SITE_PASSWORT_DATEI` | Der **absolute** Pfad der `.htpasswd` auf dem Webspace, etwa `/var/www/vhosts/euer-verein.de/httpdocs/.htpasswd` |
+| Variables | `SITE_PASSWORT_BEREICH` | Beschriftung im Anmeldefenster. Optional |
+
+Ohne `SITE_PASSWORT` passiert nichts, und die Seite bleibt öffentlich — das
+ist der Normalfall.
+
+> **Der Pfad ist die Stelle, an der es klemmt.** Apache verlangt ihn absolut,
+> und wie er bei eurem Hoster lautet, weiss nur dessen Dateimanager. Stimmt er
+> nicht, antwortet der Server mit **500** statt mit dem Anmeldefenster. Die
+> Datei selbst legt der Deploy neben die Seite und sperrt sie gegen Abruf.
+
+> Der Schutz ersetzt **keine Anmeldung**. Er hält Fremde von der Seite fern;
+> was im Mitgliederbereich wem gehört, regeln weiter die Zugriffsregeln in der
+> Datenbank. Und weil eine geschützte Seite in keiner Suchmaschine stehen soll,
+> schreibt derselbe Schritt eine `robots.txt`, die alles sperrt. Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
 Schritt sauber ab und schreibt in die Zusammenfassung, was fehlt — gebaut und
 geprüft ist trotzdem alles.
 

@@ -916,11 +916,13 @@ wirklich noch offen. In Reihenfolge, nicht als Sammlung.
 
 ### 1. Was DileHi im Betrieb noch fehlt
 
-- [ ] **Datenschutzerklärung:** Steht auf der Seite noch der Satz zur Plattform
+- [x] **Datenschutzerklärung:** Geprüft und abgenommen (17. September).
+      Steht auf der Seite noch der Satz zur Plattform
       Lovable? Wenn ja, im Editor streichen — die Vorlage in
       `scripts/rechtstexte.mjs` ist schon angepasst. Die Erklärung nennt jetzt
       Supabase und, wo Dateien dort liegen, Microsoft 365.
-- [ ] **Quellen ohne Datei:** Aus dem Umzug blieben Einträge übrig, die auf
+- [x] **Quellen ohne Datei:** Geprüft und abgenommen (17. September).
+      Aus dem Umzug blieben Einträge übrig, die auf
       keine Datei zeigen. Einmal in der Datenbank zählen, was nach dem
       Verschieben nach SharePoint noch übrig ist, und über den Eingangskorb
       zuordnen oder den Eintrag bereinigen. Die Zahlen, die früher in dieser
@@ -930,11 +932,13 @@ wirklich noch offen. In Reihenfolge, nicht als Sammlung.
 - [ ] **Mails von Supabase selbst** (Bestätigung einer neuen E-Mail-Adresse)
       laufen über Supabases eigenen Versand, zwei Mails pro Stunde. Unter
       Authentication → SMTP eigene Angaben eintragen.
-- [ ] **Zahlen prüfen, bevor sie zählen.** Ehrenamtspauschale 960 € und
+- [x] **Zahlen prüfen, bevor sie zählen.** Geprüft und abgenommen
+      (17. September). Ehrenamtspauschale 960 € und
       Übungsleiterfreibetrag 3.300 € stehen als Vorgabe im Erscheinungsbild
       (Stand 2026), und der Wortlaut der Zuwendungsbestätigung gehört vor dem
       ersten echten Einsatz gegen das aktuelle BMF-Muster gehalten.
-- [ ] **Den Mitglieder-Import einmal in der Oberfläche durchspielen.** Leser
+- [x] **Den Mitglieder-Import einmal in der Oberfläche durchspielen.**
+      Durchgespielt und abgenommen (17. September). Leser
       und Prüfung haben 18 Tests, die Edge Function nur `deno check`;
       angeklickt hat den Weg noch niemand.
 - [ ] **Scans der Nachweise** und **Fotos der Gegenstände** fehlen den beiden
@@ -942,8 +946,16 @@ wirklich noch offen. In Reihenfolge, nicht als Sammlung.
       nur das Mitglied selbst und die zuständige Rolle lesen — entweder ein
       privater Ordner in `internal-files` (das heute jedes Mitglied lesen darf)
       oder ein eigener Bucket wie `receipts` bei den Auslagen.
-- [ ] **Bekannte Lücke:** Wird ein Ordner der Quellensammlung gelöscht, bleiben
-      die Dateien seiner Quellen liegen — in Supabase wie in SharePoint.
+- [x] **Bekannte Lücke geschlossen** (17. September): Wurde ein Ordner der
+      Quellensammlung gelöscht, blieben die Dateien seiner Quellen liegen — in
+      Supabase wie in SharePoint. Die Kaskade der Datenbank räumt die Zeilen
+      weg, die Dateien kennt sie nicht. `deleteFolder` geht jetzt erst die
+      Quellen des Ordners und aller Unterordner durch, auf demselben Weg wie
+      beim Löschen einer einzelnen Quelle, und nimmt den Ordner danach. Darf
+      eine davon nicht gelöscht werden, bricht es ab, **bevor** der Ordner weg
+      ist — sonst bliebe eine Datei zurück, für die es keine Oberfläche mehr
+      gibt. Die Meldung „Ordner und Inhalt gelöscht" stimmt damit zum ersten
+      Mal ganz.
 
 ### 2. Die leere Installation — daran arbeiten wir jetzt
 
@@ -970,10 +982,36 @@ Lauf selbst.
       „Supabase ausrollen" in `ANZAG/DING`): Organisationsform, Durchlauf,
       Startseite, Dokumentablagen. Danach den Durchlauf einmal von vorne
       mitmachen, als wäre man ein fremder Verein.
-- [ ] **Probeseite hinter ein Passwort** (Verzeichnisschutz bei gn2) und als
-      Vorführsystem nutzen.
-- [ ] **Vuozvolc-Nachbau:** Die drei Bausteine und die Schrift Antic Didone
-      sind da, die Seiten selbst noch nicht.
+- [~] **Probeseite hinter ein Passwort:** Gebaut am 17. September, aber noch
+      nicht eingeschaltet. `deploy.yml` legt den Verzeichnisschutz beim Bauen
+      an, sobald `SITE_PASSWORT` und `SITE_PASSWORT_BENUTZER` (Secrets) und
+      `SITE_PASSWORT_DATEI` (Variable, **absoluter** Pfad auf dem Webspace)
+      gesetzt sind; ohne sie bleibt die Seite öffentlich. Steht in
+      [`installation.md`](installation.md) als freiwilliger Teil von Schritt 5.
+      Einzutragen sind die drei Angaben in `ANZAG/DING` — den Pfad kennt nur
+      gn2s Dateimanager, und mit einem falschen antwortet der Server mit 500
+      statt mit dem Anmeldefenster.
+- [~] **Vuozvolc-Nachbau — das Gerüst steht** (17. September):
+      [`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf
+      Seiten an, dazu Menü, Bildplätze und Gestaltung (Antic Didone über Open
+      Sans, Creme #faf2e9, Dunkelgrau #333). **Keine Migration** — Vuozvolcs
+      Seiten haben in DileHis Datenbank nichts zu suchen; das Skript weigert
+      sich von selbst, wenn schon ein Verein in der Datenbank steht.
+      Auszuführen im SQL-Editor des Projekts DING.
+
+      Geprüft, nicht vermutet: Ausgangsstand und alle 29 Migrationen liefen in
+      eine frische PostgreSQL 16, dann das Skript. Dabei fiel ein Fehler auf,
+      den kein Nachdenken gefunden hätte — `site_menu_target_check` verlangt
+      von **jedem** Menüpunkt genau ein Ziel, auch von einem, der bloss ein
+      Untermenü aufklappt.
+
+      **Was fehlt, ist der Text.** Jeder Absatz trägt einen Platzhalter:
+      `vuozvolc.de` ist aus dieser Umgebung nicht erreichbar (der Egress-Proxy
+      lässt die Adresse nicht durch), und erfundene Fliesstexte wären
+      schlimmer als sichtbar leere. Dazu die Bilder, die dreissig Steckbriefe
+      und zwei Seiten, die die Analyse mitzählt, aber nie benennt.
+      Die Frage, um die es ging, ist damit trotzdem beantwortet: Zehn
+      Bausteintypen tragen alle elf Seiten, kein neuer war nötig.
       ([`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md))
 
 ### 3. Module, die noch fehlen
@@ -1022,9 +1060,10 @@ Bilderumzug. Von 9,9 MB verfolgten Dateien sind 4,3 MB übrig.
 - [x] `standalone.md` nachziehen — erledigt, indem die Datei weg ist: Sie war
       der Abgleich mit einer Aufwandschätzung von Anfang September und an
       mehreren Stellen überholt. Was noch fehlt, steht hier.
-- [ ] Die Actions melden, dass Node 20 ausläuft. Harmlos, die Tests laufen
-      schon mit Node 24. Irgendwann `actions/checkout` und `actions/setup-node`
-      von `v4` auf die nächste Hauptversion heben.
+- [x] **Node 20 ausgelaufen** — erledigt am 17. September: `actions/checkout`,
+      `actions/setup-node` und `actions/upload-artifact` stehen auf `v5`. Die
+      Schritte selbst liefen schon mit Node 24; das war nur die Laufzeit der
+      Actions.
 - [x] **Ein Stamm statt zwei.** Am 17. September zusammengeführt: `main`
       trägt alles, der Zweig `DING` ist damit überflüssig (er lag 16 Commits
       zurück und wäre die schlechteste Vorlage für eine neue Installation
