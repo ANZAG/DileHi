@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { useDefaultRole } from "@/hooks/useDefaultRole";
+import EinladungWeitergeben, { type EinladungsAntwort } from "./EinladungWeitergeben";
 
 type Application = {
   id: string;
@@ -78,6 +79,9 @@ const MemberApplicationsAdmin = () => {
   const [showReject, setShowReject] = useState(false);
   const [showPending, setShowPending] = useState(true);
   const [showOther, setShowOther] = useState(false);
+  const [offeneEinladung, setOffeneEinladung] = useState<
+    { email: string; link: string; grund: string | null } | null
+  >(null);
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["membership_applications"],
@@ -98,7 +102,7 @@ const MemberApplicationsAdmin = () => {
     mutationFn: async (app: Application) => {
       // Invite the member; the edge function also generates the PDF,
       // pre-fills the profile and attaches the application to the member.
-      await invokeFunction("invite-member", {
+      const antwort = await invokeFunction<EinladungsAntwort>("invite-member", {
         body: { email: app.email, role: defaultRole, applicationId: app.id },
       });
 
@@ -108,11 +112,24 @@ const MemberApplicationsAdmin = () => {
         .update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq("id", app.id);
       if (updateErr) throw updateErr;
+      return antwort;
     },
-    onSuccess: (_, app) => {
+    onSuccess: (antwort, app) => {
       queryClient.invalidateQueries({ queryKey: ["membership_applications"] });
       queryClient.invalidateQueries({ queryKey: ["members"] });
       setSelected(null);
+      if (antwort?.einladung) {
+        // Der Antrag ist genehmigt, nur die Mail ging nicht raus. Der Link
+        // bleibt stehen, bis er weitergegeben ist – er wird nicht noch einmal
+        // erzeugt.
+        setOffeneEinladung({ email: app.email, link: antwort.einladung, grund: antwort.mailFehler ?? null });
+        toast({
+          title: "Antrag genehmigt",
+          description: "Die Einladung ging nicht raus – der Link steht unten zum Weitergeben.",
+        });
+        return;
+      }
+      setOffeneEinladung(null);
       toast({
         title: "Antrag genehmigt",
         description: `${app.first_name} ${app.last_name} wurde eingeladen, das Profil befüllt und der Antrag als PDF im Profil hinterlegt.`,
@@ -160,6 +177,14 @@ const MemberApplicationsAdmin = () => {
           /mitglied-werden <ExternalLink size={12} />
         </a>
       </div>
+
+      {offeneEinladung ? (
+        <EinladungWeitergeben
+          email={offeneEinladung.email}
+          link={offeneEinladung.link}
+          grund={offeneEinladung.grund}
+        />
+      ) : null}
 
       {applications.length === 0 && (
         <div className="text-center py-10 text-sm text-muted-foreground">

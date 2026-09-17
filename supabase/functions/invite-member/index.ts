@@ -605,6 +605,12 @@ Deno.serve(async (req) => {
       .from("role_catalog").select("label").eq("key", role).maybeSingle();
     const assignedRoleLabel = (catalogRow as { label?: string } | null)?.label || role;
 
+    // Ging die Einladung raus? Die Antwort sagt es, und bei Nein steht der Link
+    // darin. Eine frische Installation hat oft noch keinen Mailversand; vorher
+    // stand hier nur "Einladung versendet", waehrend niemand eine bekam und der
+    // einmalige Link verloren war. Dieselbe Stelle wie in setup-first-admin.
+    let mailVersandt = false;
+    let mailFehler: string | null = null;
     if (isNewUser && confirmUrl) {
       try {
         const { betreff, html } = await baueMail(
@@ -613,8 +619,10 @@ Deno.serve(async (req) => {
           { knopfZiel: confirmUrl }
         );
         await sendeMail(email, betreff, html);
+        mailVersandt = true;
       } catch (emailError) {
-        console.error("Email sending failed:", emailError);
+        mailFehler = emailError instanceof Error ? emailError.message : String(emailError);
+        console.error("Email sending failed:", mailFehler);
       }
     }
 
@@ -638,7 +646,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, userId }), {
+    return new Response(JSON.stringify({
+      success: true,
+      userId,
+      neu: isNewUser,
+      mailVersandt,
+      mailFehler,
+      // Nur wenn die Mail nicht rausging: Der Link gilt einmalig, er gehoert
+      // nicht ohne Not in eine zweite Antwort.
+      einladung: mailVersandt ? null : confirmUrl,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {

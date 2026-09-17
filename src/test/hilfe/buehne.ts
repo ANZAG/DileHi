@@ -29,6 +29,13 @@ create schema auth;
 create schema storage;
 create schema extensions;
 create schema supabase_migrations;
+-- Die Liste der eingespielten Migrationen. Supabase legt sie selbst an; auf
+-- der Buehne fehlte sie, und setup_status() liest sie.
+create table supabase_migrations.schema_migrations (
+  version text primary key,
+  statements text[],
+  name text
+);
 
 create extension pgcrypto schema extensions;
 create extension "uuid-ossp" schema extensions;
