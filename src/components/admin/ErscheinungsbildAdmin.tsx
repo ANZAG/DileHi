@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ImagePlus, Loader2, Save, Send, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, ImagePlus, Loader2, Save, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
 import DateiablageWahl from "./DateiablageWahl";
 import OrganisationsformWahl from "./OrganisationsformWahl";
+import { FORMEN, form, type OrgForm } from "@/lib/organisationsform";
 import MailAnleitung from "./MailAnleitung";
 
 interface Einstellungen {
@@ -269,12 +270,13 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           Installation überhaupt gibt und wie die Oberfläche darüber spricht.
           Bis zum Probelauf stand diese Frage nur im geführten Durchlauf — wer
           den nicht zu sehen bekam, konnte seine Form nirgends einstellen. */}
-      <Abschnitt
+      <AufklappAbschnitt
         titel="Was seid ihr?"
+        stand={FORMEN[(marke.org_form as OrgForm) ?? "club"]?.label ?? FORMEN.club.label}
         hinweis="Danach richtet sich, welche Bereiche es bei euch gibt und mit welchen Wörtern DING darüber spricht."
       >
         <OrganisationsformWahl wert={marke.org_form} />
-      </Abschnitt>
+      </AufklappAbschnitt>
 
       {/* ── Verein ───────────────────────────────────────────────────────── */}
       <Abschnitt titel={woerter.organisationBestimmt} hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
@@ -295,7 +297,14 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
         </div>
       </Abschnitt>
 
-      {/* ── Gemeinnützigkeit ─────────────────────────────────────────────── */}
+      {/* ── Gemeinnützigkeit ───────────────────────────────────────────────
+          Nur, wo sie überhaupt möglich ist: Die Anerkennung setzt eine
+          Körperschaft mit Satzung voraus. Ein Verein ohne Eintrag und eine
+          Interessengemeinschaft bekommen die Frage nicht gestellt — sie führt
+          nur zu Feldern, die niemand ausfüllen kann. Wer den Haken schon
+          gesetzt hat, behält ihn: Eine aktive Einstellung zu verstecken, wäre
+          schlimmer als eine überflüssige Frage. */}
+      {(form(marke.org_form).gemeinnuetzig || entwurf.is_nonprofit) && (
       <Abschnitt
         titel="Gemeinnützigkeit"
         hinweis={`Ist ${woerter.organisationBestimmt.toLowerCase()} vom Finanzamt als gemeinnützig anerkannt? Dann bietet DING zusätzlich Bereiche an, die nur dafür gebraucht werden, etwa Fristen und Zuwendungsbestätigungen. Ohne das Häkchen bleiben sie unsichtbar.`}
@@ -407,6 +416,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           </div>
         )}
       </Abschnitt>
+      )}
 
       {/* ── Aussehen ─────────────────────────────────────────────────────── */}
       <Abschnitt
@@ -700,6 +710,41 @@ function Abschnitt({ titel, hinweis, children }: {
       {hinweis && <p className="text-sm text-muted-foreground mb-3">{hinweis}</p>}
       {children}
     </section>
+  );
+}
+
+/**
+ * Ein Abschnitt, der zugeklappt anfängt und seinen Stand in der Kopfzeile
+ * zeigt.
+ *
+ * Für Einstellungen, die genau einmal getroffen werden und danach nur noch
+ * nachgesehen werden: Die Form der Organisation steht ganz oben, weil alles
+ * daran hängt — aber drei Auswahlkästen als Erstes zu sehen, jedes Mal, wenn
+ * jemand die Anschrift ändern will, ist zu viel. Zugeklappt steht dort die
+ * Antwort („Interessengemeinschaft"), und wer sie ändern will, klappt auf.
+ *
+ * Als <details> und nicht als eigener Zustand: Das kann der Browser von
+ * selbst, es funktioniert ohne JavaScript, und die Tastaturbedienung ist
+ * eingebaut.
+ */
+function AufklappAbschnitt({ titel, stand, hinweis, children }: {
+  titel: string; stand: string; hinweis?: string; children: React.ReactNode;
+}) {
+  return (
+    <details className="p-5 rounded-lg border bg-card group">
+      <summary className="flex flex-wrap items-center gap-2 cursor-pointer list-none">
+        <ChevronRight
+          size={16}
+          className="shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+        />
+        <h3 className="font-serif text-base font-semibold">{titel}</h3>
+        <span className="ml-auto text-sm text-muted-foreground">{stand}</span>
+      </summary>
+      <div className="mt-3">
+        {hinweis && <p className="text-sm text-muted-foreground mb-3">{hinweis}</p>}
+        {children}
+      </div>
+    </details>
   );
 }
 

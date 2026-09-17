@@ -119,4 +119,21 @@ describe("Die Form steht in der Datenbank", () => {
     expect(zeilen[0].org_form).toBe("registered_club");
     await zweite.close();
   });
+
+  it("stellt die Frage nach der Gemeinnützigkeit nur, wo sie sich stellt", () => {
+    // Die Anerkennung setzt eine Körperschaft mit Satzung voraus (§§ 51 ff.
+    // AO). Beim Verein ohne Eintrag und bei der Interessengemeinschaft führt
+    // die Frage nur zu Feldern, die niemand ausfüllen kann.
+    expect(FORMEN.registered_club.gemeinnuetzig).toBe(true);
+    expect(FORMEN.club.gemeinnuetzig).toBe(false);
+    expect(FORMEN.interest_group.gemeinnuetzig).toBe(false);
+  });
+
+  it("versteckt eine Gemeinnützigkeit nicht, die schon eingetragen ist", () => {
+    // Die Maske zeigt den Abschnitt auch dann, wenn die Form ihn nicht
+    // vorsieht, der Haken aber gesetzt ist. Eine aktive Einstellung
+    // wegzublenden, wäre schlimmer als eine überflüssige Frage.
+    const code = readFileSync("src/components/admin/ErscheinungsbildAdmin.tsx", "utf-8");
+    expect(code).toContain("form(marke.org_form).gemeinnuetzig || entwurf.is_nonprofit");
+  });
 });
