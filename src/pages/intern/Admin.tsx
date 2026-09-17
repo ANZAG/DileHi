@@ -38,7 +38,7 @@ import AufnahmeantragAdmin from "@/components/admin/AufnahmeantragAdmin";
 import ProfilfelderAdmin from "@/components/admin/ProfilfelderAdmin";
 import ModuleAdmin from "@/components/admin/ModuleAdmin";
 import Einrichtungsassistent from "@/components/admin/Einrichtungsassistent";
-import { useModule, nurAktive } from "@/hooks/useModule";
+import { useModule, onlyActive } from "@/hooks/useModule";
 import MenueAdmin from "@/components/admin/MenueAdmin";
 import KategorienAdmin from "@/components/admin/KategorienAdmin";
 import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
@@ -209,7 +209,7 @@ const Admin = () => {
 
   // Kacheln abgeschalteter Module fallen hier weg – an einer Stelle, nicht in
   // jeder Zeile der Liste darueber.
-  const sichtbareTabs = nurAktive(alleTabs, module);
+  const sichtbareTabs = onlyActive(alleTabs, module);
 
   const gruppen: { titel: string; tabs: typeof alleTabs }[] = [];
   for (const [schluessel, titel] of [

@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
  *   1. Migration: die Tabellen des Moduls, dazu eine Zeile in `app_modules`
  *      mit key, label, description, sort_order und – falls es auf einem
  *      anderen Modul aufbaut – `requires`.
- *   2. Route in App.tsx in <ModulRoute k="inventar"> einwickeln.
+ *   2. Route in App.tsx in <ModuleRoute k="inventar"> einwickeln.
  *   3. In den Listen, wo es auftauchen soll, `module: "inventar"` ergänzen:
  *      Dashboard-Kachel, Verwaltungsreiter. Gefiltert wird zentral.
  *   4. Für Felder in Formularen: `module` am Feldtyp in FIELD_TYPES.
@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Kein `if` an irgendeiner weiteren Stelle. Wenn du eines schreiben musst,
  * fehlt hier ein Haken – dann gehört er hierher und nicht dorthin.
  */
-export interface Modulstand {
+export interface ModuleState {
   key: string;
   label: string;
   description: string | null;
@@ -40,10 +40,10 @@ export interface Modulstand {
 export function useModule() {
   return useQuery({
     queryKey: ["module"],
-    queryFn: async (): Promise<Modulstand[]> => {
+    queryFn: async (): Promise<ModuleState[]> => {
       const { data, error } = await supabase.rpc("module_status" as never);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Modulstand[];
+      return (data ?? []) as ModuleState[];
     },
     // Module aendern sich fast nie und werden auf jeder Seite gebraucht.
     staleTime: 60 * 60 * 1000,
@@ -60,16 +60,16 @@ export function useModule() {
  * Liste noch lädt, ist ebenfalls alles an; ein kurzes Aufblitzen ist besser
  * als eine Kachel, die nach dem Laden verschwindet.
  */
-export function modulAn(module: Modulstand[] | undefined, key?: string | null): boolean {
+export function moduleOn(module: ModuleState[] | undefined, key?: string | null): boolean {
   if (!key) return true;
   if (!module || module.length === 0) return true;
   return module.find((m) => m.key === key)?.active ?? true;
 }
 
 /** Filtert eine Liste, deren Einträge ein optionales `module` tragen. */
-export function nurAktive<T extends { module?: string | null }>(
+export function onlyActive<T extends { module?: string | null }>(
   eintraege: T[],
-  module: Modulstand[] | undefined
+  module: ModuleState[] | undefined
 ): T[] {
-  return eintraege.filter((e) => modulAn(module, e.module));
+  return eintraege.filter((e) => moduleOn(module, e.module));
 }

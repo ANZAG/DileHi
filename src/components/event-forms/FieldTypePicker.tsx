@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FIELD_TYPES } from "./types";
-import { useModule, modulAn } from "@/hooks/useModule";
+import { useModule, moduleOn } from "@/hooks/useModule";
 import {
   Heading, Type, AlignLeft, Hash, List, CheckSquare, ToggleLeft, Calendar,
   CalendarDays, Tent,
@@ -33,7 +33,7 @@ export default function FieldTypePicker({ open, onOpenChange, onSelect, nur }: P
   // den Eintrag `module` in FIELD_TYPES.
   const { data: module } = useModule();
   const typen = (nur ? FIELD_TYPES.filter((t) => nur.includes(t.value)) : FIELD_TYPES)
-    .filter((t) => modulAn(module, (t as { module?: string }).module));
+    .filter((t) => moduleOn(module, (t as { module?: string }).module));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">

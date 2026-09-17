@@ -1,4 +1,4 @@
-import { modulAn, type Modulstand } from "@/hooks/useModule";
+import { moduleOn, type ModuleState } from "@/hooks/useModule";
 import type { Beitragsmodell } from "@/hooks/useBeitragsmodell";
 
 /**
@@ -23,10 +23,10 @@ import type { Beitragsmodell } from "@/hooks/useBeitragsmodell";
  * nach dem Rhythmus wäre dann eine Fangfrage.
  */
 export function beitragseinzugZeigen(
-  module: Modulstand[] | undefined,
+  module: ModuleState[] | undefined,
   modell: Beitragsmodell
 ): boolean {
-  return modulAn(module, "contributions") && modell !== "keiner";
+  return moduleOn(module, "contributions") && modell !== "keiner";
 }
 
 /**

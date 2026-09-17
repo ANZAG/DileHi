@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useModule, modulAn } from "@/hooks/useModule";
+import { useModule, moduleOn } from "@/hooks/useModule";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -105,7 +105,7 @@ export function useOnboarding() {
     () =>
       (schritteQuery.data ?? []).filter(
         (s) =>
-          (!s.permission || hasPermission(s.permission)) && (!s.module || modulAn(module, s.module))
+          (!s.permission || hasPermission(s.permission)) && (!s.module || moduleOn(module, s.module))
       ),
     // permissions statt hasPermission: Die Funktion ist bei jedem Aufbau neu,
     // die Liste dahinter nicht.
