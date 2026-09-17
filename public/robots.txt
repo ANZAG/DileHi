@@ -7,7 +7,7 @@ Disallow: /passwort-zuruecksetzen
 # Die Sitemap entsteht aus der Datenbank, nicht aus einer Datei: Sie enthaelt
 # genau die Seiten, die gerade veroeffentlicht sind, und die Adresse aus den
 # Vereinsangaben. Eine feste Liste hier waere nach der ersten neuen Seite
-# falsch – und bei einer zweiten Installation von Anfang an.
+# falsch - und bei einer zweiten Installation von Anfang an.
 #
 # Die Adresse der Funktion setzt der Build ein (vite.config.ts), aus dem
 # Supabase-Projekt, gegen das gebaut wird. Von Hand ist hier nichts anzupassen.

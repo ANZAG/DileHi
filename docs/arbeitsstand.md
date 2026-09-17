@@ -25,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 55 Dateien, 542 Prüfungen, alle grün (17. September, hier gelaufen) |
+| Tests | 55 Dateien, 546 Prüfungen, alle grün (17. September, hier gelaufen) |
 
 ---
 
@@ -533,6 +533,22 @@ stand noch DileHi im Programm. Am 16. September weggeräumt:
   im Aufnahmeantrag auf sie zeigt — obligatorisch ist sie also nicht wegen der
   Rechtsform, sondern solange sie gebraucht wird. Umbenennen bleibt jederzeit
   möglich: Die Beschriftung gehört dem Verein, der Schlüssel dem Programm.
+
+### Die mitgelieferten Bilder
+
+In `src/assets` liegen 18 Fotos, 4,6 MB — DileHis Bilder, ausgeliefert an jede
+Installation. Sie sind der Notnagel für die Bildplätze (`site_images`): Wo
+kein eigenes Bild hochgeladen ist, wird das mitgelieferte gezeigt. Für DileHi
+sind sie damit *die* Bilder der Website.
+
+`scripts/bilder-umziehen.mjs` zieht sie dorthin um, wo die Bilder jedes
+anderen Vereins auch liegen: in den Speicher des eigenen Projekts. Es liest
+die Zuordnung aus `SITE_IMAGE_FALLBACKS` (eine Stelle, nicht zwei), lädt nach
+`gallery/site/<platz>.webp` und trägt den Pfad nur dort ein, wo noch keiner
+steht. Ohne `--wirklich` schreibt es nichts.
+
+**Erst wenn das gelaufen ist**, können `src/assets` und die Notnagel-Liste in
+`useSiteImage.ts` weg — vorher stünde DileHis Website ohne Bilder da.
 
 ### Neue Prüfungen
 
