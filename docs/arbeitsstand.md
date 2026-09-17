@@ -991,8 +991,27 @@ Lauf selbst.
       Einzutragen sind die drei Angaben in `ANZAG/DING` — den Pfad kennt nur
       gn2s Dateimanager, und mit einem falschen antwortet der Server mit 500
       statt mit dem Anmeldefenster.
-- [ ] **Vuozvolc-Nachbau:** Die drei Bausteine und die Schrift Antic Didone
-      sind da, die Seiten selbst noch nicht.
+- [~] **Vuozvolc-Nachbau — das Gerüst steht** (17. September):
+      [`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf
+      Seiten an, dazu Menü, Bildplätze und Gestaltung (Antic Didone über Open
+      Sans, Creme #faf2e9, Dunkelgrau #333). **Keine Migration** — Vuozvolcs
+      Seiten haben in DileHis Datenbank nichts zu suchen; das Skript weigert
+      sich von selbst, wenn schon ein Verein in der Datenbank steht.
+      Auszuführen im SQL-Editor des Projekts DING.
+
+      Geprüft, nicht vermutet: Ausgangsstand und alle 29 Migrationen liefen in
+      eine frische PostgreSQL 16, dann das Skript. Dabei fiel ein Fehler auf,
+      den kein Nachdenken gefunden hätte — `site_menu_target_check` verlangt
+      von **jedem** Menüpunkt genau ein Ziel, auch von einem, der bloss ein
+      Untermenü aufklappt.
+
+      **Was fehlt, ist der Text.** Jeder Absatz trägt einen Platzhalter:
+      `vuozvolc.de` ist aus dieser Umgebung nicht erreichbar (der Egress-Proxy
+      lässt die Adresse nicht durch), und erfundene Fliesstexte wären
+      schlimmer als sichtbar leere. Dazu die Bilder, die dreissig Steckbriefe
+      und zwei Seiten, die die Analyse mitzählt, aber nie benennt.
+      Die Frage, um die es ging, ist damit trotzdem beantwortet: Zehn
+      Bausteintypen tragen alle elf Seiten, kein neuer war nötig.
       ([`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md))
 
 ### 3. Module, die noch fehlen
