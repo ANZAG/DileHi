@@ -147,65 +147,67 @@ Vorgabe ist „nein"; wer nichts tut, steht nicht mit Namen im Netz.
 3. **Die Texte einsetzen.** Ab hier ist es Fleissarbeit ohne
    Erkenntnisgewinn — und der einzige Teil, der noch fehlt.
 
-## Das Gerüst steht (17. September)
+## Der Nachbau steht (17. September)
 
 [`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf Seiten
-an, dazu das Menü, die Bildplätze und die Gestaltung. Es ist **keine
+an, dazu das Menü, 92 Bildplätze und die Gestaltung. Es ist **keine
 Migration**: Migrationen laufen in jeder Installation, auch in DileHis
 Datenbank, und dort haben Vuozvolcs Seiten nichts zu suchen. Das Skript
-weigert sich von selbst, wenn es eine Datenbank vor sich hat, in der schon ein
-Verein steht.
+weigert sich von selbst, wenn schon ein Verein in der Datenbank steht.
 
-**Der Aufbau ist echt, der Text ist es nicht.** Jeder Absatz trägt einen
-Platzhalter. Der Grund ist unangenehm einfach: `vuozvolc.de` ist aus der
-Umgebung, in der das Skript entstanden ist, nicht erreichbar — der Egress-Proxy
-lässt die Adresse nicht durch. Erfundene Fliesstexte wären schlimmer als
-sichtbar leere; man sieht ihnen nicht an, dass sie erfunden sind. Was im Skript
-steht, ist aus dieser Analyse abgeleitet und nachprüfbar; was hier nie stand,
-steht auch dort nicht.
+**Die Texte sind echt und wortgetreu.** Grundlage ist der HTML-Abzug der Seite
+vom 17. September. Übernommen sind Absätze, Zwischenüberschriften, Listen,
+Hervorhebungen, Literaturangaben und die Autorenzeilen. Die Zeichenzahlen
+decken sich mit der Analyse oben — Ernährung 8.351 (geschätzt 8.400),
+Ausrüstungsleitfaden 3.100 (3.100), Historie 4.593 (4.600), Naalbinding 3.138
+(3.100). Das ist die beste Bestätigung, dass nichts verlorengegangen ist.
 
-Für die Frage, um die es ging, reicht das: **Ob unsere Bausteine diese Seite
-tragen, entscheidet ihr Aufbau, nicht ihr Wortlaut.** Sie tragen sie. Zehn
-Bausteintypen genügen für alle elf Seiten — Seitenkopf, Überschrift,
-Textabschnitt, Einzelbild, Trennlinie, Willkommen, Zeitstrahl, Darstellungen,
-Termine, Kontaktformular. Kein neuer war nötig.
+Auch die Oberzeilen stehen: `promptus`, `socius`, `socius grex`, `contactus`,
+`historia`, `institutiones`, `NAAL OBLIGATIO`, `MATERNITAS VESTIMENTUM`,
+`Mulierum indumentis in Saeculum 13`. Und zwar nicht nur oben, sondern auch
+mitten auf der Seite, wo ein Schlagwort zur Überschrift unter ihm gehört
+(„über uns / Was wir sind" auf der Startseite). Genau das war die Lücke, die
+diese Analyse als „die mit der grössten Wirkung aufs Ergebnis" bezeichnet hat.
 
-Ausprobiert wurde es nicht im Kopf: Ausgangsstand und alle 29 Migrationen
-liefen in eine frische PostgreSQL-16-Datenbank, dann das Skript. Dabei kam ein
-Fehler heraus, den kein Nachdenken gefunden hätte — `site_menu_target_check`
-verlangt von **jedem** Menüpunkt genau ein Ziel, auch von einem, der nur ein
-Untermenü aufklappt. Der Punkt „Wissenswertes" zeigt deshalb selbst auf den
-längsten der Artikel.
+**Die Frage ist beantwortet:** Fünf Bausteintypen tragen alle elf Seiten —
+Seitenkopf, Überschrift, Textabschnitt, Einzelbild, Karten. Kein neuer war
+nötig, keiner musste geändert werden.
 
-Was danach von Hand kommt:
+### Zwei Dinge sind mit Absicht anders
 
-| Was | Warum nicht im Skript |
-| --- | --- |
-| Die Texte der elf Seiten | Siehe oben — die Quelle ist von hier nicht erreichbar |
-| Die Bilder | 40 Plätze stehen bereit und heissen `vuozvolc-…`; die Dateien fehlen |
-| Zwei Seiten | Die Analyse zählt dreizehn Inhaltsseiten, führt aber nur elf namentlich auf. Welche beiden fehlen, ist von hier aus nicht feststellbar |
-
-### Das Mitgliederraster: dreissig erfundene Namen
-
-Für die Vorführung steht auf „Aktive Mitglieder" der Baustein **Karten** mit
-dreissig Einträgen — erfundene Namen im Klang der Zeit, je eine Fertigkeit,
-je ein leerer Bildplatz (`vuozvolc-mitglied-01` bis `-30`).
-
-Bewusst **nicht** über die Darstellungssteckbriefe, obwohl die dafür gebaut
-sind. Ein Steckbrief gehört einer Person und trägt ihre Freigabe; dreissig
-davon anzulegen hiesse, eine Einwilligung zu erfinden, die niemand gegeben
-hat — in einem System, dessen ganzer Punkt ist, dass diese Freigabe echt ist.
-Karten sind Seiteninhalt und als Attrappe erkennbar.
+**Die Vornamen der Mitglieder sind erfunden.** Die Fertigkeiten stehen
+wortgetreu da — die gehören der Gruppe, nicht einer Person —, die Namen nicht.
+Ein Name im Netz ist die Entscheidung dessen, der ihn trägt, und für eine
+Vorführung braucht es ihn nicht. „Dein Name?" und „unser Nachwuchs" sind keine
+Namen und stehen unverändert da. Eine Prüfung hält fest, dass kein echter
+Vorname aus der Vorlage im Skript landet.
 
 Für die echte Installation bleibt es beim Steckbrief-Weg: Jede Person pflegt
 ihren Eintrag selbst und entscheidet selbst über ihren Namen, der Verein
 schaltet die Namen am Baustein frei. Beides muss zutreffen. Das Umstellen ist
 ein Baustein-Tausch im Editor.
 
-Die Auszeichnungsfarbe (`color_primary`) ist im Skript **geraten**. Diese
-Analyse hält für Vuozvolc keine fest, und eine gibt es dort kaum; das gedeckte
-Braun ist ein Vorschlag und unter Erscheinungsbild in einem Klick geändert.
+**Die Bilder fehlen.** 92 Plätze sind angelegt, mit sprechenden Schlüsseln aus
+den Dateinamen der Vorlage; die Dateien selbst gehören Vuozvolc und werden
+nicht mitkopiert. Wo ein Bild war, ist ein leerer Platz — der Aufbau der Seite
+bleibt sichtbar, und das Hochladen ist ein Klick je Bild.
 
-Was der Nachbau **nicht** beantwortet: ob Vuozvolc das will, wer die
-Installation betreibt und ob sie ihr Forum aufgeben würden. Das gehört ins
-erste Gespräch, nicht ins letzte.
+**Impressum, Datenschutz und Cookie-Richtlinie sind nicht übernommen.** Die
+baut DING aus den Vereinsangaben; eine fremde Rechtsseite zu kopieren wäre in
+jeder Hinsicht falsch.
+
+### Geprüft, nicht vermutet
+
+Ausgangsstand und alle 29 Migrationen laufen in eine frische PostgreSQL 16,
+dann das Skript: 13 Seiten, 121 Bausteine, fehlerfrei. Dabei kamen zwei Fehler
+heraus, die kein Nachdenken gefunden hätte:
+
+- `site_menu_target_check` verlangt von **jedem** Menüpunkt genau ein Ziel,
+  auch von einem, der bloss ein Untermenü aufklappt. „Info" zeigt deshalb
+  selbst auf den ersten Artikel.
+- Die Oberzeile steht je nach Seite **vor oder hinter** der Überschrift. Sie
+  ist am `<h4>` zu erkennen, nicht an ihrer Stelle. Beim ersten Anlauf trug
+  „Kontakt" das Schlagwort als Überschrift und umgekehrt.
+
+Was bleibt: der Blick darauf im Browser. Dafür muss das Skript erst in das
+Projekt DING.

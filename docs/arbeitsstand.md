@@ -991,48 +991,44 @@ Lauf selbst.
       Einzutragen sind die drei Angaben in `ANZAG/DING` — den Pfad kennt nur
       gn2s Dateimanager, und mit einem falschen antwortet der Server mit 500
       statt mit dem Anmeldefenster.
-- [~] **Vuozvolc-Nachbau — das Gerüst steht** (17. September):
+- [~] **Vuozvolc-Nachbau — die Seiten stehen** (17. September):
       [`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf
-      Seiten an, dazu Menü, Bildplätze und Gestaltung (Antic Didone über Open
-      Sans, Creme #faf2e9, Dunkelgrau #333). **Keine Migration** — Vuozvolcs
-      Seiten haben in DileHis Datenbank nichts zu suchen; das Skript weigert
-      sich von selbst, wenn schon ein Verein in der Datenbank steht.
-      Auszuführen im SQL-Editor des Projekts DING.
+      Seiten an, dazu Menü, Bildplätze und Gestaltung. **Keine Migration** —
+      Vuozvolcs Seiten haben in DileHis Datenbank nichts zu suchen; das Skript
+      weigert sich von selbst, wenn schon ein Verein darin steht.
 
-      Geprüft, nicht vermutet: Ausgangsstand und alle 29 Migrationen liefen in
-      eine frische PostgreSQL 16, dann das Skript. Dabei fiel ein Fehler auf,
-      den kein Nachdenken gefunden hätte — `site_menu_target_check` verlangt
-      von **jedem** Menüpunkt genau ein Ziel, auch von einem, der bloss ein
-      Untermenü aufklappt.
+      **Die Texte sind echt.** Eric hat den HTML-Abzug der Seite geliefert
+      (vierzehn Seiten als Word-Datei, Naalbinding nachgereicht); daraus sind
+      die Inhalte wortgetreu übernommen — Absätze, Zwischenüberschriften,
+      Listen, Hervorhebungen, Literaturangaben, Autorenzeilen. Die
+      Zeichenzahlen decken sich mit der Analyse: Ernährung 8.351,
+      Ausrüstungsleitfaden 3.100, Historie 4.593, Naalbinding 3.138. Auch die
+      Oberzeilen stehen, wo sie hingehören — `promptus`, `socius`,
+      `contactus`, `historia`, `institutiones`, `NAAL OBLIGATIO` —, und zwar
+      auch mitten auf der Seite, wo ein Schlagwort zu der Überschrift unter
+      ihm gehört. Das ist Vuozvolcs Handschrift.
 
-      **Was fehlt, ist der Text.** Jeder Absatz trägt einen Platzhalter:
-      `vuozvolc.de` ist aus dieser Umgebung nicht erreichbar (der Egress-Proxy
-      lässt die Adresse nicht durch), und erfundene Fliesstexte wären
-      schlimmer als sichtbar leere. Dazu die Bilder, die dreissig Steckbriefe
-      und zwei Seiten, die die Analyse mitzählt, aber nie benennt.
-      Die Frage, um die es ging, ist damit trotzdem beantwortet: Zehn
-      Bausteintypen tragen alle elf Seiten, kein neuer war nötig.
+      **Zwei Dinge sind mit Absicht anders.** Die Vornamen der Mitglieder sind
+      erfunden (die Fertigkeiten wortgetreu — die gehören der Gruppe, nicht
+      einer Person); „Dein Name?" und „unser Nachwuchs" sind keine Namen und
+      stehen unverändert da. Und die Bilder fehlen: 92 Plätze sind angelegt,
+      mit sprechenden Schlüsseln aus den Dateinamen der Vorlage, die Dateien
+      selbst gehören Vuozvolc. Impressum, Datenschutz und Cookie-Richtlinie
+      sind **nicht** übernommen — die baut DING aus den Vereinsangaben.
+
+      Geprüft, nicht vermutet: Ausgangsstand und alle 29 Migrationen laufen in
+      eine frische PostgreSQL 16, dann das Skript — 13 Seiten, 121 Bausteine,
+      fehlerfrei. Dabei kamen zwei Fehler heraus, die kein Nachdenken gefunden
+      hätte: `site_menu_target_check` verlangt von **jedem** Menüpunkt genau
+      ein Ziel, auch von einem, der bloss aufklappt; und die Oberzeile steht
+      je nach Seite vor oder hinter der Überschrift, ist also am `<h4>` zu
+      erkennen und nicht an ihrer Stelle.
+
+      Offen bleibt der Blick darauf im Browser — dafür muss das Skript erst in
+      das Projekt DING.
       ([`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md))
 
-### 3. Module, die noch fehlen
-
-- [ ] **Modul „Sitzungen" mit Protokoll** (Idee vom 14. September):
-      Tagesordnung, Anwesenheit samt Stellvertretungen und Beschlussfähigkeit,
-      verknüpfte Abstimmungen, Freigabe durch Vorsitz und Protokollführung,
-      Protokoll als PDF. **Gewünscht ist direktes Speech-to-Text**
-      (14. September): ein mitlaufendes Transkript während der Sitzung statt
-      Aufnahme und späterem Upload. Anbieter mit EU-Verarbeitung vergleichen
-      (Speechmatics, Azure Speech, AssemblyAI), vorher an einer echten Sitzung.
-      Einwilligung und Auftragsverarbeitung klären; Tonspuren nach Freigabe
-      automatisch löschen, Transkript nach Frist. Ein eigener Discord-Bot erst
-      später und nur als Zusatz, er bräuchte einen dauerhaft laufenden Rechner.
-      Rückfallebene bleibt der zuerst gedachte Weg: Aufnahme mit dem
-      Discord-Bot Craig (eine Tonspur je Person), Upload nach SharePoint,
-      Transkript beim Anbieter, Rückmeldung per Webhook statt langer Laufzeit.
-      Das Beschlussregister, die Abstimmungen und das Ergebnisbild sind die
-      Hälfte der Arbeit und stehen schon.
-
-### 4. Aufräumen, wenn Luft ist
+### 3. Aufräumen, wenn Luft ist
 
 **Am 17. September weggeräumt** (die Git-Historie behält alles):
 `src/assets` mit 18 Fotos (4,6 MB), `docs/archiv-migrationen/` (111 Dateien),
@@ -1132,6 +1128,4 @@ Schritt der Probelauf selbst, und zwar streng nach
 3. **Mit fremden Augen umsehen:** Was jetzt noch nach DileHi klingt, zeigt
    sich erst im Betrieb, mit Terminen, Dokumenten und Mitgliedern darin.
 
-Danach die Probeseite hinter ein Passwort und der Vuozvolc-Nachbau. Das Modul
-„Sitzungen" ist das grösste offene Stück und das interessanteste, aber es macht
-DING nicht installierbarer. Es kommt danach.
+Danach die Probeseite hinter ein Passwort und der Vuozvolc-Nachbau.
