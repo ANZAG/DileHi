@@ -1,7 +1,7 @@
 {
-  "name": "Diu lebendec Histôrje – Mitgliederbereich",
-  "short_name": "Histôrje",
-  "description": "Termine, Absprachen und Forum des Vereins.",
+  "name": "Mitgliederbereich",
+  "short_name": "Verein",
+  "description": "Termine, Absprachen und Forum.",
   "lang": "de",
   "start_url": "/intern",
   "scope": "/",

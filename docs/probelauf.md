@@ -235,6 +235,40 @@ der Knopf dorthin hing an derselben Bedingung. Behoben: Zurückgesetzt wird,
 wo niemand je einen Schritt angeklickt hat und höchstens ein Profil existiert;
 und der Knopf „Durchlauf noch einmal" steht immer da.
 
+## Der zweite Blick, 17. September: drei Meldungen, vier Fehler
+
+Eric hat gezielt nachgesehen. Jede der drei Meldungen war richtig, und hinter
+einer steckte mehr, als sie sagte.
+
+**„Wo stelle ich ein, ob ich Verein, e. V. oder IG bin?"** Nirgends. Die Frage
+stand nur im ersten Schritt des geführten Durchlaufs — und der ging bei ihm
+nie auf. Damit war die Einstellung, an der die ganze Installation hängt, für
+ihn unerreichbar. Jetzt steht sie unter Erscheinungsbild ganz oben, und der
+Durchlauf zeigt dieselbe Maske. **Merksatz:** Eine Einstellung, die es nur in
+einem Ablauf gibt, gibt es nicht — Abläufe bricht man ab.
+
+Beim Einbauen fiel der nächste auf: Die Maske lädt ihre Zeile mit `select("*")`
+und schrieb den ganzen Entwurf zurück, also auch Spalten, die sie gar nicht
+zeigt. Ein Klick auf „Speichern" hätte die Organisationsform und den Stand des
+Durchlaufs auf den Stand beim Öffnen der Seite zurückgedreht. **Eine Maske
+speichert, was sie zeigt.**
+
+**„Die Kategorieknöpfe aktualisieren sich erst beim Neuladen."** Zwei
+Zwischenspeicher übereinander: der Merker im Baukasten (60 Sekunden) und die
+Abfrage in `useKategorien` (fünf Minuten). Die Verwaltung leerte den ersten und
+frischte ihre eigene Liste auf — von der zweiten wusste sie nichts, weil deren
+Schlüssel nur in der Datei daneben stand. **Ein Schlüssel, der an zwei Stellen
+abgeschrieben wird, ist so lange richtig, bis jemand einen davon ändert.**
+
+**„Das Favicon ist immer noch unseres."** Am 16. September war nur `index.html`
+neutral gemacht und ein SVG dazugelegt worden; der Arbeitsstand behauptete
+trotzdem, das Zeichen sei neutral. Im Verzeichnis lagen weiter unsere
+`favicon.ico` — die jeder Browser von sich aus holt, ganz ohne `index.html` —,
+`apple-touch-icon.png`, die drei Symbole des Manifests, unser Vereinsname *im*
+Manifest und eine `llms.txt`, die Sprachmodellen unsere Vereinsgeschichte
+erzählte. **Was im Markup steht, sieht man beim Lesen; was im Verzeichnis
+liegt, sieht man erst, wenn man nachsieht.**
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),

@@ -9,6 +9,8 @@ import {
   calendarUrls,
   embedUrl,
   fillFunctionsUrl,
+  SITEMAP_PATH,
+  LLMS_PATH,
 } from "@/lib/publicAddresses";
 
 /**
@@ -119,6 +121,20 @@ describe("Adressen nach draußen", () => {
     expect(functionExists(`${FUNCTIONS_PLACEHOLDER}/embed`)).toBe(true);
   });
 
+  it("leitet Sitemap und llms.txt an ihre Funktion weiter", () => {
+    // Beide lagen einmal als feste Datei in public/ und beschrieben einen
+    // einzelnen Verein. Jetzt kommen sie aus der Datenbank – die Adresse
+    // draussen bleibt dieselbe.
+    for (const [pfad, fn] of [[SITEMAP_PATH, "sitemap"], [LLMS_PATH, "llms"]]) {
+      const ziel = rewrite(pfad);
+      expect(ziel, pfad).toBe(`${FUNCTIONS_PLACEHOLDER}/${fn}`);
+      expect(functionExists(ziel!), fn).toBe(true);
+    }
+    // Und sie liegen nicht mehr als Datei daneben – sonst gewinnt die Datei.
+    expect(existsSync("public/llms.txt")).toBe(false);
+    expect(existsSync("public/sitemap.xml")).toBe(false);
+  });
+
   it("schickt normale Seiten weiterhin an die Anwendung", () => {
     expect(rewrite("/intern/veranstaltungen")).toBe("index.html");
     expect(rewrite("/einbindung/irgendwas")).toBe("index.html");
@@ -147,7 +163,11 @@ describe("Adressen nach draußen", () => {
       }
     }
 
-    expect(netlify("/sitemap.xml")?.ziel).toBe(`${FUNCTIONS_PLACEHOLDER}/sitemap`);
+    expect(netlify(SITEMAP_PATH)?.ziel).toBe(`${FUNCTIONS_PLACEHOLDER}/sitemap`);
+    // llms.txt sagt Sprachmodellen, worum es hier geht. Als feste Datei stand
+    // darin der Name eines einzelnen Vereins – jetzt kommt sie aus der
+    // Datenbank, wie die Sitemap.
+    expect(netlify(LLMS_PATH)?.ziel).toBe(`${FUNCTIONS_PLACEHOLDER}/llms`);
 
     // Und alles andere ist die Anwendung, ohne dass sich die Adresse ändert.
     const app = netlify("/intern/veranstaltungen");

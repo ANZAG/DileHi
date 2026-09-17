@@ -16,6 +16,7 @@
   RewriteRule ^kalender/meine-termine\.ics$ __FUNCTIONS_URL__/events-personal-ical/meine-termine.ics [R=302,L,QSA]
   RewriteRule ^einbindung/(events|personas|gallery)(\.js|\.html)?$ __FUNCTIONS_URL__/embed/$1$2 [R=302,L,QSA,E=EINBINDUNG:1]
   RewriteRule ^sitemap\.xml$ __FUNCTIONS_URL__/sitemap [R=302,L]
+  RewriteRule ^llms\.txt$ __FUNCTIONS_URL__/llms [R=302,L]
 
   # Bestehende Dateien und Verzeichnisse direkt ausliefern
   RewriteCond %{REQUEST_FILENAME} -f [OR]

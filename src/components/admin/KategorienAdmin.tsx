@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { leereAuswahlMerker } from "@/components/sitebuilder/auswahl";
+import { kategorienAktualisieren } from "@/hooks/useKategorien";
 
 interface Kategorie {
   key: string;
@@ -62,10 +62,10 @@ export default function KategorienAdmin() {
     },
   });
 
-  const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["site-categories"] });
-    leereAuswahlMerker("kategorien");
-  };
+  // Beide Zwischenspeicher, an einer Stelle. Vorher fehlte hier die Abfrage,
+  // aus der Galerie, Quellen und Besucher-Highlights ihre Knöpfe bauen — die
+  // änderten sich erst, wenn jemand die ganze Seite neu lud.
+  const frisch = () => kategorienAktualisieren(queryClient);
 
   const anlegen = useMutation({
     mutationFn: async () => {

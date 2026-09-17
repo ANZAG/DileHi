@@ -25,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 48 Dateien, 497 Prüfungen, alle grün (16. September, hier gelaufen) |
+| Tests | 52 Dateien, 518 Prüfungen, alle grün (17. September, hier gelaufen) |
 
 ---
 
@@ -443,6 +443,11 @@ keine Beiträge und keinen Vorstand im Rechtssinn.
   Wörtern die Oberfläche redet — „Vereinsdokumente" oder „Dokumente",
   „Vereinsleitung" oder „Leitung", „Satzung" oder „Absprachen". An einer
   Stelle, damit sich die Beschriftungen nicht widersprechen.
+- **Eingestellt wird sie unter Verwaltung → Erscheinungsbild, ganz oben.**
+  Bis zum 17. September stand diese Frage nur im geführten Durchlauf — wer den
+  nicht zu sehen bekam, konnte seine Form nirgends einstellen und nicht einmal
+  nachsehen. Jetzt zeigen beide dieselbe Maske
+  (`OrganisationsformWahl.tsx`); der Durchlauf baut sie nicht mehr nach.
 - `useWoerter()` holt sie in jede Maske. `einsetzen()` setzt sie in
   gespeicherte Texte ein: Eine Dokumentablage `{satzung}` heisst beim Verein
   „Satzung" und bei der IG „Absprachen" — bis jemand sie selbst umbenennt.
@@ -488,8 +493,17 @@ stand noch DileHi im Programm. Am 16. September weggeräumt:
   den Startdaten hätte sie DileHis Probeprojekt nie erreicht, weil die dort
   längst gelaufen waren.
 - **Reiter und Zeichen:** `index.html` und das Favicon zeigten DileHis Namen
-  und Wappen. Jetzt ein neutrales Zeichen; das eigene lädt jeder unter
-  Erscheinungsbild hoch.
+  und Wappen. Am 16. September wurden der Titel und ein neutrales `favicon.svg`
+  gesetzt — das war zu wenig, und der Arbeitsstand behauptete trotzdem, das
+  Zeichen sei neutral. Im Verzeichnis lagen weiter DileHis `favicon.ico` (die
+  jeder Browser von sich aus holt), `apple-touch-icon.png`, die drei Symbole
+  des Manifests, der Vereinsname *im* Manifest und eine `llms.txt`, die
+  Sprachmodellen unsere Geschichte erzählte. Am 17. September nachgeholt:
+  `scripts/zeichen.mjs` zeichnet dieselbe Form als PNG und ICO (ohne
+  Fremdwerkzeug, von Hand in ein Punktefeld), das Manifest heisst neutral, der
+  Name auf dem Startbildschirm kommt zur Laufzeit aus den Vereinsdaten, und
+  `llms.txt` kommt jetzt wie die Sitemap aus der Datenbank
+  (`supabase/functions/llms`, Weiterleitung in `.htaccess` und `_redirects`).
 - **Forum:** vier allgemeine Rubriken zum Anfangen statt eines leeren Raums
   mit dem Schild „Redet doch".
 - **Startseite:** eine gebaute Seite ab Werk statt weisser Fläche —
@@ -532,6 +546,10 @@ Am 16. September dazu: `startdaten.test.ts`, `einrichtung.test.ts` und
 `organisationsform.test.ts`, `einrichtungsprozess.test.ts`,
 `fremdeInhalte.test.ts` (kein DileHi im Grundgerüst),
 `dokumentkategorien.test.ts` und `wortwahl.test.ts`.
+Am 17. September dazu: `durchlaufStand.test.ts` (wann der Durchlauf als
+erledigt gilt), `kategorienAuffrischen.test.ts` (beide Zwischenspeicher),
+`zeichen.test.ts` (kein fremdes Zeichen im Verzeichnis) und
+`erscheinungsbild.test.ts` (die Maske speichert nur ihre eigenen Felder).
 
 ---
 
