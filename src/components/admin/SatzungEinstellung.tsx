@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useWoerter } from "@/hooks/useBranding";
+import { useDokumentkategorien } from "@/hooks/useDokumentkategorien";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,12 +23,15 @@ import {
 interface Stand {
   statutes_link: boolean;
   statutes_document_id: string | null;
+  /** Aus welcher Ablage das neueste Dokument als Satzung gilt. */
+  statutes_category: string | null;
 }
 
 const db = supabase as unknown as { from: (t: string) => any };
 
 export default function SatzungEinstellung() {
   const { toast } = useToast();
+  const woerter = useWoerter();
   const qc = useQueryClient();
   const [entwurf, setEntwurf] = useState<Stand | null>(null);
 
@@ -40,11 +45,23 @@ export default function SatzungEinstellung() {
   });
 
   useEffect(() => {
-    if (data) setEntwurf({ statutes_link: data.statutes_link, statutes_document_id: data.statutes_document_id });
+    if (data) {
+      setEntwurf({
+        statutes_link: data.statutes_link,
+        statutes_document_id: data.statutes_document_id,
+        statutes_category: data.statutes_category,
+      });
+    }
   }, [data]);
 
+  const kategorien = useDokumentkategorien();
+  /** Wie die gewählte Ablage bei diesem Verein heisst. */
+  const ablage = (kategorien.data ?? []).find((k) => k.key === entwurf?.statutes_category);
+
   const { data: dokumente = [] } = useQuery({
-    queryKey: ["satzung-auswahl"],
+    // Die Auswahl hängt an der Ablage: Wer sie umstellt, bekommt sofort die
+    // Dokumente, die dort liegen.
+    queryKey: ["satzung-auswahl", entwurf?.statutes_category],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("statutes_options" as never);
       if (error) throw new Error(error.message);
@@ -73,7 +90,8 @@ export default function SatzungEinstellung() {
   const geaendert =
     !!data &&
     (entwurf.statutes_link !== data.statutes_link ||
-      entwurf.statutes_document_id !== data.statutes_document_id);
+      entwurf.statutes_document_id !== data.statutes_document_id ||
+      entwurf.statutes_category !== data.statutes_category);
 
   return (
     <div className="max-w-xl space-y-4">
@@ -91,7 +109,7 @@ export default function SatzungEinstellung() {
           className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
         />
         <span className="text-sm">
-          Satzung im Antrag verlinken
+          {woerter.satzung} im Antrag verlinken
           <span className="block text-xs text-muted-foreground">
             Der Verweis ist ohne Anmeldung erreichbar. Er muss es sein, denn wer
             einen Antrag stellt, hat noch kein Konto.
@@ -100,8 +118,36 @@ export default function SatzungEinstellung() {
       </label>
 
       {entwurf.statutes_link && (
+        <div className="space-y-4">
         <div>
-          <Label className="text-sm">Welches Dokument ist die Satzung?</Label>
+          <Label className="text-sm">In welcher Ablage liegt {woerter.satzung}?</Label>
+          <Select
+            value={entwurf.statutes_category ?? "keine"}
+            onValueChange={(v) =>
+              setEntwurf({
+                ...entwurf,
+                statutes_category: v === "keine" ? null : v,
+                // Ein Dokument aus der alten Ablage passt nicht mehr.
+                statutes_document_id: null,
+              })
+            }
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="keine">— keine —</SelectItem>
+              {(kategorien.data ?? []).map((k) => (
+                <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Solange der Verweis auf diese Ablage zeigt, lässt sie sich nicht
+            löschen. Umbenennen jederzeit — daran hängt nichts.
+          </p>
+        </div>
+
+        <div>
+          <Label className="text-sm">Welches Dokument ist {woerter.satzung}?</Label>
           <Select
             value={entwurf.statutes_document_id ?? "neuestes"}
             onValueChange={(v) =>
@@ -110,7 +156,9 @@ export default function SatzungEinstellung() {
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="neuestes">Neuestes aus „Satzung &amp; Ordnungen“</SelectItem>
+              <SelectItem value="neuestes">
+                {ablage ? `Neuestes aus „${ablage.label}“` : "Neuestes aus der Ablage"}
+              </SelectItem>
               {dokumente.map((d) => (
                 <SelectItem key={d.id} value={d.id}>
                   {d.title} ({new Date(d.created_at).toLocaleDateString("de-DE")})
@@ -119,10 +167,13 @@ export default function SatzungEinstellung() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">
-            {dokumente.length === 0
-              ? "In der Kategorie „Satzung & Ordnungen“ liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente."
-              : "In dieser Kategorie liegen auch Beitrags- und Vorstandsordnungen. Die sind meist neuer als die Satzung, deshalb wird sie hier ausdrücklich gewählt."}
+            {!entwurf.statutes_category
+              ? "Ohne Ablage bleibt nur die ausdrückliche Wahl eines Dokuments."
+              : dokumente.length === 0
+              ? `In der Ablage „${ablage?.label ?? ""}“ liegt noch kein Dokument. Hochladen unter Mitgliederbereich → Dokumente.`
+              : "In derselben Ablage liegen oft auch Ordnungen und Beschlüsse. Die sind meist neuer, deshalb lässt sich das Dokument hier ausdrücklich wählen."}
           </p>
+        </div>
         </div>
       )}
 

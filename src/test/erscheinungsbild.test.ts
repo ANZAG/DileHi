@@ -47,7 +47,14 @@ describe("Die Felder des Erscheinungsbilds", () => {
     // Die Form stellt man nebenan ein (dieselbe Maske wie im Durchlauf), den
     // Stand des Durchlaufs schreibt der Durchlauf. Stünden sie hier, würde
     // ein Klick auf „Speichern" beides zurückdrehen.
-    for (const fremd of ["org_form", "setup_step", "setup_done_at", "id", "created_at"]) {
+    // statutes_link und statutes_document_id kamen dazu, als der
+    // Satzungsverweis in den Reiter „Aufnahmeantrag" umzog: Die Maske zeigte
+    // sie nicht mehr, schrieb sie aber weiter zurück. Wer den Verweis dort
+    // einstellte und danach hier speicherte, drehte ihn zurück.
+    for (const fremd of [
+      "org_form", "setup_step", "setup_done_at", "id", "created_at",
+      "statutes_link", "statutes_document_id", "statutes_category",
+    ]) {
       expect(FELDER, `${fremd} gehört dieser Maske nicht`).not.toContain(fremd);
     }
   });

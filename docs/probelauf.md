@@ -292,6 +292,31 @@ Vorstand im Sinne der Satzung, während der Schalter daneben schon
 „Ansprechpartner" hiess. Sie dürfen jetzt Platzhalter tragen — ein Text für
 jede Form, und wer seinen eigenen geschrieben hat, behält ihn.
 
+## Die Frage nach der Satzung
+
+**„Die Satzung wird über die Dokumentenverwaltung gelöst — dann sollte der
+Ordner bei Vereinen obligatorisch sein, oder?"**
+
+Fast. Der Verweis im Aufnahmeantrag suchte das neueste Dokument in der Ablage
+`satzung` — als festes Wort in zwei Datenbankfunktionen. Solange die Ablagen
+selbst fest verdrahtet waren, ging das; seit jeder Verein sie anlegen,
+umbenennen und löschen kann, nicht mehr. Wer die (leere) Ablage löschte,
+verlor den Verweis lautlos; wer seine Ablage „Grundlagen" nannte, konnte gar
+nicht darauf zeigen.
+
+Obligatorisch ist die Ablage jetzt **nicht wegen der Rechtsform, sondern
+solange etwas auf sie zeigt**: Sie steht in den Einstellungen, und ein
+Fremdschlüssel verhindert das Löschen, solange der Antrag sie braucht. Ein
+Verein ohne Aufnahmeantrag braucht sie so wenig wie eine
+Interessengemeinschaft. **Merksatz:** Ein Pflichtfeld, das aus der Rechtsform
+abgeleitet wird, ist eine Vermutung; eines, das aus einer Verwendung folgt,
+ist eine Tatsache.
+
+Beim Einbauen fiel derselbe Fehler noch einmal auf wie am Vormittag: Das
+Erscheinungsbild schrieb beim Speichern auch `statutes_link` und
+`statutes_document_id` zurück — Felder, die es zeigt seit dem Umzug des
+Satzungsverweises gar nicht mehr.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),

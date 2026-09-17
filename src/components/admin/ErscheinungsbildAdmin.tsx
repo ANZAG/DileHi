@@ -32,8 +32,6 @@ interface Einstellungen {
   logo_path: string | null;
   favicon_path: string | null;
   logo_in_header: boolean;
-  statutes_link: boolean;
-  statutes_document_id: string | null;
   color_primary: string;
   color_surface: string;
   color_dark: string;
@@ -81,7 +79,6 @@ const FELDER: (keyof Einstellungen)[] = [
   "org_name", "org_short_name", "org_tagline",
   "org_street", "org_zip", "org_city", "org_email", "org_phone", "website_url",
   "logo_path", "favicon_path", "logo_in_header",
-  "statutes_link", "statutes_document_id",
   "color_primary", "color_surface", "color_dark", "font_headings", "font_body",
   "seo_description",
   "mail_from_address", "mail_from_name", "mail_reply_to", "mail_transport",
