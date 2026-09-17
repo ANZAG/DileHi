@@ -59,6 +59,59 @@ describe("vuozvolc-aufbau.sql", () => {
     }
   });
 
+  /**
+   * Jeder Seiteninhalt muss gültiges JSON sein.
+   *
+   * Steht hier, weil es zweimal genau daran gescheitert ist: Ein von Hand
+   * eingesetzter Baustein hatte eine Klammer zu viel. Postgres merkt das erst
+   * beim Einspielen („invalid input syntax for type json"), und dann steht
+   * jemand vor einem Skript, das zur Hälfte gelaufen ist. Diese Prüfung
+   * braucht keine Datenbank und dauert eine Millisekunde.
+   */
+  it("enthält nur gültiges JSON", () => {
+    const bloecke = [...SKRIPT.matchAll(/\$json\$([\s\S]*?)\$json\$/g)];
+    expect(bloecke.length).toBeGreaterThan(5);
+    for (const [, inhalt] of bloecke) {
+      expect(() => JSON.parse(inhalt)).not.toThrow();
+    }
+  });
+
+  /** Jede Seite ist eine Puck-Seite: ein `root`, darunter die Bausteine. */
+  it("legt Seiten an, die der Editor wieder aufmachen kann", () => {
+    for (const [, inhalt] of SKRIPT.matchAll(/\$json\$([\s\S]*?)\$json\$/g)) {
+      const seite = JSON.parse(inhalt) as { root?: unknown; content?: unknown[] };
+      expect(seite.root).toBeDefined();
+      expect(Array.isArray(seite.content)).toBe(true);
+      for (const baustein of seite.content as { type?: string; props?: { id?: string } }[]) {
+        expect(baustein.type).toBeTruthy();
+        // Ohne id kann Puck den Baustein nicht auseinanderhalten.
+        expect(baustein.props?.id).toBeTruthy();
+      }
+    }
+  });
+
+  /**
+   * Die dreissig Namen sind erfunden, und das soll so bleiben: Das Raster ist
+   * eine Attrappe für die Vorführung. Echte Namen gehören in Steckbriefe, die
+   * die Person selbst freigibt — nicht in ein Skript.
+   */
+  it("füllt das Mitgliederraster mit dreissig Karten und Bildplätzen", () => {
+    const seite = [...SKRIPT.matchAll(/\$json\$([\s\S]*?)\$json\$/g)]
+      .map(([, i]) => JSON.parse(i))
+      .find((s: { content: { type: string }[] }) =>
+        s.content.some((b) => b.type === "Karten"));
+    const karten = seite.content.find((b: { type: string }) => b.type === "Karten");
+    expect(karten.props.karten).toHaveLength(30);
+    for (const k of karten.props.karten) {
+      expect(k.titel).toBeTruthy();
+      expect(k.bildSchluessel).toMatch(/^vuozvolc-mitglied-\d{2}$/);
+    }
+    // Jeder Platz muss auch angelegt werden, sonst zeigt die Bildauswahl ins Leere.
+    for (const k of karten.props.karten) {
+      expect(SKRIPT).toContain("('" + k.bildSchluessel + "'");
+    }
+  });
+
   /** Was Vuozvolc ausmacht: das Schlagwort über der Überschrift. */
   it("trägt die lateinischen Oberzeilen", () => {
     for (const wort of ["PROMPTUS", "SOCIUS", "INSTITUTIONES", "CONTACTUS"]) {

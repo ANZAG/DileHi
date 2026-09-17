@@ -182,9 +182,25 @@ Was danach von Hand kommt:
 | Was | Warum nicht im Skript |
 | --- | --- |
 | Die Texte der elf Seiten | Siehe oben — die Quelle ist von hier nicht erreichbar |
-| Die Bilder | Die Plätze stehen bereit und heissen `vuozvolc-…`; die Dateien fehlen |
-| Die dreissig Steckbriefe | Ein Name im Netz ist die Entscheidung der Person, nicht die eines Skripts |
+| Die Bilder | 40 Plätze stehen bereit und heissen `vuozvolc-…`; die Dateien fehlen |
 | Zwei Seiten | Die Analyse zählt dreizehn Inhaltsseiten, führt aber nur elf namentlich auf. Welche beiden fehlen, ist von hier aus nicht feststellbar |
+
+### Das Mitgliederraster: dreissig erfundene Namen
+
+Für die Vorführung steht auf „Aktive Mitglieder" der Baustein **Karten** mit
+dreissig Einträgen — erfundene Namen im Klang der Zeit, je eine Fertigkeit,
+je ein leerer Bildplatz (`vuozvolc-mitglied-01` bis `-30`).
+
+Bewusst **nicht** über die Darstellungssteckbriefe, obwohl die dafür gebaut
+sind. Ein Steckbrief gehört einer Person und trägt ihre Freigabe; dreissig
+davon anzulegen hiesse, eine Einwilligung zu erfinden, die niemand gegeben
+hat — in einem System, dessen ganzer Punkt ist, dass diese Freigabe echt ist.
+Karten sind Seiteninhalt und als Attrappe erkennbar.
+
+Für die echte Installation bleibt es beim Steckbrief-Weg: Jede Person pflegt
+ihren Eintrag selbst und entscheidet selbst über ihren Namen, der Verein
+schaltet die Namen am Baustein frei. Beides muss zutreffen. Das Umstellen ist
+ein Baustein-Tausch im Editor.
 
 Die Auszeichnungsfarbe (`color_primary`) ist im Skript **geraten**. Diese
 Analyse hält für Vuozvolc keine fest, und eine gibt es dort kaum; das gedeckte
