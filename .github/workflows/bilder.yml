@@ -1,0 +1,86 @@
+name: Bilder umziehen
+
+# Die mitgelieferten Fotos in den eigenen Speicher holen.
+#
+# In src/assets liegen 18 Bilder, die in jede Installation mitgeliefert
+# werden -- sie sind der Notnagel fuer die Bildplaetze. Wo ein Verein kein
+# eigenes Bild hochgeladen hat, wird das mitgelieferte gezeigt; fuer DileHi
+# sind sie damit die Bilder der eigenen Website.
+#
+# Dieser Knopf legt sie dorthin, wo die Bilder jedes anderen Vereins auch
+# liegen: in den Speicher des eigenen Projekts (Bucket gallery). Danach
+# koennen sie aus dem Programm verschwinden.
+#
+# Warum als Knopf und nicht als Befehl auf einem Rechner: Das Skript braucht
+# den service_role-Schluessel. Der steht weder im Repository noch in einer
+# Unterhaltung -- er wird hier aus dem Projekt geholt, maskiert und nach dem
+# Lauf weggeworfen. Dasselbe Verfahren wie beim Ausrollen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wirklich:
+        description: "Wirklich umziehen (ohne Haken wird nur gezeigt, was passieren wuerde)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: bilder-umziehen
+
+jobs:
+  umziehen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Schluessel des Projekts holen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$REF" ] || [ -z "$TOKEN" ]; then
+            echo "::error::SUPABASE_PROJECT_REF oder SUPABASE_ACCESS_TOKEN fehlt."
+            exit 1
+          fi
+          # Aus der Antwort nur der service_role-Schluessel; maskiert, damit er
+          # auch in einer Fehlermeldung nicht auftaucht.
+          key=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$key" ] || [ "$key" = "null" ]; then
+            echo "::error::Kein service_role-Schluessel im Projekt gefunden."
+            exit 1
+          fi
+          echo "::add-mask::$key"
+          {
+            echo "SUPABASE_URL=https://$REF.supabase.co"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$key"
+          } >> "$GITHUB_ENV"
+
+      - name: Umziehen
+        run: |
+          if [ "${{ inputs.wirklich }}" = "true" ]; then
+            node scripts/bilder-umziehen.mjs --wirklich | tee lauf.txt
+          else
+            node scripts/bilder-umziehen.mjs | tee lauf.txt
+          fi
+
+      - name: Was gelaufen ist
+        if: always()
+        run: |
+          {
+            echo "### Bilder umziehen"
+            echo ""
+            if [ "${{ inputs.wirklich }}" = "true" ]; then
+              echo "Wirklich umgezogen. Danach die Website ansehen: Stehen die Bilder noch?"
+            else
+              echo "Nur gezeigt -- geschrieben wurde nichts. Noch einmal mit Haken, wenn es stimmt."
+            fi
+            echo ""
+            echo '```'
+            cat lauf.txt 2>/dev/null || echo "(kein Lauf)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
