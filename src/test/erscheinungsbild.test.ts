@@ -74,4 +74,14 @@ describe("Die Felder des Erscheinungsbilds", () => {
     const durchlauf = readFileSync("src/components/admin/Einrichtungsprozess.tsx", "utf-8");
     expect(durchlauf).toContain("OrganisationsformWahl");
   });
+
+  it("klappt die Formwahl zu und zeigt im Kopf, was eingestellt ist", () => {
+    // Drei Auswahlkästen als Erstes, jedes Mal, wenn jemand die Anschrift
+    // ändern will, sind zu viel. Zugeklappt steht dort die Antwort.
+    expect(CODE).toContain("AufklappAbschnitt");
+    expect(CODE).toContain("<details");
+    // Der Stand gehört in die Kopfzeile, sonst muss man aufklappen, um zu
+    // sehen, was dasteht.
+    expect(CODE).toMatch(/stand=\{FORMEN\[/);
+  });
 });

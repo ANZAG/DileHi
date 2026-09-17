@@ -30,6 +30,19 @@ export interface FormBeschreibung {
   register: boolean;
   /** Gibt es einen Vorstand im Rechtssinn? */
   vorstand: boolean;
+  /**
+   * Kann diese Form vom Finanzamt als gemeinnützig anerkannt werden?
+   *
+   * Die Anerkennung setzt eine Körperschaft mit Satzung voraus (§§ 51 ff.
+   * AO). Beim eingetragenen Verein ist das der Normalfall; ein Verein ohne
+   * Eintrag und eine Interessengemeinschaft bekommen die Frage gar nicht
+   * erst gestellt — sie führt nur zu Feldern, die niemand ausfüllen kann.
+   *
+   * Eine Installation, die den Haken schon gesetzt hat, behält ihn samt
+   * Feldern: Eine aktive Einstellung zu verstecken, wäre schlimmer als eine
+   * überflüssige Frage.
+   */
+  gemeinnuetzig: boolean;
   /** Wie die Leitung heisst — im Impressum, im Antrag, in der Verwaltung. */
   leitung: string;
   /** Wie die Leute heissen, die dabei sind. */
@@ -123,6 +136,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     ohne: [],
     register: true,
     vorstand: true,
+    gemeinnuetzig: true,
     leitung: "Vorstand",
     mitglieder: "Mitglieder",
     woerter: {
@@ -147,6 +161,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     ohne: ["club_deadlines"],
     register: false,
     vorstand: true,
+    gemeinnuetzig: false,
     leitung: "Vorstand",
     mitglieder: "Mitglieder",
     woerter: {
@@ -180,6 +195,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
     ],
     register: false,
     vorstand: false,
+    gemeinnuetzig: false,
     leitung: "Ansprechpartner",
     mitglieder: "Mitmachende",
     woerter: {
