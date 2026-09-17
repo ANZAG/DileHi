@@ -208,6 +208,33 @@ obwohl eine Interessengemeinschaft keiner ist.
 beim Ausrollen. Was im Programm steht, sieht man erst, wenn man die Seite
 aufmacht und so tut, als gehöre sie einem anderen.
 
+## Der Fund vom 17. September: gebaut, aber nicht ausgerollt
+
+Eric sah die Änderungen nicht — den geführten Durchlauf sogar noch nie. Drei
+Gründe, keiner davon im Programm:
+
+1. **Die Probeseite wurde aus dem falschen Zweig gebaut.** „Probeseite →
+   ausrollen" nimmt den Zweig, auf dem man den Knopf drückt. Gedrückt wurde er
+   auf `DING` — und dort endet der Stand beim Merge des ersten Pull Requests.
+   Alles danach lag auf dem Arbeitszweig. **Merksatz:** Der Knopf baut nicht
+   „das Neueste", sondern den Zweig, den man auswählt.
+2. **Die Datenbank war voraus, das Programm hinterher.** „Supabase ausrollen"
+   lief im Probeprojekt mit dem neuesten Stand, die Website nicht. Beides
+   gehört zusammen; künftig nacheinander und in dieser Reihenfolge:
+   erst ausrollen, dann bauen.
+3. **Der eigene Deploy der Probeinstallation zielte auf die echte Seite.**
+   Die Kopie des Repos brachte `deploy.yml` mit, und dort stand `/dilehi.de/`
+   als Ziel. Gescheitert ist er nur, weil die FTP-Geheimnisse dort fehlen —
+   sonst hätte die Probeinstallation die Vereinsseite überschrieben. Beim
+   Kopieren eines Repos gehören die Ziele als Erstes geprüft.
+
+Dazu ein echter Fehler im Programm: Die Migration hakte den Durchlauf für jede
+Installation ab, in der ein Vereinsname stand und eine Rolle vergeben war —
+also auch für eine frische. Er war beendet, bevor ihn jemand gesehen hat, und
+der Knopf dorthin hing an derselben Bedingung. Behoben: Zurückgesetzt wird,
+wo niemand je einen Schritt angeklickt hat und höchstens ein Profil existiert;
+und der Knopf „Durchlauf noch einmal" steht immer da.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),
@@ -218,6 +245,6 @@ aufmacht und so tut, als gehöre sie einem anderen.
    (siehe [`arbeitsstand.md`](arbeitsstand.md), Abschnitt „Die leere
    Installation").
 
-**Offen im Probeprojekt:** Die vier Migrationen vom 16. September
-(Organisationsform, Durchlauf, Startseite, Dokumentablagen) sind dort noch
-nicht ausgerollt. Erst danach lässt sich der Durchlauf von vorne mitmachen.
+**Stand im Probeprojekt (17. September):** Die Migrationen sind ausgerollt,
+die Website noch nicht. Sie muss aus dem Zweig gebaut werden, der den Stand
+wirklich trägt.

@@ -7,7 +7,7 @@ import { invokeFunction } from "@/lib/functionError";
 import { schritte, fortschritt, erwarteteMigrationen, type Ampel, type Befund, type Schritt } from "@/lib/einrichtung";
 import { Kopierfeld } from "./anleitung/Bausteine";
 import Einrichtungsprozess from "./Einrichtungsprozess";
-import { zeigen } from "@/lib/einrichtungsprozess";
+import { durchlaufSichtbar, zeigen, type Wunsch } from "@/lib/einrichtungsprozess";
 
 /**
  * Der Einrichtungsassistent.
@@ -59,12 +59,23 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
    * oder auf „Später" geht, sieht die Liste mit den Ampeln. Beide lesen
    * denselben Stand, es kann also nicht das eine etwas anderes behaupten als
    * das andere.
+   *
+   * Drei Zustände, nicht zwei: `null` heisst „noch nichts gesagt" — dann
+   * entscheidet der Stand in der Datenbank. Erst ein Klick macht daraus ein
+   * ausdrückliches Auf oder Zu.
+   *
+   * Vorher war der Durchlauf schlicht nicht mehr erreichbar, sobald er als
+   * beendet galt: dieselbe Bedingung schaltete die Ansicht *und* den Knopf
+   * dorthin ab. Im Probelauf hatte die Migration ihn abgehakt, bevor ihn
+   * jemand gesehen hatte — und es gab keinen Weg zurück. Ein Knopf, der nur
+   * da ist, solange man ihn nicht braucht, ist keiner.
    */
-  const [durchlaufOffen, setDurchlaufOffen] = useState(true);
+  const [wunsch, setWunsch] = useState<Wunsch>(null);
   const durchlauf = data?.datenbank?.durchlauf;
-  if (durchlaufOffen && zeigen(durchlauf) && oeffne) {
+  const vonSelbst = zeigen(durchlauf);
+  if (oeffne && durchlaufSichtbar(wunsch, durchlauf)) {
     return (
-      <Einrichtungsprozess oeffne={oeffne} schliessen={() => setDurchlaufOffen(false)} />
+      <Einrichtungsprozess oeffne={oeffne} schliessen={() => setWunsch("zu")} />
     );
   }
 
@@ -104,9 +115,9 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {zeigen(durchlauf) && oeffne ? (
-            <Button variant="outline" size="sm" onClick={() => setDurchlaufOffen(true)}>
-              Schritt für Schritt
+          {oeffne ? (
+            <Button variant="outline" size="sm" onClick={() => setWunsch("auf")}>
+              {vonSelbst ? "Schritt für Schritt" : "Durchlauf noch einmal"}
             </Button>
           ) : null}
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>

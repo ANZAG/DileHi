@@ -168,6 +168,27 @@ export function zeigen(stand: Durchlaufstand | null | undefined): boolean {
   return !stand?.fertig_am;
 }
 
+/** Was jemand ausdrücklich gesagt hat — oder eben noch nichts. */
+export type Wunsch = "auf" | "zu" | null;
+
+/**
+ * Ob der Durchlauf gerade zu sehen ist.
+ *
+ * Getrennt von `zeigen()`, weil es zwei Fragen sind: „öffnet er sich von
+ * selbst?" und „ist er zu sehen?". Vorher entschied dieselbe Bedingung beides
+ * — und damit auch, ob der Knopf dorthin überhaupt dasteht. Wer den Durchlauf
+ * beendet hatte (oder wessen Installation die Migration abgehakt hatte, bevor
+ * er ihn das erste Mal sah), kam nie wieder hinein.
+ */
+export function durchlaufSichtbar(
+  wunsch: Wunsch,
+  stand: Durchlaufstand | null | undefined
+): boolean {
+  if (wunsch === "auf") return true;
+  if (wunsch === "zu") return false;
+  return zeigen(stand);
+}
+
 /** Wie weit es ist – für den Balken oben im Durchlauf. */
 export function fortschritt(befund: Befund, stand: Durchlaufstand): { fertig: number; gesamt: number } {
   const fertig = SCHRITTE.filter((s, i) => istErledigt(s.id, befund) || i < (stand.schritt ?? 0)).length;

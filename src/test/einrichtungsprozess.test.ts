@@ -5,6 +5,7 @@ import {
   istErledigt,
   naechsterSchritt,
   zeigen,
+  durchlaufSichtbar,
   fortschritt,
 } from "@/lib/einrichtungsprozess";
 import type { Befund } from "@/lib/einrichtung";
@@ -126,6 +127,23 @@ describe("Der geführte Einrichtungsprozess", () => {
     expect(zeigen({ schritt: 0, fertig_am: null })).toBe(true);
     expect(zeigen({ schritt: 7, fertig_am: "2026-09-16T20:00:00Z" })).toBe(false);
     expect(zeigen(null)).toBe(true);
+  });
+
+  it("bleibt erreichbar, auch wenn er nicht mehr von selbst aufgeht", () => {
+    // Der Fund aus dem Probelauf: Die Migration hakte den Durchlauf ab, bevor
+    // ihn jemand gesehen hatte — und weil dieselbe Bedingung die Ansicht und
+    // den Knopf dorthin schaltete, gab es keinen Weg zurück. Ein Knopf, der
+    // nur da ist, solange man ihn nicht braucht, ist keiner.
+    const beendet = { schritt: 7, fertig_am: "2026-09-16T20:00:00Z" };
+
+    expect(durchlaufSichtbar(null, beendet)).toBe(false);
+    expect(durchlaufSichtbar("auf", beendet)).toBe(true);
+
+    // Und umgekehrt: Wer „Später" sagt, bekommt ihn nicht sofort wieder
+    // vorgesetzt, obwohl die Einrichtung noch offen ist.
+    const offen = { schritt: 0, fertig_am: null };
+    expect(durchlaufSichtbar(null, offen)).toBe(true);
+    expect(durchlaufSichtbar("zu", offen)).toBe(false);
   });
 
   it("schickt jeden Schritt an eine Stelle, die es in der Verwaltung gibt", () => {
