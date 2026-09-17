@@ -108,6 +108,40 @@ describe("Einrichtungsassistent", () => {
     expect(liste.find((s) => s.id === "sicherung")!.pflicht).toBe(true);
   });
 
+  it("fragt eine Interessengemeinschaft nicht nach Vorstand und Register", () => {
+    const ig: Befund = {
+      ...leer,
+      datenbank: {
+        ...leer.datenbank!,
+        module: 19,
+        verein: {
+          org_form: "interest_group",
+          name: "IG Beispiel",
+          anschrift: true,
+          email: "post@beispiel.org",
+          vorstand: false,
+          register: false,
+        },
+      },
+    };
+    const schritt = finde(ig, "verein");
+    expect(schritt.ampel).toBe("gut");
+    expect(schritt.text).toContain("Interessengemeinschaft");
+
+    // Derselbe Stand als eingetragener Verein: Da fehlt etwas.
+    const ev: Befund = {
+      ...ig,
+      datenbank: {
+        ...ig.datenbank!,
+        verein: { ...ig.datenbank!.verein!, org_form: "registered_club" },
+      },
+    };
+    const evSchritt = finde(ev, "verein");
+    expect(evSchritt.ampel).not.toBe("gut");
+    expect(evSchritt.text).toContain("Registergericht");
+    expect(evSchritt.text).toContain("Vorstand");
+  });
+
   it("ist bei halb ausgefüllten Vereinsdaten gelb, nicht grün", () => {
     const halb: Befund = {
       ...leer,

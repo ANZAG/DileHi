@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, ImagePlus, Loader2, Pencil, X, ScrollText } from "lucide-react";
-import { MAX_PERSONA_IMAGES, PERIOD_OPTIONS, type MemberPersona } from "./constants";
+import { MAX_PERSONA_IMAGES, type MemberPersona } from "./constants";
+import { useKategorien } from "@/hooks/useKategorien";
 import { Hilfe } from "@/components/Hilfe";
 import { useSignedImages } from "./useSignedImages";
 
@@ -29,6 +30,17 @@ const emptyDraft: DraftState = {
 
 /** Editor für die eigenen Darstellungssteckbriefe (im Profil). */
 const PersonaEditor = () => {
+  /**
+   * Die Zeitstellungen zur Auswahl.
+   *
+   * Hier stand eine feste Liste unserer Epochen — ein Verein, der Fasnacht
+   * darstellt, fand darin „Napoleonische Zeit / 1815" und nichts von sich.
+   * Jetzt sind es die Kategorien, die die Verwaltung pflegt (dieselben wie in
+   * Galerie und Quellensammlung). Was in einer vorhandenen Darstellung steht,
+   * bleibt in der Liste, auch wenn es die Kategorie nicht mehr gibt: Sonst
+   * verschwände die Angabe beim nächsten Speichern.
+   */
+  const kategorien = useKategorien();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,7 +59,7 @@ const PersonaEditor = () => {
         .eq("user_id", user!.id)
         .order("sort_order")
         .order("created_at");
-      return (data ?? []) as MemberPersona[];
+  return (data ?? []) as MemberPersona[];
     },
   });
 
@@ -127,6 +139,13 @@ const PersonaEditor = () => {
     refresh();
     toast({ title: "Steckbrief gelöscht" });
   };
+
+  const zeitstellungen = [
+    ...new Set([
+      ...kategorien.map((k) => k.label),
+      ...(draft?.period ? [draft.period] : []),
+    ]),
+  ];
 
   return (
     <div data-tour="profil-darstellung" className="p-6 rounded-lg border bg-card space-y-4">
@@ -216,7 +235,7 @@ const PersonaEditor = () => {
             <Select value={draft.period} onValueChange={(v) => setDraft({ ...draft, period: v })}>
               <SelectTrigger><SelectValue placeholder="Epoche wählen" /></SelectTrigger>
               <SelectContent>
-                {PERIOD_OPTIONS.map((p) => (
+                {zeitstellungen.map((p) => (
                   <SelectItem key={p} value={p}>{p}</SelectItem>
                 ))}
               </SelectContent>

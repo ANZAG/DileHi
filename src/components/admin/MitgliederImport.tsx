@@ -163,7 +163,7 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
           <DialogHeader>
             <DialogTitle>Mitglieder importieren</DialogTitle>
             <DialogDescription>
-              {schritt === "datei" && "Eine Mitgliederliste als Excel-Datei (.xlsx) oder CSV – etwa aus einer Tabelle oder aus der bisherigen Vereinssoftware."}
+              {schritt === "datei" && "Eine Mitgliederliste als Excel-Datei (.xlsx) oder CSV – etwa aus einer Tabelle oder aus eurer bisherigen Software."}
               {schritt === "zuordnung" && `${dateiname}: ${daten.length} Zeilen. Welche Spalte ist was? Erkannte Spalten sind schon eingetragen.`}
               {schritt === "vorschau" && "Noch ist nichts angelegt. So sähe es aus:"}
               {schritt === "fertig" && "Fertig."}
@@ -188,7 +188,7 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
               )}
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>
-                  Aus anderer Vereinssoftware: dort die Mitglieder als Excel oder CSV exportieren. Spaltennamen wie
+                  Aus einer anderen Software: dort die Mitglieder als Excel oder CSV exportieren. Spaltennamen wie
                   „Name“, „Str.“ oder „Mitglied seit“ werden erkannt.
                 </p>
                 <p>
@@ -320,7 +320,7 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
                     Einladung per Mail gleich verschicken
                     <span className="block text-xs text-muted-foreground">
                       Ohne Häkchen entstehen nur die Konten. Mitglieder setzen ihr Passwort dann selbst über
-                      „Passwort vergessen“ – praktisch, wenn der Verein vorher Bescheid geben will.
+                      „Passwort vergessen“ – praktisch, wenn ihr vorher Bescheid geben wollt.
                     </span>
                   </span>
                 </label>

@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
+import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { Hilfe } from "@/components/Hilfe";
 import {
@@ -246,9 +247,9 @@ function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehl
 
   return (
     <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-      Steht bereits auf {andere.map((s) => `„${s.title}"`).join(", ")}. Für den
-      Verein selbst sollte es genau eine Seite geben, meist die Startseite.
-      Für die übrigen passt „Eine Seite über den Verein".
+      Steht bereits auf {andere.map((s) => `„${s.title}"`).join(", ")}. Für
+      euch selbst sollte es genau eine Seite geben, meist die Startseite.
+      Für die übrigen passt „Eine Seite über uns".
     </p>
   );
 }
@@ -262,6 +263,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
     seo_title?: string | null; seo_type?: string;
   }) => void;
 }) {
+  const woerter = useWoerter();
   const [titel, setTitel] = useState(seite.title);
   const [adresse, setAdresse] = useState(seite.slug);
   const [beschreibung, setBeschreibung] = useState(seite.seo_description ?? "");
@@ -298,7 +300,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
         <Input
           value={suchtitel}
           onChange={(e) => setSuchtitel(e.target.value)}
-          placeholder={`${titel} | Kurzname des Vereins`}
+          placeholder={`${titel} | Kurzname`}
         />
         <p className="text-xs text-muted-foreground mt-1">
           Leer lassen genügt meistens. Ein eigener Satz ist besser als ein
@@ -312,15 +314,15 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="keine">Keine besonderen</SelectItem>
-            <SelectItem value="organisation">Der Verein selbst (nur eine Seite)</SelectItem>
-            <SelectItem value="ueber_uns">Eine Seite über den Verein</SelectItem>
-            <SelectItem value="angebot">Was der Verein anbietet</SelectItem>
+            <SelectItem value="organisation">{woerter.organisationBestimmt} selbst (nur eine Seite)</SelectItem>
+            <SelectItem value="ueber_uns">Eine Seite über uns</SelectItem>
+            <SelectItem value="angebot">Was wir anbieten</SelectItem>
             <SelectItem value="artikel">Ein Thema oder Beitrag</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
           Erzeugt einen maschinenlesbaren Block. Was darin steht, also Name,
-          Anschrift und Web-Adresse, kommt aus den Vereinsangaben.
+          Anschrift und Web-Adresse, kommt aus euren Angaben.
         </p>
         <OrganisationHinweis eigeneId={seite.id} gewaehlt={datenart} />
       </div>

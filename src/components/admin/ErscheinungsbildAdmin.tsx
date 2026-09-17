@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
@@ -83,6 +84,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
 }) {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const woerter = useWoerter();
   const queryClient = useQueryClient();
   const [entwurf, setEntwurf] = useState<Einstellungen | null>(null);
   const [laedtBild, setLaedtBild] = useState<"logo" | "favicon" | null>(null);
@@ -228,7 +230,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     <div className={ZWEISPALTIG}>
       {teil === "erscheinungsbild" && (<>
       {/* ── Verein ───────────────────────────────────────────────────────── */}
-      <Abschnitt titel="Der Verein" hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
+      <Abschnitt titel={woerter.organisationBestimmt} hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
         <div className="grid sm:grid-cols-2 gap-3">
           <Feld label="Name (vollständig)" wert={entwurf.org_name} setze={(v) => setze({ org_name: v })} />
           <Feld label="Kurzform (Kopfzeile)" wert={entwurf.org_short_name} setze={(v) => setze({ org_short_name: v })} />
@@ -249,7 +251,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       {/* ── Gemeinnützigkeit ─────────────────────────────────────────────── */}
       <Abschnitt
         titel="Gemeinnützigkeit"
-        hinweis="Ist der Verein vom Finanzamt als gemeinnützig anerkannt? Dann bietet DING zusätzlich Bereiche an, die nur dafür gebraucht werden, etwa Fristen und Zuwendungsbestätigungen. Ohne das Häkchen bleiben sie unsichtbar."
+        hinweis={`Ist ${woerter.organisationBestimmt.toLowerCase()} vom Finanzamt als gemeinnützig anerkannt? Dann bietet DING zusätzlich Bereiche an, die nur dafür gebraucht werden, etwa Fristen und Zuwendungsbestätigungen. Ohne das Häkchen bleiben sie unsichtbar.`}
       >
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input
@@ -259,7 +261,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
             className="mt-0.5 h-4 w-4 rounded border-input shrink-0 accent-primary"
           />
           <span className="text-sm">
-            Der Verein ist als gemeinnützig anerkannt
+            {woerter.organisationBestimmt} ist als gemeinnützig anerkannt
             <span className="block text-xs text-muted-foreground">
               Mit Freistellungsbescheid oder Feststellung nach § 60a AO.
             </span>
@@ -371,13 +373,13 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           {/* Beide zeigen, was gerade wirkt – nicht „leer". Das Favicon liegt
               als Datei im Projekt und ist da, auch wenn in der Datenbank
               nichts steht; ein Logo gibt es bisher gar nicht, die Kopfzeile
-              zeigt den Vereinsnamen als Text. Ein leerer Kasten hätte den
+              zeigt den Namen als Text. Ein leerer Kasten hätte den
               Eindruck erweckt, etwas sei kaputt. */}
           <BildKasten
             titel="Logo"
             adresse={bildAdresse(entwurf.logo_path)}
             ersatz={null}
-            ersatzHinweis="Ohne Logo steht der Vereinsname als Text in der Kopfzeile."
+            ersatzHinweis="Ohne Logo steht der Name als Text in der Kopfzeile."
             laedt={laedtBild === "logo"}
             hinweis="Am besten breit und mit durchsichtigem Hintergrund. PNG oder JPEG, nur diese erscheinen auch auf dem Aufnahmeantrag."
             formate="image/png,image/jpeg,image/svg+xml"
@@ -410,7 +412,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           <span className="text-sm">
             Logo in der Kopfzeile anzeigen
             <span className="block text-xs text-muted-foreground">
-              Ausgeschaltet steht dort nur der Vereinsname. Auf dem Aufnahmeantrag
+              Ausgeschaltet steht dort nur der Name. Auf dem Aufnahmeantrag
               erscheint das Logo weiterhin.
             </span>
           </span>
@@ -420,10 +422,10 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
 
         <div className="pt-5 mt-5 border-t">
           <h4 className="text-sm font-medium mb-1">Farben</h4>
-          <p className="text-sm text-muted-foreground mb-3">Die Vereinsfarbe zieht sich durch die ganze Seite: Knöpfe, Links und Hervorhebungen.</p>
+          <p className="text-sm text-muted-foreground mb-3">Eure Farbe zieht sich durch die ganze Seite: Knöpfe, Links und Hervorhebungen.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <Farbwahl
-            label="Vereinsfarbe"
+            label="Eure Farbe"
             wert={entwurf.color_primary}
             setze={(v) => setze({ color_primary: v })}
           />

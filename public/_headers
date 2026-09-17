@@ -1,0 +1,14 @@
+# Kopfzeilen für Netlify und Cloudflare Pages — die Entsprechung zum
+# <IfModule mod_headers.c>-Teil der .htaccess.
+
+# Wer die Einbindung als Daten abruft (fetch von einer fremden Seite), geht
+# durch die Weiterleitung. Ohne die Freigabe hier bricht der Browser schon an
+# ihr ab, bevor er die Funktion erreicht.
+/einbindung/*
+  Access-Control-Allow-Origin: *
+
+# index.html nie zwischenspeichern, damit ein neuer Stand sofort greift.
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate

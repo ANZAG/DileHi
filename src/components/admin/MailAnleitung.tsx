@@ -22,7 +22,7 @@ function Microsoft365() {
   return (
     <Anleitung titel="Microsoft 365 einrichten – Schritt für Schritt">
       <p className="text-muted-foreground">
-        Sinnvoll, wenn der Verein ohnehin Microsoft 365 hat. Mails gehen dann aus einem echten Postfach
+        Sinnvoll, wenn ihr ohnehin Microsoft 365 habt. Mails gehen dann aus einem echten Postfach
         heraus und landen seltener im Spam. Einmalig, etwa zwanzig Minuten, mit dem Konto, mit dem ihr
         Benutzer und Lizenzen verwaltet.
       </p>

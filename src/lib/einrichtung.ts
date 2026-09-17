@@ -9,6 +9,8 @@
  * Wer von oben nach unten alles grün macht, hat eine fertige Installation.
  */
 
+import { form } from "@/lib/organisationsform";
+
 export type Ampel = "gut" | "teilweise" | "fehlt";
 
 export interface Schritt {
@@ -28,6 +30,8 @@ export interface Schritt {
 }
 
 export interface Vereinsstand {
+  /** Verein, e. V. oder Interessengemeinschaft – entscheidet, was hier fehlt. */
+  org_form?: string | null;
   name?: string | null;
   anschrift?: boolean;
   email?: string | null;
@@ -38,6 +42,10 @@ export interface Vereinsstand {
   absender?: string | null;
   ablage?: string | null;
   sharepoint_site?: string | null;
+  /** Liegt ein Logo? Für den Schritt „Wie es aussehen soll". */
+  logo?: boolean;
+  /** Ist die Vereinsfarbe von der Vorgabe abgewichen? */
+  farbe_gesetzt?: boolean;
 }
 
 export interface Befund {
@@ -49,6 +57,8 @@ export interface Befund {
     verein?: Vereinsstand | null;
     seiten?: Record<string, boolean> | null;
     menue?: { kopf?: number; fuss?: number } | null;
+    /** Wie weit der geführte Durchlauf gekommen ist. */
+    durchlauf?: { schritt?: number; fertig_am?: string | null } | null;
   } | null;
   secrets?: {
     mail?: string[];
@@ -128,22 +138,26 @@ export function schritte(befund: Befund, erwartet: string[] = []): Schritt[] {
     fehlendeSecrets: zahl(db.rollen_vergeben) > 0 ? undefined : secrets.einrichtung,
   });
 
+  // Was fehlt, hängt an der Organisationsform: Eine Interessengemeinschaft
+  // hat keine Registernummer und keinen Vorstand im Rechtssinn. Sie danach zu
+  // fragen, hiesse ihr zu sagen, sie sei die falsche Art von Gruppe.
+  const art = form(verein.org_form);
   const vereinFehlt = [
     verein.name ? null : "Name",
     verein.anschrift ? null : "Anschrift",
     verein.email ? null : "E-Mail",
-    verein.vorstand ? null : "Vorstand",
-    verein.register ? null : "Registergericht und -nummer",
+    art.vorstand && !verein.vorstand ? art.leitung : null,
+    art.register && !verein.register ? "Registergericht und -nummer" : null,
   ].filter(Boolean) as string[];
 
   liste.push({
     id: "verein",
-    titel: "Vereinsdaten",
+    titel: "Eure Daten",
     pflicht: true,
-    ampel: vereinFehlt.length === 0 ? "gut" : vereinFehlt.length >= 4 ? "fehlt" : "teilweise",
+    ampel: vereinFehlt.length === 0 ? "gut" : vereinFehlt.length >= 3 ? "fehlt" : "teilweise",
     text:
       vereinFehlt.length === 0
-        ? `Eingetragen als „${verein.name}".`
+        ? `Eingetragen als „${verein.name}" — ${art.label}.`
         : `Es fehlt: ${vereinFehlt.join(", ")}. Daraus bauen sich Impressum, Mails und der Aufnahmeantrag.`,
     todo: vereinFehlt.length === 0 ? undefined : "Verwaltung → Erscheinungsbild ausfüllen.",
     ziel: "erscheinungsbild",

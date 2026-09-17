@@ -6,8 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
   FileText, Coins, MapPin, ClipboardList, ScrollText, Package, Gavel, Receipt, HandCoins,
+  Compass,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
+import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
 import { SEITE } from "@/lib/layout";
@@ -30,12 +32,15 @@ const baseCards = [
   { title: "Dokumente", desc: "Satzung, Ordnungen und Tätigkeitsberichte.", icon: FileText, path: "/intern/dokumente", module: "documents" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
-  { title: "Inventar", desc: "Was der Verein hat, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },
+  { title: "Inventar", desc: "Was uns gehört, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },
 ];
 
 const Dashboard = () => {
   const { user, signOut, roles, roleLabels, hasPermission } = useAuth();
   const canAdmin = hasPermission("admin.access");
+  const branding = useBranding();
+  const woerter = useWoerter();
+  const einrichtungOffen = !branding.setup_done_at;
 
   // Veranstaltungs-Auswertungen: zeigen, wenn Vorstand ODER Organisator eines aktuellen/zukünftigen Events
   const { data: organizedEvents = [] } = useQuery({
@@ -86,6 +91,25 @@ const Dashboard = () => {
   return (
     <div className={SEITE}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        {/*
+          Wer als Erster hereinkommt, steht sonst vor einem Bereich, in dem
+          nichts steht, und weiss nicht, wo er anfangen soll. Der Streifen
+          verschwindet, sobald der Durchlauf beendet ist — und er erscheint nur
+          für die, die ihn auch abarbeiten können.
+        */}
+        {einrichtungOffen && canAdmin ? (
+          <Link
+            to="/intern/verwaltung?reiter=einrichtung"
+            className="mb-6 flex flex-wrap items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm hover:bg-primary/10"
+          >
+            <Compass size={18} className="text-primary" />
+            <span className="font-medium">Die Einrichtung ist noch nicht abgeschlossen.</span>
+            <span className="text-muted-foreground">
+              Schritt für Schritt durch alles, was {woerter.organisationGenitiv} Installation braucht.
+            </span>
+            <span className="ml-auto text-primary">Weiter →</span>
+          </Link>
+        ) : null}
         <div className="flex flex-col gap-4 mb-8">
           <div>
             <SeitenTitel tour="start" titel="Rundgang">Mitgliederbereich</SeitenTitel>

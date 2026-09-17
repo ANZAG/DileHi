@@ -25,7 +25,10 @@ function installationAddresses(supabaseUrl: string | undefined): Plugin {
           "VITE_SUPABASE_URL fehlt. Ohne sie weiss der Build nicht, zu welcher Datenbank die Seite gehört."
         );
       }
-      for (const file of [".htaccess", "robots.txt"]) {
+      // _redirects gehört dazu, seit die Anleitung auch Netlify und
+      // Cloudflare Pages nennt: Dort steht die Weiterleitung nicht in einer
+      // .htaccess, und ohne sie gibt jede Unteradresse einen 404.
+      for (const file of [".htaccess", "robots.txt", "_redirects"]) {
         const target = path.resolve(outDir, file);
         if (!fs.existsSync(target)) continue;
         const filled = fillFunctionsUrl(fs.readFileSync(target, "utf-8"), supabaseUrl);

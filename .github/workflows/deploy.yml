@@ -5,6 +5,12 @@ on:
     branches:
       - main
       - DING
+      # Auch die Arbeitszweige. Vorher lief die Pruefung erst, wenn jemand
+      # einen Pull Request aufmachte - also oft Stunden nach dem Push, und
+      # bei einem Zweig ohne PR gar nicht. Gebaut wird hier nichts (der
+      # deploy-Job haengt an main), es kostet also nur die zwei Minuten
+      # Pruefung.
+      - 'claude/**'
   # Auch Pull Requests auf DING prüfen. Vorher liefen sie durch kein Raster:
   # Die Prüfung kam erst mit dem Push nach dem Merge, also nachdem jemand
   # entschieden hatte. Der deploy-Job unten hängt an einem Push auf main und
@@ -88,12 +94,33 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          # Wohin die gebaute Seite geht. Beim Kopieren dieses Repos ist das
+          # die erste Zeile, die geaendert gehoert: Sonst laedt die Kopie in
+          # das Verzeichnis des Vereins, von dem sie abstammt.
+          ZIEL: /dilehi.de/
         run: |
+          # Eine Kopie dieses Repos hat noch keine FTP-Zugaenge. Ohne diese
+          # Zeilen scheitert dort jeder Push an einer lftp-Meldung, die
+          # niemand liest -- und die eigentliche Auskunft ("hier fehlen drei
+          # Geheimnisse") steht nirgends. Gebaut und geprueft ist trotzdem
+          # alles, das Hochladen ist der letzte Handgriff.
+          if [ -z "$FTP_SERVER" ]; then
+            echo "::notice::Kein FTP_SERVER hinterlegt - es wird nichts hochgeladen."
+            {
+              echo "### Nicht hochgeladen"
+              echo ""
+              echo "In diesem Projekt fehlen \`FTP_SERVER\`, \`FTP_USERNAME\` und \`FTP_PASSWORD\`."
+              echo "Gebaut und geprueft wurde alles; nur der letzte Schritt entfaellt."
+              echo "Wer die Seite von einem Hoster bauen laesst (Netlify, Vercel,"
+              echo "Cloudflare Pages), braucht sie nicht - siehe docs/installation.md, Schritt 5."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           sudo apt-get install -y lftp
           lftp -c "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
             set ssl:verify-certificate false;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
-            mirror --reverse --delete --verbose ./dist/ /dilehi.de/
+            mirror --reverse --delete --verbose ./dist/ $ZIEL
           "

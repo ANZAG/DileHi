@@ -865,7 +865,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
     },
 
     Vereinsangaben: {
-      label: "Vereinsangaben (Pflichtangaben)",
+      label: "Pflichtangaben (Impressum und Datenschutz)",
       fields: {
         zweck: {
           type: "select", label: "Welche Angaben?",
