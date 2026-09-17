@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useWoerter } from "@/hooks/useBranding";
+import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
@@ -60,6 +60,9 @@ const Admin = () => {
   // nicht bei jedem Aufbau.
   const { data: module } = useModule();
   const woerter = useWoerter();
+  // Dieselbe Frage wie auf dem Dashboard, aus derselben Abfrage: Ist der
+  // gefuehrte Durchlauf beendet? Solange nicht, bleibt die Kachel stehen.
+  const einrichtungOffen = !useBranding().setup_done_at;
   // Den Eingangskorb gibt es nur, wenn die Dateien in SharePoint liegen.
   // Derselbe Schlüssel wie im Eingangskorb selbst, also eine Abfrage für beide.
   const { data: dateiablage } = useQuery({
@@ -156,8 +159,22 @@ const Admin = () => {
     ...(hasPermission("certificates.manage") || hasPermission("certificates.view") ? [
       { id: "nachweise" as const, gruppe: "intern", label: "Nachweise", icon: ShieldCheck, desc: "Qualifikationen mit Ablaufdatum", module: "certificates" },
     ] : []),
-    ...(hasPermission("system.settings") ? [
+    /*
+     * Die Einrichtung ist kein Dauerzustand.
+     *
+     * Solange der Durchlauf offen ist, gehoert sie nach vorne — sie ist dann
+     * das Erste, was jemand hier braucht. Ist er beendet, hat sie nichts mehr
+     * zu sagen und stuende trotzdem jeden Tag zwischen den Einstellungen, die
+     * man wirklich sucht. Also faellt sie weg, wie eine abgeschaltete Kachel.
+     *
+     * Zugefallen ist sie damit nicht: `?reiter=einrichtung` oeffnet sie
+     * weiter (der Inhalt unten haengt am Reiter, nicht an der Kachel), und
+     * solange etwas fehlt, zeigt der Hinweis auf dem Dashboard dorthin.
+     */
+    ...(hasPermission("system.settings") && einrichtungOffen ? [
       { id: "einrichtung" as const, gruppe: "system", label: "Einrichtung", icon: ClipboardCheck, desc: "Was steht, was noch fehlt" },
+    ] : []),
+    ...(hasPermission("system.settings") ? [
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, E-Mail, Dateiablage" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
       { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: `Felder, Texte und Verweis auf ${woerter.satzung}` , module: "applications"},

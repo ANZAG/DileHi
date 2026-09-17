@@ -80,7 +80,7 @@ dabei besonders ansehen:
 | 2. Zugänge für den Ausrollen-Knopf | Die drei Geheimnisse und `SITE_URL` in der **Kopie**, nicht hier. `SITE_URL` ist `https://ding.dilehi.de` |
 | 3. Geheimnisse hinterlegen | Nur `SETUP_SECRET`. Sagt die Verwaltung später deutlich, dass der Rest fehlt? Das ist die Nagelprobe für den Einrichtungsassistenten |
 | 4. Alles ausrollen | Läuft der Ausgangsstand samt aller Migrationen in einer leeren Datenbank durch? Die Bühne sagt ja — hier zählt Supabase mit seinen Rechten (Fehler 20 und 34 im Arbeitsstand) |
-| 5. Website veröffentlichen | Die Anleitung nennt Netlify oder Vercel. Wir nehmen `ding.dilehi.de` über `probeseite.yml` — **das ist eine Abweichung**, und was sie verdeckt, gehört notiert |
+| 5. Website veröffentlichen | Die Anleitung nennt Netlify oder Vercel. Wir nehmen `ding.dilehi.de` über das `deploy.yml` der Kopie (`ZIEL: /ding.dilehi.de/`) — **das ist eine Abweichung**, und was sie verdeckt, gehört notiert. Seit dem 17. September wenigstens dieselbe Datei, die auch ein fremder Verein bekommt |
 | 6. Ersten Zugang anlegen | Ohne Mailversand muss der Einladungslink auf der Seite stehen. Tut er das? |
 | Danach | Die Kachel **Einrichtung** aufrufen: Sagt sie die Wahrheit? Jeder Punkt, der grün ist, obwohl etwas fehlt, ist ein Fehler im Assistenten |
 
@@ -107,12 +107,21 @@ Die Kopie anzulegen war schon der erste Teil des Probelaufs — drei Stellen sin
 dabei aufgefallen, ohne dass jemand eine Datenbank angefasst hätte:
 
 1. **Der Job `deploy` in `.github/workflows/deploy.yml`** lädt per FTP nach
-   dilehi.de. In der Kopie ist er raus; übrig bleibt die Prüfung, die Datei
-   heisst dort `pruefen.yml`. Für einen fremden Verein steht der Hinweis jetzt
-   in [`installation.md`](installation.md), Schritt 5.
+   dilehi.de. In der Kopie war er zunächst raus; übrig blieb die Prüfung als
+   eigene Datei `pruefen.yml`. Für einen fremden Verein steht der Hinweis in
+   [`installation.md`](installation.md), Schritt 5.
+
+   *Nachtrag vom 17. September:* Die Kopie hat `deploy.yml` wieder — mit
+   `ZIEL: /ding.dilehi.de/`, und damit baut sie `ding.dilehi.de` genau so, wie
+   ein fremder Verein seine Seite bauen würde. `pruefen.yml` ist dafür weg: Sie
+   lief Schritt für Schritt dasselbe wie der Job `seo-checks` in `deploy.yml`
+   und bei denselben Anlässen, jeder Push prüfte also doppelt. Die Warnung
+   „ACHTUNG, ZIEL PRÜFEN" steht jetzt im Kopf beider Dateien.
 2. **`probeseite.yml`** gehört zu `ding.dilehi.de` und lädt ebenfalls auf
    unseren Webspace. In einer fremden Installation hat sie nichts zu suchen —
-   in der Kopie ist sie gelöscht.
+   in der Kopie ist sie gelöscht. *Seit dem 17. September auch in `DileHi`:*
+   Die Probeseite baut aus ihrem eigenen Repository, zwei Wege in dasselbe
+   Verzeichnis braucht niemand.
 3. **`__pycache__/nulcpython-314.pyc`** lag im Verzeichnis und wurde
    mitgeliefert. Ein Python-Rest, der nie dorthin gehörte; raus, und
    `.gitignore` kennt ihn jetzt.

@@ -17,12 +17,13 @@ neue Unterhaltung beginnt.
 | | |
 | --- | --- |
 | Produkt | **DING** — das Vereinsprogramm, das andere Vereine selbst aufsetzen können. DileHi ist seine erste Installation |
-| Arbeitszweig | `DING` |
+| Repositories | **`ANZAG/DING`** — das Produkt, und zugleich die Installation hinter `ding.dilehi.de`. **`ANZAG/DileHi`** — die Installation des Vereins hinter `www.dilehi.de`. Gleicher Stand, ein Unterschied: die Zeile `ZIEL:` in `deploy.yml` |
+| Arbeitszweig | einer je Aufgabe, gemerged wird nach `main`. Der Zweig `DING` ist am 17. September gelöscht |
 | Zweig der Vereinsseite | `main` — jeder Push baut dilehi.de und lädt per FTP zu gn2 |
 | Datenbank von DileHi | Supabase-Projekt **DileHi**, Kennung `hmrogjpuslpzrittljjr`, Frankfurt (bis 11. September hiess es DING) |
 | Test- und Vorführsystem | Supabase-Projekt **DING**, Kennung `nyloyirwppbetrkkyncw`, Frankfurt, angelegt am 11. September, noch völlig leer. Gehört zu `ding.dilehi.de` (`PROBE_SUPABASE_PROJECT_REF`) |
 | Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — am 16. September abgeschaltet |
-| Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
+| Probeseite | `ding.dilehi.de` — baut seit dem 17. September aus `ANZAG/DING`, aus dessen eigenem `deploy.yml`. `probeseite.yml` in `DileHi` ist damit weg |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch. Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
 | Tests | 55 Dateien, 546 Prüfungen, alle grün (17. September, hier gelaufen) |
@@ -137,13 +138,19 @@ SQL-Editor.
 
 ### Probeseite
 
-`ding.dilehi.de` ist seit dem 11. September **leer**. Das Projekt, gegen das
-sie gebaut war, gehört seit dem Umzug DileHi.
+`ding.dilehi.de` gehört seit dem 17. September dem Repository `ANZAG/DING`
+und baut aus dessen eigenem `deploy.yml` (`ZIEL: /ding.dilehi.de/`). Damit ist
+sie das, was sie sein soll: eine ganz gewöhnliche Installation von DING, die
+denselben Weg geht wie die eines fremden Vereins.
 
-`.github/workflows/probeseite.yml` läuft nur noch von Hand, mit zwei
-Aktionen: `leeren` und `ausrollen`. Ausrollen braucht ein eigenes Geheimnis
-`PROBE_SUPABASE_PROJECT_REF` und bricht ab, wenn es auf DileHi zeigt. Die
-Prüfungen (Typen, Tests) für Pushes auf `DING` laufen jetzt in `deploy.yml`.
+`.github/workflows/probeseite.yml` in `DileHi` ist deshalb gelöscht. Sie war
+der Umweg aus der Umzugszeit — DileHis Repository baute die Probeseite mit,
+gegen ein zweites Supabase-Projekt und über einen zweiten FTP-Pfad in dasselbe
+Verzeichnis. Zwei Stellen, die auf `/ding.dilehi.de/` schreiben konnten, davon
+eine aus dem Repository eines laufenden Vereins: Das gehört nicht in ein
+Produkt, das andere kopieren sollen. `PROBE_SUPABASE_PROJECT_REF` wird in
+`DileHi` nicht mehr gebraucht; in `ANZAG/DING` heisst dasselbe Projekt schlicht
+`SUPABASE_PROJECT_REF`.
 
 **Der Plan für ding.dilehi.de:**
 
@@ -553,6 +560,24 @@ Seitdem kennt `useSiteImage.ts` keine mitgelieferten Bilder mehr: Ohne
 hinterlegte Datei bleibt die Adresse leer, und die Bausteine zeigen den
 Verlauf aus der Vereinsfarbe. `fremdeInhalte.test.ts` hält es fest.
 
+### Zwei Kleinigkeiten vom 17. September
+
+**Die Einrichtung verschwindet, wenn sie fertig ist.** Die Kachel
+„Einrichtung" stand bisher dauerhaft unter Verwaltung → Allgemeine
+Einstellungen, auch Jahre nach dem letzten Handgriff. Sie hängt jetzt an
+`setup_done_at` — derselbe Stand, den auch der Hinweis auf dem Dashboard liest.
+Ist der Durchlauf beendet, fällt sie weg wie die Kachel eines abgeschalteten
+Moduls. Zugefallen ist sie nicht: `/intern/verwaltung?reiter=einrichtung`
+öffnet den Assistenten weiter, denn der Inhalt hängt am Reiter und nicht an
+der Kachel.
+
+**Im Browserreiter steht DING.** In `index.html` stand „Vereinsprogramm" —
+neutral, aber der Name von nichts. Eine frische Installation zeigt dort jetzt
+den Namen des Programms, das gerade aufgesetzt wird. Sobald die Anwendung
+läuft, setzt `SEO.tsx` ohnehin den Vereinsnamen ein; dieser Titel gilt nur bis
+dahin. Die SEO-Prüfung verlangte zehn Zeichen im `<title>` und hätte „DING"
+abgelehnt — sie fragt jetzt nur noch, ob überhaupt etwas dasteht.
+
 ### Neue Prüfungen
 
 | Test | Was er prüft |
@@ -805,16 +830,21 @@ so ist:
 ### Arbeitsablauf mit Git
 
 ```
-auf DING arbeiten → commit → push DING
-→ checkout main → merge --no-ff DING → push main → zurück auf DING
+Zweig je Aufgabe anlegen → commit → push
+→ checkout main → merge --no-ff → push main → Zweig löschen
 ```
 
-- **Push auf `DING`** startet die Probeseite.
-- **Push auf `main`** baut dilehi.de und lädt per FTP hoch. Solange die
-  Oberfläche nichts von der neuen Datenbank verlangt, ist das harmlos.
-- **Lovable** pusht noch selbst nach `main` („Changes", „Work in progress").
-  Vor dem Pushen also `git fetch`, der Merge ist Routine. Das endet mit der
-  Stilllegung.
+- **Push auf einen Arbeitszweig** (`claude/**`) prüft nur: Lint, SEO, Typen,
+  Edge-Function-Typen, Tests. Hochgeladen wird dabei nichts.
+- **Push auf `main`** prüft dasselbe und lädt danach per FTP hoch — in
+  `DileHi` nach `/dilehi.de/`, in `ANZAG/DING` nach `/ding.dilehi.de/`.
+- **Zwei Repositories, ein Stand.** Was am Programm geändert wird, gehört in
+  beide. Auseinanderlaufen darf allein die Zeile `ZIEL:` in `deploy.yml`;
+  alles andere ist ein Versehen. `diff -rq --exclude=.git` über beide
+  Arbeitskopien zeigt es in einer Zeile.
+- Der Zweig `DING` ist am 17. September gelöscht: Er lag ganz in `main` und
+  war seit dem eigenen Repository doppelt gemoppelt. `claude/arbeitsstand-review-ena5ng`
+  ebenso — er zeigte auf denselben Commit wie `main`.
 
 ### Geheimnisse und Variablen
 
@@ -1001,6 +1031,23 @@ Bilderumzug. Von 9,9 MB verfolgten Dateien sind 4,3 MB übrig.
       gewesen). Gearbeitet wird auf einem Zweig je Aufgabe, gemerged wird nach
       `main`. Was DileHi-eigen ist, gehört ohnehin in die Datenbank und nicht
       in einen eigenen Zweig.
+- [x] **Die Zweige weg.** Am 17. September gelöscht: `DING` (null Commits
+      vor `main`, 27 dahinter) und `claude/arbeitsstand-review-ena5ng` (zeigte
+      auf denselben Commit wie `main`). Beide waren vollständig gemerged; die
+      Historie verliert nichts. `deploy.yml` hört damit auch nicht mehr auf
+      einen Zweig `DING`, den es nicht gibt.
+- [x] **Die Actions, die keine Neuinstallation braucht.** In `DileHi` ist
+      `probeseite.yml` weg (siehe „Probeseite"), in `ANZAG/DING` `pruefen.yml`:
+      Die lief Schritt für Schritt dasselbe wie der Job `seo-checks` in
+      `deploy.yml` und bei denselben Anlässen — jeder Push auf `main` prüfte
+      alles doppelt. Übrig bleiben in beiden Repositories dieselben vier, und
+      jede davon braucht auch ein fremder Verein: `supabase.yml` (Schritt 4 der
+      Anleitung), `deploy.yml` (Schritt 5), `backup.yml` und `digest.yml`.
+- [x] **Beide Repositories abgeglichen** (17. September). `diff -rq` über
+      `ANZAG/DileHi` und `ANZAG/DING`: gleicher Stand bis auf die Actions, und
+      die sind jetzt bis auf die Zeile `ZIEL:` in `deploy.yml` gleich. Die
+      Warnung „ACHTUNG, ZIEL PRÜFEN" stand nur in der Kopie und steht jetzt in
+      beiden — sie gehört zum Produkt, nicht zu einer seiner Installationen.
 
 ### Und was jetzt?
 
