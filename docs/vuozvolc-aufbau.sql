@@ -104,6 +104,37 @@ select v.slot, v.label, v.page, ''
     ('vuozvolc-naalbinding-2', 'Naalbinding, Bild 2', 'Naalbinding / Nadelbinden'),
     ('vuozvolc-naalbinding-3', 'Naalbinding, Bild 3', 'Naalbinding / Nadelbinden'),
     ('vuozvolc-naalbinding-4', 'Naalbinding, Bild 4', 'Naalbinding / Nadelbinden')
+,
+    ('vuozvolc-mitglied-01', 'Mitglied 01', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-02', 'Mitglied 02', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-03', 'Mitglied 03', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-04', 'Mitglied 04', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-05', 'Mitglied 05', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-06', 'Mitglied 06', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-07', 'Mitglied 07', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-08', 'Mitglied 08', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-09', 'Mitglied 09', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-10', 'Mitglied 10', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-11', 'Mitglied 11', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-12', 'Mitglied 12', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-13', 'Mitglied 13', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-14', 'Mitglied 14', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-15', 'Mitglied 15', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-16', 'Mitglied 16', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-17', 'Mitglied 17', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-18', 'Mitglied 18', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-19', 'Mitglied 19', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-20', 'Mitglied 20', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-21', 'Mitglied 21', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-22', 'Mitglied 22', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-23', 'Mitglied 23', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-24', 'Mitglied 24', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-25', 'Mitglied 25', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-26', 'Mitglied 26', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-27', 'Mitglied 27', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-28', 'Mitglied 28', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-29', 'Mitglied 29', 'Aktive Mitglieder'),
+    ('vuozvolc-mitglied-30', 'Mitglied 30', 'Aktive Mitglieder')
   ) as v(slot, label, page)
  where not exists (select 1 from public.site_images s where s.slot = v.slot);
 
@@ -243,30 +274,212 @@ values ('aktive-mitglieder', 'Aktive Mitglieder', $json$
     {
       "type": "Seitenkopf",
       "props": {
+        "id": "seitenkopf-1",
+        "oberzeile": "SOCIUS",
+        "ueberschrift": "Aktive Mitglieder",
+        "text": "Wer bei uns mitmacht, und was er kann.",
+        "ausrichtung": "links",
         "breite": "schmal",
         "abstandOben": "gross",
         "abstandUnten": "gross",
         "textfarbe": "standard",
         "hintergrund": "keine",
-        "flaeche": "inhalt",
-        "id": "seitenkopf-1",
-        "oberzeile": "SOCIUS",
-        "ueberschrift": "Aktive Mitglieder",
-        "text": "Wer bei uns mitmacht, und was er kann.",
-        "ausrichtung": "links"
+        "flaeche": "inhalt"
       }
     },
     {
-      "type": "Darstellungen",
+      "type": "Karten",
       "props": {
+        "id": "karten-aktive-mitglieder",
+        "karten": [
+          {
+            "titel": "Adelheit von Bruchsal",
+            "text": "Nadelbinden, Wollverarbeitung",
+            "bildSchluessel": "vuozvolc-mitglied-01",
+            "ziel": ""
+          },
+          {
+            "titel": "Berthold der Schreiber",
+            "text": "Buchmalerei, Tintenherstellung",
+            "bildSchluessel": "vuozvolc-mitglied-02",
+            "ziel": ""
+          },
+          {
+            "titel": "Cunegunde zem Anker",
+            "text": "Kochen am offenen Feuer",
+            "bildSchluessel": "vuozvolc-mitglied-03",
+            "ziel": ""
+          },
+          {
+            "titel": "Dietrich Holzschuh",
+            "text": "Drechseln, Holzgeschirr",
+            "bildSchluessel": "vuozvolc-mitglied-04",
+            "ziel": ""
+          },
+          {
+            "titel": "Eberhart von Lindenfels",
+            "text": "Bogenbau",
+            "bildSchluessel": "vuozvolc-mitglied-05",
+            "ziel": ""
+          },
+          {
+            "titel": "Frideswit die Faerberin",
+            "text": "Pflanzenfaerberei",
+            "bildSchluessel": "vuozvolc-mitglied-06",
+            "ziel": ""
+          },
+          {
+            "titel": "Gerhart Kesseler",
+            "text": "Kupfertreiben",
+            "bildSchluessel": "vuozvolc-mitglied-07",
+            "ziel": ""
+          },
+          {
+            "titel": "Hedewig zer Muelen",
+            "text": "Brotbacken, Muellerei",
+            "bildSchluessel": "vuozvolc-mitglied-08",
+            "ziel": ""
+          },
+          {
+            "titel": "Irmgart von Steinach",
+            "text": "Spinnen am Handrocken",
+            "bildSchluessel": "vuozvolc-mitglied-09",
+            "ziel": ""
+          },
+          {
+            "titel": "Jost der Riemer",
+            "text": "Lederarbeit, Guertel",
+            "bildSchluessel": "vuozvolc-mitglied-10",
+            "ziel": ""
+          },
+          {
+            "titel": "Kunrat Schildmacher",
+            "text": "Schildbau, Bemalung",
+            "bildSchluessel": "vuozvolc-mitglied-11",
+            "ziel": ""
+          },
+          {
+            "titel": "Liutgart von Ehrenberg",
+            "text": "Seidenstickerei",
+            "bildSchluessel": "vuozvolc-mitglied-12",
+            "ziel": ""
+          },
+          {
+            "titel": "Mechthilt die Kraeuterin",
+            "text": "Heilkraeuter, Salben",
+            "bildSchluessel": "vuozvolc-mitglied-13",
+            "ziel": ""
+          },
+          {
+            "titel": "Nikolaus Boetticher",
+            "text": "Fassbinden",
+            "bildSchluessel": "vuozvolc-mitglied-14",
+            "ziel": ""
+          },
+          {
+            "titel": "Oswalt von Hohenfels",
+            "text": "Schmiedearbeit",
+            "bildSchluessel": "vuozvolc-mitglied-15",
+            "ziel": ""
+          },
+          {
+            "titel": "Petrissa zem Brunnen",
+            "text": "Weben am Gewichtswebstuhl",
+            "bildSchluessel": "vuozvolc-mitglied-16",
+            "ziel": ""
+          },
+          {
+            "titel": "Quirin der Pfeifer",
+            "text": "Schalmei, Trommel",
+            "bildSchluessel": "vuozvolc-mitglied-17",
+            "ziel": ""
+          },
+          {
+            "titel": "Richwin von Falkenau",
+            "text": "Reiten, Pferdegeschirr",
+            "bildSchluessel": "vuozvolc-mitglied-18",
+            "ziel": ""
+          },
+          {
+            "titel": "Sibilla die Naeherin",
+            "text": "Schnittmuster, Handnaht",
+            "bildSchluessel": "vuozvolc-mitglied-19",
+            "ziel": ""
+          },
+          {
+            "titel": "Thiemo Kannengiesser",
+            "text": "Zinnguss",
+            "bildSchluessel": "vuozvolc-mitglied-20",
+            "ziel": ""
+          },
+          {
+            "titel": "Ulrich von Wartberg",
+            "text": "Zeltbau, Lagerlogistik",
+            "bildSchluessel": "vuozvolc-mitglied-21",
+            "ziel": ""
+          },
+          {
+            "titel": "Verena zer Linden",
+            "text": "Kaeseherstellung",
+            "bildSchluessel": "vuozvolc-mitglied-22",
+            "ziel": ""
+          },
+          {
+            "titel": "Walther der Seiler",
+            "text": "Seilerei, Knotenkunde",
+            "bildSchluessel": "vuozvolc-mitglied-23",
+            "ziel": ""
+          },
+          {
+            "titel": "Xenia von Morungen",
+            "text": "Harfe, Gesang",
+            "bildSchluessel": "vuozvolc-mitglied-24",
+            "ziel": ""
+          },
+          {
+            "titel": "Ymbert Beutler",
+            "text": "Taschner, Beutelwerk",
+            "bildSchluessel": "vuozvolc-mitglied-25",
+            "ziel": ""
+          },
+          {
+            "titel": "Zeisolt von Rappoltstein",
+            "text": "Fechten mit dem langen Messer",
+            "bildSchluessel": "vuozvolc-mitglied-26",
+            "ziel": ""
+          },
+          {
+            "titel": "Agnes die Toepferin",
+            "text": "Drehscheibe, Brennofen",
+            "bildSchluessel": "vuozvolc-mitglied-27",
+            "ziel": ""
+          },
+          {
+            "titel": "Bruno Hufsmit",
+            "text": "Hufbeschlag",
+            "bildSchluessel": "vuozvolc-mitglied-28",
+            "ziel": ""
+          },
+          {
+            "titel": "Clementia von Isenburg",
+            "text": "Klosterkueche, Fastenspeisen",
+            "bildSchluessel": "vuozvolc-mitglied-29",
+            "ziel": ""
+          },
+          {
+            "titel": "Dankwart der Koehler",
+            "text": "Koehlerei, Holzkohle",
+            "bildSchluessel": "vuozvolc-mitglied-30",
+            "ziel": ""
+          }
+        ],
+        "spalten": "drei",
         "breite": "breit",
         "abstandOben": "normal",
         "abstandUnten": "normal",
-        "id": "darstellungen-2",
-        "kategorie": "",
-        "ueberschrift": "",
-        "einleitung": "",
-        "namenZeigen": true
+        "textfarbe": "standard",
+        "hintergrund": "keine",
+        "flaeche": "inhalt"
       }
     }
   ]
