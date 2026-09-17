@@ -124,12 +124,21 @@ jobs:
       #               SITE_PASSWORT            das Passwort im Klartext. Es
       #                                        wird hier verschluesselt und
       #                                        steht nirgends im Repository.
-      #   Variables:  SITE_PASSWORT_DATEI      der ABSOLUTE Pfad der .htpasswd
-      #                                        auf dem Webspace, etwa
-      #                                        /var/www/vhosts/example.de/.htpasswd
-      #                                        Apache verlangt ihn absolut; wie
-      #                                        er bei eurem Hoster lautet, sagt
-      #                                        dessen Dateimanager.
+      #   Variables:  SITE_PASSWORT_DATEI      der ABSOLUTE Pfad der .htpasswd,
+      #                                        so wie der SERVER sie sieht.
+      #
+      #     Das ist nicht der FTP-Pfad. Der FTP-Zugang sieht oft nur
+      #     /ding.dilehi.de/, waehrend auf der Platte
+      #     /var/www/vhosts/dilehi.de/ding.dilehi.de/ steht -- Apache will das
+      #     zweite. Und es ist genau das Verzeichnis, in das dieser Deploy
+      #     laedt (ZIEL weiter unten), denn dorthin legt der Schritt die Datei:
+      #
+      #         <Serverpfad von ZIEL>/.htpasswd
+      #
+      #     Zeigt der Pfad woandershin, laedt die Datei trotzdem neben die
+      #     Seite, Apache sucht sie am angegebenen Ort, findet nichts -- und
+      #     antwortet mit 500. Der Schritt "Schutz nachsehen" unten sagt das
+      #     nach dem Deploy in einem Satz.
       #               SITE_PASSWORT_BEREICH    Beschriftung im Anmeldefenster
       #
       # Die .htpasswd landet im selben Verzeichnis wie die Seite, weil ein
@@ -237,3 +246,58 @@ jobs:
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
             mirror --reverse --delete --verbose ./dist/ $ZIEL
           "
+
+      # Hat es geklappt?
+      #
+      # Ein Verzeichnisschutz ist die eine Einstellung, bei der "nichts
+      # gemeldet" und "kaputt" gleich aussehen: Ein falscher AuthUserFile-Pfad
+      # gibt 500, und das merkt man erst, wenn jemand die Seite aufruft. Also
+      # ruft der Deploy sie selbst auf und sagt, was zurueckkam.
+      #
+      # Ohne SITE_URL laesst sich nichts nachsehen -- dann bleibt es beim
+      # Hinweis. Ohne SITE_PASSWORT ist ohnehin nichts zu pruefen.
+      - name: Schutz nachsehen
+        if: ${{ vars.SITE_URL != '' }}
+        env:
+          PASSWORT: ${{ secrets.SITE_PASSWORT }}
+          ADRESSE: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$PASSWORT" ]; then exit 0; fi
+          # Kurz warten: Manche Hoster brauchen einen Moment, bis die neue
+          # .htaccess greift.
+          sleep 10
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "${ADRESSE%/}/" || echo "000")
+          case "$code" in
+            401)
+              echo "::notice::Der Verzeichnisschutz greift (401)."
+              { echo "### Verzeichnisschutz greift"; echo ""
+                echo "\`${ADRESSE%/}/\` antwortet mit **401** -- das Anmeldefenster kommt."
+              } >> "$GITHUB_STEP_SUMMARY" ;;
+            500)
+              echo "::error::Die Seite antwortet mit 500. Fast immer stimmt SITE_PASSWORT_DATEI nicht."
+              { echo "### Verzeichnisschutz: Fehler 500"
+                echo ""
+                echo "Die Seite antwortet mit **500**. Das heisst so gut wie immer:"
+                echo "\`SITE_PASSWORT_DATEI\` zeigt auf einen Pfad, an dem Apache keine"
+                echo "Passwortdatei findet."
+                echo ""
+                echo "Gesucht ist der Pfad, den der SERVER sieht -- nicht der FTP-Pfad --"
+                echo "und zwar der des Verzeichnisses, in das dieser Deploy laedt."
+                echo "Am schnellsten zu finden: im Kundenmenue des Hosters einmal den"
+                echo "eigenen Verzeichnisschutz auf einen beliebigen Ordner setzen und in"
+                echo "die dort erzeugte \`.htaccess\` sehen -- die Zeile \`AuthUserFile\`"
+                echo "zeigt die richtige Schreibweise."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1 ;;
+            200)
+              echo "::warning::Die Seite ist ohne Passwort erreichbar (200)."
+              { echo "### Verzeichnisschutz greift NICHT"
+                echo ""
+                echo "\`${ADRESSE%/}/\` antwortet mit **200** -- die Seite steht offen."
+                echo "Moeglich ist, dass der Hoster \`AllowOverride\` nicht erlaubt und"
+                echo "die \`.htaccess\` deshalb ignoriert wird."
+              } >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "::warning::Antwort $code - nicht eindeutig, bitte selbst nachsehen."
+              echo "### Verzeichnisschutz: Antwort $code" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
