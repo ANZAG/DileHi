@@ -1,1 +1,0 @@
-ALTER TABLE public.events ADD COLUMN all_day boolean NOT NULL DEFAULT false;

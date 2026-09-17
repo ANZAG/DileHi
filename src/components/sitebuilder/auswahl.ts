@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { SITE_IMAGE_FALLBACKS } from "@/hooks/useSiteImage";
 
 /**
  * Auswahllisten für die Bausteine.
@@ -99,9 +98,12 @@ export async function bildVorschauen(): Promise<BildVorschau[]> {
       slot: b.slot,
       label: b.label,
       page: b.page,
+      // Ohne hinterlegte Datei keine Vorschau: Seit dem Umzug der Bilder gibt
+      // es keine mitgelieferten mehr, und ein fremdes Foto als Platzhalter
+      // wäre schlimmer als ein leerer Kasten.
       src: b.storage_path
         ? supabase.storage.from("gallery").getPublicUrl(b.storage_path).data.publicUrl
-        : SITE_IMAGE_FALLBACKS[b.slot] ?? "",
+        : "",
     }));
   };
   const werte = await laden();

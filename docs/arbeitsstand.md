@@ -24,7 +24,7 @@ neue Unterhaltung beginnt.
 | Alte Datenbank | Lovable-Cloud, Kennung `sstplyhfebexeyqehsvv` — am 16. September abgeschaltet |
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
-| Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
+| Plan | Der Umzug ist durch. Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
 | Tests | 55 Dateien, 546 Prüfungen, alle grün (17. September, hier gelaufen) |
 
 ---
@@ -117,9 +117,11 @@ SQL-Editor.
   ([`supabase/ausgangsstand/EXPORT.md`](../supabase/ausgangsstand/EXPORT.md)).
   62 Tabellen, 67 Funktionen, Zugriffsregeln, Rechte, Startdaten, Ablagen,
   der Trigger an `auth.users`.
-- **Die alten Migrationen** liegen in `docs/archiv-migrationen/` (111 Dateien).
-  Die Bereichstouren (`20260909290000_bereichstouren.sql`) sind zurückgeholt,
-  weil sie in der alten Datenbank nie gelaufen waren.
+- **Die alten Migrationen** (111 Dateien) sind im Ausgangsstand
+  zusammengefasst und am 17. September aus `docs/` gelöscht — die Git-Historie
+  behält sie, das Verzeichnis niemand. Die Bereichstouren
+  (`20260909290000_bereichstouren.sql`) waren vorher zurückgeholt worden, weil
+  sie in der alten Datenbank nie gelaufen waren.
 - **Der Ausrollen-Knopf** (`.github/workflows/supabase.yml`): sieht zuerst
   nach, was in der Datenbank steht, prüft das Passwort auf mitkopierte
   Umbrüche, kann das Migrationsverzeichnis leeren (nur bei leerer Datenbank),
@@ -158,14 +160,14 @@ Prüfungen (Typen, Tests) für Pushes auf `DING` laufen jetzt in `deploy.yml`.
 
 ### Umzug aus Lovable
 
-Abgeschlossen am 11. September, die Werkzeuge liegen in
-[`archiv-umzug/`](archiv-umzug/). Anleitung und Aufbau: [`umzug.md`](umzug.md). Kurz: `backup-export` gibt mit
-`accounts: true` auch die Konten heraus, samt Passwort-Hash über
-`transfer_accounts()` in der alten Datenbank. Der Workflow „Umzug aus Lovable"
-spielt alles in einer Transaktion ein (`supabase/transfer/import.sql`, ohne
-Trigger, Verweise danach nachgeprüft), wiederholt die Migrationen nach dem
-Ausgangsstand und trägt die Dateien hinüber. Ohne Häkchen ist es ein
-Probelauf, der zurückrollt.
+Abgeschlossen am 11. September. Die Werkzeuge (`archiv-umzug/`), der Bericht
+(`umzug.md`) und die beiden Prüfungen dazu sind am 17. September gelöscht
+worden: Lovable ist abgeschaltet, ein zweites Mal wird das niemand brauchen,
+und wer es doch nachlesen will, findet es in der Git-Historie.
+
+Was davon bleibt, weil es weiter benutzt wird: `backup-export` gibt mit
+`accounts: true` auch die Konten heraus, und der Ausgangsstand trägt das
+Ergebnis des Umzugs.
 
 **Gelaufen am 11. September:** alle 62 Tabellen, 19 Konten (16 mit Passwort),
 127 von 140 Dateien. Am Nachmittag war dilehi.de umgestellt — Vereinsseite,
@@ -534,21 +536,22 @@ stand noch DileHi im Programm. Am 16. September weggeräumt:
   Rechtsform, sondern solange sie gebraucht wird. Umbenennen bleibt jederzeit
   möglich: Die Beschriftung gehört dem Verein, der Schlüssel dem Programm.
 
-### Die mitgelieferten Bilder
+### Die mitgelieferten Bilder — erledigt am 17. September
 
-In `src/assets` liegen 18 Fotos, 4,6 MB — DileHis Bilder, ausgeliefert an jede
-Installation. Sie sind der Notnagel für die Bildplätze (`site_images`): Wo
-kein eigenes Bild hochgeladen ist, wird das mitgelieferte gezeigt. Für DileHi
-sind sie damit *die* Bilder der Website.
+In `src/assets` lagen 18 Fotos, 4,6 MB: DileHis Bilder, ausgeliefert an jede
+Installation. Sie waren der Notnagel für die Bildplätze (`site_images`) — und
+weil DileHi selbst nie eigene hochgeladen hatte, waren sie *die* Bilder der
+Vereinsseite. Genau das hat das Löschen so lange verhindert.
 
-`scripts/bilder-umziehen.mjs` zieht sie dorthin um, wo die Bilder jedes
-anderen Vereins auch liegen: in den Speicher des eigenen Projekts. Es liest
-die Zuordnung aus `SITE_IMAGE_FALLBACKS` (eine Stelle, nicht zwei), lädt nach
-`gallery/site/<platz>.webp` und trägt den Pfad nur dort ein, wo noch keiner
-steht. Ohne `--wirklich` schreibt es nichts.
+Umgezogen mit einem einmaligen Knopf (`bilder.yml` + `scripts/bilder-umziehen.mjs`,
+beide danach gelöscht): 22 Plätze in den Speicher des eigenen Projekts
+(`gallery/site/<platz>.webp`), nachweislich alle 22 öffentlich erreichbar. Der
+`service_role`-Schlüssel kam dabei aus dem Projekt selbst, maskiert im Ablauf —
+niemand hat ihn irgendwohin kopiert.
 
-**Erst wenn das gelaufen ist**, können `src/assets` und die Notnagel-Liste in
-`useSiteImage.ts` weg — vorher stünde DileHis Website ohne Bilder da.
+Seitdem kennt `useSiteImage.ts` keine mitgelieferten Bilder mehr: Ohne
+hinterlegte Datei bleibt die Adresse leer, und die Bausteine zeigen den
+Verlauf aus der Vereinsfarbe. `fremdeInhalte.test.ts` hält es fest.
 
 ### Neue Prüfungen
 
@@ -564,8 +567,8 @@ steht. Ohne `--wirklich` schreibt es nichts.
 Die Hilfen dazu: `src/test/hilfe/datenbank.ts` (liest den Ausgangsstand und
 die Startdaten) und `src/test/hilfe/buehne.ts` (die leere Supabase-Datenbank).
 
-`transfer.test.ts` und `transferFiles.test.ts` laufen nicht mehr mit; sie
-liegen mit dem übrigen Umzugswerkzeug in [`archiv-umzug/`](archiv-umzug/).
+`transfer.test.ts` und `transferFiles.test.ts` gibt es nicht mehr; sie sind
+mit dem übrigen Umzugswerkzeug gelöscht.
 Neu seit dem 11. September: `import.test.ts`, `auslagen.test.ts`,
 `zuwendungen.test.ts`, `einwilligungen.test.ts`, `beschluesse.test.ts`,
 `nachweise.test.ts`, `inventar.test.ts`, `gemeinnuetzigkeit.test.ts`,
@@ -822,7 +825,7 @@ auf DING arbeiten → commit → push DING
 | GitHub Variables | `SITE_URL` | `https://ding.dilehi.de`, nach dem Umzug `https://www.dilehi.de` |
 | GitHub Secrets | `BACKUP_TOKEN` | für den Umzug nötig. Die Sicherung ist rot, weil `backup-export` in Lovable nie bereitgestellt wurde (404); ebenso fehlen dort `mail-test` und `sitemap` |
 | Supabase Edge Functions | `SETUP_SECRET` | gesetzt |
-| Supabase Edge Functions | `MS_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch, siehe [`umzug.md`](umzug.md) |
+| Supabase Edge Functions | `MS_*`, `VAPID_*`, `DIGEST_SECRET`, `BACKUP_TOKEN` | fehlen noch |
 | Umgebung des Rechners | `SUPABASE_ACCESS_TOKEN` | gesetzt, für Claudes lesenden Zugang |
 
 **Was Claude nie sieht:** das Datenbankpasswort, den `service_role`-Schlüssel
@@ -866,13 +869,10 @@ ganz; der Rundlauftest sagt, ob die Abfrage noch taugt.
 | --- | --- |
 | [`installation.md`](installation.md) | die Anleitung für einen neuen Verein |
 | [`probelauf.md`](probelauf.md) | wie wir die Anleitung einmal gegen eine leere Installation fahren |
-| [`umzug.md`](umzug.md) | der Umzug aus Lovable, Schritt für Schritt |
 | [`sharepoint.md`](sharepoint.md) | Dateiablage in SharePoint einrichten |
-| [`standalone.md`](standalone.md) | was für andere Vereine fehlte (teilweise veraltet, siehe unten) |
 | [`onboarding.md`](onboarding.md), [`module.md`](module.md) | Aufbau von Einführung und Modulen |
 | [`name-ding.md`](name-ding.md) | warum DING |
 | [`vuozvolc-machbarkeit.md`](vuozvolc-machbarkeit.md) | der Nachbau von vuozvolc.de als Probe für den Seitenbaukasten |
-| [`machbarkeit-oeffentliche-seiten.md`](machbarkeit-oeffentliche-seiten.md) | warum der Seiteneditor ein Blockeditor wurde und kein Baukasten |
 | [`datenschutz-checkliste.md`](datenschutz-checkliste.md) | was die Anwendung verarbeitet, und wo es in der Erklärung steht |
 | [`../supabase/ausgangsstand/EXPORT.md`](../supabase/ausgangsstand/EXPORT.md) | die Abfrage für den Ausgangsstand |
 
@@ -966,6 +966,13 @@ Lauf selbst.
 
 ### 4. Aufräumen, wenn Luft ist
 
+**Am 17. September weggeräumt** (die Git-Historie behält alles):
+`src/assets` mit 18 Fotos (4,6 MB), `docs/archiv-migrationen/` (111 Dateien),
+`docs/archiv-umzug/`, `docs/archiv-lovable/`, `umzug.md` (der Umzug ist
+abgeschlossen), `machbarkeit-oeffentliche-seiten.md` und `standalone.md`
+(beide von der Wirklichkeit überholt), dazu das Werkzeug für den
+Bilderumzug. Von 9,9 MB verfolgten Dateien sind 4,3 MB übrig.
+
 - [ ] **Englische Bezeichner, zweiter Durchgang: Werte in den Inhalten.**
       Mitgliedsarten (`aktiv`, `foerder`), Beitragsintervall, Beitragsmodell
       (`fest`), SEO-Typ, die Schlüssel der Dokumentablagen (stehen seit dem
@@ -982,9 +989,9 @@ Lauf selbst.
       Schlüssel im Abzug von `backup-export` (`tabellen`, `zeilen`). Die neuen
       Seiten `Auslagen.tsx`, `Beschluesse.tsx`, `Inventar.tsx`,
       `Zuwendungen.tsx` kommen dazu. Rein mechanisch, die Typprüfung trägt.
-- [ ] [`standalone.md`](standalone.md) nachziehen: Dort steht die
-      Installationsroutine noch als „nicht begonnen" und `is_herold()` noch als
-      offen. Beides stimmt nicht mehr.
+- [x] `standalone.md` nachziehen — erledigt, indem die Datei weg ist: Sie war
+      der Abgleich mit einer Aufwandschätzung von Anfang September und an
+      mehreren Stellen überholt. Was noch fehlt, steht hier.
 - [ ] Die Actions melden, dass Node 20 ausläuft. Harmlos, die Tests laufen
       schon mit Node 24. Irgendwann `actions/checkout` und `actions/setup-node`
       von `v4` auf die nächste Hauptversion heben.
