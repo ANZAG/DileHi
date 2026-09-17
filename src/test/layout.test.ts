@@ -61,8 +61,13 @@ describe("Das Profil nutzt die Breite", () => {
 
   it("beginnt mit den persönlichen Daten und der Mitgliedschaft", () => {
     // Die Reihenfolge im Quelltext ist die Reihenfolge auf dem Handy.
-    const reihenfolge = ["Persönliche Daten", "Mitgliedschaft", "Konto"];
-    const stellen = reihenfolge.map((t) => profil.indexOf(`>${t}</h2>`));
+    //
+    // Gesucht wird nach den Ankern, nicht nach den Überschriften: Die heissen
+    // seit der Wortwahl nach Organisationsform nicht mehr überall gleich
+    // („Mitgliedschaft" oder „Dabei sein"), die Anker schon — an ihnen hängen
+    // auch die Touren.
+    const reihenfolge = ['data-tour="profil-daten"', 'data-tour="profil-mitgliedschaft"', ">Konto</h2>"];
+    const stellen = reihenfolge.map((t) => profil.indexOf(t));
     expect(stellen.every((i) => i > 0)).toBe(true);
     expect([...stellen].sort((a, b) => a - b)).toEqual(stellen);
   });

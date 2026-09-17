@@ -160,7 +160,7 @@ const Admin = () => {
       { id: "einrichtung" as const, gruppe: "system", label: "Einrichtung", icon: ClipboardCheck, desc: "Was steht, was noch fehlt" },
       { id: "erscheinungsbild" as const, gruppe: "system", label: "Erscheinungsbild", icon: Palette, desc: "Name, Logo, Farben, E-Mail, Dateiablage" },
       { id: "vorlagen" as const, gruppe: "system", label: "E-Mail-Vorlagen", icon: MailPlus, desc: "Texte der versendeten Mails" },
-      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: "Felder, Texte und Satzungsverweis" , module: "applications"},
+      { id: "aufnahmeantrag" as const, gruppe: "system", label: "Aufnahmeantrag", icon: FileSignature, desc: `Felder, Texte und Verweis auf ${woerter.satzung}` , module: "applications"},
       { id: "profilfelder" as const, gruppe: "intern", label: "Mitgliederprofil", icon: UserCog, desc: "Welche Angaben Mitglieder pflegen" },
       { id: "beitraege" as const, gruppe: "intern", label: "Beiträge", icon: Coins, desc: "Beitragsmodell, Bankverbindung, Stufen", module: "contributions" },
       { id: "erstesschritte" as const, gruppe: "system", label: "Erste Schritte", icon: Compass, desc: "Die Einführung für neue Mitglieder" },

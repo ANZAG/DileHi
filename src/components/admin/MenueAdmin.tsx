@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useWoerter } from "@/hooks/useBranding";
+import { einsetzen } from "@/lib/organisationsform";
 import { fetchPages, type SitePage } from "@/components/sitebuilder/api";
 import type { MenuBereich } from "@/hooks/useSiteMenu";
 
@@ -50,7 +52,7 @@ const BEREICHE: {
   {
     id: "footer_legal",
     reiter: "Fußbereich: Rechtliches",
-    hinweis: "Die rechte Spalte unten. Impressum und Datenschutz gehören hierhin; eine Satzung oder eine Barrierefreiheitserklärung kann dazukommen.",
+    hinweis: "Die rechte Spalte unten. Impressum und Datenschutz gehören hierhin; {satzung} oder eine Barrierefreiheitserklärung können dazukommen.",
     spalte: "footer_legal_label",
     ueberschriftHinweis: "Überschrift dieser Spalte im Fußbereich",
     untermenues: false,
@@ -70,6 +72,9 @@ const BEREICHE: {
  */
 export default function MenueAdmin() {
   const { toast } = useToast();
+  // Die Beispiele im Hinweistext tragen Platzhalter: „{satzung}" heisst bei
+  // einer Interessengemeinschaft „Absprachen".
+  const woerter = useWoerter();
   const queryClient = useQueryClient();
   const [bereich, setBereich] = useState<MenuBereich>("header");
   const [neuOffen, setNeuOffen] = useState(false);
@@ -203,7 +208,7 @@ export default function MenueAdmin() {
       <FussUeberschrift spalte={aktiv.spalte} hinweis={aktiv.ueberschriftHinweis} />
 
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <p className="text-sm text-muted-foreground max-w-prose">{aktiv.hinweis}</p>
+        <p className="text-sm text-muted-foreground max-w-prose">{einsetzen(aktiv.hinweis, woerter)}</p>
         {!neuOffen && (
           <Button size="sm" onClick={() => setNeuOffen(true)}>
             <Plus size={15} className="mr-1" /> Punkt hinzufügen

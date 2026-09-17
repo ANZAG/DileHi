@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useWoerter } from "@/hooks/useBranding";
+import { einsetzen } from "@/lib/organisationsform";
 
 /**
  * Zwei Sätze Erklärung, direkt neben dem Feld.
@@ -20,6 +22,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  *   <Label>Zeltmasse <Hilfe k="zeltmasse" /></Label>
  */
 export function Hilfe({ k }: { k: string }) {
+  // Hilfetexte dürfen Platzhalter tragen: „{leitung}" wird zu „Vorstand"
+  // oder „Ansprechpartner", je nach Form der Organisation. Sonst erklärt der
+  // Text neben einem Schalter etwas anderes, als auf dem Schalter steht.
+  const woerter = useWoerter();
   const { data } = useQuery({
     queryKey: ["onboarding-hilfe"],
     queryFn: async () => {
@@ -41,15 +47,15 @@ export function Hilfe({ k }: { k: string }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={eintrag.title ? `Hilfe: ${eintrag.title}` : "Hilfe"}
+          aria-label={eintrag.title ? `Hilfe: ${einsetzen(eintrag.title, woerter)}` : "Hilfe"}
           className="inline-flex align-middle text-muted-foreground hover:text-foreground transition-colors ml-1"
         >
           <HelpCircle size={14} />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 text-sm" align="start">
-        {eintrag.title && <p className="font-medium mb-1">{eintrag.title}</p>}
-        <p className="text-muted-foreground leading-relaxed">{eintrag.text}</p>
+        {eintrag.title && <p className="font-medium mb-1">{einsetzen(eintrag.title, woerter)}</p>}
+        <p className="text-muted-foreground leading-relaxed">{einsetzen(eintrag.text, woerter)}</p>
       </PopoverContent>
     </Popover>
   );

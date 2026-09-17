@@ -241,7 +241,7 @@ export default function RollenAdmin() {
                   onCheckedChange={(v) => aendern.mutate({ key: r.key, werte: { is_board: v } })}
                 />
                 <span className="text-sm">
-                  Vorstand<Hilfe k="rolle_vorstand" />
+                  {woerter.leitung}<Hilfe k="rolle_vorstand" />
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">

@@ -65,6 +65,22 @@ export interface Grundwoerter {
   satzung: string;
   /** Wer neu dazukommt. */
   beitritt: string;
+  /**
+   * Das Dabeisein selbst — Überschrift im Profil.
+   *
+   * „Mitgliedschaft" setzt voraus, dass man Mitglied wird: mit Antrag,
+   * Aufnahme und Austritt. Eine Interessengemeinschaft hat das nicht, dort
+   * macht man einfach mit.
+   */
+  mitgliedschaft: string;
+  /**
+   * Die Beschriftung des Feldes „Art der Mitgliedschaft".
+   *
+   * Eigenes Wort und nicht aus `mitgliedschaft` zusammengesetzt: „Art der
+   * Dabei sein" wäre kein Deutsch, und eine Beschriftung, die sich an einem
+   * Genitiv verschluckt, sieht nach Maschine aus.
+   */
+  mitgliedsart: string;
 }
 
 /**
@@ -117,6 +133,8 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
       leitungsgruppe: "Vereinsleitung",
       satzung: "Satzung",
       beitritt: "Mitglied werden",
+      mitgliedschaft: "Mitgliedschaft",
+      mitgliedsart: "Art der Mitgliedschaft",
     },
   },
   club: {
@@ -139,6 +157,8 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
       leitungsgruppe: "Vereinsleitung",
       satzung: "Satzung",
       beitritt: "Mitglied werden",
+      mitgliedschaft: "Mitgliedschaft",
+      mitgliedsart: "Art der Mitgliedschaft",
     },
   },
   interest_group: {
@@ -172,6 +192,8 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
       // alle geeinigt haben.
       satzung: "Absprachen",
       beitritt: "Mitmachen",
+      mitgliedschaft: "Dabei sein",
+      mitgliedsart: "Wie du dabei bist",
     },
   },
 };
