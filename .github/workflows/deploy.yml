@@ -41,8 +41,8 @@ jobs:
   seo-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           # Dieselbe Version wie beim Bauen. Mit Node 20 fehlten den Tests
           # eingebautes WebSocket und fs.globSync – lokal (Node 24) grün,
@@ -75,9 +75,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Node.js setup
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
       # Bis zum Umzug stand die Adresse der Datenbank in einer eingecheckten
@@ -107,6 +107,101 @@ jobs:
         run: |
           npm install
           npm run build
+      # Die Seite hinter ein Passwort.
+      #
+      # Fuer Vorfuehrsysteme und Probeinstallationen: ding.dilehi.de zeigt
+      # DING mit echten Inhalten, und das gehoert nicht ins offene Netz. Der
+      # Schutz ist Apache-Basisauthentifizierung -- er haengt vor der ganzen
+      # Seite, nicht vor einzelnen Adressen, und er ersetzt keine Anmeldung:
+      # Was im Mitgliederbereich geschuetzt ist, schuetzen weiter die
+      # Zugriffsregeln der Datenbank.
+      #
+      # Ohne SITE_PASSWORT passiert hier nichts. Eine gewoehnliche
+      # Installation laesst die drei Angaben weg und merkt von diesem Schritt
+      # nur eine Zeile in der Zusammenfassung.
+      #
+      #   Secrets:    SITE_PASSWORT_BENUTZER   der Benutzername
+      #               SITE_PASSWORT            das Passwort im Klartext. Es
+      #                                        wird hier verschluesselt und
+      #                                        steht nirgends im Repository.
+      #   Variables:  SITE_PASSWORT_DATEI      der ABSOLUTE Pfad der .htpasswd
+      #                                        auf dem Webspace, etwa
+      #                                        /var/www/vhosts/example.de/.htpasswd
+      #                                        Apache verlangt ihn absolut; wie
+      #                                        er bei eurem Hoster lautet, sagt
+      #                                        dessen Dateimanager.
+      #               SITE_PASSWORT_BEREICH    Beschriftung im Anmeldefenster
+      #
+      # Die .htpasswd landet im selben Verzeichnis wie die Seite, weil ein
+      # FTP-Zugang selten hoeher reicht. Der <Files>-Block darunter sperrt sie
+      # gegen Abruf -- ohne ihn laege die Passwortdatei im Netz.
+      - name: Verzeichnisschutz
+        env:
+          BENUTZER: ${{ secrets.SITE_PASSWORT_BENUTZER }}
+          PASSWORT: ${{ secrets.SITE_PASSWORT }}
+          DATEI: ${{ vars.SITE_PASSWORT_DATEI }}
+          BEREICH: ${{ vars.SITE_PASSWORT_BEREICH }}
+        run: |
+          if [ -z "$PASSWORT" ]; then
+            echo "::notice::Kein SITE_PASSWORT hinterlegt - die Seite bleibt oeffentlich."
+            exit 0
+          fi
+          if [ -z "$BENUTZER" ] || [ -z "$DATEI" ]; then
+            echo "::error::Der Verzeichnisschutz braucht SITE_PASSWORT_BENUTZER und SITE_PASSWORT_DATEI."
+            exit 1
+          fi
+          case "$DATEI" in
+            /*) ;;
+            *) echo "::error::SITE_PASSWORT_DATEI muss ein absoluter Pfad sein, steht aber auf: $DATEI"; exit 1 ;;
+          esac
+
+          # -apr1 ist Apaches eigener Hash und laeuft auf jedem Webspace.
+          # Das Klartextpasswort verlaesst diesen Schritt nicht.
+          hash=$(openssl passwd -apr1 "$PASSWORT")
+          name=$(basename "$DATEI")
+          printf '%s:%s\n' "$BENUTZER" "$hash" > "dist/$name"
+
+          # Vor die bestehende .htaccess, nicht dahinter: Die Anweisungen
+          # gelten fuer das ganze Verzeichnis, und wer die Datei aufmacht,
+          # soll als Erstes sehen, dass hier ein Schutz haengt.
+          #
+          # ASCII, wie der Rest der Datei (public/.htaccess erklaert, warum).
+          {
+            echo "# Verzeichnisschutz. Gesetzt beim Bauen aus SITE_PASSWORT;"
+            echo "# von Hand geaenderte Zeilen ueberschreibt der naechste Deploy."
+            echo "AuthType Basic"
+            echo "AuthName \"${BEREICH:-Geschlossener Bereich}\""
+            echo "AuthUserFile $DATEI"
+            echo "Require valid-user"
+            echo ""
+            echo "# Die Passwortdatei selbst ist nicht abrufbar. Beide Schreibweisen,"
+            echo "# weil Apache 2.2 die von 2.4 nicht kennt und umgekehrt."
+            echo "<Files \"$name\">"
+            echo "  <IfModule mod_authz_core.c>"
+            echo "    Require all denied"
+            echo "  </IfModule>"
+            echo "  <IfModule !mod_authz_core.c>"
+            echo "    Order allow,deny"
+            echo "    Deny from all"
+            echo "  </IfModule>"
+            echo "</Files>"
+            echo ""
+            cat dist/.htaccess
+          } > dist/.htaccess.neu
+          mv dist/.htaccess.neu dist/.htaccess
+
+          # Eine Seite hinter einem Passwort hat in Suchmaschinen nichts
+          # verloren. Ein Crawler kommt ohnehin nicht hinein; das hier spart
+          # ihm den Versuch und haelt die Adresse aus den Ergebnissen.
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+
+          {
+            echo "### Verzeichnisschutz aktiv"
+            echo ""
+            echo "Benutzer \`$BENUTZER\`, Passwortdatei \`$DATEI\`."
+            echo "Stimmt der Pfad nicht, antwortet der Server mit 500 statt mit dem Anmeldefenster."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Deploy via FTPS
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
