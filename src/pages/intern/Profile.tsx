@@ -22,6 +22,8 @@ import { useProfilfelder, bereichAn, freieFelder } from "@/hooks/useProfilfelder
 import { useBeitragsmodell } from "@/hooks/useBeitragsmodell";
 import { useBeitragsstufen } from "@/hooks/useBeitragsstufen";
 import { useModule } from "@/hooks/useModule";
+import { beitragseinzugZeigen, mitgliedsartZeigen } from "@/lib/profilabschnitte";
+import { useWoerter } from "@/hooks/useBranding";
 import { SEITE, ZWEISPALTIG } from "@/lib/layout";
 
 const TENT_TYPE_OPTIONS = [
@@ -101,6 +103,7 @@ const Profile = () => {
 
   const { data: profilfelder = [] } = useProfilfelder();
   const { data: module } = useModule();
+  const woerter = useWoerter();
 
   /**
    * Die Beitragsstufen zur Auswahl.
@@ -113,8 +116,12 @@ const Profile = () => {
    * würde das Formular sie beim nächsten Speichern stillschweigend auf eine
    * andere ändern.
    */
-  const { arten } = useBeitragsmodell();
+  const { arten, modell } = useBeitragsmodell();
   const alleStufen = useBeitragsstufen();
+
+  // Warum diese beiden Felder erscheinen oder nicht, steht in
+  // src/lib/profilabschnitte.ts – samt Begründung und Prüfung.
+  const beitraegeAn = beitragseinzugZeigen(module, modell);
   const mitgliedsarten = useMemo(() => {
     const liste = arten.map((a) => ({ key: a.key, label: a.label, ausgelaufen: false }));
     const eigene = form.membershipType;
@@ -489,10 +496,11 @@ const Profile = () => {
 
           {/* Membership info */}
           <div data-tour="profil-mitgliedschaft" className="p-6 rounded-lg border bg-card space-y-4">
-            <h2 className="font-serif text-lg font-semibold">Mitgliedschaft</h2>
+            <h2 className="font-serif text-lg font-semibold">{woerter.mitgliedschaft}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mitgliedsartZeigen(mitgliedsarten.length) && (
               <div>
-                <label htmlFor="profile-membership" className="text-sm font-medium mb-1.5 block">Art der Mitgliedschaft<Hilfe k="mitgliedsart" /></label>
+                <label htmlFor="profile-membership" className="text-sm font-medium mb-1.5 block">{woerter.mitgliedsart}<Hilfe k="mitgliedsart" /></label>
                 <select
                   id="profile-membership"
                   value={form.membershipType}
@@ -507,6 +515,8 @@ const Profile = () => {
                   ))}
                 </select>
               </div>
+              )}
+              {beitraegeAn && (
               <div>
                 <label htmlFor="profile-payment" className="text-sm font-medium mb-1.5 block">Beitragseinzug<Hilfe k="beitragsintervall" /></label>
                 <select
@@ -519,6 +529,7 @@ const Profile = () => {
                   <option value="halbjaehrlich">Halbjährlich</option>
                 </select>
               </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -530,7 +541,7 @@ const Profile = () => {
                   disabled
                   className="flex h-10 max-h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed appearance-none [&::-webkit-date-and-time-value]:text-left"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Wird vom Vorstand eingetragen</p>
+                <p className="text-xs text-muted-foreground mt-1">Wird von {woerter.leitungsgruppe} eingetragen</p>
               </div>
               {!form.isActive && (
                 <div>
@@ -542,7 +553,7 @@ const Profile = () => {
                     disabled
                     className="flex h-10 max-h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed appearance-none [&::-webkit-date-and-time-value]:text-left"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Wird vom Vorstand eingetragen</p>
+                  <p className="text-xs text-muted-foreground mt-1">Wird von {woerter.leitungsgruppe} eingetragen</p>
                 </div>
               )}
             </div>

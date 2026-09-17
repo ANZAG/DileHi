@@ -269,6 +269,29 @@ Manifest und eine `llms.txt`, die Sprachmodellen unsere Vereinsgeschichte
 erzählte. **Was im Markup steht, sieht man beim Lesen; was im Verzeichnis
 liegt, sieht man erst, wenn man nachsieht.**
 
+## Der dritte Blick: die Kleinigkeiten, die es nicht sind
+
+**„Braucht eine IG Arten von Mitgliedschaften? Beitragseinzug im Profil ist
+weiter vorhanden."** Beides stimmte. Das Profil kannte die Module nicht: Bei
+einer Interessengemeinschaft ist „Beiträge" ab Werk aus, im Profil stand
+trotzdem ein Feld „Beitragseinzug, jährlich oder halbjährlich". **Ein Feld, das
+nach etwas fragt, das es nicht gibt, ist schlimmer als keines: Wer es ausfüllt,
+glaubt, es passiere etwas damit.** Jetzt entscheidet
+`src/lib/profilabschnitte.ts`, was dort steht — und die Art der Mitgliedschaft
+erscheint nur, wo es mehr als eine gibt.
+
+**„Die Untertitel in den Registerkarten passen nicht immer."** Die Kachel
+„Dokumente" versprach „Satzung, Ordnungen und Tätigkeitsberichte" — drei Dinge,
+die eine IG nicht hat, und seit die Ablagen frei einstellbar sind, stimmte der
+Satz für niemanden mehr. Dasselbe bei „MV-Einladungen" und beim Schalter
+„Vorstand" in der Rollenverwaltung. **Merksatz:** Ein Untertitel, der Beispiele
+nennt, altert mit den Beispielen.
+
+Dabei noch gefunden: Die Hilfetexte in den Popovers sprachen weiter vom
+Vorstand im Sinne der Satzung, während der Schalter daneben schon
+„Ansprechpartner" hiess. Sie dürfen jetzt Platzhalter tragen — ein Text für
+jede Form, und wer seinen eigenen geschrieben hat, behält ihn.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),

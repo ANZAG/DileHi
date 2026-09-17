@@ -617,9 +617,9 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           <p className="text-xs text-muted-foreground mt-2">
             Bestimmt, ab wann eine ausgelaufene Beitragsstufe endgültig gelöscht
             werden darf. Steuerlich sind für Unterlagen der Beitragsverwaltung
-            meist zehn Jahre üblich; welche Frist für euch gilt, klärt der
-            Vorstand. Achtet darauf, dass die Angabe zur Datenschutzerklärung
-            passt.
+            meist zehn Jahre üblich; welche Frist für euch gilt, klärt
+            {" "}{woerter.leitungsgruppe}. Achtet darauf, dass die Angabe zur
+            Datenschutzerklärung passt.
           </p>
         </div>
       </Abschnitt>

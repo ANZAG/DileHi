@@ -73,12 +73,49 @@ function ohneKommentare(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
+/**
+ * Masken, in denen auch „Satzung", „Vorstand" und „Mitgliederversammlung"
+ * nichts verloren haben.
+ *
+ * Eine Untermenge der allgemeinen: Hier geht es nicht nur um das Wort
+ * „Verein", sondern um Einrichtungen, die eine Interessengemeinschaft gar
+ * nicht hat. Aus dem Probelauf, Eric: „Eine IG hat wahrscheinlich keine
+ * Satzung, Ordnung, MV-Versammlungen."
+ *
+ * Bereiche, die es nur bei einem Verein gibt (Beschlussregister, Abstimmungen,
+ * Fristen des Registers, Aufnahmeantrag, Zuwendungen), stehen bewusst nicht
+ * in der Liste — dort sind die Wörter richtig.
+ */
+const OHNE_VEREINSSACHEN = [
+  "src/pages/Login.tsx",
+  "src/pages/intern/Dashboard.tsx",
+  "src/pages/intern/Profile.tsx",
+  "src/pages/intern/Admin.tsx",
+  "src/components/admin/RollenAdmin.tsx",
+  "src/components/admin/MenueAdmin.tsx",
+  "src/components/admin/DokumentkategorienAdmin.tsx",
+];
+
+/** Was eine Interessengemeinschaft nicht hat. */
+const VEREINSSACHEN = /Satzung|Ordnungen|Mitgliederversammlung|\bMV[- ]/;
+
 describe("Die Oberfläche spricht die Sprache der Organisation", () => {
   for (const datei of ALLGEMEIN) {
     it(`${datei} baut „Verein" nicht fest ein`, () => {
       const code = ohneKommentare(readFileSync(datei, "utf-8")).replace(BEZEICHNER, "");
       const treffer = code.split("\n").filter((z) => /Verein/.test(z));
       expect(treffer, `Stattdessen woerter() benutzen:\n${treffer.join("\n")}`).toHaveLength(0);
+    });
+  }
+
+  for (const datei of OHNE_VEREINSSACHEN) {
+    it(`${datei} setzt keine Satzung und keinen Vorstand voraus`, () => {
+      const code = ohneKommentare(readFileSync(datei, "utf-8")).replace(BEZEICHNER, "");
+      const treffer = code.split("\n").filter((z) => VEREINSSACHEN.test(z) || /\bVorstand\b/.test(z));
+      expect(
+        treffer,
+        `Eine Interessengemeinschaft hat das nicht — woerter() benutzen:\n${treffer.join("\n")}`
+      ).toHaveLength(0);
     });
   }
 

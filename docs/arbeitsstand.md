@@ -25,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 52 Dateien, 518 Prüfungen, alle grün (17. September, hier gelaufen) |
+| Tests | 54 Dateien, 535 Prüfungen, alle grün (17. September, hier gelaufen) |
 
 ---
 
@@ -443,6 +443,14 @@ keine Beiträge und keinen Vorstand im Rechtssinn.
   Wörtern die Oberfläche redet — „Vereinsdokumente" oder „Dokumente",
   „Vereinsleitung" oder „Leitung", „Satzung" oder „Absprachen". An einer
   Stelle, damit sich die Beschriftungen nicht widersprechen.
+- **Sie reicht bis ins Profil.** „Beitragseinzug" erscheint nur, wo Beiträge
+  erhoben werden (Modul an *und* ein Modell, das etwas erhebt), die „Art der
+  Mitgliedschaft" nur, wo es mehr als eine gibt — bei einer IG ohne Beiträge
+  also nirgends. Die Entscheidung steht in `src/lib/profilabschnitte.ts`, nicht
+  in der Maske.
+- **Auch die Hilfetexte in den Popovers** dürfen Platzhalter tragen: Der
+  Schalter in der Rollenverwaltung heisst „Vorstand" oder „Ansprechpartner",
+  und der Text daneben sagt jetzt dasselbe.
 - **Eingestellt wird sie unter Verwaltung → Erscheinungsbild, ganz oben.**
   Bis zum 17. September stand diese Frage nur im geführten Durchlauf — wer den
   nicht zu sehen bekam, konnte seine Form nirgends einstellen und nicht einmal
@@ -549,7 +557,9 @@ Am 16. September dazu: `startdaten.test.ts`, `einrichtung.test.ts` und
 Am 17. September dazu: `durchlaufStand.test.ts` (wann der Durchlauf als
 erledigt gilt), `kategorienAuffrischen.test.ts` (beide Zwischenspeicher),
 `zeichen.test.ts` (kein fremdes Zeichen im Verzeichnis) und
-`erscheinungsbild.test.ts` (die Maske speichert nur ihre eigenen Felder).
+`erscheinungsbild.test.ts` (die Maske speichert nur ihre eigenen Felder),
+`profilabschnitte.test.ts` (welche Felder das Profil zeigt) und
+`hilfetexte.test.ts` (Platzhalter in den Popovers).
 
 ---
 
@@ -955,9 +965,12 @@ Lauf selbst.
 - [ ] Die Actions melden, dass Node 20 ausläuft. Harmlos, die Tests laufen
       schon mit Node 24. Irgendwann `actions/checkout` und `actions/setup-node`
       von `v4` auf die nächste Hauptversion heben.
-- [ ] `DING` als Stamm, `main` als Zweig der DileHi-Installation. Kein
-      dauerhafter Fork: Was DileHi-eigen ist, gehört in die Datenbank, nicht in
-      einen eigenen Zweig.
+- [x] **Ein Stamm statt zwei.** Am 17. September zusammengeführt: `main`
+      trägt alles, der Zweig `DING` ist damit überflüssig (er lag 16 Commits
+      zurück und wäre die schlechteste Vorlage für eine neue Installation
+      gewesen). Gearbeitet wird auf einem Zweig je Aufgabe, gemerged wird nach
+      `main`. Was DileHi-eigen ist, gehört ohnehin in die Datenbank und nicht
+      in einen eigenen Zweig.
 
 ### Und was jetzt?
 

@@ -3,7 +3,7 @@ import { useNavigate, Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useBranding } from "@/hooks/useBranding";
+import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ const Login = () => {
    * ins Leere zeigender Verweis ist schlechter als keiner.
    */
   const { org_email } = useBranding();
+  const woerter = useWoerter();
 
   /*
    * Eine frische Installation hat noch kein Konto – niemand kann sich hier
@@ -46,13 +47,13 @@ const Login = () => {
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
-  const anWen = org_email ? `wende dich an ${org_email}` : "wende dich an den Vorstand";
+  const anWen = org_email ? `wende dich an ${org_email}` : `wende dich an ${woerter.leitungsgruppe}`;
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
       toast({
         title: "Zugang deaktiviert",
-        description: `Dein Mitgliedskonto wurde vom Vorstand deaktiviert. Bitte ${anWen}.`,
+        description: `Dein Zugang wurde abgeschaltet. Bitte ${anWen}.`,
         variant: "destructive",
       });
     }
