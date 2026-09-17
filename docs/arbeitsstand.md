@@ -1050,7 +1050,35 @@ Bilderumzug. Von 9,9 MB verfolgten Dateien sind 4,3 MB übrig.
       (`Textabschnitt`, `inhalt`, `ueberschrift`). Braucht Datenmigrationen
       über DileHis Inhalte, deshalb getrennt. Dazu die Richtlinien in `storage`
       mit deutschem Namen.
-- [ ] **Dritter Durchgang: der Code selbst.** Rund 300 deutsche Namen im
+- [~] **Dritter Durchgang: der Code selbst — angefangen am 17. September.**
+      Vermessen: **191 Dateien, 214 verschiedene Bezeichner.** Das ist kein
+      Nachmittag, und halb umbenannt ist schlimmer als gar nicht — dann heisst
+      dieselbe Sache an zwei Stellen verschieden. Also in geschlossenen
+      Einheiten, jede für sich grün, jede für sich zu mergen.
+
+      **Einheit 1, erledigt: das Modulsystem.** `Modulstand` → `ModuleState`,
+      `modulAn` → `moduleOn`, `nurAktive` → `onlyActive`, `ModulRoute` →
+      `ModuleRoute` samt Datei. 113 Vorkommen in 19 Dateien; Typprüfung, Lint
+      und 563 Tests grün.
+
+      **Reihenfolge für den Rest**, vom Kern nach aussen, damit jede Einheit
+      auf schon umbenanntem Grund steht:
+
+      | Einheit | Dateien | Bezeichner |
+      | --- | --- | --- |
+      | `src/lib` (Helfer, reine Funktionen) | 74 | Rest von `farben`, `zeichen`, `einrichtung`, `organisationsform` |
+      | `src/hooks` | 31 | was nach dem Modulsystem übrig ist |
+      | `src/components/sitebuilder` | 97 | `bausteine`, `gestaltung`, `woerterbuch` |
+      | `src/components/admin` | 212 | der grösste Brocken |
+      | `src/pages/intern` | 117 | |
+      | `src/test` | 199 | zuletzt: die Testnamen folgen dem Code |
+
+      Was **nicht** mitumbenannt wird: Spaltennamen der Datenbank, Schlüssel in
+      gespeicherten Inhalten und die Namen der Seitenbausteine. Die stehen im
+      JSON jeder gebauten Seite — das ist der zweite Durchgang, und der
+      braucht Datenmigrationen.
+
+- [ ] ~~**Dritter Durchgang: der Code selbst.**~~ Rund 300 deutsche Namen im
       TypeScript (`modulAn`, `nurAktive`, `meldung().titel`, `baueMail()` mit
       `betreff`, `useBeitragsstufen`, `MenuBereich` …), Dateinamen wie
       `Einrichtung.tsx`, `ErsteSchritte.tsx`, `buehne.ts`, die Testnamen, die

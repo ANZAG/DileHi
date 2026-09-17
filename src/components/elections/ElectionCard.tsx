@@ -10,7 +10,7 @@ import { ergebnisVon } from "@/lib/ergebnisBild";
 import ErgebnisBildKnopf from "./ErgebnisBildKnopf";
 import { Link } from "react-router-dom";
 import { Gavel } from "lucide-react";
-import { modulAn, useModule } from "@/hooks/useModule";
+import { moduleOn, useModule } from "@/hooks/useModule";
 
 interface Props {
   election: Election;
@@ -39,7 +39,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
   const { data: module } = useModule();
   // Aus einer geschlossenen Abstimmung einen Beschluss machen – nur, wenn es
   // das Beschlussregister gibt und man dort erfassen darf.
-  const kannBeschliessen = hasPermission("resolutions.manage") && modulAn(module, "resolutions");
+  const kannBeschliessen = hasPermission("resolutions.manage") && moduleOn(module, "resolutions");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

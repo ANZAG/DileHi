@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { PackageOpen } from "lucide-react";
-import { useModule, modulAn } from "@/hooks/useModule";
+import { useModule, moduleOn } from "@/hooks/useModule";
 
 /**
  * Ein Bereich, den es nur gibt, wenn sein Modul eingeschaltet ist.
@@ -13,13 +13,13 @@ import { useModule, modulAn } from "@/hooks/useModule";
  * Auch keine weisse Seite: Genau das passiert, wenn man eine Route einfach
  * nicht rendert.
  */
-export default function ModulRoute({ k, children }: { k: string; children: React.ReactNode }) {
+export default function ModuleRoute({ k, children }: { k: string; children: React.ReactNode }) {
   const { data: module, isLoading } = useModule();
 
   // Solange geladen wird, nichts behaupten. Die Abfrage ist eine Stunde lang
   // gemerkt, das trifft praktisch nur den ersten Aufruf.
   if (isLoading) return <>{children}</>;
-  if (modulAn(module, k)) return <>{children}</>;
+  if (moduleOn(module, k)) return <>{children}</>;
 
   const modul = module?.find((m) => m.key === k);
   const wegenAnderem = modul?.enabled && modul?.requires
