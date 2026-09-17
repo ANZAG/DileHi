@@ -2,11 +2,11 @@
 import { readFileSync } from "node:fs";
 import { seedRows } from "./hilfe/buehne";
 import { describe, expect, it } from "vitest";
-import { modulAn, nurAktive, type Modulstand } from "@/hooks/useModule";
+import { moduleOn, onlyActive, type ModuleState } from "@/hooks/useModule";
 
 const APP_MODULES = await seedRows<{ key: string }>("app_modules");
 
-const modul = (p: Partial<Modulstand>): Modulstand => ({
+const modul = (p: Partial<ModuleState>): ModuleState => ({
   key: p.key ?? "x",
   label: p.label ?? "",
   description: null,
@@ -25,34 +25,34 @@ describe("Module", () => {
   ];
 
   it("zeigt ein eingeschaltetes Modul", () => {
-    expect(modulAn(liste, "forum")).toBe(true);
+    expect(moduleOn(liste, "forum")).toBe(true);
   });
 
   it("verbirgt ein abgeschaltetes Modul", () => {
-    expect(modulAn(liste, "events")).toBe(false);
+    expect(moduleOn(liste, "events")).toBe(false);
   });
 
   it("verbirgt ein Modul, dessen Grundlage fehlt", () => {
     // event_forms steht auf „an", die Veranstaltungen darunter nicht. Massgeblich
     // ist `active`, sonst haetten wir Anmeldeformulare ohne Veranstaltungen.
-    expect(modulAn(liste, "event_forms")).toBe(false);
+    expect(moduleOn(liste, "event_forms")).toBe(false);
   });
 
   it("zeigt alles ohne Modulangabe", () => {
-    expect(modulAn(liste, null)).toBe(true);
-    expect(modulAn(liste, undefined)).toBe(true);
+    expect(moduleOn(liste, null)).toBe(true);
+    expect(moduleOn(liste, undefined)).toBe(true);
   });
 
   it("zeigt ein Modul, das die Datenbank noch nicht kennt", () => {
     // Kommt vor, solange eine Migration nicht eingespielt ist. Ein Bereich,
     // der dann stillschweigend fehlt, waere schwerer zu finden als einer, der
     // da ist.
-    expect(modulAn(liste, "inventar")).toBe(true);
+    expect(moduleOn(liste, "inventar")).toBe(true);
   });
 
   it("zeigt alles, solange die Liste noch nicht geladen ist", () => {
-    expect(modulAn(undefined, "events")).toBe(true);
-    expect(modulAn([], "events")).toBe(true);
+    expect(moduleOn(undefined, "events")).toBe(true);
+    expect(moduleOn([], "events")).toBe(true);
   });
 
   it("filtert Listen mit Modulangabe", () => {
@@ -61,7 +61,7 @@ describe("Module", () => {
       { titel: "Termine", module: "events" },
       { titel: "Profil" },
     ];
-    expect(nurAktive(kacheln, liste).map((k) => k.titel)).toEqual(["Forum", "Profil"]);
+    expect(onlyActive(kacheln, liste).map((k) => k.titel)).toEqual(["Forum", "Profil"]);
   });
 });
 
@@ -86,8 +86,8 @@ describe("Verkabelung", () => {
   const schluessel = new Set([
     ...benutzt("src/pages/intern/Dashboard.tsx", /module: "(\w+)"/g),
     ...benutzt("src/pages/intern/Admin.tsx", /module: "(\w+)"/g),
-    ...benutzt("src/App.tsx", /<ModulRoute k="(\w+)">/g),
-    ...benutzt("src/pages/intern/EventFormEvaluation.tsx", /modulAn\(module, "(\w+)"\)/g),
+    ...benutzt("src/App.tsx", /<ModuleRoute k="(\w+)">/g),
+    ...benutzt("src/pages/intern/EventFormEvaluation.tsx", /moduleOn\(module, "(\w+)"\)/g),
     ...benutzt("src/components/event-forms/types.ts", /module: "(\w+)"/g),
   ]);
 

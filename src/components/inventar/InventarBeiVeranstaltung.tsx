@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
-import { modulAn, useModule } from "@/hooks/useModule";
+import { moduleOn, useModule } from "@/hooks/useModule";
 import { db } from "@/hooks/useInventar";
 
 interface Zeile {
@@ -18,7 +18,7 @@ interface Zeile {
  */
 export default function InventarBeiVeranstaltung({ eventId }: { eventId: string }) {
   const { data: module } = useModule();
-  const an = modulAn(module, "inventory");
+  const an = moduleOn(module, "inventory");
 
   const { data: zeilen = [] } = useQuery({
     queryKey: ["inventar", "veranstaltung", eventId],

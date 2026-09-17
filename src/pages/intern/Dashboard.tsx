@@ -11,7 +11,7 @@ import {
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
-import { useModule, nurAktive, modulAn } from "@/hooks/useModule";
+import { useModule, onlyActive, moduleOn } from "@/hooks/useModule";
 import { SEITE } from "@/lib/layout";
 
 /**
@@ -70,8 +70,8 @@ const Dashboard = () => {
 
   const { data: module } = useModule();
 
-  const showEvalCard = organizedEvents.length > 0 && modulAn(module, "event_forms");
-  const cards = nurAktive(
+  const showEvalCard = organizedEvents.length > 0 && moduleOn(module, "event_forms");
+  const cards = onlyActive(
     showEvalCard
       ? [
           ...baseCards.slice(0, 1),
@@ -139,7 +139,7 @@ const Dashboard = () => {
                 <Settings size={16} /> Verwaltung
               </Link>
             )}
-            {modulAn(module, "contributions") && (
+            {moduleOn(module, "contributions") && (
             <Link
               to="/intern/beitraege"
               data-tour="knopf-beitraege"
