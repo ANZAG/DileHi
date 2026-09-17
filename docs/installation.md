@@ -117,11 +117,11 @@ Cloudflare Pages das GitHub-Projekt verbinden. Einstellungen:
 | Umgebungsvariable | `VITE_SUPABASE_URL` = Project URL aus Schritt 1 |
 | Umgebungsvariable | `VITE_SUPABASE_PUBLISHABLE_KEY` = anon key aus Schritt 1 |
 
-Danach die eigene Domain eintragen. Zwei Dateien im Projekt tragen sie noch
-fest und wollen einmal angefasst werden:
-
-- `index.html` — `og:url`, `og:image`, `twitter:image`
-- `public/robots.txt` — die `Sitemap:`-Zeile
+Die eigene Domain muss dafür nirgends eingetragen werden: Titel, Beschreibung
+und Vorschaubild setzt die Anwendung aus den Vereinsangaben, und die
+`Sitemap:`-Zeile in `public/robots.txt` füllt der Build aus dem Projekt. (Bis
+zum Probelauf stand hier, dass `index.html` und `robots.txt` von Hand
+angefasst werden müssen — das stimmt seit dem 16. September nicht mehr.)
 
 ### Der mitgelieferte Ausrollen-Knopf für die Website
 
@@ -129,9 +129,25 @@ fest und wollen einmal angefasst werden:
 lädt danach per FTP hoch — das ist der Weg, den DileHi geht. Wer die Website
 wie oben bei Netlify oder Vercel veröffentlicht, braucht den zweiten Teil
 nicht: Der Job `deploy` am Ende der Datei kann weg, die Prüfung darüber lohnt
-sich. Bleibt er stehen, ohne dass `FTP_SERVER`, `FTP_USERNAME` und
-`FTP_PASSWORD` hinterlegt sind, scheitert er bei jedem Push auf `main` — ohne
-Schaden, aber mit einem roten Haken, den niemand braucht.
+sich. Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
+Schritt sauber ab und schreibt in die Zusammenfassung, was fehlt — gebaut und
+geprüft ist trotzdem alles.
+
+> **In welchen Ordner geladen wird, steht in der Datei, nicht im Zugang.**
+> Die drei Geheimnisse bringen den Ablauf nur bis in euer FTP-Konto; dort
+> liegen bei den meisten Hostern mehrere Verzeichnisse nebeneinander, eines je
+> Domain. Welches gemeint ist, sagt die Zeile `ZIEL:` im Schritt „Deploy via
+> FTPS":
+>
+> ```yaml
+> ZIEL: /euer-verein.de/
+> ```
+>
+> Das ist beim Kopieren eines bestehenden DING-Repositories **die erste Zeile,
+> die geändert gehört** — sonst lädt eure Installation in das Verzeichnis des
+> Vereins, von dem die Kopie stammt. `mirror --delete` räumt dort auf, was
+> nicht im Build steht.
+
 
 ## 6. Ersten Zugang anlegen
 

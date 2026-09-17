@@ -1,4 +1,4 @@
-# Kopfzeilen für Netlify und Cloudflare Pages — die Entsprechung zum
+# Kopfzeilen fuer Netlify und Cloudflare Pages -- die Entsprechung zum
 # <IfModule mod_headers.c>-Teil der .htaccess.
 
 # Wer die Einbindung als Daten abruft (fetch von einer fremden Seite), geht

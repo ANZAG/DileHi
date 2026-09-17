@@ -317,6 +317,19 @@ Erscheinungsbild schrieb beim Speichern auch `statutes_link` und
 `statutes_document_id` zurück — Felder, die es zeigt seit dem Umzug des
 Satzungsverweises gar nicht mehr.
 
+## Was auf dem Webspace landet, liest ein Mensch im FTP-Programm
+
+Die `.htaccess` auf dilehi.de sah im FTP-Programm nach Zeichensalat aus:
+„nach drauÃŸen", „Ã¼ber". Die Datei selbst ist in Ordnung — sie ist UTF-8, und
+Apache liest Kommentarzeilen ohnehin nicht. Das Programm davor rät die
+Kodierung und rät falsch.
+
+Trotzdem geändert: Die vier Dateien, die auf dem Webspace liegen und dort
+gelesen werden (`.htaccess`, `robots.txt`, `_redirects`, `_headers`), stehen
+jetzt in reinem ASCII. **Was aussieht wie kaputt, wird behandelt wie kaputt** —
+und der Nächste, der dort nachsieht, sucht den Fehler an der falschen Stelle.
+Eine Prüfung hält es fest.
+
 ## Was danach passiert
 
 1. Die Liste der Stolpersteine kommt in [`installation.md`](installation.md),

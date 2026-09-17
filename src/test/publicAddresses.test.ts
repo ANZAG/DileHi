@@ -176,6 +176,17 @@ describe("Adressen nach draußen", () => {
     expect(netlify("/einrichtung")?.ziel).toBe("/index.html");
   });
 
+  it("hält die Dateien auf dem Webspace frei von Umlauten", () => {
+    // Sie werden dort gelesen, wo niemand die Kodierung einstellt: im
+    // FTP-Programm, im Dateimanager des Hosters. Was dort als Zeichensalat
+    // ankommt, sieht kaputt aus — auch wenn der Server damit klarkommt.
+    // Aufgefallen im Probelauf, an der .htaccess auf dilehi.de.
+    for (const datei of ["public/.htaccess", "public/_redirects", "public/_headers", "public/robots.txt"]) {
+      const zeichen = [...read(datei)].filter((c) => c.charCodeAt(0) > 126);
+      expect(zeichen, `${datei} enthält ${zeichen.join(" ")}`).toHaveLength(0);
+    }
+  });
+
   it("gibt die Einbindung auch auf Netlify für fremde Seiten frei", () => {
     const headers = read("public/_headers");
     expect(headers).toContain(`${EMBED_PATH}/*`);

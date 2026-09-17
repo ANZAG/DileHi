@@ -1,17 +1,23 @@
+# Diese Datei liegt auf dem Webspace und wird dort gelesen -- im
+# FTP-Programm, im Dateimanager des Hosters, notfalls in einem Editor ohne
+# Einstellungen. Solche Werkzeuge raten die Kodierung, und aus einem Umlaut
+# werden dann zwei Zeichen Zeichensalat. Deshalb steht hier nichts ausser
+# ASCII: Dem Apache ist es egal, dem Menschen davor nicht.
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Adressen, die nach draußen gehen – Kalender-Abos, Einbindungen auf
-  # fremden Seiten, die Sitemap –, laufen über diese Seite und werden von hier
-  # an die Edge Functions weitergeleitet. Zieht die Datenbank um, ändert sich
+  # Adressen, die nach draussen gehen - Kalender-Abos, Einbindungen auf
+  # fremden Seiten, die Sitemap -, laufen ueber diese Seite und werden von hier
+  # an die Edge Functions weitergeleitet. Zieht die Datenbank um, aendert sich
   # nur das Ziel, nicht die Adresse im Handy oder auf der fremden Seite.
   #
   # __FUNCTIONS_URL__ setzt der Build ein (vite.config.ts). Die Pfade stehen
-  # auch in src/lib/publicAddresses.ts; ein Test prüft, dass beide passen.
+  # auch in src/lib/publicAddresses.ts; ein Test prueft, dass beide passen.
   #
-  # 302 statt 301: Ein 301 merken sich Kalenderprogramme für immer, und dann
-  # hilft beim nächsten Umzug auch diese Weiterleitung nicht mehr.
+  # 302 statt 301: Ein 301 merken sich Kalenderprogramme fuer immer, und dann
+  # hilft beim naechsten Umzug auch diese Weiterleitung nicht mehr.
   RewriteRule ^kalender/veranstaltungen\.ics$ __FUNCTIONS_URL__/events-ical/veranstaltungen.ics [R=302,L,QSA]
   RewriteRule ^kalender/meine-termine\.ics$ __FUNCTIONS_URL__/events-personal-ical/meine-termine.ics [R=302,L,QSA]
   RewriteRule ^einbindung/(events|personas|gallery)(\.js|\.html)?$ __FUNCTIONS_URL__/embed/$1$2 [R=302,L,QSA,E=EINBINDUNG:1]

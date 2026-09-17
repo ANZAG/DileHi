@@ -2,19 +2,19 @@
 #
 # Warum es beides gibt: Ein Verein mit Webspace (Apache) braucht die
 # .htaccess, ein Verein ohne eigenen Server nimmt Netlify oder Cloudflare
-# Pages — die Anleitung empfiehlt genau das. Bis zum Probelauf lag hier nur
-# die .htaccess, und auf Netlify wäre die Installation an der ersten
-# Unteradresse gescheitert: /einrichtung hätte 404 gesagt.
+# Pages -- die Anleitung empfiehlt genau das. Bis zum Probelauf lag hier nur
+# die .htaccess, und auf Netlify waere die Installation an der ersten
+# Unteradresse gescheitert: /einrichtung haette 404 gesagt.
 #
-# Die Reihenfolge zählt: Die vier Adressen nach draußen stehen vor der
+# Die Reihenfolge zaehlt: Die vier Adressen nach draussen stehen vor der
 # Auffangregel, sonst verschluckt sie die Anwendung.
 #
 # __FUNCTIONS_URL__ setzt der Build ein (vite.config.ts). Die Pfade stehen
-# auch in src/lib/publicAddresses.ts; ein Test prüft, dass alle drei Dateien
+# auch in src/lib/publicAddresses.ts; ein Test prueft, dass alle drei Dateien
 # dieselben Adressen kennen.
 #
-# 302 statt 301: Ein 301 merken sich Kalenderprogramme für immer, und dann
-# hilft beim nächsten Umzug auch diese Weiterleitung nicht mehr.
+# 302 statt 301: Ein 301 merken sich Kalenderprogramme fuer immer, und dann
+# hilft beim naechsten Umzug auch diese Weiterleitung nicht mehr.
 
 /kalender/veranstaltungen.ics  __FUNCTIONS_URL__/events-ical/veranstaltungen.ics        302
 /kalender/meine-termine.ics    __FUNCTIONS_URL__/events-personal-ical/meine-termine.ics  302
@@ -23,5 +23,5 @@
 /llms.txt                      __FUNCTIONS_URL__/llms                                    302
 
 # Alles andere ist eine Adresse der Anwendung: index.html ausliefern, ohne die
-# Adresse im Browser zu ändern (200, nicht 302).
+# Adresse im Browser zu aendern (200, nicht 302).
 /*                             /index.html                                               200
