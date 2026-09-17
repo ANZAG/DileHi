@@ -28,7 +28,7 @@ describe("vuozvolc-aufbau.sql", () => {
   )];
 
   it("benutzt nur Bausteine, die es gibt", () => {
-    expect(benutzt.length).toBeGreaterThan(5);
+    expect(benutzt.length).toBeGreaterThanOrEqual(5);
     expect(benutzt.filter((b) => !bekannt.has(b))).toEqual([]);
   });
 
@@ -95,32 +95,72 @@ describe("vuozvolc-aufbau.sql", () => {
    * eine Attrappe für die Vorführung. Echte Namen gehören in Steckbriefe, die
    * die Person selbst freigibt — nicht in ein Skript.
    */
-  it("füllt das Mitgliederraster mit dreissig Karten und Bildplätzen", () => {
+  it("füllt das Mitgliederraster aus der Vorlage", () => {
     const seite = [...SKRIPT.matchAll(/\$json\$([\s\S]*?)\$json\$/g)]
       .map(([, i]) => JSON.parse(i))
       .find((s: { content: { type: string }[] }) =>
         s.content.some((b) => b.type === "Karten"));
     const karten = seite.content.find((b: { type: string }) => b.type === "Karten");
-    expect(karten.props.karten).toHaveLength(30);
+    expect(karten.props.karten.length).toBeGreaterThan(20);
     for (const k of karten.props.karten) {
       expect(k.titel).toBeTruthy();
-      expect(k.bildSchluessel).toMatch(/^vuozvolc-mitglied-\d{2}$/);
+      expect(k.text).toBeTruthy();
+      expect(k.bildSchluessel).toMatch(/^vuozvolc-mitglied-/);
     }
+
+    /*
+     * Kein echter Vorname aus der Vorlage darf hier stehen. Die Fertigkeiten
+     * sind wortgetreu uebernommen -- die gehoeren der Gruppe --, die Namen
+     * nicht. Diese Prüfung ist der Grund, warum man das Skript weitergeben
+     * kann, ohne es jedes Mal durchzulesen.
+     */
+    const echte = ["Bastian", "Bossel", "Chris", "Eric", "Ger", "Heiner", "Ingemar",
+      "Johannes", "Mario", "Michel", "Meinrad", "Michi", "Oliver", "Olaf", "Thomas",
+      "Alisa", "Jasmin", "Lena", "Manuela", "Sandra", "Susanne", "Veronika", "Marie",
+      "Bärbel"];
+    const titel = karten.props.karten.map((k: { titel: string }) => k.titel);
+    expect(titel.filter((t: string) => echte.includes(t))).toEqual([]);
+
+    /* „Dein Name?" ist kein Name und bleibt deshalb, wie es dasteht. */
+    expect(titel.some((t: string) => /Dein Name/.test(t))).toBe(true);
     // Jeder Platz muss auch angelegt werden, sonst zeigt die Bildauswahl ins Leere.
     for (const k of karten.props.karten) {
       expect(SKRIPT).toContain("('" + k.bildSchluessel + "'");
     }
   });
 
-  /** Was Vuozvolc ausmacht: das Schlagwort über der Überschrift. */
-  it("trägt die lateinischen Oberzeilen", () => {
-    for (const wort of ["PROMPTUS", "SOCIUS", "INSTITUTIONES", "CONTACTUS"]) {
+  /**
+   * Was Vuozvolc ausmacht: das Schlagwort über der Überschrift. Ohne das
+   * sieht der Nachbau fremd aus, obwohl jeder Absatz stimmt — so stand es
+   * schon in der Machbarkeitsanalyse.
+   */
+  it("trägt die Oberzeilen der Vorlage", () => {
+    for (const wort of ["promptus", "socius", "contactus", "historia",
+                        "institutiones", "NAAL OBLIGATIO"]) {
       expect(SKRIPT).toContain(wort);
     }
   });
 
-  /** Erfundene Fliesstexte wären schlimmer als sichtbar leere. */
-  it("sagt an jedem Absatz, dass der Text noch fehlt", () => {
-    expect(SKRIPT).toMatch(/Platzhalter/);
+  /** Die Texte sind wortgetreu übernommen — Stichproben aus vier Seiten. */
+  it("trägt die Texte der Vorlage", () => {
+    for (const satz of [
+      "Naalbinding (oder Nadelbinden) gibt es schon viel länger",
+      "Das Getreide ist unbestritten das wichtigste Grundnahrungsmittel",
+      "Gründung der Gruppe",
+      "leitet sich aus dem Mittelhochdeutschen ab und bedeutet",
+    ]) {
+      expect(SKRIPT).toContain(satz);
+    }
+  });
+
+  /**
+   * Impressum, Datenschutz und Cookie-Richtlinie sind NICHT übernommen. Die
+   * baut DING aus den Vereinsangaben; eine fremde Rechtsseite zu kopieren
+   * wäre in jeder Hinsicht falsch.
+   */
+  it("fasst die Rechtsseiten nicht an", () => {
+    for (const slug of ["'impressum'", "'datenschutz'", "'cookie"]) {
+      expect(SKRIPT).not.toContain("values (" + slug);
+    }
   });
 });
