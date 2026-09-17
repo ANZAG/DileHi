@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Adresse und öffentlicher Schlüssel kommen beim Bauen aus dem Projekt
-// (deploy.yml, probeseite.yml), nicht aus einer eingecheckten Datei.
+// (deploy.yml), nicht aus einer eingecheckten Datei.
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
