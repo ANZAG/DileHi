@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "seite:bauen": "node scripts/seite-bauen.mjs",
     "functions:check": "npx -y deno@2 check --no-lock --config supabase/functions/typecheck.json supabase/functions"
   },
   "dependencies": {
