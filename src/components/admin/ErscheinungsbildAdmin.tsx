@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useWoerter } from "@/hooks/useBranding";
+import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
@@ -16,6 +16,7 @@ import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
 import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
 import DateiablageWahl from "./DateiablageWahl";
+import OrganisationsformWahl from "./OrganisationsformWahl";
 import MailAnleitung from "./MailAnleitung";
 
 interface Einstellungen {
@@ -66,6 +67,33 @@ interface Einstellungen {
 const db = supabase as unknown as { from: (t: string) => any };
 
 /**
+ * Die Felder, die diese Maske pflegt — und nur die.
+ *
+ * Vorher ging der ganze Entwurf in das `update`. Der kommt aus `select("*")`
+ * und enthält damit jede Spalte der Zeile, auch die, die hier niemand sieht:
+ * die Organisationsform und den Stand des Einrichtungsdurchlaufs. Wer die Form
+ * woanders umstellte und danach hier auf „Speichern" drückte, schrieb den
+ * alten Wert zurück — ohne dass irgendwo etwas davon stand.
+ *
+ * Eine Maske speichert, was sie zeigt. Alles andere gehört ihr nicht.
+ */
+const FELDER: (keyof Einstellungen)[] = [
+  "org_name", "org_short_name", "org_tagline",
+  "org_street", "org_zip", "org_city", "org_email", "org_phone", "website_url",
+  "logo_path", "favicon_path", "logo_in_header",
+  "statutes_link", "statutes_document_id",
+  "color_primary", "color_surface", "color_dark", "font_headings", "font_body",
+  "seo_description",
+  "mail_from_address", "mail_from_name", "mail_reply_to", "mail_transport",
+  "is_nonprofit", "tax_office", "tax_number",
+  "exemption_notice_kind", "exemption_notice_date", "exemption_notice_period",
+  "tax_purposes", "fees_deductible", "volunteer_allowance", "trainer_allowance",
+  "calendar_timezone",
+  "contribution_model", "contribution_retention_years",
+  "bank_recipient", "bank_iban", "bank_bic",
+];
+
+/**
  * Vereinsdaten und Erscheinungsbild.
  *
  * Alles hier stand schon in der Datenbank – nur gab es keine Stelle, an der man
@@ -85,6 +113,10 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const woerter = useWoerter();
+  // Die Form kommt aus dem Branding, nicht aus dem Entwurf dieser Maske: Sie
+  // wird nebenan sofort gespeichert, und was hier im Entwurf liegt, wäre eine
+  // Minute später falsch.
+  const marke = useBranding();
   const queryClient = useQueryClient();
   const [entwurf, setEntwurf] = useState<Einstellungen | null>(null);
   const [laedtBild, setLaedtBild] = useState<"logo" | "favicon" | null>(null);
@@ -118,7 +150,13 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           body: { action: "settings", fileStorage: file_storage, siteUrl: sharepoint_site_url ?? "" },
         });
       }
-      const { error } = await db.from("app_settings").update(rest).eq("id", true);
+      // Aus dem Entwurf nur die eigenen Felder – siehe FELDER oben. Die
+      // Dateiablage ist schon oben durch die Edge Function gegangen.
+      const patch = Object.fromEntries(
+        FELDER.filter((f) => f !== "file_storage" && f !== "sharepoint_site_url")
+          .map((f) => [f, (rest as Einstellungen)[f]])
+      );
+      const { error } = await db.from("app_settings").update(patch).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -229,6 +267,18 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     <div>
     <div className={ZWEISPALTIG}>
       {teil === "erscheinungsbild" && (<>
+      {/* ── Die Form ─────────────────────────────────────────────────────────
+          Ganz oben, weil alles Weitere daran hängt: was es in dieser
+          Installation überhaupt gibt und wie die Oberfläche darüber spricht.
+          Bis zum Probelauf stand diese Frage nur im geführten Durchlauf — wer
+          den nicht zu sehen bekam, konnte seine Form nirgends einstellen. */}
+      <Abschnitt
+        titel="Was seid ihr?"
+        hinweis="Danach richtet sich, welche Bereiche es bei euch gibt und mit welchen Wörtern DING darüber spricht."
+      >
+        <OrganisationsformWahl wert={marke.org_form} />
+      </Abschnitt>
+
       {/* ── Verein ───────────────────────────────────────────────────────── */}
       <Abschnitt titel={woerter.organisationBestimmt} hinweis="Name und Anschrift, wie sie auf der Seite und in Mails erscheinen.">
         <div className="grid sm:grid-cols-2 gap-3">
