@@ -125,11 +125,15 @@ angefasst werden müssen — das stimmt seit dem 16. September nicht mehr.)
 
 ### Der mitgelieferte Ausrollen-Knopf für die Website
 
-`.github/workflows/deploy.yml` prüft bei jedem Push (Lint, Typen, Tests) und
-lädt danach per FTP hoch — das ist der Weg, den DileHi geht. Wer die Website
-wie oben bei Netlify oder Vercel veröffentlicht, braucht den zweiten Teil
-nicht: Der Job `deploy` am Ende der Datei kann weg, die Prüfung darüber lohnt
-sich. Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
+`.github/workflows/deploy.yml` prüft bei jedem Push (Lint, SEO, Typen,
+Edge-Function-Typen, Tests) und lädt danach per FTP hoch — das ist der Weg, den
+DileHi und die Probeseite `ding.dilehi.de` gehen. Wer die Website wie oben bei
+Netlify oder Vercel veröffentlicht, braucht den zweiten Teil nicht: Der Job
+`deploy` am Ende der Datei kann weg, die Prüfung darüber lohnt sich.
+
+Mehr Actions als diese vier braucht eine Installation nicht: `supabase.yml`
+(Schritt 4), `deploy.yml` (dieser Schritt), `backup.yml` (die tägliche
+Sicherung, Schritt 3) und `digest.yml` (die abendliche Zusammenfassung). Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
 Schritt sauber ab und schreibt in die Zusammenfassung, was fehlt — gebaut und
 geprüft ist trotzdem alles.
 
@@ -177,6 +181,15 @@ fehlt — Migrationen, erster Zugang, Vereinsdaten, Mailversand, Impressum und
 Datenschutz, Sicherung — und sagt zu jedem Punkt, der nicht grün ist, den
 nächsten Handgriff. Fehlt ein Geheimnis, steht dort sein Name zum Kopieren;
 den Wert kennt nur ihr.
+
+> Ist der Durchlauf beendet, verschwindet die Kachel: Sie hat dann nichts mehr
+> zu sagen und stünde nur zwischen den Einstellungen, die ihr täglich braucht.
+> Wer später noch einmal nachsehen will, hängt `?reiter=einrichtung` an die
+> Adresse der Verwaltung:
+>
+> ```
+> https://euer-verein.de/intern/verwaltung?reiter=einrichtung
+> ```
 
 Von Hand einzurichten ist danach noch:
 
