@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -34,54 +35,51 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SEITE } from "@/lib/layout";
+import { useDokumentkategorien, sichtbare } from "@/hooks/useDokumentkategorien";
 
-const ALL_CATEGORIES = [
-  { value: "satzung", label: "Satzung & Ordnungen" },
-  { value: "protokoll", label: "Tätigkeitsberichte" },
-  { value: "vorstand", label: "Vorstand" },
-  { value: "vorlagen", label: "Vorlagen" },
-  { value: "vereinsshirts", label: "Vereinsshirts" },
-  { value: "sonstiges", label: "Sonstiges" },
-];
-
-const RESTRICTED_CATEGORIES = ["vorstand", "vorlagen"];
-const VORSTAND_ONLY_CATEGORIES = ["vereinsshirts"];
-
+/**
+ * Die Ablagen stehen nicht mehr hier, sondern in der Datenbank.
+ *
+ * Bis zum Probelauf war es eine Liste im Quelltext – unsere sechs, von
+ * „Satzung & Ordnungen" bis „Vereinsshirts". Wer was davon sehen durfte, stand
+ * daneben, noch einmal in der Richtlinie auf der Tabelle und ein drittes Mal
+ * in der auf dem Dateispeicher. Ein anderer Verein bekam unsere Ablage und
+ * konnte nichts daran ändern.
+ */
 const Documents = () => {
+  const woerter = useWoerter();
   const { user, hasPermission } = useAuth();
   const canManageDocs = hasPermission("documents.manage");
-  const canSeeVorstand = hasPermission("profiles.view_all");
-  const canSeeVorstandOnly = hasPermission("documents.manage");
-  const CATEGORIES = ALL_CATEGORIES.filter((c) => {
-    if (RESTRICTED_CATEGORIES.includes(c.value)) return canSeeVorstand;
-    if (VORSTAND_ONLY_CATEGORIES.includes(c.value)) return canSeeVorstandOnly;
-    return true;
-  });
+  const { data: alleKategorien = [] } = useDokumentkategorien();
+  const CATEGORIES = sichtbare(alleKategorien, hasPermission);
   const { toast } = useToast();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("sonstiges");
+  const [category, setCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
+  // Was jemand sehen darf, entscheidet die Richtlinie auf der Tabelle. Hier
+  // stand dieselbe Regel noch einmal als Filter – zwei Fassungen derselben
+  // Entscheidung, von denen nur eine wirklich schützt.
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documents", canSeeVorstand, canSeeVorstandOnly],
+    queryKey: ["documents"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("documents")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!canSeeVorstand) {
-        query = query.not("category", "in", '("vorstand","vorlagen")');
-      }
-      if (!canSeeVorstandOnly) {
-        query = query.neq("category", "vereinsshirts");
-      }
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
   });
+
+  /** In welche Ablage das Hochgeladene kommt, solange niemand gewählt hat. */
+  const gewaehlt =
+    category ||
+    CATEGORIES.find((c) => c.key === "sonstiges")?.key ||
+    CATEGORIES[0]?.key ||
+    "";
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +102,7 @@ const Documents = () => {
     // user is already available from useAuth – no extra round-trip needed
     const { error } = await supabase.from("documents").insert({
       title: title.trim(),
-      category,
+      category: gewaehlt,
       storage_path: path,
       file_name: file.name,
       uploaded_by: user!.id,
@@ -116,7 +114,7 @@ const Documents = () => {
     } else {
       toast({ title: "Dokument hochgeladen" });
       setTitle("");
-      setCategory("sonstiges");
+      setCategory("");
       setFile(null);
       qc.invalidateQueries({ queryKey: ["documents"] });
     }
@@ -147,7 +145,7 @@ const Documents = () => {
 
   const grouped = CATEGORIES.map((cat) => ({
     ...cat,
-    docs: docs.filter((d: any) => d.category === cat.value),
+    docs: docs.filter((d: any) => d.category === cat.key),
   })).filter((g) => g.docs.length > 0);
 
   return (
@@ -157,7 +155,7 @@ const Documents = () => {
           <ArrowLeft size={16} /> Zurück
         </Link>
 
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6">Vereinsdokumente</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6">{woerter.dokumente}</h1>
 
         {canManageDocs && (
           <form onSubmit={handleUpload} className="p-4 rounded-lg border bg-card mb-8 space-y-4">
@@ -169,11 +167,11 @@ const Documents = () => {
               </div>
               <div className="space-y-1">
                 <Label>Kategorie</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={gewaehlt} onValueChange={setCategory}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -206,7 +204,7 @@ const Documents = () => {
         ) : (
           <Accordion type="multiple" className="space-y-4">
             {grouped.map((group) => (
-              <AccordionItem key={group.value} value={group.value} className="border rounded-lg">
+              <AccordionItem key={group.key} value={group.key} className="border rounded-lg">
                 <AccordionTrigger className="px-4 py-3 font-serif text-lg font-semibold hover:no-underline">
                   {group.label} ({group.docs.length})
                 </AccordionTrigger>

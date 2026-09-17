@@ -14,7 +14,7 @@ export type Hintergrund = "keine" | "karte" | "gedaempft" | "akzent_zart" | "akz
 export const TEXTFARBEN: { label: string; value: Textfarbe }[] = [
   { label: "Standard", value: "standard" },
   { label: "Gedämpft (grau)", value: "gedaempft" },
-  { label: "Vereinsfarbe", value: "akzent" },
+  { label: "Eure Farbe", value: "akzent" },
   { label: "Hell (auf dunklem Grund)", value: "hell" },
 ];
 
@@ -22,8 +22,8 @@ export const HINTERGRUENDE: { label: string; value: Hintergrund }[] = [
   { label: "Ohne", value: "keine" },
   { label: "Kasten", value: "karte" },
   { label: "Gedämpft", value: "gedaempft" },
-  { label: "Vereinsfarbe, zart", value: "akzent_zart" },
-  { label: "Vereinsfarbe, kräftig", value: "akzent" },
+  { label: "Eure Farbe, zart", value: "akzent_zart" },
+  { label: "Eure Farbe, kräftig", value: "akzent" },
 ];
 
 const TEXT_KLASSEN: Record<Textfarbe, string> = {
@@ -74,6 +74,21 @@ const FLAECHEN_KLASSEN: Record<Hintergrund, string> = {
 export function flaechenKlasse(grund?: Hintergrund): string {
   return FLAECHEN_KLASSEN[grund ?? "keine"] ?? "";
 }
+
+/**
+ * Der Grund eines Kopfbereichs, solange kein Bild hinterlegt ist.
+ *
+ * Titelbild und Willkommensbereich waren auf ein Bild angewiesen: Fehlte es,
+ * stand dort ein <img> ohne Adresse – im Browser ein zerbrochenes Symbol, bei
+ * manchen sogar ein zweiter Ladeversuch der Seite selbst. Eine frische
+ * Installation hat aber noch kein einziges Bild, und die erste Seite, die
+ * jemand von seinem Verein sieht, soll nicht kaputt aussehen.
+ *
+ * Statt eines Ersatzbildes – das immer das Bild eines fremden Vereins waere –
+ * ein Verlauf aus der eigenen Vereinsfarbe. Er kostet nichts, laedt nicht, und
+ * er aendert sich mit, sobald jemand seine Farbe einstellt.
+ */
+export const FARBGRUND = "bg-gradient-to-br from-primary/25 via-background to-primary/10";
 
 export type Flaeche = "inhalt" | "voll";
 

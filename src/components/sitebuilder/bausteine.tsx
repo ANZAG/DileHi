@@ -19,6 +19,7 @@ import KontaktFelder from "@/components/kontakt/KontaktFelder";
 import VeranstalterFelder from "@/components/kontakt/VeranstalterFelder";
 import PublicPersonasSection from "@/components/PublicPersonasSection";
 import {
+  FARBGRUND,
   abstandKlasse, breitenKlasse, flaechenKlasse, grundKlasse, polsterung, textKlasse,
   type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
 } from "./gestaltung";
@@ -82,7 +83,9 @@ export function Titelbild({
   farbeUeberschrift?: Textfarbe;
   farbeUnterzeile?: Textfarbe;
 }) {
-  const bild = useSiteImage(bildSchluessel);
+  const bild = useSiteImage(bildSchluessel ?? "");
+  // Ohne hinterlegtes Bild der Farbverlauf statt eines leeren <img>.
+  const hatBild = Boolean(bildSchluessel && bild.src);
   const hoehen = {
     klein: "h-[28vh] min-h-[220px]",
     mittel: "h-[40vh] min-h-[300px]",
@@ -91,8 +94,14 @@ export function Titelbild({
 
   return (
     <section className={`relative ${hoehen[hoehe] ?? hoehen.mittel} flex items-end overflow-hidden`}>
-      <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+      {hatBild ? (
+        <>
+          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        </>
+      ) : (
+        <div aria-hidden className={`absolute inset-0 ${FARBGRUND}`} />
+      )}
       <div className="relative z-10 container pb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <h1 className={`font-serif text-3xl md:text-5xl font-bold mb-2 ${textKlasse(farbeUeberschrift)}`}>

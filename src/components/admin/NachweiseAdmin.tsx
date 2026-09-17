@@ -340,7 +340,7 @@ function Arten() {
       <div>
         <h3 className="font-medium">Arten von Nachweisen</h3>
         <p className="text-sm text-muted-foreground max-w-prose">
-          Welche Nachweise euer Verein führt, etwa Erste Hilfe, Pulverschein, Befähigungsnachweis nach dem
+          Welche Nachweise ihr führt, etwa Erste Hilfe, Pulverschein, Befähigungsnachweis nach dem
           Sprengstoffgesetz, Anhänger-Führerschein oder Schaukampf-Einweisung. Die Gültigkeit schlägt beim
           Eintragen das Ablaufdatum vor; leer heisst ohne Ablaufdatum.
         </p>

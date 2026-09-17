@@ -6,7 +6,6 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { PERIOD_OPTIONS } from "@/components/personas/constants";
 
 interface PersonaRow {
   id: string;
@@ -156,9 +155,7 @@ export default function PersonaPublishAdmin() {
                 <span className="font-normal text-muted-foreground"> · {p.owner}</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                {PERIOD_OPTIONS.includes(p.period as (typeof PERIOD_OPTIONS)[number])
-                  ? p.period
-                  : p.period || "Zeitstellung offen"}
+                {p.period || "Zeitstellung offen"}
                 {p.images?.length ? ` · ${p.images.length} Bild(er)` : ""}
               </p>
               {p.expertise && (

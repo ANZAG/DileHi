@@ -85,6 +85,153 @@ describe("Startdaten einer neuen Installation", () => {
     expect(kategorien).toHaveLength(0);
   });
 
+  it("nennt die Rollen so, wie ein fremder Verein sie nennen würde", async () => {
+    const rollen = await seedRows<{ key: string; label: string; description: string | null }>("role_catalog");
+    const name = (key: string) => rollen.find((r) => r.key === key)?.label;
+
+    expect(name("officiatus_1")).toBe("Admin");
+    expect(name("officiatus_2")).toBe("Co-Admin");
+    expect(name("herold")).toBe("Medienbeauftragter");
+    expect(name("schatzmeister")).toBe("Kassenwart");
+
+    // Von DileHis Ämtern darf nichts mehr zu sehen sein.
+    const sichtbar = rollen.map((r) => `${r.label} ${r.description ?? ""}`).join(" ");
+    expect(sichtbar).not.toMatch(/Officiatus|Herold|Schatzmeister/i);
+
+    // Die Schlüssel bleiben: An ihnen hängen über hundert Rechtezuweisungen
+    // und einiges im Programm. Fällt einer weg, ist das kein Umbenennen mehr.
+    expect(rollen.map((r) => r.key)).toContain("officiatus_1");
+  });
+
+  it("lässt die Rollen in Ruhe, sobald die Vereinsdaten eingetragen sind", async () => {
+    // Die Schranke der Rollennamen ist eine andere als die der übrigen
+    // Startdaten: Sie fragt nicht nach Konten, sondern nach dem Vereinsnamen.
+    // Sonst käme sie zu spät — den ersten Zugang legt man an, bevor man die
+    // Vereinsdaten einträgt.
+    const db = await leereDatenbank();
+    const dateien = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
+    const ROLLEN = "20260916120000_rollennamen.sql";
+
+    for (const f of dateien.filter((f) => f < ROLLEN)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+    await db.exec(`update public.app_settings set org_name = 'Turnverein Beispiel e. V.';`);
+    for (const f of dateien.filter((f) => f >= ROLLEN)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+
+    const rollen = (await db.query<{ key: string; label: string }>(
+      "select key, label from public.role_catalog where key = 'officiatus_1'"
+    )).rows;
+    expect(rollen[0].label).toBe("1. Officiatus");
+
+    await db.close();
+  });
+
+  it("gibt dem Forum vier Rubriken zum Anfangen", async () => {
+    const rubriken = await seedRows<{ name: string; status: string; slug: string }>("forum_categories");
+    expect(rubriken).toHaveLength(4);
+    for (const r of rubriken) expect(r.status).toBe("aktiv");
+
+    // Sie müssen zu jeder Form passen – nichts, was nur ein Verein hat.
+    const text = rubriken.map((r) => r.name).join(" ");
+    expect(text).not.toMatch(/Vorstand|Mitgliederversammlung|Beiträge|Epoche/i);
+  });
+
+  it("gibt einer neuen Installation eine gebaute Startseite", async () => {
+    // Vorher bekam ein neuer Verein eine veröffentlichte Seite ohne einen
+    // einzigen Baustein: weisse Fläche zwischen Kopf und Fuss. Wer seine
+    // Adresse zum ersten Mal aufruft, soll nicht raten müssen, ob etwas
+    // kaputt ist.
+    const seiten = await seedRows<Seite>("site_pages");
+    const start = seiten.find((s) => s.slug === "startseite");
+
+    expect(start, "Startseite fehlt").toBeTruthy();
+    expect(start!.is_published).toBe(true);
+
+    const bloecke = (start!.content as { content?: { type: string }[] }).content ?? [];
+    expect(bloecke.length).toBeGreaterThan(3);
+
+    // Der Willkommensbereich oben und etwas zum Weiterklicken unten – ohne
+    // beides ist es keine Startseite, sondern ein Textblatt.
+    const arten = bloecke.map((b) => b.type);
+    expect(arten[0]).toBe("Willkommen");
+    expect(arten).toContain("Aktionskaesten");
+
+    // Jeder Baustein muss angezeigt werden können. Einen, den der Renderer
+    // nicht kennt, überspringt er stillschweigend – die Seite wäre dann
+    // wieder leer, ohne dass jemand einen Fehler sieht.
+    const renderer = readFileSync("src/components/sitebuilder/SeitenRenderer.tsx", "utf-8");
+    const bekannt = renderer.slice(
+      renderer.indexOf("const BAUSTEINE"),
+      renderer.indexOf("as unknown as Record<string, BausteinKomponente>")
+    );
+    for (const art of arten) {
+      expect(bekannt, `Baustein ${art} kennt der Renderer nicht`).toContain(art);
+    }
+  });
+
+  it("stellt auf die Startseite nichts, was einem anderen Verein gehört", async () => {
+    const seiten = await seedRows<Seite>("site_pages");
+    const text = JSON.stringify(seiten.find((s) => s.slug === "startseite")!.content);
+    // Erst einmal muss etwas dastehen – auf einer leeren Seite findet diese
+    // Prüfung nichts und wäre grün, ohne etwas geprüft zu haben.
+    expect(text.length).toBeGreaterThan(400);
+
+    // Keine Bilder aus unserem Bestand: Die mitgelieferten Dateien zeigen
+    // DileHis Leute. Ein fremder Verein fände sie auf seiner eigenen
+    // Startseite wieder.
+    for (const schluessel of ["hero-startseite", "gruppenfoto", "epochen"]) {
+      expect(text).not.toContain(schluessel);
+    }
+
+    // Und kein Wort, das nur zu einer Form der Organisation passt: Eine
+    // Interessengemeinschaft hat keinen Vorstand und keine Beiträge.
+    expect(text).not.toMatch(/Vorstand|Mitgliederversammlung|Satzung|Verein/i);
+  });
+
+  it("legt einen Platz für das eigene Titelbild an", async () => {
+    // Die Bildauswahl im Editor liest aus site_images. Ohne eine Zeile dort
+    // steht das Feld leer da, als gäbe es gar keine Bilder – und der Verein
+    // sucht, wo er seines hinlegen soll.
+    const bilder = await seedRows<{ slot: string; page: string; storage_path: string | null }>("site_images");
+    const titel = bilder.find((b) => b.slot === "titelbild-startseite");
+
+    expect(titel, "Platz für das Titelbild fehlt").toBeTruthy();
+    expect(titel!.page).toBe("Startseite");
+    // Ein Platz, kein Bild: Eine Datei mitzuliefern hiesse, das Foto eines
+    // anderen Vereins zu zeigen.
+    expect(titel!.storage_path).toBeNull();
+  });
+
+  it("lässt eine Startseite in Ruhe, an der schon jemand gebaut hat", async () => {
+    // Gegenprobe zur Schranke. Ohne sie wäre das ein UPDATE, das beim
+    // nächsten Ausrollen die Arbeit eines Jahres überschreibt.
+    const db = await leereDatenbank();
+    const dateien = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
+    const STARTSEITE = "20260916180000_startseite.sql";
+
+    for (const f of dateien.filter((f) => f < STARTSEITE)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+    await db.exec(`
+      update public.site_pages
+         set content = '{"content":[{"type":"Ueberschrift","props":{"text":"Unsere Seite"}}],"root":{}}'::jsonb
+       where slug = 'startseite';
+    `);
+    for (const f of dateien.filter((f) => f >= STARTSEITE)) {
+      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    }
+
+    const inhalt = JSON.stringify((await db.query<Seite>(
+      "select content from public.site_pages where slug = 'startseite'"
+    )).rows[0].content);
+    expect(inhalt).toContain("Unsere Seite");
+    expect(inhalt).not.toContain("Aktionskaesten");
+
+    await db.close();
+  });
+
   it("verschickt ab Werk über SMTP", async () => {
     const einstellungen = await seedRows<{ mail_transport: string }>("app_settings");
     expect(einstellungen).toHaveLength(1);

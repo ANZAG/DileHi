@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
@@ -10,6 +11,7 @@ import {
   Eye, Shield, FileText, FileSignature, History, ClipboardList, ListChecks,
   Menu as MenuIcon, ScrollText, Code2, MessagesSquare, PackageOpen, Compass,
   UserCog2, Inbox, Coins, ShieldCheck, CalendarClock, ShieldQuestion, ClipboardCheck,
+  FolderOpen,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import GalleryAdmin from "@/components/admin/GalleryAdmin";
@@ -28,6 +30,7 @@ import NachweiseAdmin from "@/components/admin/NachweiseAdmin";
 import FristenAdmin from "@/components/admin/FristenAdmin";
 import EinwilligungenAdmin from "@/components/admin/EinwilligungenAdmin";
 import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
+import DokumentkategorienAdmin from "@/components/admin/DokumentkategorienAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
 import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
@@ -43,7 +46,7 @@ import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
-type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen" | "einrichtung";
+type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen" | "einrichtung" | "dokumentablagen";
 
 
 const Admin = () => {
@@ -56,6 +59,7 @@ const Admin = () => {
   // vorzeitiges return fuer Leute ohne Zugang, und ein Hook dahinter liefe
   // nicht bei jedem Aufbau.
   const { data: module } = useModule();
+  const woerter = useWoerter();
   // Den Eingangskorb gibt es nur, wenn die Dateien in SharePoint liegen.
   // Derselbe Schlüssel wie im Eingangskorb selbst, also eine Abfrage für beide.
   const { data: dateiablage } = useQuery({
@@ -164,14 +168,17 @@ const Admin = () => {
     ...(hasPermission("forum.categories_manage") ? [
       { id: "forum" as const, gruppe: "intern", label: "Forum-Rubriken", icon: MessagesSquare, desc: "Rubriken und wer darin schreiben darf" , module: "forum"},
     ] : []),
+    ...(hasPermission("documents.manage") ? [
+      { id: "dokumentablagen" as const, gruppe: "intern", label: "Dokumentablagen", icon: FolderOpen, desc: "Wonach Dokumente sortiert sind und wer hineinsieht", module: "documents" },
+    ] : []),
     ...(hasPermission("events.moderate") ? [
       { id: "formtemplate" as const, gruppe: "system", label: "Umfrage-Vorlage", icon: ListChecks, desc: "Standardfragen für neue Anmeldungen" , module: "event_forms"},
     ] : []),
     ...(hasPermission("system.modules") ? [
-      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche der Verein nutzt" },
+      { id: "module" as const, gruppe: "system", label: "Module", icon: PackageOpen, desc: "Welche Bereiche ihr nutzt" },
     ] : []),
     ...(canRoles ? [
-      { id: "rollen" as const, gruppe: "system", label: "Rollen", icon: UserCog2, desc: "Welche Rollen es im Verein gibt" },
+      { id: "rollen" as const, gruppe: "system", label: "Rollen", icon: UserCog2, desc: "Welche Rollen es bei euch gibt" },
       { id: "permissions" as const, gruppe: "system", label: "Berechtigungen", icon: Shield, desc: "Was eine Rolle darf" },
     ] : []),
     ...(canAudit ? [
@@ -194,7 +201,7 @@ const Admin = () => {
     ["intern", "Mitgliederbereich"],
     // Nur für gemeinnützige Vereine – ohne die Einstellung gibt es hier keine
     // Kachel, und eine leere Gruppe erscheint nicht.
-    ["verein", "Vereinsführung"],
+    ["verein", woerter.leitungsgruppe],
     ["system", "Allgemeine Einstellungen"],
   ] as const) {
     const tabs = sichtbareTabs.filter((t) => t.gruppe === schluessel);
@@ -317,6 +324,7 @@ const Admin = () => {
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
           {activeTab === "ablage" && hasPermission("system.integrations") && <FileStorageAdmin />}
           {activeTab === "forum" && hasPermission("forum.categories_manage") && <ForumCategoriesAdmin />}
+          {activeTab === "dokumentablagen" && hasPermission("documents.manage") && <DokumentkategorienAdmin />}
           {activeTab === "rollen" && canRoles && <RollenAdmin />}
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}

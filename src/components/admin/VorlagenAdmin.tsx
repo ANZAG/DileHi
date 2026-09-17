@@ -76,7 +76,7 @@ export default function VorlagenAdmin() {
       <div className="mb-4">
         <h2 className="font-serif text-lg font-semibold">E-Mail-Vorlagen</h2>
         <p className="text-sm text-muted-foreground">
-          Was in den E-Mails der Anwendung steht. Vereinsname, Anschrift und
+          Was in den E-Mails der Anwendung steht. Name, Anschrift und
           Farben kommen aus dem Erscheinungsbild.
         </p>
       </div>

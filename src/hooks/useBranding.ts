@@ -1,10 +1,15 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { woerter, type Woerter } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
 import { flaechenfarben, hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
 import { ladeSchriften } from "@/lib/schriften";
 
 export interface Branding {
+  /** Verein, e. V. oder Interessengemeinschaft – bestimmt die Wortwahl. */
+  org_form: string;
+  /** Wann der geführte Einrichtungsprozess beendet wurde; null = noch offen. */
+  setup_done_at: string | null;
   org_name: string;
   org_short_name: string;
   org_tagline: string | null;
@@ -44,10 +49,21 @@ export interface Branding {
   footer_legal_label: string;
 }
 
-/** Fällt der Aufruf aus, sieht die Seite aus wie bisher – nicht kaputt. */
+/**
+ * Fällt der Aufruf aus, bleibt die Seite benutzbar – nur ohne Namen.
+ *
+ * Hier stand bis zum Probelauf DileHis Name. Eine fremde Installation, deren
+ * Abfrage einmal scheitert, hätte damit den Namen eines Wiesbadener Vereins
+ * im Kopf stehen gehabt. „Verein" ist dieselbe Vorgabe, die auch die Edge
+ * Functions nehmen (marke() in _shared/einstellungen.ts).
+ */
 const VORGABE: Branding = {
-  org_name: "Diu lebendec Histôrje e. V.",
-  org_short_name: "Diu lebendec Histôrje",
+  org_form: "club",
+  // Ohne Antwort keine Aufforderung: Ein Hinweis „richte erst ein" auf einer
+  // laufenden Installation wäre schlimmer als keiner.
+  setup_done_at: new Date(0).toISOString(),
+  org_name: "Verein",
+  org_short_name: "Verein",
   org_tagline: null,
   logo_path: null,
   favicon_path: null,
@@ -117,6 +133,8 @@ export function useBranding() {
     ...branding,
     logoUrl: oeffentlicheAdresse(branding.logo_path),
     faviconUrl: oeffentlicheAdresse(branding.favicon_path),
+    // Das Bild, das bei einem geteilten Link erscheint. Ohne Eintrag keines –
+    // besser gar keins als das eines fremden Vereins.
     seoImageUrl: oeffentlicheAdresse(branding.seo_image_path),
   };
 }
@@ -128,6 +146,16 @@ export function useBranding() {
  * überschreiben damit die Vorgaben aus index.css – für beide Modi, hell wie
  * dunkel, weil sie eine Stufe spezifischer sind als `:root` bzw. `.dark`.
  */
+/**
+ * Die Wörter dieser Installation.
+ *
+ * `const w = useWoerter();` und dann `w.dokumente` statt „Vereinsdokumente".
+ * Kommt aus derselben Abfrage wie Name und Farben, kostet also nichts.
+ */
+export function useWoerter(): Woerter {
+  return woerter(useBranding().org_form);
+}
+
 export function useBrandingAnwenden() {
   const branding = useBranding();
   const { color_primary, color_dark, color_surface, faviconUrl, org_name, font_headings, font_body } = branding;

@@ -35,7 +35,11 @@ try {
   if (!/<html[^>]*\slang=/.test(html)) fehler.push("index.html: <html lang> fehlt");
   if (!/name=["']viewport["']/.test(html)) fehler.push("index.html: viewport-Angabe fehlt");
   if (!/<title>[^<]{10,}<\/title>/.test(html)) fehler.push("index.html: <title> fehlt oder ist zu kurz");
-  if (!/property=["']og:image["']/.test(html)) hinweise.push("index.html: og:image als Rückfall fehlt");
+  // Kein og:image in index.html verlangen: Ein Bild, das jeder Installation
+  // mitgegeben wird, ist das Bild eines fremden Vereins. Wer eines hinterlegt
+  // (Erscheinungsbild → Bild für geteilte Links), bekommt es zur Laufzeit aus
+  // den Vereinsdaten (src/components/SEO.tsx).
+  if (!/<title>[^<]*<\/title>/.test(html)) hinweise.push("index.html: <title> fehlt");
 } catch (e) {
   fehler.push(`index.html nicht lesbar: ${e.message}`);
 }

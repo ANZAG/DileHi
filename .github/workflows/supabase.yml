@@ -53,30 +53,80 @@ jobs:
       # Gefragt wird über die Verwaltungsschnittstelle von Supabase – derselbe
       # Weg, den der SQL-Editor im Dashboard geht. Kein Datenbankpasswort, kein
       # Wissen über Regionen oder Anschlüsse nötig.
+      #
+      # Zwei Abfragen, nicht eine: Das Verzeichnis der Migrationen
+      # (`supabase_migrations.schema_migrations`) legt der Supabase-CLI beim
+      # ersten Einspielen an. In einem eben erst erstellten Projekt gibt es das
+      # Schema noch gar nicht, und eine Abfrage darauf scheitert – nicht als
+      # Randfall, sondern im Normalfall, beim ersten Knopfdruck eines neuen
+      # Vereins. Vorher stand an dieser Stelle statt des Stands eine
+      # Fehlermeldung mit Zeilennummer.
       - name: Datenbank ansehen
         env:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           echo "Projekt: $REF"
+
+          frage() {
+            curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$(jq -n --rawfile q "$1" '{query: $q}')"
+          }
+
           cat > /tmp/frage.sql <<'SQL'
           select
             (select count(*) from information_schema.tables where table_schema = 'public') as tabellen,
-            (select count(*) from supabase_migrations.schema_migrations) as migrationseintraege,
-            (select min(version) from supabase_migrations.schema_migrations) as aelteste,
-            (select max(version) from supabase_migrations.schema_migrations) as juengste,
             (select count(*) from auth.users) as konten,
-            (select count(*) from storage.buckets) as ablagen;
+            (select count(*) from storage.buckets) as ablagen,
+            (to_regclass('supabase_migrations.schema_migrations') is not null) as verzeichnis_da;
           SQL
-          curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            --data "$(jq -n --rawfile q /tmp/frage.sql '{query: $q}')" | tee /tmp/stand.json
+          frage /tmp/frage.sql | tee /tmp/stand.json
           echo ""
-          echo "### Stand der Datenbank" >> $GITHUB_STEP_SUMMARY
-          echo '```json' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/stand.json >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          tabellen=$(jq -r '.[0].tabellen // "?"' /tmp/stand.json 2>/dev/null || echo "?")
+          konten=$(jq -r '.[0].konten // "?"' /tmp/stand.json 2>/dev/null || echo "?")
+          ablagen=$(jq -r '.[0].ablagen // "?"' /tmp/stand.json 2>/dev/null || echo "?")
+          verzeichnis=$(jq -r '.[0].verzeichnis_da // false' /tmp/stand.json 2>/dev/null || echo false)
+          echo "VERZEICHNIS_DA=$verzeichnis" >> "$GITHUB_ENV"
+
+          if [ "$tabellen" = "?" ]; then
+            migrationen="unbekannt"
+          else
+            migrationen="noch keins – das ist bei einem neuen Projekt normal"
+          fi
+          if [ "$verzeichnis" = "true" ]; then
+            cat > /tmp/verzeichnis.sql <<'SQL'
+            select
+              count(*) as eintraege,
+              coalesce(min(version), '–') as aelteste,
+              coalesce(max(version), '–') as juengste
+            from supabase_migrations.schema_migrations;
+          SQL
+            frage /tmp/verzeichnis.sql | tee /tmp/verzeichnis.json
+            echo ""
+            anzahl=$(jq -r '.[0].eintraege // "?"' /tmp/verzeichnis.json 2>/dev/null || echo "?")
+            aelteste=$(jq -r '.[0].aelteste // "?"' /tmp/verzeichnis.json 2>/dev/null || echo "?")
+            juengste=$(jq -r '.[0].juengste // "?"' /tmp/verzeichnis.json 2>/dev/null || echo "?")
+            migrationen="$anzahl Einträge, von $aelteste bis $juengste"
+          fi
+
+          {
+            echo "### Stand der Datenbank, bevor etwas passiert"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Tabellen | $tabellen |"
+            echo "| Konten | $konten |"
+            echo "| Ablagen | $ablagen |"
+            echo "| Verzeichnis der Migrationen | $migrationen |"
+            if [ "$tabellen" = "?" ]; then
+              echo ""
+              echo "Die Datenbank hat auf die Frage nach ihrem Stand nicht geantwortet."
+              echo "Was sie stattdessen gesagt hat, steht im Protokoll dieses Schritts."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # ── Das Verzeichnis der eingespielten Migrationen leeren ───────────────
       #
@@ -94,6 +144,12 @@ jobs:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          # Ohne Verzeichnis gibt es nichts zurückzusetzen – und die Abfrage
+          # darauf würde scheitern. Genau so sieht ein neues Projekt aus.
+          if [ "${VERZEICHNIS_DA:-false}" != "true" ]; then
+            echo "Es gibt noch kein Verzeichnis der Migrationen. Nichts zurückzusetzen."
+            exit 0
+          fi
           cat > /tmp/leeren.sql <<'SQL'
           with geloescht as (
             delete from supabase_migrations.schema_migrations
@@ -209,14 +265,25 @@ jobs:
             --data @/tmp/auth.json \
             | jq '{site_url, uri_allow_list, disable_signup}'
 
+      # Auch das, was NICHT gelaufen ist, gehört in die Zusammenfassung. Der
+      # Schritt „Anmeldung einstellen" überspringt sich still, wenn die
+      # Variable SITE_URL fehlt — und das merkt man sonst erst, wenn der erste
+      # Einladungslink auf localhost:3000 zeigt.
       - name: Was gelaufen ist
         if: always()
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
           echo "### Ausgerollt" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Verzeichnis zurückgesetzt: ${{ inputs.verzeichnis }}" >> $GITHUB_STEP_SUMMARY
           echo "- Migrationen: ${{ inputs.migrationen }}" >> $GITHUB_STEP_SUMMARY
           echo "- Edge Functions: ${{ inputs.funktionen }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$SITE_URL" ]; then
+            echo "- Anmeldung: Links in Mails zeigen auf $SITE_URL, Selbstregistrierung aus" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Anmeldung: nicht eingestellt.** Die Variable \`SITE_URL\` fehlt (Settings → Secrets and variables → Actions → Variables). Links in Mails zeigen dann auf \`localhost:3000\`." >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Die Geheimnisse der Funktionen (Mailversand, VAPID, SETUP_SECRET)" >> $GITHUB_STEP_SUMMARY
           echo "werden hier **nicht** gesetzt. Sie stehen im Supabase-Projekt" >> $GITHUB_STEP_SUMMARY

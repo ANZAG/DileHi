@@ -28,10 +28,10 @@ export const DEFAULT_TEMPLATE_FIELDS = [
     settings: {
       role: "helper.tasks",
       tasks: [
-        { key: "lager-beladen", label: "Beladen im Vereinslager", when: null, min: null },
+        { key: "lager-beladen", label: "Beladen im Lager", when: null, min: null },
         { key: "aufbau", label: "Aufbau vor Ort", when: null, min: null },
         { key: "abbau", label: "Abbau vor Ort", when: null, min: null },
-        { key: "lager-entladen", label: "Auspacken im Vereinslager", when: null, min: null },
+        { key: "lager-entladen", label: "Auspacken im Lager", when: null, min: null },
         { key: "einkauf", label: "Einkaufen", when: null, min: null },
         { key: "kochen", label: "Kochen", when: null, min: null },
       ],

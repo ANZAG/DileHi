@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ interface Role {
 const db = supabase as unknown as { from: (t: string) => any };
 
 export default function RollenAdmin() {
+  const woerter = useWoerter();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [neuOffen, setNeuOffen] = useState(false);
@@ -145,7 +147,7 @@ export default function RollenAdmin() {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <p className="text-sm text-muted-foreground max-w-prose">
-          Welche Rollen es im Verein gibt. Was eine Rolle darf, stellst du unter
+          Welche Rollen es bei euch gibt. Was eine Rolle darf, stellst du unter
           Berechtigungen ein; wer welche hat, steht im Mitgliederregister.
         </p>
         {!neuOffen && (
@@ -230,7 +232,7 @@ export default function RollenAdmin() {
                   onCheckedChange={(v) => aendern.mutate({ key: r.key, werte: { is_leadership: v } })}
                 />
                 <span className="text-sm">
-                  Vereinsleitung<Hilfe k="rolle_leitung" />
+                  {woerter.leitungsgruppe}<Hilfe k="rolle_leitung" />
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">

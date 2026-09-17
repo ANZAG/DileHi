@@ -22,7 +22,7 @@ export default function SharePointAnleitung({ siteUrl }: { siteUrl: string }) {
   const [appId, setAppId] = useState("");
   const [siteId, setSiteId] = useState("");
 
-  let abfrage = "https://graph.microsoft.com/v1.0/sites/verein.sharepoint.com:/sites/Vereinsablage";
+  let abfrage = "https://graph.microsoft.com/v1.0/sites/beispiel.sharepoint.com:/sites/Ablage";
   try {
     const adresse = new URL(siteUrl.trim());
     if (adresse.hostname.endsWith(".sharepoint.com")) {
@@ -61,10 +61,10 @@ export default function SharePointAnleitung({ siteUrl }: { siteUrl: string }) {
         <Liste>
           <li>Öffne <b>office.com</b>, melde dich an und wähle im Menü links <b>SharePoint</b>.</li>
           <li>Klicke oben links auf <b>+ Website erstellen</b> und dann auf <b>Teamwebsite</b>.</li>
-          <li>Name: „Vereinsablage". Bei Datenschutz <b>Privat</b> wählen. Fertigstellen.</li>
+          <li>Name: „Ablage". Bei Datenschutz <b>Privat</b> wählen. Fertigstellen.</li>
           <li>
             Die neue Website öffnet sich. Kopiere die Adresse aus der Adresszeile des Browsers bis einschliesslich
-            „Vereinsablage" und füge sie oben ins Feld <b>Adresse der SharePoint-Website</b> ein.
+            „Ablage" und füge sie oben ins Feld <b>Adresse der SharePoint-Website</b> ein.
           </li>
         </Liste>
       </Schritt>

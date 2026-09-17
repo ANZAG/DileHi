@@ -42,7 +42,7 @@ export default function CalendarSyncDialog({ open, onOpenChange, personalIcalUrl
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="cal-all" className="text-sm font-medium">Alle Vereinstermine</label>
+            <label htmlFor="cal-all" className="text-sm font-medium">Alle Termine</label>
             <div className="flex gap-2">
               <Input id="cal-all" readOnly value={icalUrl} className="text-xs font-mono" />
               <Button size="icon" variant="outline" onClick={() => {
@@ -53,7 +53,7 @@ export default function CalendarSyncDialog({ open, onOpenChange, personalIcalUrl
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Enthält alle Vereinstermine, unabhängig von deiner Zusage.
+              Enthält alle Termine, unabhängig von deiner Zusage.
             </p>
           </div>
 

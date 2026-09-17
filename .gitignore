@@ -30,3 +30,7 @@ dist-ssr
 
 # Supabase-CLI, lokal
 supabase/.temp
+
+# Python-Reste (ein .pyc lag versehentlich im Verzeichnis)
+__pycache__/
+*.pyc
