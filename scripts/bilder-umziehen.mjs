@@ -129,5 +129,36 @@ console.log(
   `\n${umgezogen} umgezogen, ${uebersprungen} hatten schon ein eigenes Bild, ` +
   `${ohnePlatz} ohne Bildplatz.`
 );
-if (!WIRKLICH) console.log("Noch einmal mit --wirklich, wenn das so stimmt.");
-else console.log("Danach im Erscheinungsbild nachsehen, ob die Seite aussieht wie vorher.");
+
+/**
+ * Nachsehen, ob die Bilder auch ankommen.
+ *
+ * Ein Eintrag in der Datenbank heisst noch nicht, dass der Browser das Bild
+ * bekommt: Der Bucket muss oeffentlich sein, und der Pfad muss stimmen.
+ * Genau das ist der Unterschied zwischen "umgezogen" und "die Website sieht
+ * aus wie vorher" — und wer es nicht prueft, merkt es am naechsten Besucher.
+ *
+ * Nur lesend, laeuft deshalb auch im Probelauf.
+ */
+console.log("\nNachsehen, ob die Bilder oeffentlich ankommen:");
+let erreichbar = 0;
+const fehlend = [];
+for (const eintrag of await plaetze()) {
+  if (!eintrag.storage_path) continue;
+  const adresse = `${URL_BASIS}/storage/v1/object/public/${BUCKET}/${eintrag.storage_path}`;
+  const antwort = await fetch(adresse, { method: "HEAD" });
+  if (antwort.ok) {
+    erreichbar += 1;
+  } else {
+    fehlend.push(`${eintrag.slot} (${antwort.status})`);
+  }
+}
+console.log(`  ${erreichbar} erreichbar, ${fehlend.length} nicht.`);
+if (fehlend.length > 0) {
+  console.log(`  Nicht erreichbar: ${fehlend.join(", ")}`);
+  console.log("  Solange das so ist, duerfen die Dateien in src/assets nicht weg.");
+  process.exit(1);
+}
+
+if (!WIRKLICH) console.log("\nNoch einmal mit --wirklich, wenn das so stimmt.");
+else console.log("\nDanach im Erscheinungsbild nachsehen, ob die Seite aussieht wie vorher.");
