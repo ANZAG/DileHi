@@ -146,16 +146,58 @@ eingeschlossen.
 | --- | --- | --- |
 | Secrets | `SITE_PASSWORT_BENUTZER` | Der Benutzername |
 | Secrets | `SITE_PASSWORT` | Das Passwort im Klartext. Es wird beim Bauen verschlüsselt und steht nirgends im Repository |
-| Variables | `SITE_PASSWORT_DATEI` | Der **absolute** Pfad der `.htpasswd` auf dem Webspace, etwa `/var/www/vhosts/euer-verein.de/httpdocs/.htpasswd` |
+| Variables | `SITE_PASSWORT_DATEI` | Der **absolute** Pfad der `.htpasswd`, so wie der Server sie sieht. Siehe unten |
 | Variables | `SITE_PASSWORT_BEREICH` | Beschriftung im Anmeldefenster. Optional |
 
 Ohne `SITE_PASSWORT` passiert nichts, und die Seite bleibt öffentlich — das
 ist der Normalfall.
 
-> **Der Pfad ist die Stelle, an der es klemmt.** Apache verlangt ihn absolut,
-> und wie er bei eurem Hoster lautet, weiss nur dessen Dateimanager. Stimmt er
-> nicht, antwortet der Server mit **500** statt mit dem Anmeldefenster. Die
-> Datei selbst legt der Deploy neben die Seite und sperrt sie gegen Abruf.
+#### `SITE_PASSWORT_DATEI` — der Pfad, an dem es klemmt
+
+Gesucht ist **nicht der FTP-Pfad**. Das ist der häufigste Irrtum, und er sieht
+völlig plausibel aus. Der FTP-Zugang zeigt oft nur:
+
+```
+/euer-verein.de/
+```
+
+während dieselbe Stelle auf der Platte des Servers so heisst:
+
+```
+/var/www/vhosts/euer-verein.de/httpdocs/
+```
+
+Apache will die zweite Schreibweise. Und zwar genau für das Verzeichnis, in
+das dieser Deploy lädt (die Zeile `ZIEL:` in `deploy.yml`) — denn dorthin legt
+der Deploy die Passwortdatei:
+
+```
+<Serverpfad des ZIEL-Verzeichnisses>/.htpasswd
+```
+
+**Wie ihr ihn herausbekommt**, in der Reihenfolge der Zuverlässigkeit:
+
+1. **Den eigenen Verzeichnisschutz des Hosters einmal benutzen.** Fast jedes
+   Kundenmenü hat „Verzeichnisschutz" oder „Passwortschutz". Einmal auf einen
+   beliebigen Ordner setzen, dann die `.htaccess` ansehen, die dabei entsteht:
+   Die Zeile `AuthUserFile` zeigt die richtige Schreibweise für euren Server.
+   Danach dürft ihr den Schutz dort wieder abschalten.
+2. **Im Kundenmenü nachsehen.** Viele Hoster zeigen bei der Domain einen
+   „Pfad", „Dokumentenstamm" oder „Document Root".
+3. **Den Hoster fragen.** „Wie lautet der absolute Serverpfad zum
+   Dokumentenstamm von `euer-verein.de`?" ist eine Zwei-Minuten-Frage.
+
+**Ihr müsst nicht raten.** Nach dem Deploy ruft der Schritt „Schutz nachsehen"
+die Seite auf und schreibt in die Zusammenfassung, was zurückkam:
+
+| Antwort | Bedeutung |
+| --- | --- |
+| **401** | Alles richtig — das Anmeldefenster kommt |
+| **500** | `SITE_PASSWORT_DATEI` zeigt ins Leere. Der Lauf schlägt fehl und sagt es |
+| **200** | Die Seite steht offen. Meist erlaubt der Hoster kein `AllowOverride`, die `.htaccess` wird also ignoriert |
+
+Die Passwortdatei selbst legt der Deploy neben die Seite und sperrt sie gegen
+Abruf.
 
 > Der Schutz ersetzt **keine Anmeldung**. Er hält Fremde von der Seite fern;
 > was im Mitgliederbereich wem gehört, regeln weiter die Zugriffsregeln in der
