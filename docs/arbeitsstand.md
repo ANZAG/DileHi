@@ -25,7 +25,7 @@ neue Unterhaltung beginnt.
 | Probeseite | `ding.dilehi.de` — seit 11. September leer. Später die Testinstallation gegen das Projekt DING, gebaut von Hand über `probeseite.yml` |
 | Vereinsseite | `www.dilehi.de` — baut aus `main`, spricht seit 11. September mit dem eigenen Projekt |
 | Plan | Der Umzug ist durch ([`umzug.md`](umzug.md)). Jetzt DING so weit bringen, dass ein fremder Verein es selbst aufsetzen kann: Startdaten, Einrichtungsassistent, Probelauf im leeren Projekt |
-| Tests | 54 Dateien, 535 Prüfungen, alle grün (17. September, hier gelaufen) |
+| Tests | 55 Dateien, 542 Prüfungen, alle grün (17. September, hier gelaufen) |
 
 ---
 
@@ -527,6 +527,12 @@ stand noch DileHi im Programm. Am 16. September weggeräumt:
   `profiles.view_all` = die Leitung, `documents.manage` = die
   Dokumentenverwaltung) und Verwaltung → Dokumentablagen. Ein Fremdschlüssel
   hält eine Ablage fest, solange etwas darin liegt.
+  **Welche Ablage die Satzung enthält, steht seit dem 17. September in den
+  Einstellungen** (`app_settings.statutes_category`) und nicht mehr als Wort
+  in zwei Funktionen. Damit lässt sie sich nicht löschen, solange der Verweis
+  im Aufnahmeantrag auf sie zeigt — obligatorisch ist sie also nicht wegen der
+  Rechtsform, sondern solange sie gebraucht wird. Umbenennen bleibt jederzeit
+  möglich: Die Beschriftung gehört dem Verein, der Schlüssel dem Programm.
 
 ### Neue Prüfungen
 
@@ -559,7 +565,8 @@ erledigt gilt), `kategorienAuffrischen.test.ts` (beide Zwischenspeicher),
 `zeichen.test.ts` (kein fremdes Zeichen im Verzeichnis) und
 `erscheinungsbild.test.ts` (die Maske speichert nur ihre eigenen Felder),
 `profilabschnitte.test.ts` (welche Felder das Profil zeigt) und
-`hilfetexte.test.ts` (Platzhalter in den Popovers).
+`hilfetexte.test.ts` (Platzhalter in den Popovers) und
+`satzungAblage.test.ts` (die Ablage, auf die der Antrag zeigt).
 
 ---
 

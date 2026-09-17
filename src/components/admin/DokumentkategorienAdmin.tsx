@@ -31,6 +31,28 @@ const db = supabase as unknown as { from: (t: string) => any };
  * müsste man in der Richtlinie nachziehen.
  */
 
+/**
+ * Warum eine Ablage nicht weggeht.
+ *
+ * Zwei Gründe, beide gewollt: Es liegen noch Dokumente darin, oder der
+ * Verweis auf die Satzung im Aufnahmeantrag zeigt auf sie. Ohne diese
+ * Übersetzung stünde dort „update or delete on table violates foreign key
+ * constraint" – eine Meldung, die dem Vorstand nichts sagt.
+ */
+export function bremse(meldung: string, satzung: string): string {
+  if (meldung.includes("app_settings_statutes_category_fkey")) {
+    return `Auf diese Ablage zeigt der Verweis auf ${satzung} im Aufnahmeantrag. `
+      + `Stellt ihn erst auf eine andere Ablage um (Verwaltung → Aufnahmeantrag → ${satzung}).`;
+  }
+  if (meldung.includes("documents_category_fkey")) {
+    return "In dieser Ablage liegen noch Dokumente. Räumt sie erst um oder löscht sie.";
+  }
+  if (meldung.includes("foreign key") || meldung.includes("violates")) {
+    return "Diese Ablage wird noch gebraucht.";
+  }
+  return meldung;
+}
+
 const STUFEN = [
   {
     value: "alle",
@@ -149,12 +171,10 @@ export default function DokumentkategorienAdmin() {
     onError: (err: Error) =>
       toast({
         title: "Nicht gelöscht",
-        // Der Fremdschlüssel hält die Ablage fest, solange noch etwas darin
-        // liegt. Die Meldung der Datenbank versteht niemand, der keine
-        // Datenbanken baut.
-        description: err.message.includes("foreign key") || err.message.includes("violates")
-          ? "In dieser Ablage liegen noch Dokumente. Räumt sie erst um oder löscht sie."
-          : err.message,
+        // Zwei Fremdschlüssel halten eine Ablage fest, und die Meldung der
+        // Datenbank versteht niemand, der keine Datenbanken baut. Welcher es
+        // war, steht im Namen der Regel.
+        description: bremse(err.message, woerter.satzung),
         variant: "destructive",
       }),
   });
