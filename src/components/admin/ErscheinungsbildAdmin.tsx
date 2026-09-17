@@ -586,7 +586,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       {/* ── E-Mail ───────────────────────────────────────────────────────── */}
       <Abschnitt
         titel="E-Mail-Versand"
-        hinweis="Einladungen, Passwort-Zurücksetzen, Kontaktanfragen und die Abendzusammenfassung gehen über diesen Weg."
+        hinweis={`Einladungen, Passwort-Zurücksetzen, Kontaktanfragen und die Abendzusammenfassung gehen über diesen Weg. Solange er nicht steht, legt die Mitgliederverwaltung bei jeder Einladung den Link zum Weitergeben hin — niemand bleibt deshalb ohne Zugang. Was sonst noch fehlt, sagt die Kachel „Einrichtung".`}
       >
         <div className="grid sm:grid-cols-2 gap-3">
           <div>

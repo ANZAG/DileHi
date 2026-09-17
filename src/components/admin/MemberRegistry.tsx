@@ -18,6 +18,7 @@ import { Hilfe } from "@/components/Hilfe";
 import { useDefaultRole } from "@/hooks/useDefaultRole";
 import { invokeFunction } from "@/lib/functionError";
 import MitgliederImport from "./MitgliederImport";
+import EinladungWeitergeben, { type EinladungsAntwort } from "./EinladungWeitergeben";
 import {
   Select,
   SelectContent,
@@ -75,6 +76,9 @@ const MemberRegistry = () => {
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
+  const [offeneEinladung, setOffeneEinladung] = useState<
+    { email: string; link: string; grund: string | null } | null
+  >(null);
   // Die Standardrolle kommt aus den Einstellungen: „mitglied" gibt es in einer
   // Installation mit eigenen Rollennamen womoeglich gar nicht.
   const defaultRole = useDefaultRole();
@@ -283,14 +287,22 @@ const MemberRegistry = () => {
 
   const inviteMember = useMutation({
     mutationFn: async () => {
-      return await invokeFunction("invite-member", {
+      const antwort = await invokeFunction<EinladungsAntwort>("invite-member", {
         body: { email: inviteEmail, role: inviteRole },
       });
+      return { antwort, email: inviteEmail };
     },
-    onSuccess: () => {
+    onSuccess: ({ antwort, email }) => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       setInviteEmail("");
-      toast({ title: "Einladung versendet" });
+      if (antwort?.einladung) {
+        // Kein Toast, der nach drei Sekunden weg ist: Der Link gilt einmalig
+        // und wird nicht noch einmal erzeugt.
+        setOffeneEinladung({ email, link: antwort.einladung, grund: antwort.mailFehler ?? null });
+      } else {
+        setOffeneEinladung(null);
+        toast({ title: "Einladung versendet" });
+      }
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
@@ -491,6 +503,13 @@ const MemberRegistry = () => {
             </Button>
           </div>
         </div>
+        {offeneEinladung ? (
+          <EinladungWeitergeben
+            email={offeneEinladung.email}
+            link={offeneEinladung.link}
+            grund={offeneEinladung.grund}
+          />
+        ) : null}
       </div>
 
       {/* Search & filter */}
