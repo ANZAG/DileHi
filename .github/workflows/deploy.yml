@@ -155,14 +155,42 @@ jobs:
             echo "::notice::Kein SITE_PASSWORT hinterlegt - die Seite bleibt oeffentlich."
             exit 0
           fi
-          if [ -z "$BENUTZER" ] || [ -z "$DATEI" ]; then
-            echo "::error::Der Verzeichnisschutz braucht SITE_PASSWORT_BENUTZER und SITE_PASSWORT_DATEI."
-            exit 1
-          fi
+          # Halb eingetragen ist nicht kaputt.
+          #
+          # Hier stand ein `exit 1`, und das war falsch: Wer SITE_PASSWORT
+          # anlegt und den Pfad noch sucht, hat damit keine ungeschuetzte
+          # Seite, sondern eine Auslieferung, die gar nicht mehr laeuft --
+          # der Deploy-Schritt wird uebersprungen, die Seite bleibt auf dem
+          # Stand von vorgestern. Eine freiwillige Zusatzeinstellung darf das
+          # nicht. Also: Schutz weglassen, weitermachen, und es so laut sagen,
+          # dass es niemand ueberliest.
+          fehlt=""
+          [ -z "$BENUTZER" ] && fehlt="$fehlt SITE_PASSWORT_BENUTZER"
+          [ -z "$DATEI" ]    && fehlt="$fehlt SITE_PASSWORT_DATEI"
           case "$DATEI" in
-            /*) ;;
-            *) echo "::error::SITE_PASSWORT_DATEI muss ein absoluter Pfad sein, steht aber auf: $DATEI"; exit 1 ;;
+            ""|/*) ;;
+            *) fehlt="$fehlt SITE_PASSWORT_DATEI(kein-absoluter-Pfad)" ;;
           esac
+          if [ -n "$fehlt" ]; then
+            echo "::warning::Verzeichnisschutz NICHT gesetzt - es fehlt:$fehlt. Die Seite geht oeffentlich online."
+            {
+              echo "### Achtung: die Seite ist OEFFENTLICH"
+              echo ""
+              echo "\`SITE_PASSWORT\` ist hinterlegt, aber es fehlt:$fehlt"
+              echo ""
+              echo "Der Verzeichnisschutz wurde deshalb **nicht** gesetzt und die Seite"
+              echo "ist ohne Passwort erreichbar. Hochgeladen wurde trotzdem -- eine"
+              echo "fehlende Angabe soll die Auslieferung nicht anhalten."
+              echo ""
+              echo "\`SITE_PASSWORT_DATEI\` ist der absolute Pfad der \`.htpasswd\`, so wie"
+              echo "der **Server** sie sieht -- nicht der FTP-Pfad. Am schnellsten zu"
+              echo "finden: im Kundenmenue des Hosters einmal den eigenen"
+              echo "Verzeichnisschutz auf einen beliebigen Ordner setzen und in die dort"
+              echo "erzeugte \`.htaccess\` sehen; die Zeile \`AuthUserFile\` zeigt die"
+              echo "richtige Schreibweise."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
           # -apr1 ist Apaches eigener Hash und laeuft auf jedem Webspace.
           # Das Klartextpasswort verlaesst diesen Schritt nicht.
