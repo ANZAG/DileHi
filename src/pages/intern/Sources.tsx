@@ -201,8 +201,46 @@ const Sources = () => {
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
+  /**
+   * Ein Ordner mit allem, was darin liegt — Dateien eingeschlossen.
+   *
+   * `source_folders` räumt per ON DELETE CASCADE die Quellen weg, die im
+   * Ordner und in seinen Unterordnern stehen. Die *Dateien* kennt die
+   * Datenbank aber nicht: Sie liegen in `internal-files` oder in SharePoint,
+   * und die blieben liegen. Der Meldung „Ordner und Inhalt gelöscht" hat man
+   * das nicht angesehen — sie stimmte nur zur Hälfte, und zwar seit jeher.
+   *
+   * Deshalb erst die Quellen einzeln, auf demselben Weg wie beim Löschen
+   * einer einzelnen Quelle (`deleteSource`), und zwar über die Edge Function,
+   * sobald eine Datei daran hängt. Danach der Ordner selbst; die Kaskade
+   * findet dann nur noch leere Zeilen vor.
+   *
+   * Scheitert eine einzelne Quelle (fremde Quelle im eigenen Ordner — löschen
+   * darf nur, wer sie angelegt hat), bricht das Ganze ab, bevor der Ordner
+   * weg ist. Sonst verschwände der Ordner und liesse Dateien zurück, für die
+   * es danach keine Oberfläche mehr gibt.
+   */
   const deleteFolder = useMutation({
     mutationFn: async (id: string) => {
+      // Der Ordner und alles, was unter ihm hängt.
+      const betroffen = new Set<string>([id]);
+      for (;;) {
+        const vorher = betroffen.size;
+        for (const f of folders) {
+          if (f.parent_id && betroffen.has(f.parent_id)) betroffen.add(f.id);
+        }
+        if (betroffen.size === vorher) break;
+      }
+
+      for (const q of sources.filter((x) => x.folder_id && betroffen.has(x.folder_id))) {
+        if (q.drive_item_id || q.file_path) {
+          await deleteSourceWithFile(q.id);
+        } else {
+          const { error } = await supabase.from("sources").delete().eq("id", q.id);
+          if (error) throw error;
+        }
+      }
+
       const { error } = await supabase.from("source_folders").delete().eq("id", id);
       if (error) throw error;
     },
@@ -212,6 +250,8 @@ const Sources = () => {
       setFolderDeleteConfirm(null);
       toast({ title: "Ordner und Inhalt gelöscht" });
     },
+    onError: (err: Error) =>
+      toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
   const updateSourceTitle = useMutation({
