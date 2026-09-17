@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -32,6 +32,9 @@ const GERUEST = [
   "src/hooks/useKategorien.ts",
   "src/components/sitebuilder/auswahl.ts",
   "src/hooks/useBranding.ts",
+  // Seit dem 17. September auch hier: Die 18 mitgelieferten Fotos sind weg,
+  // und sie sollen nicht zurückkommen.
+  "src/hooks/useSiteImage.ts",
 ];
 
 /** Woran man DileHi erkennt. */
@@ -92,6 +95,21 @@ describe("Keine fremden Inhalte im Grundgerüst", () => {
     expect(code.includes("hero-medieval")).toBe(false);
     // Ohne hinterlegtes Bild gibt es schlicht keines.
     expect(code).toContain("seoImageUrl");
+  });
+
+  it("liefert keine Bilder mit, die einem Verein gehören", () => {
+    // 4,6 MB Fotos aus Wiesbaden lagen in src/assets und wurden in jede
+    // Installation mitgeliefert. Wer kein eigenes Bild hochgeladen hatte, sah
+    // unsere. Seit sie in DileHis eigenem Speicher liegen, gibt es hier
+    // nichts mehr zu vererben.
+    expect(existsSync("src/assets"), "src/assets ist wieder da").toBe(false);
+
+    const code = ohneKommentare(readFileSync("src/hooks/useSiteImage.ts", "utf-8"));
+    expect(code.includes("@/assets"), "useSiteImage bündelt wieder Bilder").toBe(false);
+    expect(code.includes("SITE_IMAGE_FALLBACKS")).toBe(false);
+    // Ohne hinterlegte Datei bleibt die Adresse leer – die Bausteine zeigen
+    // dann den Farbverlauf, kein fremdes Foto.
+    expect(code).toContain('{ src: "", alt: "" }');
   });
 
   it("das Menü fällt auf die Startseite zurück, nicht auf unseres", () => {

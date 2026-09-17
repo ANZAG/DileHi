@@ -120,7 +120,8 @@ Nichts davon ist ein Umbau.
 | Die dreizehn Seiten mit Inhalt füllen | der eigentliche Posten |
 
 Der Aufwand liegt nicht im Baukasten, sondern im Abtippen — wie ich es in der
-[Machbarkeitsanalyse](machbarkeit-oeffentliche-seiten.md) schon vermutet hatte:
+Machbarkeitsanalyse vom 8. September schon vermutet hatte (die Datei ist
+am 17. September gelöscht worden, sie steht in der Git-Historie):
 „Der Umzug ist der unangenehme Teil, nicht der Editor."
 
 ## Stand: die vier Vorarbeiten sind erledigt

@@ -32,12 +32,16 @@ export const MIGRATIONEN = readdirSync("supabase/migrations")
   .sort()
   .map((f) => ohneCrlf(readFileSync(`supabase/migrations/${f}`, "utf-8")));
 
-/** Die abgelösten Migrationen. Nur für Prüfungen, die wirklich den Weg meinen. */
-export const ARCHIV = readdirSync("docs/archiv-migrationen")
-  .filter((f) => f.endsWith(".sql"))
-  .sort()
-  .map((f) => ohneCrlf(readFileSync(`docs/archiv-migrationen/${f}`, "utf-8")))
-  .join("\n");
+/*
+ * Hier stand `ARCHIV`: die abgelösten Migrationen aus `docs/archiv-migrationen`,
+ * für Prüfungen, die wirklich den Weg meinen und nicht das Ergebnis. Am Ende
+ * meinte keine mehr den Weg — gelesen wurde das Verzeichnis trotzdem, bei jedem
+ * Laden dieser Datei. Als es am 17. September wegfiel, standen drei Prüfungen
+ * still, die mit dem Archiv nichts zu tun hatten.
+ *
+ * Ein Zugriff, der beim Import passiert, gehört keinem Test und fällt keinem
+ * auf, bis er scheitert.
+ */
 
 /**
  * Die Zeilen, die eine Tabelle beim Aufsetzen bekommt.
