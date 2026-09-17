@@ -135,6 +135,49 @@ Mehr Actions als diese vier braucht eine Installation nicht: `supabase.yml`
 (Schritt 4), `deploy.yml` (dieser Schritt), `backup.yml` (die tägliche
 Sicherung, Schritt 3) und `digest.yml` (die abendliche Zusammenfassung).
 
+### Wenn die Actions nicht laufen
+
+Auf einem **privaten** Repository sind 2.000 Actions-Minuten im Monat frei.
+Sind die aufgebraucht, starten die Läufe nicht mehr: Sie enden nach drei
+Sekunden ohne einen einzigen ausgeführten Schritt. Das sieht aus wie ein
+Fehler im Programm und ist keiner.
+
+**Der einfachste Ausweg ist, das Repository öffentlich zu machen.** Auf
+öffentlichen Repositories sind Actions unbegrenzt und kostenlos. Für DING ist
+das ohnehin naheliegend — es ist dazu da, kopiert zu werden. Vorher prüfen,
+dass in der Historie keine Geheimnisse liegen; in den Einstellungen unter
+*Code security* lässt sich GitHubs Secret Scanning dafür einschalten, auf
+öffentlichen Repositories ebenfalls kostenlos.
+
+> Die Zugänge selbst sind davon nicht betroffen: Secrets und Variables bleiben
+> auch auf einem öffentlichen Repository geheim, und der `anon`-Schlüssel darf
+> ohnehin jeder sehen.
+
+Wer das nicht will, baut die Seite so lange selbst:
+
+```
+npm run seite:bauen
+```
+
+Das prüft und baut genau wie `deploy.yml` — Lint, SEO, Typen, Tests, Build,
+und auf Wunsch den Verzeichnisschutz — und legt alles in `dist/`. Hochgeladen
+wird von Hand, mit FileZilla oder WinSCP. Was das Skript dafür braucht, steht
+in seinem Kopf; die beiden Pflichtangaben sind dieselben wie bei Netlify
+(Schritt 5 oben).
+
+> Beim Hochladen von Hand an zwei Dinge denken: Die Dateien, die mit einem
+> Punkt anfangen (`.htaccess`), blenden viele FTP-Programme aus — und was auf
+> dem Webspace liegenbleibt, räumt niemand weg. Die Action erledigt beides mit
+> `mirror --delete`.
+
+Auch die übrigen drei Actions haben einen Weg ohne GitHub:
+
+| Statt | Von Hand |
+| --- | --- |
+| `supabase.yml` | Supabase CLI: `supabase link`, `supabase db push`, `supabase functions deploy` |
+| `backup.yml` | Die Funktion `backup-export` direkt aufrufen und den Abzug selbst ablegen |
+| `digest.yml` | In Supabase unter *Integrations → Cron* einen Zeitplan anlegen, der dieselbe Funktion aufruft — dort gehört er ohnehin besser hin als in eine Action |
+
 ### Die ganze Seite hinter ein Passwort (freiwillig)
 
 Für ein Vorführsystem oder eine Probeinstallation, die noch niemand sehen
