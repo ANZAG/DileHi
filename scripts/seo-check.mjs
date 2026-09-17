@@ -95,7 +95,17 @@ if (!gibt("supabase/functions/sitemap/index.ts")) {
   fehler.push("supabase/config.toml: sitemap braucht verify_jwt = false, Suchmaschinen haben keine Sitzung");
 }
 
-if (!gibt("public/llms.txt")) hinweise.push("public/llms.txt fehlt");
+// llms.txt kommt wie die Sitemap aus der Datenbank: Als feste Datei stand
+// darin der Name eines einzelnen Vereins, und jede Installation lieferte ihn
+// mit aus.
+if (gibt("public/llms.txt")) {
+  fehler.push("public/llms.txt: gehoert nicht mehr ins Verzeichnis, sie kommt aus der Funktion llms");
+}
+if (!gibt("supabase/functions/llms/index.ts")) {
+  hinweise.push("Die llms-Funktion fehlt (supabase/functions/llms)");
+} else if (!/\/llms\.txt/.test(lies("public/_redirects"))) {
+  fehler.push("public/_redirects: /llms.txt zeigt nicht auf die Funktion");
+}
 
 // ── 5. Keine fest eingetragene Vereinsdomain ────────────────────────────────
 //

@@ -4,6 +4,7 @@ import { woerter, type Woerter } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
 import { flaechenfarben, hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
 import { ladeSchriften } from "@/lib/schriften";
+import { zeichenLinks } from "@/lib/zeichen";
 
 export interface Branding {
   /** Verein, e. V. oder Interessengemeinschaft – bestimmt die Wortwahl. */
@@ -158,7 +159,7 @@ export function useWoerter(): Woerter {
 
 export function useBrandingAnwenden() {
   const branding = useBranding();
-  const { color_primary, color_dark, color_surface, faviconUrl, org_name, font_headings, font_body } = branding;
+  const { color_primary, color_dark, color_surface, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
 
   useEffect(() => {
     const wurzel = document.documentElement;
@@ -231,16 +232,31 @@ export function useBrandingAnwenden() {
     wurzel.style.setProperty("--schrift-text", `"${font_body}"`);
   }, [font_headings, font_body]);
 
+  // Das Zeichen im Reiter. Alle Icon-Links werden ersetzt, nicht einer
+  // umgebogen: Sonst stand neben dem hochgeladenen Bild weiter das
+  // mitgelieferte zur Auswahl, und der Browser entschied.
   useEffect(() => {
-    if (!faviconUrl) return;
-    let el = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    if (!el) {
-      el = document.createElement("link");
-      el.rel = "icon";
+    document.querySelectorAll("link[rel~='icon']").forEach((el) => el.remove());
+    for (const z of zeichenLinks(faviconUrl)) {
+      const el = document.createElement("link");
+      el.rel = z.rel;
+      el.href = z.href;
+      if (z.type) el.type = z.type;
       document.head.append(el);
     }
-    el.href = faviconUrl;
   }, [faviconUrl]);
+
+  // Wie die Anwendung heisst, wenn jemand sie auf den Startbildschirm legt.
+  // Das Manifest ist eine feste Datei und kennt den Verein nicht; auf dem
+  // iPhone zaehlt ohnehin dieses Meta-Feld.
+  useEffect(() => {
+    const name = (org_short_name || org_name || "").trim();
+    if (!name) return;
+    const meta = document.querySelector<HTMLMetaElement>(
+      "meta[name='apple-mobile-web-app-title']"
+    );
+    if (meta) meta.content = name;
+  }, [org_short_name, org_name]);
 
   return { ...branding, org_name };
 }

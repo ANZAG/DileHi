@@ -50,6 +50,11 @@ verify_jwt = false
 # die Adressen veroeffentlichter Seiten.
 verify_jwt = false
 
+[functions.llms]
+# Dasselbe fuer llms.txt: Name und Seiten des Vereins, wie sie ohnehin auf der
+# Website stehen.
+verify_jwt = false
+
 [functions.setup-first-admin]
 # Das erste Konto einer frischen Installation – es gibt naturgemaess noch
 # niemanden, der sich anmelden koennte. Abgesichert ueber SETUP_SECRET und

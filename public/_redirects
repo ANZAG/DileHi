@@ -20,6 +20,7 @@
 /kalender/meine-termine.ics    __FUNCTIONS_URL__/events-personal-ical/meine-termine.ics  302
 /einbindung/:name              __FUNCTIONS_URL__/embed/:name                             302
 /sitemap.xml                   __FUNCTIONS_URL__/sitemap                                 302
+/llms.txt                      __FUNCTIONS_URL__/llms                                    302
 
 # Alles andere ist eine Adresse der Anwendung: index.html ausliefern, ohne die
 # Adresse im Browser zu ändern (200, nicht 302).

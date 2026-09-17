@@ -10,6 +10,11 @@
     nicht. Sobald unter Erscheinungsbild ein eigenes Bild hinterlegt ist, tauscht
     die Anwendung es zur Laufzeit aus (useBranding).
 
+    Dieselbe Form liegt als PNG daneben (favicon.ico, apple-touch-icon.png,
+    icon-*.png). Gezeichnet werden sie von scripts/zeichen.mjs — eine SVG-Datei
+    allein genuegt nicht: Jeder Browser fragt von sich aus nach /favicon.ico,
+    und iOS nimmt apple-touch-icon.png.
+
     Ohne Farbe aus den Einstellungen: Eine SVG-Datei im Reiter kennt die
     Vereinsfarbe nicht. Das Grau passt zu jedem Verein und drängt sich nicht auf.
   -->
@@ -17,5 +22,5 @@
   <circle cx="32" cy="24" r="7" fill="#f4f2ee" />
   <circle cx="17" cy="38" r="5.5" fill="#f4f2ee" opacity="0.75" />
   <circle cx="47" cy="38" r="5.5" fill="#f4f2ee" opacity="0.75" />
-  <path d="M12 52c0-7 9-11 20-11s20 4 20 11z" fill="#f4f2ee" opacity="0.55" />
+  <path d="M12 52a20 11 0 0 1 40 0z" fill="#f4f2ee" opacity="0.55" />
 </svg>
