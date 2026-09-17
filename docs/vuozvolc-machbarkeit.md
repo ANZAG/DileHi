@@ -141,10 +141,54 @@ Vorgabe ist „nein"; wer nichts tut, steht nicht mit Namen im Netz.
 ## Vorschlag zum Vorgehen
 
 1. ~~Die drei Schalter und die Schrift bauen.~~ Erledigt.
-2. **Zwei Seiten bauen**, die verschiedenste: die Startseite und „Die Ernährung
-   im 13./14. Jahrhundert". Das ist der eigentliche Test — was dabei fehlt,
-   fehlt wirklich.
-3. **Erst dann den Rest.** Ab hier ist es Fleissarbeit ohne Erkenntnisgewinn.
+2. ~~**Zwei Seiten bauen**, die verschiedenste: die Startseite und „Die
+   Ernährung im 13./14. Jahrhundert".~~ Erledigt — und gleich alle elf, siehe
+   unten.
+3. **Die Texte einsetzen.** Ab hier ist es Fleissarbeit ohne
+   Erkenntnisgewinn — und der einzige Teil, der noch fehlt.
+
+## Das Gerüst steht (17. September)
+
+[`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf Seiten
+an, dazu das Menü, die Bildplätze und die Gestaltung. Es ist **keine
+Migration**: Migrationen laufen in jeder Installation, auch in DileHis
+Datenbank, und dort haben Vuozvolcs Seiten nichts zu suchen. Das Skript
+weigert sich von selbst, wenn es eine Datenbank vor sich hat, in der schon ein
+Verein steht.
+
+**Der Aufbau ist echt, der Text ist es nicht.** Jeder Absatz trägt einen
+Platzhalter. Der Grund ist unangenehm einfach: `vuozvolc.de` ist aus der
+Umgebung, in der das Skript entstanden ist, nicht erreichbar — der Egress-Proxy
+lässt die Adresse nicht durch. Erfundene Fliesstexte wären schlimmer als
+sichtbar leere; man sieht ihnen nicht an, dass sie erfunden sind. Was im Skript
+steht, ist aus dieser Analyse abgeleitet und nachprüfbar; was hier nie stand,
+steht auch dort nicht.
+
+Für die Frage, um die es ging, reicht das: **Ob unsere Bausteine diese Seite
+tragen, entscheidet ihr Aufbau, nicht ihr Wortlaut.** Sie tragen sie. Zehn
+Bausteintypen genügen für alle elf Seiten — Seitenkopf, Überschrift,
+Textabschnitt, Einzelbild, Trennlinie, Willkommen, Zeitstrahl, Darstellungen,
+Termine, Kontaktformular. Kein neuer war nötig.
+
+Ausprobiert wurde es nicht im Kopf: Ausgangsstand und alle 29 Migrationen
+liefen in eine frische PostgreSQL-16-Datenbank, dann das Skript. Dabei kam ein
+Fehler heraus, den kein Nachdenken gefunden hätte — `site_menu_target_check`
+verlangt von **jedem** Menüpunkt genau ein Ziel, auch von einem, der nur ein
+Untermenü aufklappt. Der Punkt „Wissenswertes" zeigt deshalb selbst auf den
+längsten der Artikel.
+
+Was danach von Hand kommt:
+
+| Was | Warum nicht im Skript |
+| --- | --- |
+| Die Texte der elf Seiten | Siehe oben — die Quelle ist von hier nicht erreichbar |
+| Die Bilder | Die Plätze stehen bereit und heissen `vuozvolc-…`; die Dateien fehlen |
+| Die dreissig Steckbriefe | Ein Name im Netz ist die Entscheidung der Person, nicht die eines Skripts |
+| Zwei Seiten | Die Analyse zählt dreizehn Inhaltsseiten, führt aber nur elf namentlich auf. Welche beiden fehlen, ist von hier aus nicht feststellbar |
+
+Die Auszeichnungsfarbe (`color_primary`) ist im Skript **geraten**. Diese
+Analyse hält für Vuozvolc keine fest, und eine gibt es dort kaum; das gedeckte
+Braun ist ein Vorschlag und unter Erscheinungsbild in einem Klick geändert.
 
 Was der Nachbau **nicht** beantwortet: ob Vuozvolc das will, wer die
 Installation betreibt und ob sie ihr Forum aufgeben würden. Das gehört ins
