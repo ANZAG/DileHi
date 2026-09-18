@@ -20,22 +20,22 @@ import { zeichen } from "./icons";
  * neue Aufgabe dazukommt.
  */
 export default function ErsteSchritte() {
-  const { aufgaben, fortschritt, bereit, ausblenden } = useOnboarding();
+  const { aufgaben, progress, bereit, ausblenden } = useOnboarding();
 
   if (!bereit || aufgaben.length === 0) return null;
-  if (fortschritt.fertig === fortschritt.gesamt) return null;
+  if (progress.fertig === progress.gesamt) return null;
 
   return (
     <div data-tour="profil-checkliste" className="p-6 rounded-lg border bg-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
         <h2 className="font-serif text-lg font-semibold">Erste Schritte</h2>
         <p className="text-xs text-muted-foreground">
-          {fortschritt.fertig} von {fortschritt.gesamt} erledigt
+          {progress.fertig} von {progress.gesamt} erledigt
         </p>
       </div>
 
       <Progress
-        value={(fortschritt.fertig / Math.max(1, fortschritt.gesamt)) * 100}
+        value={(progress.fertig / Math.max(1, progress.gesamt)) * 100}
         className="h-1.5 mb-4"
       />
 

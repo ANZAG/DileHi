@@ -2,13 +2,13 @@
 import { describe, expect, it } from "vitest";
 import {
   SCHRITTE,
-  istErledigt,
-  naechsterSchritt,
+  isDone,
+  nextStep,
   zeigen,
-  durchlaufSichtbar,
-  fortschritt,
+  setupRunVisible,
+  progress,
 } from "@/lib/einrichtungsprozess";
-import type { Befund } from "@/lib/einrichtung";
+import type { Findings } from "@/lib/einrichtung";
 
 /**
  * Der geführte Durchlauf.
@@ -18,7 +18,7 @@ import type { Befund } from "@/lib/einrichtung";
  * darf nicht beim nächsten Öffnen wieder vorne stehen.
  */
 
-const leer: Befund = {
+const leer: Findings = {
   datenbank: {
     rollen_vergeben: 1,
     mitglieder: 1,
@@ -29,7 +29,7 @@ const leer: Befund = {
   secrets: { mail: ["SMTP_HOST"] },
 };
 
-const fertig: Befund = {
+const fertig: Findings = {
   datenbank: {
     rollen_vergeben: 3,
     mitglieder: 8,
@@ -74,22 +74,22 @@ describe("Der geführte Einrichtungsprozess", () => {
 
   it("erkennt eine frische Installation am zweiten Schritt", () => {
     // Die Form steht (Vorgabe), die Daten fehlen.
-    expect(naechsterSchritt(leer, { schritt: 0 })).toBe(1);
+    expect(nextStep(leer, { schritt: 0 })).toBe(1);
   });
 
   it("hält niemanden fest, der einen Schritt überspringt", () => {
     // Schritt 1 (die Daten) übersprungen: Der Durchlauf geht weiter, statt
     // dieselbe Frage noch einmal zu stellen.
-    expect(naechsterSchritt(leer, { schritt: 2 })).toBeGreaterThan(1);
+    expect(nextStep(leer, { schritt: 2 })).toBeGreaterThan(1);
   });
 
   it("ist bei einer eingerichteten Installation durch", () => {
-    expect(naechsterSchritt(fertig, { schritt: 0 })).toBe(SCHRITTE.length);
-    expect(fortschritt(fertig, { schritt: 0 }).fertig).toBe(SCHRITTE.length);
+    expect(nextStep(fertig, { schritt: 0 })).toBe(SCHRITTE.length);
+    expect(progress(fertig, { schritt: 0 }).fertig).toBe(SCHRITTE.length);
   });
 
   it("verlangt von einer Interessengemeinschaft keinen Vorstand", () => {
-    const ig: Befund = {
+    const ig: Findings = {
       datenbank: {
         ...fertig.datenbank!,
         verein: {
@@ -105,22 +105,22 @@ describe("Der geführte Einrichtungsprozess", () => {
       },
       secrets: { mail: [] },
     };
-    expect(istErledigt("verein", ig)).toBe(true);
+    expect(isDone("verein", ig)).toBe(true);
 
     // Derselbe Stand als eingetragener Verein: nicht erledigt.
-    const ev: Befund = {
+    const ev: Findings = {
       datenbank: {
         ...ig.datenbank!,
         verein: { ...ig.datenbank!.verein!, org_form: "registered_club" },
       },
       secrets: { mail: [] },
     };
-    expect(istErledigt("verein", ev)).toBe(false);
+    expect(isDone("verein", ev)).toBe(false);
   });
 
   it("zählt den Mailversand erst als erledigt, wenn er wirklich steht", () => {
-    expect(istErledigt("mail", leer)).toBe(false);
-    expect(istErledigt("mail", fertig)).toBe(true);
+    expect(isDone("mail", leer)).toBe(false);
+    expect(isDone("mail", fertig)).toBe(true);
   });
 
   it("öffnet sich nicht mehr, wenn der Durchlauf beendet wurde", () => {
@@ -136,14 +136,14 @@ describe("Der geführte Einrichtungsprozess", () => {
     // nur da ist, solange man ihn nicht braucht, ist keiner.
     const beendet = { schritt: 7, fertig_am: "2026-09-16T20:00:00Z" };
 
-    expect(durchlaufSichtbar(null, beendet)).toBe(false);
-    expect(durchlaufSichtbar("auf", beendet)).toBe(true);
+    expect(setupRunVisible(null, beendet)).toBe(false);
+    expect(setupRunVisible("auf", beendet)).toBe(true);
 
     // Und umgekehrt: Wer „Später" sagt, bekommt ihn nicht sofort wieder
     // vorgesetzt, obwohl die Einrichtung noch offen ist.
     const offen = { schritt: 0, fertig_am: null };
-    expect(durchlaufSichtbar(null, offen)).toBe(true);
-    expect(durchlaufSichtbar("zu", offen)).toBe(false);
+    expect(setupRunVisible(null, offen)).toBe(true);
+    expect(setupRunVisible("zu", offen)).toBe(false);
   });
 
   it("schickt jeden Schritt an eine Stelle, die es in der Verwaltung gibt", () => {

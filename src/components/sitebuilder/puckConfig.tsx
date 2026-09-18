@@ -100,7 +100,7 @@ export type Bausteine = {
     /** Schlagwort in Kapitälchen über der Überschrift. Leer = keine. */
     oberzeile?: string;
     text: string;
-    groesse: "gross" | "mittel" | "klein";
+    groesse: "riesig" | "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
   } & typeof gemeinsameVorgaben;
   Textabschnitt: {
@@ -113,6 +113,8 @@ export type Bausteine = {
     ueberschrift: string;
     text?: string;
     ausrichtung: "links" | "mitte";
+    /** Wie gross die Überschrift steht. Ohne Angabe „gross" wie bisher. */
+    groesse?: "riesig" | "gross" | "mittel" | "klein";
   } & typeof gemeinsameVorgaben;
   ZweiSpalten: {
     inhalt: unknown;
@@ -274,6 +276,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         groesse: {
           type: "select", label: "Größe",
           options: [
+            { label: "Riesig", value: "riesig" },
             { label: "Groß", value: "gross" },
             { label: "Mittel", value: "mittel" },
             { label: "Klein", value: "klein" },
@@ -327,6 +330,15 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         },
         ueberschrift: { type: "text", label: "Überschrift" },
         text: textFeld,
+        groesse: {
+          type: "select", label: "Größe der Überschrift",
+          options: [
+            { label: "Riesig", value: "riesig" },
+            { label: "Groß", value: "gross" },
+            { label: "Mittel", value: "mittel" },
+            { label: "Klein", value: "klein" },
+          ],
+        },
         ausrichtung: {
           type: "radio", label: "Ausrichtung",
           options: [
@@ -338,6 +350,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
       },
       defaultProps: {
         oberzeile: "", ueberschrift: "Überschrift", text: "", ausrichtung: "links",
+        groesse: "gross",
         ...gemeinsameVorgaben, abstandOben: "gross", abstandUnten: "gross",
       },
       render: Seitenkopf,

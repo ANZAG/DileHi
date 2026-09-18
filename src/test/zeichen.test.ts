@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MITGELIEFERT, bildTyp, zeichenLinks } from "@/lib/zeichen";
+import { MITGELIEFERT, bildTyp, iconLinks } from "@/lib/zeichen";
 
 /**
  * Das Zeichen einer Installation, die noch keines hat.
@@ -67,14 +67,14 @@ describe("Das mitgelieferte Zeichen", () => {
 
 describe("Welches Zeichen gilt", () => {
   it("nimmt die mitgelieferten, solange niemand ein eigenes hat", () => {
-    expect(zeichenLinks(null)).toEqual(MITGELIEFERT);
-    expect(zeichenLinks("")).toEqual(MITGELIEFERT);
+    expect(iconLinks(null)).toEqual(MITGELIEFERT);
+    expect(iconLinks("")).toEqual(MITGELIEFERT);
   });
 
   it("lässt neben dem eigenen keines der mitgelieferten stehen", () => {
     // Der eigentliche Fehler: Vorher wurde nur die Adresse des ersten Links
     // umgebogen – die .ico blieb daneben stehen, und der Browser entschied.
-    const links = zeichenLinks("https://beispiel.supabase.co/storage/wappen.png");
+    const links = iconLinks("https://beispiel.supabase.co/storage/wappen.png");
     expect(links).toHaveLength(1);
     expect(links[0].type).toBe("image/png");
     expect(links.some((l) => l.href.startsWith("/favicon"))).toBe(false);

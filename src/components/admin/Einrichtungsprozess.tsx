@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
-import type { Befund } from "@/lib/einrichtung";
+import type { Findings } from "@/lib/einrichtung";
 import {
   SCHRITTE,
-  istErledigt,
-  naechsterSchritt,
-  fortschritt,
+  isDone,
+  nextStep,
+  progress,
 } from "@/lib/einrichtungsprozess";
 import OrganisationsformWahl from "./OrganisationsformWahl";
 
@@ -47,14 +47,14 @@ export default function Einrichtungsprozess({
 
   const { data: befund, refetch } = useQuery({
     queryKey: ["einrichtung-status"],
-    queryFn: async () => await invokeFunction<Befund>("einrichtung-status", { body: {} }),
+    queryFn: async () => await invokeFunction<Findings>("einrichtung-status", { body: {} }),
     staleTime: 0,
   });
 
   const stand = befund?.datenbank?.durchlauf ?? { schritt: 0, fertig_am: null };
-  const index = befund ? naechsterSchritt(befund, stand) : 0;
+  const index = befund ? nextStep(befund, stand) : 0;
   const schritt = SCHRITTE[index];
-  const weite = befund ? fortschritt(befund, stand) : { fertig: 0, gesamt: SCHRITTE.length };
+  const weite = befund ? progress(befund, stand) : { fertig: 0, gesamt: SCHRITTE.length };
 
   /** Den Stand fortschreiben. Ein Schritt gilt als abgehakt, sobald man weitergeht. */
   const merken = async (bis: number, fertig = false) => {
@@ -141,7 +141,7 @@ export default function Einrichtungsprozess({
               </Button>
             ) : null}
             <Button variant="outline" onClick={() => merken(index + 1)} disabled={laeuft}>
-              {istErledigt(schritt.id, befund) ? (
+              {isDone(schritt.id, befund) ? (
                 <>
                   <Check size={16} /> Erledigt, weiter
                 </>
@@ -152,7 +152,7 @@ export default function Einrichtungsprozess({
               )}
             </Button>
           </div>
-          {schritt.pflicht && !istErledigt(schritt.id, befund) ? (
+          {schritt.pflicht && !isDone(schritt.id, befund) ? (
             <p className="text-xs text-muted-foreground">
               Ohne diesen Schritt läuft die Installation nicht rund — aber er kann
               warten, bis ihr die Angaben beisammen habt.

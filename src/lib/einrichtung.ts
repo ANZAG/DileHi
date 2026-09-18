@@ -11,12 +11,12 @@
 
 import { form } from "@/lib/organisationsform";
 
-export type Ampel = "gut" | "teilweise" | "fehlt";
+export type Signal = "gut" | "teilweise" | "fehlt";
 
 export interface Schritt {
   id: string;
   titel: string;
-  ampel: Ampel;
+  ampel: Signal;
   /** Was der Stand bedeutet, in einem Satz und ohne Fachwort. */
   text: string;
   /** Was zu tun ist, wenn es nicht grün ist. */
@@ -29,7 +29,7 @@ export interface Schritt {
   pflicht: boolean;
 }
 
-export interface Vereinsstand {
+export interface ClubState {
   /** Verein, e. V. oder Interessengemeinschaft – entscheidet, was hier fehlt. */
   org_form?: string | null;
   name?: string | null;
@@ -48,13 +48,13 @@ export interface Vereinsstand {
   farbe_gesetzt?: boolean;
 }
 
-export interface Befund {
+export interface Findings {
   datenbank?: {
     migrationen?: string[];
     rollen_vergeben?: number;
     mitglieder?: number;
     module?: number;
-    verein?: Vereinsstand | null;
+    verein?: ClubState | null;
     seiten?: Record<string, boolean> | null;
     menue?: { kopf?: number; fuss?: number } | null;
     /** Wie weit der geführte Durchlauf gekommen ist. */
@@ -71,7 +71,7 @@ export interface Befund {
 }
 
 /** Die Versionen, die dieser Stand des Programms mitbringt (aus den Dateinamen). */
-export function erwarteteMigrationen(dateien: string[]): string[] {
+export function expectedMigrations(dateien: string[]): string[] {
   return dateien
     .map((pfad) => pfad.split("/").pop() ?? pfad)
     .map((name) => name.replace(/_.*$/, "").replace(/\.sql$/, ""))
@@ -82,7 +82,7 @@ export function erwarteteMigrationen(dateien: string[]): string[] {
 }
 
 /** Welche Migrationen dieses Programm erwartet, die Datenbank aber nicht kennt. */
-export function fehlendeMigrationen(erwartet: string[], eingespielt: string[]): string[] {
+export function missingMigrations(erwartet: string[], eingespielt: string[]): string[] {
   const da = new Set(eingespielt.map((v) => v.replace(/^0+(?=\d)/, "")));
   return erwartet.filter((v) => !da.has(v.replace(/^0+(?=\d)/, "")));
 }
@@ -96,14 +96,14 @@ const zahl = (wert: unknown): number => (typeof wert === "number" ? wert : 0);
  * Build, nicht aus der Datenbank — sonst verglichen wir die Datenbank mit sich
  * selbst.
  */
-export function schritte(befund: Befund, erwartet: string[] = []): Schritt[] {
+export function schritte(befund: Findings, erwartet: string[] = []): Schritt[] {
   const db = befund.datenbank ?? {};
   const verein = db.verein ?? {};
   const secrets = befund.secrets ?? {};
   const seiten = db.seiten ?? {};
   const eingespielt = db.migrationen ?? [];
 
-  const fehlend = fehlendeMigrationen(erwartet, eingespielt);
+  const fehlend = missingMigrations(erwartet, eingespielt);
   const liste: Schritt[] = [];
 
   liste.push({
@@ -268,7 +268,7 @@ export function schritte(befund: Befund, erwartet: string[] = []): Schritt[] {
 }
 
 /** Wie weit die Installation ist: fertig, wenn alles Pflichtige grün ist. */
-export function fortschritt(liste: Schritt[]): { fertig: number; gesamt: number; offen: Schritt[] } {
+export function progress(liste: Schritt[]): { fertig: number; gesamt: number; offen: Schritt[] } {
   const pflicht = liste.filter((s) => s.pflicht);
   const offen = pflicht.filter((s) => s.ampel !== "gut");
   return { fertig: pflicht.length - offen.length, gesamt: pflicht.length, offen };
