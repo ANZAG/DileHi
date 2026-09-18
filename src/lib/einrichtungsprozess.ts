@@ -24,7 +24,7 @@
  */
 
 import { form, type OrgForm } from "@/lib/organisationsform";
-import type { Befund } from "@/lib/einrichtung";
+import type { Findings } from "@/lib/einrichtung";
 
 export interface Durchlaufschritt {
   id: string;
@@ -106,7 +106,7 @@ export interface Durchlaufstand {
  * erledigt — der Durchlauf geht trotzdem weiter, und die Kachel „Einrichtung"
  * zeigt hinterher, was übrig blieb.
  */
-export function istErledigt(id: string, befund: Befund): boolean {
+export function isDone(id: string, befund: Findings): boolean {
   const db = befund.datenbank ?? {};
   const verein = db.verein ?? {};
   const art = form(verein.org_form);
@@ -147,11 +147,11 @@ export function istErledigt(id: string, befund: Befund): boolean {
  * durchgeklickt, auch wenn er übersprungen wurde — sonst käme derselbe Schritt
  * bei jedem Öffnen wieder, und der Durchlauf würde zur Sackgasse.
  */
-export function naechsterSchritt(befund: Befund, stand: Durchlaufstand): number {
+export function nextStep(befund: Findings, stand: Durchlaufstand): number {
   const abgehakt = stand.schritt ?? 0;
   for (let i = 0; i < SCHRITTE.length; i++) {
     if (i < abgehakt) continue;
-    if (istErledigt(SCHRITTE[i].id, befund)) continue;
+    if (isDone(SCHRITTE[i].id, befund)) continue;
     return i;
   }
   return SCHRITTE.length;
@@ -169,7 +169,7 @@ export function zeigen(stand: Durchlaufstand | null | undefined): boolean {
 }
 
 /** Was jemand ausdrücklich gesagt hat — oder eben noch nichts. */
-export type Wunsch = "auf" | "zu" | null;
+export type Intent = "auf" | "zu" | null;
 
 /**
  * Ob der Durchlauf gerade zu sehen ist.
@@ -180,8 +180,8 @@ export type Wunsch = "auf" | "zu" | null;
  * beendet hatte (oder wessen Installation die Migration abgehakt hatte, bevor
  * er ihn das erste Mal sah), kam nie wieder hinein.
  */
-export function durchlaufSichtbar(
-  wunsch: Wunsch,
+export function setupRunVisible(
+  wunsch: Intent,
   stand: Durchlaufstand | null | undefined
 ): boolean {
   if (wunsch === "auf") return true;
@@ -190,8 +190,8 @@ export function durchlaufSichtbar(
 }
 
 /** Wie weit es ist – für den Balken oben im Durchlauf. */
-export function fortschritt(befund: Befund, stand: Durchlaufstand): { fertig: number; gesamt: number } {
-  const fertig = SCHRITTE.filter((s, i) => istErledigt(s.id, befund) || i < (stand.schritt ?? 0)).length;
+export function progress(befund: Findings, stand: Durchlaufstand): { fertig: number; gesamt: number } {
+  const fertig = SCHRITTE.filter((s, i) => isDone(s.id, befund) || i < (stand.schritt ?? 0)).length;
   return { fertig, gesamt: SCHRITTE.length };
 }
 

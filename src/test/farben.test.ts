@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
+import { hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
 
 /**
  * Farbumrechnung für das Erscheinungsbild.
@@ -44,13 +44,13 @@ describe("hexToHsl", () => {
 
 describe("lesbare Schrift auf der Vereinsfarbe", () => {
   it("setzt dunkle Schrift auf helle Flächen", () => {
-    expect(lesbareSchrift("#ffff00")).toBe("220 25% 10%"); // Gelb
-    expect(lesbareSchrift("#ffffff")).toBe("220 25% 10%");
+    expect(readableInk("#ffff00")).toBe("220 25% 10%"); // Gelb
+    expect(readableInk("#ffffff")).toBe("220 25% 10%");
   });
 
   it("setzt helle Schrift auf dunkle Flächen", () => {
-    expect(lesbareSchrift("#003366")).toBe("0 0% 100%"); // Dunkelblau
-    expect(lesbareSchrift("#000000")).toBe("0 0% 100%");
+    expect(readableInk("#003366")).toBe("0 0% 100%"); // Dunkelblau
+    expect(readableInk("#000000")).toBe("0 0% 100%");
   });
 
   it("wiegt Grün schwerer als Blau", () => {
@@ -58,35 +58,35 @@ describe("lesbare Schrift auf der Vereinsfarbe", () => {
     // bekäme schwarze Schrift, die niemand lesen kann. Umgekehrt ist reines
     // Grün hell – eine selbst gewählte Schwelle hielt es zunächst für dunkel,
     // deshalb rechnet die Funktion jetzt nach WCAG.
-    expect(lesbareSchrift("#0000ff")).toBe("0 0% 100%");
-    expect(lesbareSchrift("#00ff00")).toBe("220 25% 10%");
+    expect(readableInk("#0000ff")).toBe("0 0% 100%");
+    expect(readableInk("#00ff00")).toBe("220 25% 10%");
   });
 
   it("trifft die eigene Vereinsfarbe wie das Stylesheet", () => {
     // Im Stylesheet steht --primary-foreground: 220 25% 10% auf dem Orange.
-    expect(lesbareSchrift("#dd9933")).toBe("220 25% 10%");
+    expect(readableInk("#dd9933")).toBe("220 25% 10%");
   });
 
   it("wählt auf mittlerem Grau die besser lesbare Schrift", () => {
     // Schwarz auf #808080 hat rund 5,3:1, Weiss nur 3,9:1.
-    expect(lesbareSchrift("#808080")).toBe("220 25% 10%");
+    expect(readableInk("#808080")).toBe("220 25% 10%");
   });
 
   it("verträgt Unsinn, ohne die Seite zu zerlegen", () => {
-    expect(lesbareSchrift("keine farbe")).toBe("0 0% 100%");
+    expect(readableInk("keine farbe")).toBe("0 0% 100%");
   });
 });
 
-describe("istDunkel", () => {
+describe("isDark", () => {
   it("erkennt, was als dunkler Grund taugt", () => {
-    expect(istDunkel("#1c1917")).toBe(true);
-    expect(istDunkel("#f5f5f4")).toBe(false);
+    expect(isDark("#1c1917")).toBe(true);
+    expect(isDark("#f5f5f4")).toBe(false);
     // Eine helle "dunkle Farbe" wird verworfen, statt die Seite unlesbar zu
     // machen - siehe useBranding.
-    expect(istDunkel("#ffffff")).toBe(false);
+    expect(isDark("#ffffff")).toBe(false);
   });
 
   it("sagt bei Unsinn nein", () => {
-    expect(istDunkel("#xyz")).toBe(false);
+    expect(isDark("#xyz")).toBe(false);
   });
 });

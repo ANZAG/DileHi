@@ -144,7 +144,7 @@ function Oberzeile({ text, mitte }: { text?: string; mitte?: boolean }) {
   if (!text?.trim()) return null;
   return (
     <p
-      className={`text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2 ${
+      className={`text-sm font-bold uppercase tracking-[0.08em] leading-[1.4] text-primary mb-2 ${
         mitte ? "text-center" : ""
       }`}
     >
@@ -154,10 +154,11 @@ function Oberzeile({ text, mitte }: { text?: string; mitte?: boolean }) {
 }
 
 export function Seitenkopf({
-  oberzeile, ueberschrift, text, ausrichtung, breite, abstandOben, abstandUnten, abstand,
+  oberzeile, ueberschrift, text, ausrichtung, groesse, breite, abstandOben, abstandUnten, abstand,
   hintergrund, flaeche, textfarbe,
 }: Gemeinsam & {
   oberzeile?: string; ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte";
+  groesse?: Schriftgrad;
 }) {
   const mitte = ausrichtung === "mitte";
   const inneres = (
@@ -168,7 +169,7 @@ export function Seitenkopf({
       className={mitte ? "text-center" : ""}
     >
       <Oberzeile text={oberzeile} mitte={mitte} />
-      <h1 className={`font-serif text-3xl md:text-4xl font-bold ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
+      <h1 className={`font-serif ${SCHRIFTGRAD[groesse ?? "gross"]} ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
         {ueberschrift}
       </h1>
       {text && (
@@ -256,23 +257,40 @@ export function Textabschnitt({
 
 // ── Überschrift allein ──────────────────────────────────────────────────────
 
+/**
+ * Die Schriftgrade der Überschriften.
+ *
+ * „Riesig" ist am 18. September dazugekommen. Bis dahin war die grösste Stufe
+ * 36 px — kleiner als das, was eine gestaltete Seite für ihre Hauptüberschrift
+ * nimmt; beim Nachbau einer fremden Seite stand unsere grösste Überschrift
+ * neben ihrer mittleren. 72 px ist kein Ausreisser, sondern was ein
+ * Seitenbaukasten dafür anbietet.
+ *
+ * Und: Gross wird nicht fett. Eine Auszeichnungsschrift wie Antic Didone lebt
+ * vom Wechsel dünner und dicker Striche; `font-bold` walzt genau den platt.
+ * Unter 36 px trägt das Fett noch, darüber schadet es.
+ */
+const SCHRIFTGRAD = {
+  riesig: "text-4xl md:text-6xl lg:text-7xl font-medium leading-[1.15]",
+  gross: "text-3xl md:text-4xl font-bold",
+  mittel: "text-2xl font-bold",
+  klein: "text-xl font-bold",
+} as const;
+
+export type Schriftgrad = keyof typeof SCHRIFTGRAD;
+
 export function Ueberschrift({
   oberzeile, text, groesse, ausrichtung, ...rest
 }: Gemeinsam & {
   oberzeile?: string; text: string;
-  groesse: "gross" | "mittel" | "klein"; ausrichtung: "links" | "mitte";
+  groesse: Schriftgrad; ausrichtung: "links" | "mitte";
 }) {
-  const Tag = groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
-  const groessen = {
-    gross: "text-3xl md:text-4xl",
-    mittel: "text-2xl",
-    klein: "text-xl",
-  };
+  const Tag = groesse === "riesig" || groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
   return (
     <Rahmen {...rest}>
       <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} />
       <Tag
-        className={`font-serif font-bold ${groessen[groesse] ?? groessen.mittel} ${
+        className={`font-serif ${SCHRIFTGRAD[groesse] ?? SCHRIFTGRAD.mittel} ${
           ausrichtung === "mitte" ? "text-center" : ""
         }`}
       >

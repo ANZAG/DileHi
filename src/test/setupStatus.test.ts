@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import type { PGlite } from "@electric-sql/pglite";
 import { leereDatenbank, einspielen } from "./hilfe/buehne";
-import { schritte, fortschritt, type Befund } from "@/lib/einrichtung";
+import { schritte, progress, type Findings } from "@/lib/einrichtung";
 
 /**
  * `setup_status()` — die Auskunft, aus der der Einrichtungsassistent liest.
@@ -26,8 +26,8 @@ async function alsNutzer(id: string | null) {
   await db.exec(`select set_config('request.jwt.claim.sub', ${id ? `'${id}'` : "''"}, false);`);
 }
 
-async function status(): Promise<Befund["datenbank"]> {
-  const rows = (await db.query<{ setup_status: Befund["datenbank"] }>("select public.setup_status()")).rows;
+async function status(): Promise<Findings["datenbank"]> {
+  const rows = (await db.query<{ setup_status: Findings["datenbank"] }>("select public.setup_status()")).rows;
   return rows[0].setup_status;
 }
 
@@ -101,7 +101,7 @@ describe("setup_status()", () => {
 
   it("ergibt zusammen mit den Secrets eine Liste, die zum Weiterarbeiten taugt", async () => {
     await alsNutzer(ADMIN);
-    const befund: Befund = {
+    const befund: Findings = {
       datenbank: await status(),
       // So sieht eine frische Installation aus: Datenbank steht, Secrets nicht.
       secrets: { mail: ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"], sharepoint: [], push: [], sicherung: ["BACKUP_TOKEN"], einrichtung: [] },
@@ -116,6 +116,6 @@ describe("setup_status()", () => {
     expect(liste.find((s) => s.id === "sicherung")!.ampel).toBe("fehlt");
 
     // Und die Zusammenfassung sagt ehrlich, dass es noch nicht fertig ist.
-    expect(fortschritt(liste).offen.map((s) => s.id)).toContain("mail");
+    expect(progress(liste).offen.map((s) => s.id)).toContain("mail");
   });
 });

@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   schritte,
-  fortschritt,
-  erwarteteMigrationen,
-  fehlendeMigrationen,
-  type Befund,
+  progress,
+  expectedMigrations,
+  missingMigrations,
+  type Findings,
 } from "@/lib/einrichtung";
 
 /**
@@ -15,7 +15,7 @@ import {
  * frischen Installation, nicht die von DileHi.
  */
 
-const leer: Befund = {
+const leer: Findings = {
   datenbank: {
     migrationen: [],
     rollen_vergeben: 0,
@@ -35,7 +35,7 @@ const leer: Befund = {
   seitenadresse: null,
 };
 
-const fertig: Befund = {
+const fertig: Findings = {
   datenbank: {
     migrationen: ["00000000000000", "20260916100000"],
     rollen_vergeben: 3,
@@ -60,7 +60,7 @@ const fertig: Befund = {
   seitenadresse: "https://beispiel.org",
 };
 
-const finde = (befund: Befund, id: string, erwartet: string[] = []) =>
+const finde = (befund: Findings, id: string, erwartet: string[] = []) =>
   schritte(befund, erwartet).find((s) => s.id === id)!;
 
 describe("Einrichtungsassistent", () => {
@@ -93,7 +93,7 @@ describe("Einrichtungsassistent", () => {
   it("nennt fehlende Secrets beim Namen und gibt nie einen Wert heraus", () => {
     const mail = finde(leer, "mail");
     expect(mail.fehlendeSecrets).toEqual(["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"]);
-    // Der Befund trägt nur Namen; wer hier einen Wert einbaut, fällt durch.
+    // Der Findings trägt nur Namen; wer hier einen Wert einbaut, fällt durch.
     const alles = JSON.stringify(schritte(leer));
     expect(alles).not.toMatch(/hunter2|passwor[dt]\s*[:=]\s*\S/i);
   });
@@ -109,7 +109,7 @@ describe("Einrichtungsassistent", () => {
   });
 
   it("fragt eine Interessengemeinschaft nicht nach Vorstand und Register", () => {
-    const ig: Befund = {
+    const ig: Findings = {
       ...leer,
       datenbank: {
         ...leer.datenbank!,
@@ -129,7 +129,7 @@ describe("Einrichtungsassistent", () => {
     expect(schritt.text).toContain("Interessengemeinschaft");
 
     // Derselbe Stand als eingetragener Verein: Da fehlt etwas.
-    const ev: Befund = {
+    const ev: Findings = {
       ...ig,
       datenbank: {
         ...ig.datenbank!,
@@ -143,7 +143,7 @@ describe("Einrichtungsassistent", () => {
   });
 
   it("ist bei halb ausgefüllten Vereinsdaten gelb, nicht grün", () => {
-    const halb: Befund = {
+    const halb: Findings = {
       ...leer,
       datenbank: {
         ...leer.datenbank!,
@@ -159,7 +159,7 @@ describe("Einrichtungsassistent", () => {
     // Grünes steht, wo niemand etwas eingetragen hat. Bleibt der Name doch
     // einmal stehen, ist der Schritt trotzdem nicht grün – es fehlen ja die
     // übrigen Angaben.
-    const vorgabe: Befund = {
+    const vorgabe: Findings = {
       ...leer,
       datenbank: { ...leer.datenbank!, module: 19, verein: { name: null, anschrift: false, email: null } },
     };
@@ -167,7 +167,7 @@ describe("Einrichtungsassistent", () => {
   });
 
   it("ist bei SharePoint ohne Zugangsdaten gelb", () => {
-    const sp: Befund = {
+    const sp: Findings = {
       ...fertig,
       datenbank: {
         ...fertig.datenbank!,
@@ -192,7 +192,7 @@ describe("Einrichtungsassistent", () => {
 
   it("liest die erwarteten Versionen aus den Dateinamen", () => {
     expect(
-      erwarteteMigrationen([
+      expectedMigrations([
         "/supabase/migrations/00000000000000_ausgangsstand.sql",
         "/supabase/migrations/20260916100000_startdaten.sql",
         "/supabase/migrations/liesmich.txt",
@@ -201,16 +201,16 @@ describe("Einrichtungsassistent", () => {
   });
 
   it("vergleicht Versionen unabhängig von führenden Nullen", () => {
-    expect(fehlendeMigrationen(["00000000000000", "20260916100000"], ["0", "20260916100000"]))
+    expect(missingMigrations(["00000000000000", "20260916100000"], ["0", "20260916100000"]))
       .toEqual([]);
   });
 
   it("zählt den Fortschritt nur über das Pflichtige", () => {
-    const stand = fortschritt(schritte(fertig, ["00000000000000", "20260916100000"]));
+    const stand = progress(schritte(fertig, ["00000000000000", "20260916100000"]));
     expect(stand.offen).toEqual([]);
     expect(stand.fertig).toBe(stand.gesamt);
 
-    const leerStand = fortschritt(schritte(leer));
+    const leerStand = progress(schritte(leer));
     expect(leerStand.fertig).toBe(0);
     expect(leerStand.offen.length).toBe(leerStand.gesamt);
   });

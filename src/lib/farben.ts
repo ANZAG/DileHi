@@ -87,14 +87,14 @@ const SCHWELLE = 0.179;
  * unlesbar. Das ist genau die Art Fehler, die man erst beim fremden Verein
  * sieht.
  */
-export function lesbareSchrift(hex: string): string {
+export function readableInk(hex: string): string {
   const y = leuchtdichte(hex);
   if (y === null) return "0 0% 100%";
   return y > SCHWELLE ? "220 25% 10%" : "0 0% 100%";
 }
 
 /** Ist die Farbe dunkel genug, um als Hintergrund im dunklen Modus zu taugen? */
-export function istDunkel(hex: string): boolean {
+export function isDark(hex: string): boolean {
   const y = leuchtdichte(hex);
   return y !== null && y <= SCHWELLE;
 }
@@ -114,7 +114,7 @@ export function istDunkel(hex: string): boolean {
  * Die Sättigung wird für Rahmen und gedämpfte Flächen leicht angehoben, sonst
  * wirken sie neben einer farbigen Fläche schmutzig.
  */
-export function flaechenfarben(hex: string, dunkel = false): Record<string, string> | null {
+export function surfaceColors(hex: string, dunkel = false): Record<string, string> | null {
   const basis = hexToHsl(hex);
   if (!basis) return null;
 
