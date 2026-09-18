@@ -8,7 +8,7 @@
  * funktioniert im hellen wie im dunklen Modus.
  */
 
-export type Textfarbe = "standard" | "gedaempft" | "akzent" | "hell";
+export type Textfarbe = "standard" | "gedaempft" | "akzent" | "hell" | "weiss";
 export type Hintergrund = "keine" | "karte" | "gedaempft" | "akzent_zart" | "akzent";
 
 export const TEXTFARBEN: { label: string; value: Textfarbe }[] = [
@@ -16,6 +16,11 @@ export const TEXTFARBEN: { label: string; value: Textfarbe }[] = [
   { label: "Gedämpft (grau)", value: "gedaempft" },
   { label: "Eure Farbe", value: "akzent" },
   { label: "Hell (auf dunklem Grund)", value: "hell" },
+  // "Hell" zeigt auf `--primary-foreground`, also auf die Farbe, die der
+  // Verein zu seiner Vereinsfarbe gewaehlt hat -- die kann dunkel sein. Wer
+  // wirklich Weiss braucht, etwa weil eine Vorlage es so setzt, waehlt das
+  // hier. Der Kontrast steht dann in der Verantwortung dessen, der es waehlt.
+  { label: "Weiß", value: "weiss" },
 ];
 
 export const HINTERGRUENDE: { label: string; value: Hintergrund }[] = [
@@ -31,6 +36,7 @@ const TEXT_KLASSEN: Record<Textfarbe, string> = {
   gedaempft: "text-muted-foreground",
   akzent: "text-primary",
   hell: "text-primary-foreground",
+  weiss: "text-white",
 };
 
 const GRUND_KLASSEN: Record<Hintergrund, string> = {
@@ -97,11 +103,12 @@ export const FLAECHEN: { label: string; value: Flaeche }[] = [
   { label: "Über die ganze Breite", value: "voll" },
 ];
 
-export type Breite = "schmal" | "breit" | "voll";
+export type Breite = "schmal" | "breit" | "sehr_breit" | "voll";
 
 export const BREITEN: { label: string; value: Breite }[] = [
   { label: "Schmal (gut lesbar)", value: "schmal" },
   { label: "Breit", value: "breit" },
+  { label: "Sehr breit", value: "sehr_breit" },
   { label: "Ganze Seite", value: "voll" },
 ];
 
@@ -110,9 +117,28 @@ export const BREITEN: { label: string; value: Breite }[] = [
  * `mx-auto` klebt der Inhalt am linken Rand. Das ist genau der Fehler, der im
  * Prototyp aufgefallen ist.
  */
+/**
+ * Die Hoechstbreite derselben Stufe als CSS-Laenge.
+ *
+ * Wird gebraucht, wo ein Baustein rechnen muss, wie weit es vom Rand des
+ * Schirms bis zum Textanfang ist -- etwa um ein Foto randlos aus der
+ * Inhaltsspalte herauszuziehen. Muss mit `breitenKlasse` gleich bleiben.
+ */
+export function breitenMass(breite?: Breite): string | null {
+  if (breite === "voll") return null;
+  if (breite === "sehr_breit") return "1144px";
+  return breite === "breit" ? "64rem" : "48rem";
+}
+
 export function breitenKlasse(breite?: Breite): string {
   if (breite === "voll") return "w-full";
-  return `container mx-auto ${breite === "breit" ? "max-w-5xl" : "max-w-3xl"}`;
+  // 1144 statt einer der Stufen von Tailwind: `container` legt links und
+  // rechts 2rem Polsterung an, es bleiben also genau 1080 px Text. Das ist
+  // das Mass der Vorlage, die hier nachgebaut wird -- `max-w-6xl` traefe mit
+  // 1088 daneben, und zwar auf jeder Seite sichtbar.
+  const kasten =
+    breite === "sehr_breit" ? "max-w-[1144px]" : breite === "breit" ? "max-w-5xl" : "max-w-3xl";
+  return `container mx-auto ${kasten}`;
 }
 
 export type Abstand = "keiner" | "eng" | "klein" | "normal" | "gross" | "weit" | "riesig";
