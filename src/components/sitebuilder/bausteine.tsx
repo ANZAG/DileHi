@@ -255,19 +255,20 @@ export function Seitenkopf({
 
 // ── Fließtext ───────────────────────────────────────────────────────────────
 
-export function Textabschnitt({
-  inhalt, ausrichtung, aufzaehlung, ...rest
-}: Gemeinsam & {
-  inhalt: unknown;
-  ausrichtung?: "links" | "mitte";
-  /** „punkte" = Aufzählungszeichen, „schlicht" = Liste ohne Punkte. Beides
-   *  kommt im Original vor: die Vorführungen auf „Über uns" mit Punkten, die
-   *  Epochenliste auf „Für Veranstalter" ohne. */
-  aufzaehlung?: "punkte" | "schlicht";
-}) {
-  // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
-  // wirkte die neue Seite dunkler als die alte.
-  const klassen =
+/**
+ * Wie Fliesstext in den Bausteinen aussieht.
+ *
+ * Als eigene Funktion, weil inzwischen mehrere Bausteine Fliesstext zeigen –
+ * und ein Absatz im Textabschnitt und derselbe Absatz in einem Kasten dürfen
+ * nicht verschieden aussehen.
+ */
+export function fliesstextKlassen(
+  ausrichtung?: "links" | "mitte",
+  aufzaehlung?: "punkte" | "schlicht",
+): string {
+  return (
+    // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
+    // wirkte die neue Seite dunkler als die alte.
     "prose prose-sm sm:prose dark:prose-invert max-w-none " +
     "prose-headings:font-serif prose-headings:text-foreground prose-p:text-muted-foreground " +
     "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground " +
@@ -283,7 +284,36 @@ export function Textabschnitt({
       : "prose-ul:list-inside prose-ul:pl-2 prose-ul:space-y-1 prose-li:my-0 prose-li:pl-0") +
     // Zentriert nur den Text, nicht die Aufzählungspunkte – die sähen sonst
     // aus, als wären sie verrutscht.
-    (ausrichtung === "mitte" ? " text-center prose-headings:text-center" : "");
+    (ausrichtung === "mitte" ? " text-center prose-headings:text-center" : "")
+  );
+}
+
+/**
+ * Fliesstext, egal ob er als HTML-Zeichenkette oder als React-Baum ankommt.
+ *
+ * Puck reicht ihn im Editor bereits als Baum durch, in der Datenbank liegt er
+ * als Zeichenkette. Beides muss ankommen, sonst steht im Editor etwas anderes
+ * als später auf der Seite.
+ */
+function Fliesstext({ inhalt, klassen }: { inhalt: unknown; klassen: string }) {
+  if (typeof inhalt !== "string") {
+    return <div className={klassen}>{(inhalt as React.ReactNode) ?? null}</div>;
+  }
+  return <div className={klassen} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inhalt) }} />;
+}
+
+
+export function Textabschnitt({
+  inhalt, ausrichtung, aufzaehlung, ...rest
+}: Gemeinsam & {
+  inhalt: unknown;
+  ausrichtung?: "links" | "mitte";
+  /** „punkte" = Aufzählungszeichen, „schlicht" = Liste ohne Punkte. Beides
+   *  kommt im Original vor: die Vorführungen auf „Über uns" mit Punkten, die
+   *  Epochenliste auf „Für Veranstalter" ohne. */
+  aufzaehlung?: "punkte" | "schlicht";
+}) {
+  const klassen = fliesstextKlassen(ausrichtung, aufzaehlung);
 
   // Puck reicht den Text entweder als HTML-Zeichenkette durch (so liegt er in
   // der Datenbank) oder im Editor bereits als React-Baum. Beides muss hier
@@ -452,6 +482,184 @@ export function ZweiSpalten({
         <div className={bildSeite === "rechts" ? "md:order-1" : ""}>{text}</div>
       </div>
     </Rahmen>
+  );
+}
+
+// ── Bild mit überlagertem Kasten ────────────────────────────────────────────
+
+/**
+ * Ein Bild, das bis an den Bildschirmrand läuft, und ein Kasten, der darüber
+ * liegt.
+ *
+ * Das ist die Anordnung, an der jeder Nachbau einer gestalteten Vereinsseite
+ * bisher gescheitert ist: Ein Foto nimmt zwei Drittel der Breite und hört
+ * nicht am Textrand auf, sondern am Bildschirmrand; darüber schiebt sich eine
+ * farbige Fläche mit dem Text, halb auf dem Foto, halb daneben. Aus zwei
+ * nebeneinandergestellten Bausteinen entsteht das nicht – dafür müssen beide
+ * in derselben Rasterzeile liegen und sich überlappen dürfen.
+ *
+ * Auf dem Handy gibt es keine Überlappung: Dort steht das Bild oben und der
+ * Kasten darunter. Zwei Drittel Breite sind auf einem Telefon kein Drittel
+ * mehr, und Text auf einem Foto ist dort nicht lesbar.
+ */
+export function BildMitKasten({
+  bildSchluessel, bildSeite, bandGrund, kastenGrund, rahmen, ueberlappung, inhalt,
+  abstandOben, abstandUnten, abstand,
+}: Pick<Gemeinsam, "abstandOben" | "abstandUnten" | "abstand"> & {
+  bildSchluessel: string;
+  bildSeite: "links" | "rechts";
+  /** Der Grund hinter allem, über die ganze Breite. */
+  bandGrund?: Hintergrund;
+  /** Der Grund des Kastens, der auf dem Bild liegt. */
+  kastenGrund?: Hintergrund;
+  /** Zweite, dünne Linie innerhalb des Kastens. */
+  rahmen?: boolean;
+  ueberlappung?: "ohne" | "leicht" | "stark";
+  inhalt: unknown;
+}) {
+  const links = bildSeite !== "rechts";
+  const stufe = ueberlappung ?? "leicht";
+
+  // Die Spalten sind an der Vorlage abgemessen, nicht gewählt: Das Foto endet
+  // dort bei rund zwei Dritteln, der Kasten beginnt bei einem Drittel und
+  // endet vor dem rechten Rand – er sitzt also weder mittig noch bündig.
+  //
+  // Alle Schreibweisen stehen ausgeschrieben da, auch die gespiegelten. Das
+  // ist keine Umständlichkeit: Tailwind liest den Quelltext und erzeugt nur
+  // Klassen, die darin wörtlich vorkommen. Eine Klasse, die erst zur Laufzeit
+  // zusammengerechnet wird (`md:col-start-${n}`), gibt es im fertigen
+  // Stylesheet nicht – das Raster fiele lautlos in sich zusammen.
+  const raster = {
+    links: {
+      ohne:   { bild: "md:col-start-1 md:col-end-8",  kasten: "md:col-start-8 md:col-end-13" },
+      leicht: { bild: "md:col-start-1 md:col-end-9",  kasten: "md:col-start-7 md:col-end-13" },
+      stark:  { bild: "md:col-start-1 md:col-end-10", kasten: "md:col-start-4 md:col-end-12" },
+    },
+    rechts: {
+      ohne:   { bild: "md:col-start-6 md:col-end-13", kasten: "md:col-start-1 md:col-end-6" },
+      leicht: { bild: "md:col-start-5 md:col-end-13", kasten: "md:col-start-1 md:col-end-7" },
+      stark:  { bild: "md:col-start-4 md:col-end-13", kasten: "md:col-start-2 md:col-end-10" },
+    },
+  }[links ? "links" : "rechts"][stufe];
+
+  const bildSpalte = raster.bild;
+  const kastenSpalte = raster.kasten;
+
+  const text = <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen()} />;
+
+  return (
+    <section className={`${flaechenKlasse(bandGrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+      <div className="grid gap-6 md:grid-cols-12 md:items-center md:gap-0">
+        <div className={`${bildSpalte} md:row-start-1`}>
+          <SeitenBild
+            schluessel={bildSchluessel}
+            klasse="w-full h-auto object-cover"
+            verhaeltnis="aspect-[4/3]"
+            beschriftung={bildSchluessel}
+          />
+        </div>
+        <div className={`${kastenSpalte} md:row-start-1 relative z-10 px-4 md:px-0`}>
+          <div className={`${flaechenKlasse(kastenGrund)} p-6 md:p-10`}>
+            {rahmen ? (
+              <div className="border border-foreground/20 p-5 md:p-8">{text}</div>
+            ) : (
+              text
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Kasten mit Rahmen ───────────────────────────────────────────────────────
+
+/**
+ * Ein abgesetzter Kasten um einen längeren Textteil.
+ *
+ * Unterscheidet sich vom Hintergrund an einem gewöhnlichen Textabschnitt in
+ * zwei Punkten, die zusammen das Aussehen ausmachen: keine runden Ecken, und
+ * die Möglichkeit einer zweiten dünnen Linie innerhalb der Fläche. Vorlagen
+ * setzen damit ganze Kapitel ab – bei uns sah dieselbe Stelle bisher aus wie
+ * ein Hinweiskasten.
+ */
+export function Rahmenkasten({
+  inhalt, grund, rahmen, ausrichtung, breite, abstandOben, abstandUnten, abstand, flaeche,
+}: Pick<Gemeinsam, "breite" | "abstandOben" | "abstandUnten" | "abstand" | "flaeche"> & {
+  inhalt: unknown;
+  grund?: Hintergrund;
+  rahmen?: boolean;
+  ausrichtung?: "links" | "mitte";
+}) {
+  const inneres = (
+    <div className={`${flaechenKlasse(grund)} p-6 md:p-10`}>
+      {rahmen ? (
+        <div className="border border-foreground/20 p-5 md:p-8">
+          <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung)} />
+        </div>
+      ) : (
+        <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung)} />
+      )}
+    </div>
+  );
+
+  if (flaeche === "voll") {
+    return (
+      <section className={abstandKlasse(abstandOben, abstandUnten, abstand)}>{inneres}</section>
+    );
+  }
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+      {inneres}
+    </section>
+  );
+}
+
+// ── Personen mit Bild ───────────────────────────────────────────────────────
+
+/**
+ * Ein Raster aus Porträts: Bild, Name, darunter eine Zeile dazu.
+ *
+ * Es gibt schon „Darstellungen" – das hängt aber an der Personenverwaltung und
+ * zeigt, wer im Verein welche Figur spielt. Eine Mitgliederseite ist etwas
+ * anderes: eine von Hand gepflegte Liste, die auch Plätze enthalten darf, für
+ * die es (noch) kein Foto gibt. Genau die sind hier keine Lücke, sondern ein
+ * leerer Rahmen – so steht es auch auf den Vorlagen.
+ *
+ * Vorher hatte ich dafür „Karten" genommen. Das sind Textkacheln mit Rahmen
+ * und runden Ecken; Namen standen linksbündig, Bilder gab es keine. Mit der
+ * Vorlage hatte das nichts zu tun.
+ */
+export function Personenbilder({
+  personen, spalten, breite, abstandOben, abstandUnten, abstand,
+}: Pick<Gemeinsam, "breite" | "abstandOben" | "abstandUnten" | "abstand"> & {
+  personen: { name: string; rolle?: string; bildSchluessel?: string }[];
+  spalten: "drei" | "vier";
+}) {
+  const liste = personen ?? [];
+  if (liste.length === 0) return null;
+
+  return (
+    <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+      <div className={`grid grid-cols-2 gap-x-6 gap-y-10 ${spalten === "vier" ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+        {liste.map((person, i) => (
+          <figure key={i} className="text-center">
+            <SeitenBild
+              schluessel={person.bildSchluessel ?? ""}
+              klasse="w-full aspect-square object-cover"
+              verhaeltnis="aspect-square"
+              beschriftung={person.name}
+            />
+            <figcaption className="mt-3">
+              <span className="block font-serif text-lg">{person.name}</span>
+              {person.rolle && (
+                <span className="block text-xs text-muted-foreground mt-0.5">{person.rolle}</span>
+              )}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   );
 }
 
