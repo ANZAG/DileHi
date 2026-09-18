@@ -33,7 +33,9 @@
  *
  *   SITE_PASSWORT=…            das Passwort im Klartext
  *   SITE_PASSWORT_BENUTZER=…   der Benutzername
- *   SITE_PASSWORT_DATEI=…      der ABSOLUTE Pfad der .htpasswd auf dem Server
+ *   SITE_PASSWORT_DATEI=…      optional. Der ABSOLUTE Pfad der .htpasswd auf
+ *                              dem Server. Ohne diese Angabe laeuft der Schutz
+ *                              ueber mod_rewrite, ganz ohne Passwortdatei.
  */
 
 import { execFileSync } from "node:child_process";
@@ -99,22 +101,28 @@ const passwort = wert("SITE_PASSWORT");
 if (passwort) {
   const benutzer = wert("SITE_PASSWORT_BENUTZER");
   const pfad = wert("SITE_PASSWORT_DATEI");
-  if (!benutzer || !pfad.startsWith("/")) {
+  const bereich = wert("SITE_PASSWORT_BEREICH") || "Geschlossener Bereich";
+  const htaccess = path.join(wurzel, "dist", ".htaccess");
+  const vorher = existsSync(htaccess) ? readFileSync(htaccess, "utf-8") : "";
+
+  if (!benutzer) {
     console.warn(
-      "\nVerzeichnisschutz NICHT gesetzt: SITE_PASSWORT_BENUTZER fehlt oder\n" +
-        "SITE_PASSWORT_DATEI ist kein absoluter Pfad. Gebaut ist trotzdem alles.\n"
+      "\nVerzeichnisschutz NICHT gesetzt: SITE_PASSWORT_BENUTZER fehlt.\n" +
+        "Gebaut ist trotzdem alles.\n"
     );
-  } else {
+  } else if (pfad.startsWith("/")) {
+    /*
+     * Weg 1: klassische Passwortdatei. Nichts steht im Klartext, dafuer muss
+     * der Pfad stimmen -- und zwar so, wie der SERVER ihn sieht.
+     */
     const name = path.posix.basename(pfad);
     const salz = randomBytes(6).toString("base64").replace(/[^./0-9A-Za-z]/g, "x").slice(0, 8);
     writeFileSync(path.join(wurzel, "dist", name), `${benutzer}:${apr1(passwort, salz)}\n`);
-    const htaccess = path.join(wurzel, "dist", ".htaccess");
-    const vorher = existsSync(htaccess) ? readFileSync(htaccess, "utf-8") : "";
     writeFileSync(htaccess, [
       "# Verzeichnisschutz. Gesetzt beim Bauen aus SITE_PASSWORT;",
       "# von Hand geaenderte Zeilen ueberschreibt der naechste Build.",
       "AuthType Basic",
-      `AuthName "${wert("SITE_PASSWORT_BEREICH") || "Geschlossener Bereich"}"`,
+      `AuthName "${bereich}"`,
       `AuthUserFile ${pfad}`,
       "Require valid-user",
       "",
@@ -133,6 +141,41 @@ if (passwort) {
     ].join("\n"));
     writeFileSync(path.join(wurzel, "dist", "robots.txt"), "User-agent: *\nDisallow: /\n");
     console.log(`\nVerzeichnisschutz eingebaut (Benutzer ${benutzer}, Datei ${pfad}).`);
+    console.log("Die Passwortdatei muss VOR der .htaccess hochgehen und 644 sein.");
+  } else {
+    /*
+     * Weg 2: ohne Passwortdatei, also ohne Pfad, der falsch sein kann. Die
+     * Anmeldung wird von Hand nachgebaut: Der Browser schickt seine
+     * Zugangsdaten als `Authorization: Basic <base64>`; stimmt die Zeile
+     * nicht, gibt es 401 und mit dem 401 die Aufforderung, sich anzumelden.
+     *
+     * Verglichen wird als Zeichenkette (`!=`), nicht als regulaerer Ausdruck:
+     * Base64 enthaelt + und /, und die haetten als Muster eine eigene
+     * Bedeutung.
+     */
+    if (pfad) {
+      console.warn("\nSITE_PASSWORT_DATEI ist kein absoluter Pfad - es wird der Weg ohne Passwortdatei genommen.");
+    }
+    const b64 = Buffer.from(`${benutzer}:${passwort}`, "utf-8").toString("base64");
+    writeFileSync(htaccess, [
+      "# Verzeichnisschutz ohne Passwortdatei. Gesetzt beim Bauen aus",
+      "# SITE_PASSWORT; von Hand geaenderte Zeilen ueberschreibt der naechste",
+      "# Build. Steht vor allem anderen, damit keine Regel darunter vorher greift.",
+      "<IfModule mod_rewrite.c>",
+      "  RewriteEngine On",
+      `  RewriteCond %{HTTP:Authorization} "!=Basic ${b64}"`,
+      "  RewriteRule .* - [R=401,L]",
+      "</IfModule>",
+      "<IfModule mod_headers.c>",
+      `  Header always set WWW-Authenticate "Basic realm=\\"${bereich}\\""`,
+      "</IfModule>",
+      'ErrorDocument 401 "Anmeldung erforderlich."',
+      "",
+      vorher,
+    ].join("\n"));
+    writeFileSync(path.join(wurzel, "dist", "robots.txt"), "User-agent: *\nDisallow: /\n");
+    console.log(`\nVerzeichnisschutz eingebaut (Benutzer ${benutzer}, ohne Passwortdatei).`);
+    console.log("Benutzer und Passwort stehen base64-kodiert in dist/.htaccess.");
   }
 }
 

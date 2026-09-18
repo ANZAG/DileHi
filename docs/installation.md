@@ -188,12 +188,28 @@ eingeschlossen.
 | Wo | Name | Wert |
 | --- | --- | --- |
 | Secrets | `SITE_PASSWORT_BENUTZER` | Der Benutzername |
-| Secrets | `SITE_PASSWORT` | Das Passwort im Klartext. Es wird beim Bauen verschlüsselt und steht nirgends im Repository |
-| Variables | `SITE_PASSWORT_DATEI` | Der **absolute** Pfad der `.htpasswd`, so wie der Server sie sieht. Siehe unten |
+| Secrets | `SITE_PASSWORT` | Das Passwort im Klartext. Es verlässt den Bauschritt nicht und steht nirgends im Repository |
 | Variables | `SITE_PASSWORT_BEREICH` | Beschriftung im Anmeldefenster. Optional |
+| Variables | `SITE_PASSWORT_DATEI` | Optional. Der **absolute** Pfad der `.htpasswd`, so wie der Server sie sieht. Siehe unten |
 
 Ohne `SITE_PASSWORT` passiert nichts, und die Seite bleibt öffentlich — das
 ist der Normalfall.
+
+#### Zwei Wege, und der Unterschied ist `SITE_PASSWORT_DATEI`
+
+**Lasst die Variable weg.** Dann läuft der Schutz über `mod_rewrite` und
+`mod_headers` — beides braucht diese Seite ohnehin. Es gibt keine
+Passwortdatei, also auch keinen Pfad, der falsch sein kann, und nichts
+einzurichten ausser den beiden Secrets.
+
+Der Preis: Benutzer und Passwort stehen base64-kodiert in der `.htaccess` auf
+dem Webspace. Base64 ist keine Verschlüsselung, nur eine Schreibweise. Apache
+liefert `.ht*`-Dateien nicht aus, und im Repository steht die Zeile nirgends —
+der Build setzt sie. Für ein Vorführsystem reicht das.
+
+**Setzt ihr die Variable**, nimmt der Deploy den klassischen Weg: eine
+`.htpasswd` mit apr1-gehashtem Passwort. Nichts steht im Klartext, dafür muss
+der Pfad stimmen.
 
 #### `SITE_PASSWORT_DATEI` — der Pfad, an dem es klemmt
 
@@ -207,7 +223,7 @@ völlig plausibel aus. Der FTP-Zugang zeigt oft nur:
 während dieselbe Stelle auf der Platte des Servers so heisst:
 
 ```
-/var/www/vhosts/euer-verein.de/httpdocs/
+/home/users/euer-konto/www/euer-verein.de/
 ```
 
 Apache will die zweite Schreibweise. Und zwar genau für das Verzeichnis, in
@@ -220,30 +236,54 @@ der Deploy die Passwortdatei:
 
 **Wie ihr ihn herausbekommt**, in der Reihenfolge der Zuverlässigkeit:
 
-1. **Den eigenen Verzeichnisschutz des Hosters einmal benutzen.** Fast jedes
+1. **Den Server selbst fragen.** Eine Datei `test.php` mit einer Zeile in das
+   Zielverzeichnis legen:
+
+   ```php
+   <?php echo $_SERVER['DOCUMENT_ROOT'];
+   ```
+
+   Dann `https://euer-verein.de/test.php` aufrufen. Was dort steht, ist der
+   Pfad — nicht geraten, sondern von Apache selbst. Danach die Datei wieder
+   löschen. (Setzt sie nicht in `public/`: Der nächste Deploy lädt sie sonst
+   jedes Mal mit hoch.)
+2. **Den eigenen Verzeichnisschutz des Hosters einmal benutzen.** Fast jedes
    Kundenmenü hat „Verzeichnisschutz" oder „Passwortschutz". Einmal auf einen
    beliebigen Ordner setzen, dann die `.htaccess` ansehen, die dabei entsteht:
    Die Zeile `AuthUserFile` zeigt die richtige Schreibweise für euren Server.
    Danach dürft ihr den Schutz dort wieder abschalten.
-2. **Im Kundenmenü nachsehen.** Viele Hoster zeigen bei der Domain einen
-   „Pfad", „Dokumentenstamm" oder „Document Root".
 3. **Den Hoster fragen.** „Wie lautet der absolute Serverpfad zum
    Dokumentenstamm von `euer-verein.de`?" ist eine Zwei-Minuten-Frage.
 
-**Ihr müsst nicht raten, und ihr könnt nichts blockieren.** Fehlt eine der drei
-Angaben oder ist der Pfad nicht absolut, wird der Schutz *nicht* gesetzt — der
-Lauf läuft aber weiter und schreibt gross in die Zusammenfassung, dass die
-Seite öffentlich ist. Eine halb eingetragene freiwillige Einstellung hält die
-Auslieferung nicht an.
+**Ihr müsst nicht raten, und ihr könnt nichts blockieren.** Ist der Pfad nicht
+absolut, nimmt der Deploy den Weg ohne Passwortdatei und sagt es in der
+Zusammenfassung. Fehlt `SITE_PASSWORT_BENUTZER`, wird gar kein Schutz gesetzt —
+der Lauf läuft aber weiter und schreibt gross hinein, dass die Seite öffentlich
+ist. Eine halb eingetragene freiwillige Einstellung hält die Auslieferung nicht
+an.
 
-Nach dem Deploy ruft der Schritt „Schutz nachsehen" die Seite auf und schreibt
-in die Zusammenfassung, was zurückkam:
+#### Was „Schutz nachsehen" prüft
 
-| Antwort | Bedeutung |
+Ein falscher `AuthUserFile`-Pfad ist von aussen zunächst unsichtbar: Der
+unangemeldete Abruf bekommt ordentlich seine **401**, denn Apache liest die
+Passwortdatei erst, wenn jemand Zugangsdaten abschickt. Erst dann kommt der
+Fehler. Auf dem Bildschirm sieht das so aus: Anmeldefenster, eintippen,
+**500**.
+
+Ein Schritt, der nur auf die 401 sieht, meldet an dieser Stelle grün, während
+niemand hineinkommt. Genau so ist es hier einmal gelaufen. Deshalb fragt der
+Schritt nach dem Deploy zweimal — einmal ohne Zugangsdaten und einmal mit:
+
+| ohne / mit | Bedeutung |
 | --- | --- |
-| **401** | Alles richtig — das Anmeldefenster kommt |
-| **500** | `SITE_PASSWORT_DATEI` zeigt ins Leere. Der Lauf schlägt fehl und sagt es |
-| **200** | Die Seite steht offen. Meist erlaubt der Hoster kein `AllowOverride`, die `.htaccess` wird also ignoriert |
+| **401 / 200** | Alles richtig |
+| **401 / 500** | `SITE_PASSWORT_DATEI` zeigt ins Leere oder Apache darf die Datei nicht lesen. Der Lauf schlägt fehl und sagt es |
+| **401 / 401** | Der Schutz greift, aber das hinterlegte Passwort wird abgewiesen |
+| **200 / 200** | Die Seite steht offen. Meist erlaubt der Hoster kein `AllowOverride`, die `.htaccess` wird also ignoriert |
+
+Bleibt es bei 500, obwohl der Pfad stimmt, sind es die Rechte: Die `.htpasswd`
+muss für den Apache-Prozess lesbar sein. Der Deploy setzt sie deshalb nach dem
+Hochladen auf 644; kann euer FTP-Server das nicht, macht es einmal von Hand.
 
 Die Passwortdatei selbst legt der Deploy neben die Seite und sperrt sie gegen
 Abruf — und zwar **vor** allem anderen. Das ist kein Detail: Solange die
@@ -254,9 +294,11 @@ Hand gilt dasselbe Reihenfolgegebot.
 > Der Schutz ersetzt **keine Anmeldung**. Er hält Fremde von der Seite fern;
 > was im Mitgliederbereich wem gehört, regeln weiter die Zugriffsregeln in der
 > Datenbank. Und weil eine geschützte Seite in keiner Suchmaschine stehen soll,
-> schreibt derselbe Schritt eine `robots.txt`, die alles sperrt. Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der
-Schritt sauber ab und schreibt in die Zusammenfassung, was fehlt — gebaut und
-geprüft ist trotzdem alles.
+> schreibt derselbe Schritt eine `robots.txt`, die alles sperrt.
+
+Fehlen `FTP_SERVER`, `FTP_USERNAME` und `FTP_PASSWORD`, bricht der Schritt
+sauber ab und schreibt in die Zusammenfassung, was fehlt — gebaut und geprüft
+ist trotzdem alles.
 
 > **In welchen Ordner geladen wird, steht in der Datei, nicht im Zugang.**
 > Die drei Geheimnisse bringen den Ablauf nur bis in euer FTP-Konto; dort
@@ -272,6 +314,21 @@ geprüft ist trotzdem alles.
 > die geändert gehört** — sonst lädt eure Installation in das Verzeichnis des
 > Vereins, von dem die Kopie stammt. `mirror --delete` räumt dort auf, was
 > nicht im Build steht.
+
+### Warum das Hochladen nicht die volle Zeit braucht
+
+`mirror` lädt von sich aus nur hoch, was sich unterscheidet. Verglichen werden
+Größe **und** Zeitstempel — und der zweite Teil ist beim Bauen das Problem:
+Jeder Lauf schreibt alle Dateien neu, also sind alle Zeitstempel frisch, also
+gilt alles als geändert. Auch die Megabytes in `assets/`, die sich seit Wochen
+nicht bewegt haben.
+
+In `assets/` steckt der Inhalt aber schon im Dateinamen: Vite hängt eine
+Prüfsumme an (`index-a1b2c3d4.js`). Gleicher Name heißt gleicher Inhalt.
+Deshalb läuft der Deploy in zwei Durchgängen — alles ausserhalb von `assets/`
+wie bisher, `assets/` mit `--ignore-time` — und lädt vier Dateien gleichzeitig.
+Bei vielen kleinen Dateien ist nicht die Leitung der Engpass, sondern das Hin
+und Her für jede einzelne.
 
 
 ## 6. Ersten Zugang anlegen
