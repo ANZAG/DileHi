@@ -47,7 +47,7 @@ export function bildTyp(adresse: string): string {
   return TYPEN[endung] ?? "";
 }
 
-export function zeichenLinks(faviconUrl: string | null | undefined): Zeichenlink[] {
+export function iconLinks(faviconUrl: string | null | undefined): Zeichenlink[] {
   if (!faviconUrl) return MITGELIEFERT;
   return [{ rel: "icon", href: faviconUrl, type: bildTyp(faviconUrl) }];
 }

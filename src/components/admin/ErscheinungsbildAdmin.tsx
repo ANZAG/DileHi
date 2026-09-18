@@ -13,7 +13,7 @@ import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
 import { datumDe, plusMonate, tageBis } from "@/lib/datum";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
-import { flaechenfarben, hexToHsl, lesbareSchrift } from "@/lib/farben";
+import { surfaceColors, hexToHsl, readableInk } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
 import DateiablageWahl from "./DateiablageWahl";
 import OrganisationsformWahl from "./OrganisationsformWahl";
@@ -790,14 +790,14 @@ function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
         // sich falsch einstellen.
         <div
           className="mt-2 rounded-md p-3"
-          style={{ background: `hsl(${flaechenfarben(wert)?.["--background"]})` }}
+          style={{ background: `hsl(${surfaceColors(wert)?.["--background"]})` }}
         >
           <div
             className="rounded-md border px-3 py-2 text-sm"
             style={{
-              background: `hsl(${flaechenfarben(wert)?.["--card"]})`,
-              borderColor: `hsl(${flaechenfarben(wert)?.["--border"]})`,
-              color: `hsl(${lesbareSchrift(wert)})`,
+              background: `hsl(${surfaceColors(wert)?.["--card"]})`,
+              borderColor: `hsl(${surfaceColors(wert)?.["--border"]})`,
+              color: `hsl(${readableInk(wert)})`,
             }}
           >
             So sieht ein Kasten aus
@@ -806,7 +806,7 @@ function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
       ) : gueltig ? (
         <div
           className="mt-2 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium"
-          style={{ background: wert, color: `hsl(${lesbareSchrift(wert)})` }}
+          style={{ background: wert, color: `hsl(${readableInk(wert)})` }}
         >
           So sieht ein Knopf aus
         </div>

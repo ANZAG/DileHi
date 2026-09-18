@@ -103,7 +103,7 @@ export interface Grundwoerter {
  * und werden hier dazugelegt, damit sie nicht an zwei Stellen gepflegt
  * werden müssen und auseinanderlaufen.
  */
-export interface Woerter extends Grundwoerter {
+export interface Words extends Grundwoerter {
   /** Wie die Leitung heisst: „Vorstand", „Ansprechpartner". */
   leitung: string;
   /** Wie die Leute heissen, die dabei sind: „Mitglieder", „Mitmachende". */
@@ -220,7 +220,7 @@ export const FORMEN: Record<OrgForm, FormBeschreibung> = {
  * Kurzform für die Oberfläche: `woerter(form).dokumente` statt
  * `FORMEN[...].woerter.dokumente`.
  */
-export function woerter(wert: string | null | undefined): Woerter {
+export function woerter(wert: string | null | undefined): Words {
   const f = form(wert);
   return { ...f.woerter, leitung: f.leitung, mitglieder: f.mitglieder };
 }
@@ -237,7 +237,7 @@ export function woerter(wert: string | null | undefined): Woerter {
  * Ein Platzhalter, den das Wörterbuch nicht kennt, bleibt stehen, wie er ist.
  * Er soll auffallen und nicht spurlos verschwinden.
  */
-export function einsetzen(text: string, w: Woerter): string {
+export function einsetzen(text: string, w: Words): string {
   return (text ?? "").replace(/\{(\w+)\}/g, (ganz, name) => {
     const wert = (w as unknown as Record<string, string>)[name];
     return typeof wert === "string" ? wert : ganz;

@@ -1105,6 +1105,23 @@ Bilderumzug. Von 9,9 MB verfolgten Dateien sind 4,3 MB übrig.
       dieselbe Sache an zwei Stellen verschieden. Also in geschlossenen
       Einheiten, jede für sich grün, jede für sich zu mergen.
 
+      **Einheit 2, erledigt: die Helfer in `src/lib`.** `ladeSchriften` →
+      `loadFonts`, `istDunkel` → `isDark`, `lesbareSchrift` → `readableInk`,
+      `flaechenfarben` → `surfaceColors`, `zeichenLinks` → `iconLinks`,
+      `erwarteteMigrationen`/`fehlendeMigrationen` →
+      `expectedMigrations`/`missingMigrations`, `naechsterSchritt` → `nextStep`,
+      `istErledigt` → `isDone`, `durchlaufSichtbar` → `setupRunVisible`,
+      `fortschritt` → `progress`; dazu die Typen `Vereinsstand` → `ClubState`,
+      `Ampel` → `Signal`, `Befund` → `Findings`, `Woerter` → `Words`,
+      `Wunsch` → `Intent`. 25 Dateien, alles grün.
+
+      **Zwei sind stehengeblieben, mit Grund.** `form` kommt 277-mal in `.tsx`
+      vor, aber nur 29-mal als HTML-Formular — der grosse Rest ist die
+      `form`-Variable von react-hook-form. Ein Ersetzen über die Wortgrenze
+      würde die mit umbenennen. `zeigen` ist ebenso mehrdeutig. Beide brauchen
+      eine Entscheidung je Datei statt eines Musters und gehören deshalb in
+      eine eigene Einheit.
+
       **Einheit 1, erledigt: das Modulsystem.** `Modulstand` → `ModuleState`,
       `modulAn` → `moduleOn`, `nurAktive` → `onlyActive`, `ModulRoute` →
       `ModuleRoute` samt Datei. 113 Vorkommen in 19 Dateien; Typprüfung, Lint

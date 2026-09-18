@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { woerter, type Woerter } from "@/lib/organisationsform";
+import { woerter, type Words } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
-import { flaechenfarben, hexToHsl, hslToTokens, istDunkel, lesbareSchrift } from "@/lib/farben";
-import { ladeSchriften } from "@/lib/schriften";
-import { zeichenLinks } from "@/lib/zeichen";
+import { surfaceColors, hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
+import { loadFonts } from "@/lib/schriften";
+import { iconLinks } from "@/lib/zeichen";
 
 export interface Branding {
   /** Verein, e. V. oder Interessengemeinschaft – bestimmt die Wortwahl. */
@@ -153,7 +153,7 @@ export function useBranding() {
  * `const w = useWoerter();` und dann `w.dokumente` statt „Vereinsdokumente".
  * Kommt aus derselben Abfrage wie Name und Farben, kostet also nichts.
  */
-export function useWoerter(): Woerter {
+export function useWoerter(): Words {
   return woerter(useBranding().org_form);
 }
 
@@ -172,7 +172,7 @@ export function useBrandingAnwenden() {
       for (const name of ["--primary", "--accent", "--ring", "--sidebar-primary", "--sidebar-ring"]) {
         wurzel.style.setProperty(name, wert);
       }
-      const schrift = lesbareSchrift(color_primary);
+      const schrift = readableInk(color_primary);
       for (const name of ["--primary-foreground", "--accent-foreground", "--sidebar-primary-foreground"]) {
         wurzel.style.setProperty(name, schrift);
       }
@@ -192,12 +192,12 @@ export function useBrandingAnwenden() {
      * entscheidet die Flaeche.
      */
     const dunkel = hexToHsl(color_dark);
-    const flaecheIstDunkel = istDunkel(color_surface);
-    if (dunkel && istDunkel(color_dark) && !flaecheIstDunkel) {
+    const flaecheIstDunkel = isDark(color_surface);
+    if (dunkel && isDark(color_dark) && !flaecheIstDunkel) {
       wurzel.style.setProperty("--foreground", hslToTokens(dunkel));
     } else if (flaecheIstDunkel) {
-      wurzel.style.setProperty("--foreground", lesbareSchrift(color_surface));
-      wurzel.style.setProperty("--muted-foreground", lesbareSchrift(color_surface));
+      wurzel.style.setProperty("--foreground", readableInk(color_surface));
+      wurzel.style.setProperty("--muted-foreground", readableInk(color_surface));
     }
 
     /*
@@ -208,7 +208,7 @@ export function useBrandingAnwenden() {
      * Kaesten heller als der Grund und die Seite saehe aus wie ein Negativ.
      */
     const istDunklerModus = wurzel.classList.contains("dark");
-    const flaechen = flaechenfarben(color_surface, istDunklerModus);
+    const flaechen = surfaceColors(color_surface, istDunklerModus);
     if (flaechen) {
       for (const [name, wert] of Object.entries(flaechen)) {
         wurzel.style.setProperty(name, wert);
@@ -216,7 +216,7 @@ export function useBrandingAnwenden() {
       // Schrift auf den Flaechen: Was auf dem Kasten lesbar ist, ist es auch
       // auf dem Grund – die beiden liegen nur zwei Helligkeitsstufen
       // auseinander.
-      const schrift = lesbareSchrift(color_surface);
+      const schrift = readableInk(color_surface);
       for (const name of ["--card-foreground", "--popover-foreground", "--secondary-foreground"]) {
         wurzel.style.setProperty(name, schrift);
       }
@@ -224,7 +224,7 @@ export function useBrandingAnwenden() {
   }, [color_primary, color_dark, color_surface]);
 
   useEffect(() => {
-    ladeSchriften([font_headings, font_body]);
+    loadFonts([font_headings, font_body]);
     const wurzel = document.documentElement;
     // In Anführungszeichen: Namen wie „Source Sans 3" brauchen sie, sonst
     // versteht CSS die Zahl als eigenen Wert.
@@ -237,7 +237,7 @@ export function useBrandingAnwenden() {
   // mitgelieferte zur Auswahl, und der Browser entschied.
   useEffect(() => {
     document.querySelectorAll("link[rel~='icon']").forEach((el) => el.remove());
-    for (const z of zeichenLinks(faviconUrl)) {
+    for (const z of iconLinks(faviconUrl)) {
       const el = document.createElement("link");
       el.rel = z.rel;
       el.href = z.href;

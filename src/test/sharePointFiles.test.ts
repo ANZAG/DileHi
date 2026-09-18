@@ -51,9 +51,9 @@ describe("Hochladen", () => {
         ? new Response(JSON.stringify({ id: "ITEM1", name: "Urkunde 1455.pdf" }), { status: 201 })
         : new Response("{}", { status: 202 });
     });
-    const fortschritt: number[] = [];
+    const progress: number[] = [];
 
-    const item = await uploadToSharePoint(datei(total), "mittelalter", (f) => fortschritt.push(f), fake as typeof fetch);
+    const item = await uploadToSharePoint(datei(total), "mittelalter", (f) => progress.push(f), fake as typeof fetch);
 
     expect(item.id).toBe("ITEM1");
     expect(aufrufe.map((a) => a.range)).toEqual([
@@ -62,7 +62,7 @@ describe("Hochladen", () => {
       `bytes ${2 * CHUNK}-${total - 1}/${total}`,
     ]);
     expect(aufrufe.some((a) => a.auth)).toBe(false);
-    expect(fortschritt[fortschritt.length - 1]).toBe(1);
+    expect(progress[progress.length - 1]).toBe(1);
   });
 
   it("schickt ein gescheitertes Stück noch einmal", async () => {

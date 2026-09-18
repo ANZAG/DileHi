@@ -4,10 +4,10 @@ import { CheckCircle2, AlertCircle, CircleDashed, RefreshCw, Send } from "lucide
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
-import { schritte, fortschritt, erwarteteMigrationen, type Ampel, type Befund, type Schritt } from "@/lib/einrichtung";
+import { schritte, progress, expectedMigrations, type Signal, type Findings, type Schritt } from "@/lib/einrichtung";
 import { Kopierfeld } from "./anleitung/Bausteine";
 import Einrichtungsprozess from "./Einrichtungsprozess";
-import { durchlaufSichtbar, zeigen, type Wunsch } from "@/lib/einrichtungsprozess";
+import { setupRunVisible, zeigen, type Intent } from "@/lib/einrichtungsprozess";
 
 /**
  * Der Einrichtungsassistent.
@@ -17,7 +17,7 @@ import { durchlaufSichtbar, zeigen, type Wunsch } from "@/lib/einrichtungsprozes
  * fehlenden Mailversand daran, dass die erste Einladung nicht ankam, und eine
  * fehlende Sicherung gar nicht.
  *
- * Jeder Schritt hat eine Ampel, einen Satz in normaler Sprache und, wenn er
+ * Jeder Schritt hat eine Signal, einen Satz in normaler Sprache und, wenn er
  * nicht grün ist, den nächsten Handgriff. Von Secrets stehen hier nur die
  * Namen; den Wert sieht diese Seite nie.
  */
@@ -31,7 +31,7 @@ import { durchlaufSichtbar, zeigen, type Wunsch } from "@/lib/einrichtungsprozes
  */
 const ERWARTETE_MIGRATIONEN = typeof __MIGRATIONEN__ === "undefined" ? [] : __MIGRATIONEN__;
 
-const SYMBOL: Record<Ampel, { icon: typeof CheckCircle2; farbe: string }> = {
+const SYMBOL: Record<Signal, { icon: typeof CheckCircle2; farbe: string }> = {
   gut: { icon: CheckCircle2, farbe: "text-emerald-600 dark:text-emerald-400" },
   teilweise: { icon: CircleDashed, farbe: "text-amber-600 dark:text-amber-400" },
   fehlt: { icon: AlertCircle, farbe: "text-destructive" },
@@ -43,14 +43,14 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
 
   const { data, isFetching, refetch, error } = useQuery({
     queryKey: ["einrichtung-status"],
-    queryFn: async () => await invokeFunction<Befund>("einrichtung-status", { body: {} }),
+    queryFn: async () => await invokeFunction<Findings>("einrichtung-status", { body: {} }),
     // Der Stand ändert sich, während jemand danebenher einrichtet.
     staleTime: 0,
   });
 
-  const erwartet = erwarteteMigrationen(ERWARTETE_MIGRATIONEN);
+  const erwartet = expectedMigrations(ERWARTETE_MIGRATIONEN);
   const liste = data ? schritte(data, erwartet) : [];
-  const stand = fortschritt(liste);
+  const stand = progress(liste);
 
   /**
    * Zwei Ansichten, ein Bauteil.
@@ -70,10 +70,10 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
    * jemand gesehen hatte — und es gab keinen Weg zurück. Ein Knopf, der nur
    * da ist, solange man ihn nicht braucht, ist keiner.
    */
-  const [wunsch, setWunsch] = useState<Wunsch>(null);
+  const [wunsch, setWunsch] = useState<Intent>(null);
   const durchlauf = data?.datenbank?.durchlauf;
   const vonSelbst = zeigen(durchlauf);
-  if (oeffne && durchlaufSichtbar(wunsch, durchlauf)) {
+  if (oeffne && setupRunVisible(wunsch, durchlauf)) {
     return (
       <Einrichtungsprozess oeffne={oeffne} schliessen={() => setWunsch("zu")} />
     );

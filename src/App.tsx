@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -109,13 +109,57 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Platzhalter, während eine Seite nachgeladen wird – gleiche Optik wie ProtectedRoute. */
-const PageLoader = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-    <span className="sr-only">Seite wird geladen …</span>
-  </div>
-);
+/**
+ * Platzhalter, während eine Seite nachgeladen wird – gleiche Optik wie
+ * ProtectedRoute.
+ *
+ * Mit einer Frist. Ein Ladekreis, der sich ewig dreht, ist der unfreundlichste
+ * Zustand, den eine Seite haben kann: Er sagt nicht, was fehlt, er geht nicht
+ * weg, und von innen kommt niemand heraus – das Aufräumen in `recovery.ts`
+ * greift erst nach drei Neuladeversuchen, und die macht niemand freiwillig.
+ *
+ * Genau das ist am 18. September passiert, als `ding.dilehi.de` hinter den
+ * Verzeichnisschutz kam: Der Browser bekam auf eine Skriptdatei die
+ * Anmeldeseite, verweigerte die Ausführung, und sichtbar war nur der Kreis.
+ * Nach zwölf Sekunden steht jetzt dort, was zu tun ist.
+ */
+const GEDULD_MS = 12_000;
+
+const PageLoader = () => {
+  const [langsam, setLangsam] = useState(false);
+
+  useEffect(() => {
+    const uhr = setTimeout(() => setLangsam(true), GEDULD_MS);
+    return () => clearTimeout(uhr);
+  }, []);
+
+  if (!langsam) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <span className="sr-only">Seite wird geladen …</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <p className="text-sm text-muted-foreground max-w-md">
+        Das dauert länger als gewöhnlich. Meist hilft es, den Zwischenspeicher
+        zu leeren und neu zu laden.
+      </p>
+      <button
+        type="button"
+        className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+        onClick={() => {
+          void zwischenspeicherLeeren().finally(() => window.location.reload());
+        }}
+      >
+        Zwischenspeicher leeren und neu laden
+      </button>
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
