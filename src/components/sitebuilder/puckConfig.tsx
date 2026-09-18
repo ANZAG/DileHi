@@ -1,9 +1,9 @@
 import type { Config } from "@puckeditor/core";
 import {
-  Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
-  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Seitenkopf,
-  Termine, Textabschnitt, Titelbild, Trennlinie, Ueberschrift, Veranstalteranfrage,
-  ZweiSpalten,
+  Abstandhalter, Besucherhinweis, BildMitKasten, Bildnachweise, Darstellungen, EigenesHtml,
+  Einzelbild, Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Personenbilder,
+  Quellen, Rahmenkasten, Seitenkopf, Termine, Textabschnitt, Titelbild, Trennlinie,
+  Ueberschrift, Veranstalteranfrage, ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten, KASTEN_STILE, KASTEN_SYMBOLE, type KastenSymbol } from "./Hinweiskasten";
@@ -120,6 +120,34 @@ export type Bausteine = {
     /** Wie gross die Überschrift steht. Ohne Angabe „gross" wie bisher. */
     groesse?: "riesig" | "gross" | "mittel" | "klein";
   } & typeof gemeinsameVorgaben;
+  BildMitKasten: {
+    bildSchluessel: string;
+    bildSeite: "links" | "rechts";
+    bandGrund: Hintergrund;
+    kastenGrund: Hintergrund;
+    rahmen: boolean;
+    ueberlappung: "ohne" | "leicht" | "stark";
+    inhalt: unknown;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
+  };
+  Rahmenkasten: {
+    inhalt: unknown;
+    grund: Hintergrund;
+    rahmen: boolean;
+    ausrichtung: "links" | "mitte";
+    breite: Breite;
+    flaeche: Flaeche;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
+  };
+  Personenbilder: {
+    personen: { name: string; rolle?: string; bildSchluessel?: string }[];
+    spalten: "drei" | "vier";
+    breite: Breite;
+    abstandOben: Abstand;
+    abstandUnten: Abstand;
+  };
   ZweiSpalten: {
     inhalt: unknown;
     bildSchluessel: string;
@@ -393,6 +421,117 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         inhalt: "", bildSchluessel: "", bildSeite: "links", ...gemeinsameVorgaben, breite: "breit",
       },
       render: ZweiSpalten,
+    },
+
+    BildMitKasten: {
+      label: "Bild mit Kasten darüber",
+      fields: {
+        bildSchluessel: bildFeld,
+        inhalt: textFeld,
+        bildSeite: {
+          type: "radio", label: "Bild steht",
+          options: [
+            { label: "links", value: "links" },
+            { label: "rechts", value: "rechts" },
+          ],
+        },
+        ueberlappung: {
+          type: "select", label: "Kasten liegt auf dem Bild",
+          options: [
+            { label: "Gar nicht – nebeneinander", value: "ohne" },
+            { label: "Ein Stück", value: "leicht" },
+            { label: "Weit", value: "stark" },
+          ],
+        },
+        bandGrund: { type: "select", label: "Grund dahinter", options: HINTERGRUENDE },
+        kastenGrund: { type: "select", label: "Grund des Kastens", options: HINTERGRUENDE },
+        rahmen: {
+          type: "radio", label: "Zweite Linie im Kasten",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit", value: true },
+          ],
+        },
+        abstandOben: gemeinsameFelder.abstandOben,
+        abstandUnten: gemeinsameFelder.abstandUnten,
+      },
+      defaultProps: {
+        bildSchluessel: "", inhalt: "", bildSeite: "links", ueberlappung: "leicht",
+        bandGrund: "gedaempft" as Hintergrund, kastenGrund: "karte" as Hintergrund,
+        rahmen: false,
+        abstandOben: "normal" as Abstand, abstandUnten: "normal" as Abstand,
+      },
+      render: BildMitKasten,
+    },
+
+    Rahmenkasten: {
+      label: "Kasten mit Rahmen",
+      fields: {
+        inhalt: textFeld,
+        grund: { type: "select", label: "Grund", options: HINTERGRUENDE },
+        rahmen: {
+          type: "radio", label: "Zweite Linie im Kasten",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit", value: true },
+          ],
+        },
+        ausrichtung: {
+          type: "radio", label: "Ausrichtung",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Mittig", value: "mitte" },
+          ],
+        },
+        breite: gemeinsameFelder.breite,
+        flaeche: gemeinsameFelder.flaeche,
+        abstandOben: gemeinsameFelder.abstandOben,
+        abstandUnten: gemeinsameFelder.abstandUnten,
+      },
+      defaultProps: {
+        inhalt: "", grund: "gedaempft" as Hintergrund, rahmen: false, ausrichtung: "links",
+        breite: "breit" as Breite, flaeche: "inhalt" as Flaeche,
+        abstandOben: "normal" as Abstand, abstandUnten: "normal" as Abstand,
+      },
+      render: Rahmenkasten,
+    },
+
+    Personenbilder: {
+      label: "Personen mit Bild",
+      resolveFields: async () => {
+        const bilder = await bildAuswahl();
+        return {
+          personen: {
+            type: "array" as const, label: "Personen",
+            arrayFields: {
+              name: { type: "text" as const, label: "Name" },
+              rolle: { type: "text" as const, label: "Zeile darunter" },
+              bildSchluessel: {
+                type: "select" as const, label: "Bild",
+                options: [{ label: "Noch kein Bild", value: "" }, ...bilder],
+              },
+            },
+            getItemSummary: (item: { name?: string }) => item?.name || "Person",
+          },
+          spalten: {
+            type: "radio" as const, label: "Nebeneinander",
+            options: [
+              { label: "Drei", value: "drei" },
+              { label: "Vier", value: "vier" },
+            ],
+          },
+          breite: gemeinsameFelder.breite,
+          abstandOben: gemeinsameFelder.abstandOben,
+          abstandUnten: gemeinsameFelder.abstandUnten,
+        };
+      },
+      defaultProps: {
+        personen: [{ name: "Name", rolle: "", bildSchluessel: "" }],
+        spalten: "drei" as const,
+        breite: "breit" as Breite,
+        abstandOben: "normal" as Abstand, abstandUnten: "normal" as Abstand,
+      },
+      render: Personenbilder,
     },
 
     Kennzahlen: {

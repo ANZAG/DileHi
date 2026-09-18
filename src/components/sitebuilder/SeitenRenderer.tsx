@@ -1,8 +1,8 @@
 import {
-  Abstandhalter, Besucherhinweis, Bildnachweise, Darstellungen, EigenesHtml, Einzelbild,
-  Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Quellen, Seitenkopf,
-  Termine, Textabschnitt, Titelbild, Trennlinie, Ueberschrift, Veranstalteranfrage,
-  ZweiSpalten,
+  Abstandhalter, Besucherhinweis, BildMitKasten, Bildnachweise, Darstellungen, EigenesHtml,
+  Einzelbild, Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Personenbilder,
+  Quellen, Rahmenkasten, Seitenkopf, Termine, Textabschnitt, Titelbild, Trennlinie,
+  Ueberschrift, Veranstalteranfrage, ZweiSpalten,
 } from "./bausteine";
 import { Aktionskaesten, Eckdaten, Willkommen, Zeitstrahl } from "./bausteineStartseite";
 import { Hinweiskasten } from "./Hinweiskasten";
@@ -36,6 +36,9 @@ const BAUSTEINE: Record<string, BausteinKomponente> = {
   Ueberschrift,
   Textabschnitt,
   ZweiSpalten,
+  BildMitKasten,
+  Rahmenkasten,
+  Personenbilder,
   Kennzahlen,
   Einzelbild,
   Karten,
