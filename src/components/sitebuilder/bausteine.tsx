@@ -779,10 +779,16 @@ export function Personenbilder({
               verhaeltnis="aspect-square"
               beschriftung={person.name}
             />
+            {/* Name und Taetigkeit an der Vorlage gemessen (1440 px): der Name
+                als h3 in 25 px, Gewicht 500; die Taetigkeit als Absatz in
+                14 px. Vorher stand beides als <span> in 18 und 12 px da --
+                die Kachel wirkte dadurch deutlich kleinteiliger. Der Name ist
+                eine Ueberschrift, kein Beschriftungstext: er gliedert die
+                Seite, und die Vorlage setzt ihn auch so. */}
             <figcaption className="mt-3">
-              <span className="block font-serif text-lg">{person.name}</span>
+              <h3 className="font-serif text-[25px] font-medium leading-tight">{person.name}</h3>
               {person.rolle && (
-                <span className="block text-xs text-muted-foreground mt-0.5">{person.rolle}</span>
+                <p className="text-sm text-muted-foreground mt-0.5">{person.rolle}</p>
               )}
             </figcaption>
           </figure>
