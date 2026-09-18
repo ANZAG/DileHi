@@ -838,13 +838,63 @@ Zweig je Aufgabe anlegen → commit → push
   Edge-Function-Typen, Tests. Hochgeladen wird dabei nichts.
 - **Push auf `main`** prüft dasselbe und lädt danach per FTP hoch — in
   `DileHi` nach `/dilehi.de/`, in `ANZAG/DING` nach `/ding.dilehi.de/`.
-- **Zwei Repositories, ein Stand.** Was am Programm geändert wird, gehört in
-  beide. Auseinanderlaufen darf allein die Zeile `ZIEL:` in `deploy.yml`;
-  alles andere ist ein Versehen. `diff -rq --exclude=.git` über beide
-  Arbeitskopien zeigt es in einer Zeile.
+- **Zwei Repositories, ein Stand — mit einer Ausnahme seit dem 17. September.**
+  Was am *Programm* geändert wird, gehört weiter in beide: Code, Migrationen,
+  Edge Functions, `installation.md`. Auseinander laufen dürfen seitdem drei
+  Dinge, und nur die:
+
+  | | |
+  | --- | --- |
+  | `deploy.yml`, Zeile `ZIEL:` | `/dilehi.de/` gegen `/ding.dilehi.de/` |
+  | `arbeitsstand.md`, `probelauf.md` | nur hier. Das sind **DileHis** Arbeitsprotokolle, nicht die Dokumentation des Produkts — sie nennen Personen, Entscheidungen und Fehler dieser einen Installation |
+  | `vuozvolc-machbarkeit.md` | nur hier. Analyse einer fremden Seite, kein Bestandteil von DING |
+
+  Alles andere ist ein Versehen. Der Vergleich geht deshalb nicht mehr über
+  `diff -rq` allein, sondern über `diff -rq` **ohne** diese Dateien:
+
+  ```
+  diff -rq --exclude=.git --exclude=node_modules --exclude=dist \
+       -x arbeitsstand.md -x probelauf.md -x vuozvolc-machbarkeit.md \
+       DileHi ding
+  ```
+
+- **Beide Repositories sind seit dem 17. September öffentlich.** Das war die
+  Antwort auf die aufgebrauchten Actions-Minuten: 2.000 im Monat auf einem
+  privaten Repository, unbegrenzt und kostenlos auf einem öffentlichen. Seitdem
+  gilt beim Schreiben eine Frage mehr: *Würde ich das einem Fremden zeigen?*
+  Was daraufhin weggefallen ist, steht unten unter „Was öffentlich nicht mehr
+  geht".
 - Der Zweig `DING` ist am 17. September gelöscht: Er lag ganz in `main` und
   war seit dem eigenen Repository doppelt gemoppelt. `claude/arbeitsstand-review-ena5ng`
   ebenso — er zeigte auf denselben Commit wie `main`.
+
+### Was öffentlich nicht mehr geht
+
+Seit dem 17. September sind `ANZAG/DileHi` und `ANZAG/DING` öffentlich. Drei
+Dinge sind daraufhin gegangen oder umgeschrieben worden:
+
+- **Vuozvolcs Artikeltexte.** Das Aufbau-Skript trug rund 30.000 Zeichen
+  fremden Fliesstext samt Autorenzeile. Auf einer Probeseite hinter einem
+  Passwort ist das ein Nachbau; in einem Repository, das jeder klonen darf,
+  ist es die Weitergabe fremder Inhalte unter unserem Namen. Das Skript liegt
+  jetzt bei Eric; ausgeführt landet der Inhalt in der Datenbank, und die ist
+  nicht öffentlich.
+- **Die Arbeitsprotokolle in `ANZAG/DING`.** Diese Datei und `probelauf.md`
+  sind dort weg. Sie gehören DileHi, nicht dem Produkt — und wer DING kopiert,
+  erbte sonst die Protokolle eines fremden Vereins samt Namen.
+- **Ein Vorname in einer Maske.** Der Platzhalter im Inventar hiess „z. B.
+  Garage Eric, Regal 3" und heisst jetzt „z. B. Lagerraum, Regal 3".
+
+**Was ausdrücklich kein Problem ist**, damit niemand an der falschen Stelle
+sucht: die Supabase-Projektkennungen. Die stehen ohnehin im ausgelieferten
+Programm — jeder Besucher von dilehi.de liest sie im Quelltext. Sie sind keine
+Geheimnisse, und sie hier zu schwärzen brächte nichts. Ebenso der
+`anon`-Schlüssel. Secrets und Variables bleiben auch auf einem öffentlichen
+Repository geheim.
+
+**Was vor dem nächsten Schreiben zu bedenken ist:** Ein Repository, das einmal
+öffentlich war, hat auch seine Historie öffentlich. Was hier heute
+herausgenommen wird, ist in älteren Commits weiter zu lesen.
 
 ### Geheimnisse und Variablen
 
@@ -992,10 +1042,13 @@ Lauf selbst.
       gn2s Dateimanager, und mit einem falschen antwortet der Server mit 500
       statt mit dem Anmeldefenster.
 - [~] **Vuozvolc-Nachbau — die Seiten stehen** (17. September):
-      [`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf
-      Seiten an, dazu Menü, Bildplätze und Gestaltung. **Keine Migration** —
-      Vuozvolcs Seiten haben in DileHis Datenbank nichts zu suchen; das Skript
-      weigert sich von selbst, wenn schon ein Verein darin steht.
+      Das Aufbau-Skript legt im Projekt DING elf Seiten an, dazu Menü,
+      Bildplätze und Gestaltung. **Keine Migration** — Vuozvolcs Seiten haben
+      in DileHis Datenbank nichts zu suchen; das Skript weigert sich von
+      selbst, wenn schon ein Verein darin steht. Es liegt seit dem Wechsel auf
+      öffentliche Repositories **nicht mehr im Git**, sondern bei Eric: rund
+      30.000 Zeichen fremder Artikeltext samt Autorenzeile gehören nicht in
+      ein Repository, das jeder lesen und kopieren kann.
 
       **Die Texte sind echt.** Eric hat den HTML-Abzug der Seite geliefert
       (vierzehn Seiten als Word-Datei, Naalbinding nachgereicht); daraus sind

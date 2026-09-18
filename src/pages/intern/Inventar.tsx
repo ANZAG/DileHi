@@ -508,7 +508,7 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
         </div>
         <div>
           <Label className="text-xs">Lagerort</Label>
-          <Input className="h-9" value={werte.location ?? ""} onChange={(e) => setze({ location: e.target.value })} placeholder="z. B. Garage Eric, Regal 3" />
+          <Input className="h-9" value={werte.location ?? ""} onChange={(e) => setze({ location: e.target.value })} placeholder="z. B. Lagerraum, Regal 3" />
         </div>
         <div>
           <Label className="text-xs">Zustand</Label>

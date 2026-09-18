@@ -149,11 +149,18 @@ Vorgabe ist „nein"; wer nichts tut, steht nicht mit Namen im Netz.
 
 ## Der Nachbau steht (17. September)
 
-[`vuozvolc-aufbau.sql`](vuozvolc-aufbau.sql) legt im Projekt DING elf Seiten
-an, dazu das Menü, 92 Bildplätze und die Gestaltung. Es ist **keine
-Migration**: Migrationen laufen in jeder Installation, auch in DileHis
-Datenbank, und dort haben Vuozvolcs Seiten nichts zu suchen. Das Skript
-weigert sich von selbst, wenn schon ein Verein in der Datenbank steht.
+Das Aufbau-Skript legt im Projekt DING elf Seiten an, dazu das Menü, 92
+Bildplätze und die Gestaltung. Es ist **keine Migration**: Migrationen laufen
+in jeder Installation, und dort haben Vuozvolcs Seiten nichts zu suchen. Das
+Skript weigert sich von selbst, wenn schon ein Verein in der Datenbank steht.
+
+> **Es liegt nicht mehr im Repository.** Seit beide Repositories öffentlich
+> sind, lag darin ein Skript mit rund 30.000 Zeichen fremdem Artikeltext,
+> Autorenzeile inklusive. Das ist etwas anderes als ein Nachbau hinter einem
+> Passwort: Es wäre die Weitergabe fremder Inhalte unter unserem Namen. Das
+> Skript ist deshalb am 17. September aus beiden Repositories genommen worden
+> und liegt bei Eric. Einmal im SQL-Editor des Projekts DING ausgeführt, steht
+> der Inhalt in **dieser** Datenbank — und die ist nicht öffentlich.
 
 **Die Texte sind echt und wortgetreu.** Grundlage ist der HTML-Abzug der Seite
 vom 17. September. Übernommen sind Absätze, Zwischenüberschriften, Listen,

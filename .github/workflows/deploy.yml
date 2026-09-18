@@ -128,8 +128,8 @@ jobs:
       #                                        so wie der SERVER sie sieht.
       #
       #     Das ist nicht der FTP-Pfad. Der FTP-Zugang sieht oft nur
-      #     /ding.dilehi.de/, waehrend auf der Platte
-      #     /var/www/vhosts/dilehi.de/ding.dilehi.de/ steht -- Apache will das
+      #     /euer-verein.de/, waehrend auf der Platte etwas wie
+      #     /var/www/vhosts/euer-verein.de/httpdocs/ steht -- Apache will das
       #     zweite. Und es ist genau das Verzeichnis, in das dieser Deploy
       #     laedt (ZIEL weiter unten), denn dorthin legt der Schritt die Datei:
       #
