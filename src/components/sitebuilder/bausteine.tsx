@@ -255,6 +255,26 @@ export function Seitenkopf({
 
 // ── Fließtext ───────────────────────────────────────────────────────────────
 
+/** Zusatzwuensche an den Fliesstext, alle abgeschaltet per Vorgabe. */
+export type Fliesstextstil = {
+  /**
+   * Der Text steht auf einer farbigen Flaeche.
+   *
+   * `flaechenKlasse("akzent")` setzt `text-primary-foreground` am Kasten, aber
+   * die `prose-*`-Farben hier sind spezifischer und gewinnen – der Text blieb
+   * dunkel auf kraeftigem Grund. Mit dieser Angabe erben Absaetze und
+   * Ueberschriften die Farbe der Flaeche.
+   */
+  aufFarbe?: boolean;
+  /**
+   * Die Ueberschriftengroessen der Vorlage statt der Vorgaben von `prose`.
+   *
+   * Gemessen an vuozvolc.de bei 1440 px: h2 48/57,6 in der Serifenschrift,
+   * h3 22 und h4 14 gesperrt und in Grossbuchstaben, beide serifenlos.
+   */
+  vorlage?: boolean;
+};
+
 /**
  * Wie Fliesstext in den Bausteinen aussieht.
  *
@@ -265,17 +285,41 @@ export function Seitenkopf({
 export function fliesstextKlassen(
   ausrichtung?: "links" | "mitte",
   aufzaehlung?: "punkte" | "schlicht",
+  stil?: Fliesstextstil,
 ): string {
+  // Auf farbigem Grund erbt alles die Schriftfarbe der Flaeche; sonst bleibt es
+  // bei gedaempftem Fliesstext und kraeftigen Ueberschriften wie bisher.
+  const farben = stil?.aufFarbe
+    ? "prose-headings:text-current prose-p:text-current prose-li:text-current " +
+      "prose-a:text-current prose-a:underline prose-strong:text-current prose-em:text-current "
+    : "prose-headings:text-foreground prose-p:text-muted-foreground " +
+      "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground " +
+      "prose-em:text-foreground ";
+
+  // Die Oberzeile im Fliesstext ist ein <h4> und traegt dieselbe Handschrift
+  // wie die Oberzeile am Seitenkopf: klein, fett, gesperrt, Grossbuchstaben.
+  const koepfe = stil?.vorlage
+    ? "prose-h2:text-5xl prose-h2:leading-[1.2] prose-h2:font-normal prose-h2:mb-6 " +
+      "prose-h3:font-sans prose-h3:text-[22px] prose-h3:font-medium prose-h3:leading-snug " +
+      "prose-h4:font-sans prose-h4:text-sm prose-h4:font-bold prose-h4:uppercase " +
+      "prose-h4:tracking-[0.08em] prose-h4:leading-[1.4] prose-h4:mb-2 "
+    : "";
+
   return (
     // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
     // wirkte die neue Seite dunkler als die alte.
-    "prose prose-sm sm:prose dark:prose-invert max-w-none " +
-    "prose-headings:font-serif prose-headings:text-foreground prose-p:text-muted-foreground " +
-    "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground " +
+    //
+    // `sm:prose` war wirkungslos: `prose` ist die Grundklasse, kein Groessen-
+    // schalter, der sich vor `prose-sm` schiebt. Der Fliesstext blieb deshalb
+    // auch auf dem Schirm bei 14 px statt der gemeinten 16. `sm:prose-base`
+    // ist der Schalter, der das tut.
+    "prose prose-sm sm:prose-base dark:prose-invert max-w-none " +
+    "prose-headings:font-serif " + farben + koepfe +
     // Kursives war im Original nicht grau, sondern in Textfarbe und leicht
     // fetter – der Schlusssatz auf „Über uns" ist genau so gesetzt. Ohne das
-    // ging die Hervorhebung im Fliesstext unter.
-    "prose-em:text-foreground prose-em:font-medium " +
+    // ging die Hervorhebung im Fliesstext unter. Die Farbe steckt oben in
+    // `farben`, hier bleibt nur das Gewicht.
+    "prose-em:font-medium " +
     // Aufzählungen standen im Original mit den Punkten INNERHALB des Textes
     // (`list-inside`) und enger beieinander; `prose` haengt sie stattdessen
     // links aus und setzt sie weiter auseinander.
@@ -559,7 +603,18 @@ export function BildMitKasten({
   const bildSpalte = raster.bild;
   const kastenSpalte = raster.kasten;
 
-  const text = <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen()} />;
+  // Auf kraeftigem Grund erbt der Text dessen Farbe, sonst stuende er dunkel
+  // auf Dunkel. Die Ueberschriftengroessen sind die der Vorlage – dieser
+  // Baustein kommt nur dort vor, DileHi kennt ihn nicht.
+  const text = (
+    <Fliesstext
+      inhalt={inhalt}
+      klassen={fliesstextKlassen(undefined, undefined, {
+        aufFarbe: kastenGrund === "akzent",
+        vorlage: true,
+      })}
+    />
+  );
 
   return (
     <section className={`${flaechenKlasse(bandGrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
@@ -575,7 +630,7 @@ export function BildMitKasten({
         <div className={`${kastenSpalte} md:row-start-1 relative z-10 px-4 md:px-0`}>
           <div className={`${flaechenKlasse(kastenGrund)} p-6 md:p-10`}>
             {rahmen ? (
-              <div className="border border-foreground/20 p-5 md:p-8">{text}</div>
+              <div className={`border p-5 md:p-8 ${kastenGrund === "akzent" ? "border-current/30" : "border-foreground/20"}`}>{text}</div>
             ) : (
               text
             )}
@@ -609,10 +664,10 @@ export function Rahmenkasten({
     <div className={`${flaechenKlasse(grund)} p-6 md:p-10`}>
       {rahmen ? (
         <div className="border border-foreground/20 p-5 md:p-8">
-          <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung)} />
+          <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung, undefined, { aufFarbe: grund === "akzent", vorlage: true })} />
         </div>
       ) : (
-        <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung)} />
+        <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(ausrichtung, undefined, { aufFarbe: grund === "akzent", vorlage: true })} />
       )}
     </div>
   );
