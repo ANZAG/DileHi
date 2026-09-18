@@ -373,6 +373,20 @@ export function Ueberschrift({
   oberzeileStrich?: boolean;
 }) {
   const Tag = groesse === "riesig" || groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
+
+  // Ein Schlagwort ohne Überschrift darunter.
+  //
+  // Vorlagen setzen so eine Marke mitten auf die Seite: ein kurzes Wort in
+  // Kapitälchen zwischen zwei Linien, sonst nichts. Ohne diesen Fall stünde
+  // darunter eine leere Überschrift – unsichtbar, aber mit ihrem Abstand.
+  if (!text?.trim()) {
+    return (
+      <Rahmen {...rest}>
+        <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} strich={oberzeileStrich} />
+      </Rahmen>
+    );
+  }
+
   return (
     <Rahmen {...rest}>
       <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} strich={oberzeileStrich} />
@@ -698,7 +712,9 @@ function Karte({ titel, text, bildSchluessel, ziel }: {
         />
       )}
       <div className="p-4">
-        <h3 className="font-serif font-semibold mb-1">{titel}</h3>
+        {/* Ohne Titel keine leere Zeile: Bildtafeln der Vorlage haben nur
+            eine Erklärung unter dem Bild, keine Überschrift. */}
+        {titel?.trim() && <h3 className="font-serif font-semibold mb-1">{titel}</h3>}
         {text && <p className="text-sm text-muted-foreground">{text}</p>}
       </div>
     </div>
