@@ -20,9 +20,10 @@
 // Ein neuer Name heisst: Beim Aktivieren wird der alte Zwischenspeicher
 // geloescht. Deshalb wird er hochgezaehlt, wenn etwas haengenbleiben koennte –
 // v2 wegen vergifteter Eintraege in v1, v3, weil in v2 noch DileHis Symbole
-// lagen (favicon.ico, apple-touch-icon.png). Der Name selbst gehoert keinem
-// Verein mehr.
-const CACHE = "ding-v3";
+// lagen (favicon.ico, apple-touch-icon.png). v4, weil vor dem Verzeichnisschutz
+// abgelegte Eintraege aus einer Zeit ohne Anmeldung stammen. Der Name selbst
+// gehoert keinem Verein mehr.
+const CACHE = "ding-v4";
 const OFFLINE_URL = "/index.html";
 
 self.addEventListener("install", (event) => {
@@ -55,6 +56,21 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  /**
+   * Steht die Seite hinter einem Passwort?
+   *
+   * Dann antwortet Apache mit 401 und einer HTML-Seite - auch auf eine Anfrage
+   * nach einer .js-Datei. Diese Antwort durchzureichen ist das Schlimmste, was
+   * hier passieren kann: Der Browser bekommt HTML, wo er ein Modul erwartet,
+   * weigert sich, und die Anwendung startet nie. Sichtbar ist davon nur ein
+   * Ladekreis, der sich fuer immer dreht - kein Fehler, keine Meldung, nichts.
+   *
+   * Bei einem Seitenaufruf gehoert die 401 dagegen genau so durchgereicht:
+   * Nur daran erkennt der Browser, dass er nach Benutzer und Passwort fragen
+   * soll.
+   */
+  const istAnmeldung = (antwort) => antwort.status === 401 || antwort.status === 407;
 
   // Seitenaufrufe: erst Netz, bei Ausfall die letzte bekannte Fassung.
   if (request.mode === "navigate") {
@@ -104,6 +120,12 @@ self.addEventListener("fetch", (event) => {
 
       try {
         const response = await fetch(request);
+
+        // Anmeldung verlangt: nicht zwischenspeichern und auch nichts Altes
+        // daruntermogeln. Eine alte Datei auszuliefern, waehrend der Server
+        // nach einem Passwort fragt, macht den Zustand nur unerklaerlicher.
+        if (istAnmeldung(response)) return response;
+
         if (response.ok && url.pathname.startsWith("/assets/") && istEchteDatei(response)) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);

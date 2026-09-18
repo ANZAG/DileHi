@@ -310,7 +310,7 @@ const Sources = () => {
       const file = fileArray[i];
       const safeName = sanitizeFileName(file.name);
       const path = `sources/${activeEpoch}/${Date.now()}_${safeName}`;
-      const fortschritt = (anteil: number) =>
+      const progress = (anteil: number) =>
         setUploads((prev) =>
           prev.map((u) =>
             u.fileName === file.name && u.status === "uploading"
@@ -325,10 +325,10 @@ const Sources = () => {
         if (fileStorage === "sharepoint") {
           // Direkt zu Microsoft, in Stücken – mit echtem Fortschritt statt
           // eines festen „50 %".
-          const item = await uploadToSharePoint(file, activeEpoch, fortschritt);
+          const item = await uploadToSharePoint(file, activeEpoch, progress);
           await registerSource({ driveItemId: item.id, title: customTitle, epoch: activeEpoch, folderId: currentFolderId });
         } else {
-          fortschritt(0.5);
+          progress(0.5);
           const { error: uploadErr } = await supabase.storage
             .from("internal-files")
             .upload(path, file);

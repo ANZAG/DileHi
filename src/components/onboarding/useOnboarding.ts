@@ -173,7 +173,7 @@ export function useOnboarding() {
     /** Das Angebot in diesem Bereich nicht mehr zeigen. */
     streifenSchliessen: (tour: string) => merken([`streifen:${tour}`]),
     aufgaben,
-    fortschritt: {
+    progress: {
       fertig: aufgaben.filter((a) => a.fertig).length,
       gesamt: aufgaben.length,
     },

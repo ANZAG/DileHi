@@ -41,7 +41,7 @@ describe("Betonung in Quellenangaben", () => {
     for (const eingabe of angriffe) {
       it(`maskiert ${eingabe.slice(0, 30)}`, () => {
         const ergebnis = betonung(eingabe);
-        // Nicht auf einzelne Woerter pruefen: „onerror" als Text ist
+        // Nicht auf einzelne Words pruefen: „onerror" als Text ist
         // harmlos, sobald die spitzen Klammern maskiert sind. Massgeblich ist,
         // dass ausser den eigenen <em> ueberhaupt keine Auszeichnung uebrig
         // bleibt – das schliesst auch Angriffe ein, an die hier niemand

@@ -134,7 +134,7 @@ const geladen = new Set<string>();
  * Fehlschläge werden geschluckt: Eine Seite in der Ersatzschrift ist deutlich
  * besser als eine, die wegen einer fehlenden Schriftdatei gar nichts anzeigt.
  */
-export function ladeSchriften(namen: string[]): void {
+export function loadFonts(namen: string[]): void {
   for (const name of new Set(namen.filter(Boolean))) {
     if (geladen.has(name)) continue;
     const laden = DATEIEN[name];
