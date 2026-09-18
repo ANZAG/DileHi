@@ -99,6 +99,8 @@ export type Bausteine = {
   Ueberschrift: {
     /** Schlagwort in Kapitälchen über der Überschrift. Leer = keine. */
     oberzeile?: string;
+    /** Linie neben dem Schlagwort. Ohne Angabe: keine, wie bisher. */
+    oberzeileStrich?: boolean;
     text: string;
     groesse: "riesig" | "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
@@ -110,6 +112,8 @@ export type Bausteine = {
   } & typeof gemeinsameVorgaben;
   Seitenkopf: {
     oberzeile?: string;
+    /** Linie neben dem Schlagwort. Ohne Angabe: keine, wie bisher. */
+    oberzeileStrich?: boolean;
     ueberschrift: string;
     text?: string;
     ausrichtung: "links" | "mitte";
@@ -272,6 +276,13 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           type: "text",
           label: "Oberzeile",
         },
+        oberzeileStrich: {
+          type: "radio", label: "Linie neben der Oberzeile",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit Linie", value: true },
+          ],
+        },
         text: { type: "text", label: "Text" },
         groesse: {
           type: "select", label: "Größe",
@@ -292,7 +303,8 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...gemeinsameFelder,
       },
       defaultProps: {
-        text: "Überschrift", groesse: "mittel", ausrichtung: "links", ...gemeinsameVorgaben, abstandOben: "klein", abstandUnten: "klein",
+        text: "Überschrift", oberzeileStrich: false, groesse: "mittel", ausrichtung: "links",
+        ...gemeinsameVorgaben, abstandOben: "klein", abstandUnten: "klein",
       },
       render: Ueberschrift,
     },
@@ -328,6 +340,13 @@ export const puckConfig: Config<{ components: Bausteine }> = {
           type: "text",
           label: "Oberzeile",
         },
+        oberzeileStrich: {
+          type: "radio", label: "Linie neben der Oberzeile",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit Linie", value: true },
+          ],
+        },
         ueberschrift: { type: "text", label: "Überschrift" },
         text: textFeld,
         groesse: {
@@ -349,8 +368,8 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...gemeinsameFelder,
       },
       defaultProps: {
-        oberzeile: "", ueberschrift: "Überschrift", text: "", ausrichtung: "links",
-        groesse: "gross",
+        oberzeile: "", oberzeileStrich: false, ueberschrift: "Überschrift", text: "",
+        ausrichtung: "links", groesse: "gross",
         ...gemeinsameVorgaben, abstandOben: "gross", abstandUnten: "gross",
       },
       render: Seitenkopf,

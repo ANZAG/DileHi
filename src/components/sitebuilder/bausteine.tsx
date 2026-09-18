@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  X, ChevronLeft, ChevronRight,
+  X, ChevronLeft, ChevronRight, ImageOff,
   Calendar as CalendarIcon, MapPin as MapPinIcon,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -68,6 +68,49 @@ function Rahmen({
         {children}
       </div>
     </section>
+  );
+}
+
+// ── Bilder ──────────────────────────────────────────────────────────────────
+
+/**
+ * Ein Bild aus der Bildverwaltung – und wenn dort noch keines liegt, ein
+ * sichtbarer Platzhalter statt nichts.
+ *
+ * Vorher stand an diesen Stellen ein blankes `<img src="">`. Das zeigt kein
+ * Browser als Lücke an, sondern als gar nichts: Das Element fällt auf null
+ * Höhe zusammen. Wer eine Seite zusammenstellt, bevor die Fotos da sind, sieht
+ * deshalb keine Seite mit fehlenden Bildern, sondern eine Seite, auf der nie
+ * welche vorgesehen waren – und wundert sich, warum sie so leer wirkt.
+ *
+ * Beim Nachbau der Vuozvolc-Seiten waren das 92 unsichtbare Löcher, und sie
+ * waren der grösste Einzelgrund, warum der Nachbau nichts mit der Vorlage zu
+ * tun hatte. Der Platzhalter nennt deshalb auch, was hier hingehört: Sonst
+ * weiss beim Hochladen niemand mehr, welches Foto an welche Stelle wollte.
+ */
+function SeitenBild({
+  schluessel, klasse, verhaeltnis, beschriftung,
+}: {
+  schluessel: string;
+  klasse?: string;
+  /** Seitenverhältnis des Platzhalters. Ein echtes Bild bringt seines mit. */
+  verhaeltnis?: string;
+  /** Was hier hingehört. Steht im Platzhalter. */
+  beschriftung?: string;
+}) {
+  const bild = useSiteImage(schluessel ?? "");
+  if (bild.src) {
+    return <img src={bild.src} alt={bild.alt} className={klasse} loading="lazy" />;
+  }
+  return (
+    <div
+      role="img"
+      aria-label={beschriftung ? `Platzhalter für ein Bild: ${beschriftung}` : "Platzhalter für ein Bild"}
+      className={`${klasse ?? ""} ${verhaeltnis ?? "aspect-[3/2]"} flex flex-col items-center justify-center gap-2 border border-dashed border-muted-foreground/30 bg-muted/60 text-muted-foreground`}
+    >
+      <ImageOff className="h-6 w-6 opacity-40" aria-hidden />
+      {beschriftung && <span className="px-3 text-center text-xs leading-snug">{beschriftung}</span>}
+    </div>
   );
 }
 
@@ -140,25 +183,37 @@ export function Titelbild({
  *
  * Leer bleibt leer – kein Platzhalter, keine Lücke.
  */
-function Oberzeile({ text, mitte }: { text?: string; mitte?: boolean }) {
+function Oberzeile({ text, mitte, strich }: { text?: string; mitte?: boolean; strich?: boolean }) {
   if (!text?.trim()) return null;
+  const wort = "text-sm font-bold uppercase tracking-[0.08em] leading-[1.4] text-primary";
+
+  if (!strich) {
+    return <p className={`${wort} mb-2 ${mitte ? "text-center" : ""}`}>{text}</p>;
+  }
+
+  // Der Strich neben dem Schlagwort.
+  //
+  // Eine Linie, die vom Wort bis zum Rand der Textspalte läuft – links
+  // ausgerichtet nur rechts vom Wort, mittig auf beiden Seiten. Das ist keine
+  // Zierde: Sie zieht eine waagerechte Kante über die Seite, an der das Auge
+  // die Kapitelanfänge findet, auch wenn das Schlagwort kurz ist.
   return (
-    <p
-      className={`text-sm font-bold uppercase tracking-[0.08em] leading-[1.4] text-primary mb-2 ${
-        mitte ? "text-center" : ""
-      }`}
-    >
-      {text}
-    </p>
+    <div className={`flex items-center gap-4 mb-2 ${mitte ? "justify-center" : ""}`} aria-hidden={false}>
+      {mitte && <span aria-hidden className="h-px flex-1 bg-primary/40" />}
+      <span className={wort}>{text}</span>
+      <span aria-hidden className="h-px flex-1 bg-primary/40" />
+    </div>
   );
 }
 
 export function Seitenkopf({
-  oberzeile, ueberschrift, text, ausrichtung, groesse, breite, abstandOben, abstandUnten, abstand,
-  hintergrund, flaeche, textfarbe,
+  oberzeile, oberzeileStrich, ueberschrift, text, ausrichtung, groesse, breite,
+  abstandOben, abstandUnten, abstand, hintergrund, flaeche, textfarbe,
 }: Gemeinsam & {
   oberzeile?: string; ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte";
   groesse?: Schriftgrad;
+  /** Linie neben dem Schlagwort, wie auf vielen Vorlagen-Seiten. */
+  oberzeileStrich?: boolean;
 }) {
   const mitte = ausrichtung === "mitte";
   const inneres = (
@@ -168,7 +223,7 @@ export function Seitenkopf({
       transition={{ duration: 0.6 }}
       className={mitte ? "text-center" : ""}
     >
-      <Oberzeile text={oberzeile} mitte={mitte} />
+      <Oberzeile text={oberzeile} mitte={mitte} strich={oberzeileStrich} />
       <h1 className={`font-serif ${SCHRIFTGRAD[groesse ?? "gross"]} ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
         {ueberschrift}
       </h1>
@@ -280,15 +335,17 @@ const SCHRIFTGRAD = {
 export type Schriftgrad = keyof typeof SCHRIFTGRAD;
 
 export function Ueberschrift({
-  oberzeile, text, groesse, ausrichtung, ...rest
+  oberzeile, oberzeileStrich, text, groesse, ausrichtung, ...rest
 }: Gemeinsam & {
   oberzeile?: string; text: string;
   groesse: Schriftgrad; ausrichtung: "links" | "mitte";
+  /** Linie neben dem Schlagwort, wie auf vielen Vorlagen-Seiten. */
+  oberzeileStrich?: boolean;
 }) {
   const Tag = groesse === "riesig" || groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
   return (
     <Rahmen {...rest}>
-      <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} />
+      <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} strich={oberzeileStrich} />
       <Tag
         className={`font-serif ${SCHRIFTGRAD[groesse] ?? SCHRIFTGRAD.mittel} ${
           ausrichtung === "mitte" ? "text-center" : ""
@@ -343,7 +400,6 @@ export function Einzelbild({
    *  im Original ist genau das an einzelnen Stellen so gemacht. */
   bildbreite?: "voll" | "mittel" | "schmal";
 }) {
-  const bild = useSiteImage(bildSchluessel);
   // Die Werte sind aus den Quellseiten abgemessen, nicht gewaehlt: Die
   // Uniformtafeln stehen dort in `max-w-lg`, das Lederwerkstatt-Bild auf
   // „Fuer Veranstalter" in `max-w-md`.
@@ -354,7 +410,11 @@ export function Einzelbild({
   return (
     <figure className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <div className={`rounded-lg overflow-hidden ${grenze}`}>
-        <img src={bild.src} alt={bild.alt} className="w-full h-auto object-cover" loading="lazy" />
+        <SeitenBild
+          schluessel={bildSchluessel}
+          klasse="w-full h-auto object-cover"
+          beschriftung={bildunterschrift || bildSchluessel}
+        />
       </div>
       {bildunterschrift && (
         <figcaption className={`text-xs text-muted-foreground mt-2 italic ${grenze}`}>
@@ -370,7 +430,6 @@ export function Einzelbild({
 export function ZweiSpalten({
   inhalt, bildSchluessel, bildSeite, ...rest
 }: Gemeinsam & { inhalt: unknown; bildSchluessel: string; bildSeite: "links" | "rechts" }) {
-  const bild = useSiteImage(bildSchluessel);
   const text =
     typeof inhalt === "string" ? (
       <div
@@ -388,7 +447,7 @@ export function ZweiSpalten({
             nebeneinander gäbe es dort ohnehin nicht, und ein Bild unter dem
             Text wirkt wie ein Nachtrag. */}
         <div className={bildSeite === "rechts" ? "md:order-2" : ""}>
-          <img src={bild.src} alt={bild.alt} className="w-full rounded-lg" loading="lazy" />
+          <SeitenBild schluessel={bildSchluessel} klasse="w-full rounded-lg" beschriftung={bildSchluessel} />
         </div>
         <div className={bildSeite === "rechts" ? "md:order-1" : ""}>{text}</div>
       </div>
@@ -421,11 +480,14 @@ export function Karten({
 function Karte({ titel, text, bildSchluessel, ziel }: {
   titel: string; text: string; bildSchluessel?: string; ziel?: string;
 }) {
-  const bild = useSiteImage(bildSchluessel ?? "");
   const inhalt = (
     <div className="rounded-lg border bg-card overflow-hidden h-full transition-shadow hover:shadow-md">
-      {bildSchluessel && bild.src && (
-        <img src={bild.src} alt={bild.alt} className="w-full aspect-[3/2] object-cover" loading="lazy" />
+      {bildSchluessel && (
+        <SeitenBild
+          schluessel={bildSchluessel}
+          klasse="w-full aspect-[3/2] object-cover"
+          beschriftung={titel}
+        />
       )}
       <div className="p-4">
         <h3 className="font-serif font-semibold mb-1">{titel}</h3>
