@@ -20,7 +20,7 @@ import VeranstalterFelder from "@/components/kontakt/VeranstalterFelder";
 import PublicPersonasSection from "@/components/PublicPersonasSection";
 import {
   FARBGRUND,
-  abstandKlasse, breitenKlasse, flaechenKlasse, grundKlasse, polsterung, textKlasse,
+  abstandKlasse, breitenKlasse, breitenMass, flaechenKlasse, grundKlasse, polsterung, textKlasse,
   type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
 } from "./gestaltung";
 
@@ -289,9 +289,16 @@ export function fliesstextKlassen(
 ): string {
   // Auf farbigem Grund erbt alles die Schriftfarbe der Flaeche; sonst bleibt es
   // bei gedaempftem Fliesstext und kraeftigen Ueberschriften wie bisher.
+  // `prose` faerbt ueber eigene Variablen und setzt am Wurzelelement selbst
+  // eine Farbe. Einzelne `prose-p:text-current` greifen dort deshalb nicht --
+  // die Variablen umzustellen ist der vorgesehene Weg und faerbt alles mit,
+  // auch Aufzaehlungspunkte und Trennlinien.
   const farben = stil?.aufFarbe
-    ? "prose-headings:text-current prose-p:text-current prose-li:text-current " +
-      "prose-a:text-current prose-a:underline prose-strong:text-current prose-em:text-current "
+    ? "[--tw-prose-body:currentColor] [--tw-prose-headings:currentColor] " +
+      "[--tw-prose-bold:currentColor] [--tw-prose-links:currentColor] " +
+      "[--tw-prose-counters:currentColor] [--tw-prose-bullets:currentColor] " +
+      "[--tw-prose-hr:currentColor] [--tw-prose-quotes:currentColor] " +
+      "prose-a:underline "
     : "prose-headings:text-foreground prose-p:text-muted-foreground " +
       "prose-li:text-muted-foreground prose-a:text-primary prose-strong:text-foreground " +
       "prose-em:text-foreground ";
@@ -302,7 +309,18 @@ export function fliesstextKlassen(
     ? "prose-h2:text-5xl prose-h2:leading-[1.2] prose-h2:font-normal prose-h2:mb-6 " +
       "prose-h3:font-sans prose-h3:text-[22px] prose-h3:font-medium prose-h3:leading-snug " +
       "prose-h4:font-sans prose-h4:text-sm prose-h4:font-bold prose-h4:uppercase " +
-      "prose-h4:tracking-[0.08em] prose-h4:leading-[1.4] prose-h4:mb-2 "
+      "prose-h4:tracking-[0.08em] prose-h4:leading-[1.4] prose-h4:mb-2 " +
+      // Die Linie neben der Oberzeile -- dieselbe Geste wie am Seitenkopf.
+      // Die Vorlage setzt sie dort als eigenen Divi-Baustein; im Fliesstext
+      // waere das ein Strich quer ueber den Text, also macht es die
+      // Gestaltung des <h4> selbst.
+      "prose-h4:flex prose-h4:items-center prose-h4:gap-4 " +
+      "prose-h4:after:content-[''] prose-h4:after:h-px prose-h4:after:flex-1 " +
+      "prose-h4:after:bg-current prose-h4:after:opacity-40 " +
+      // Die waagerechten Linien, die den Kasteninhalt oben und unten
+      // einklammern. Sie folgen der Schriftfarbe, damit sie auf hellem wie
+      // auf farbigem Grund sitzen.
+      "prose-hr:border-current prose-hr:opacity-30 prose-hr:my-8 "
     : "";
 
   return (
@@ -562,8 +580,18 @@ export function ZweiSpalten({
  */
 export function BildMitKasten({
   bildSchluessel, bildSeite, bandGrund, kastenGrund, rahmen, ueberlappung, inhalt,
-  abstandOben, abstandUnten, abstand,
+  breite, textfarbe, abstandOben, abstandUnten, abstand,
 }: Pick<Gemeinsam, "abstandOben" | "abstandUnten" | "abstand"> & {
+  /** Wie breit die Inhaltsspalte ist, an der der Kasten rechts abschliesst. */
+  breite?: Breite;
+  /**
+   * Schriftfarbe im Kasten.
+   *
+   * Ohne Angabe erbt der Text die Farbe, die die Flaeche mitbringt -- bei
+   * "Eure Farbe, kraeftig" also `--primary-foreground`. Wer eine Vorlage
+   * nachbaut, die dort etwas anderes setzt, waehlt es hier ausdruecklich.
+   */
+  textfarbe?: Textfarbe;
   bildSchluessel: string;
   bildSeite: "links" | "rechts";
   /** Der Grund hinter allem, über die ganze Breite. */
@@ -610,7 +638,7 @@ export function BildMitKasten({
     <Fliesstext
       inhalt={inhalt}
       klassen={fliesstextKlassen(undefined, undefined, {
-        aufFarbe: kastenGrund === "akzent",
+        aufFarbe: kastenGrund === "akzent" || Boolean(textfarbe),
         vorlage: true,
       })}
     />
@@ -626,7 +654,10 @@ export function BildMitKasten({
   // Das Foto bleibt randlos: Seine Spalte wird mit einem negativen Rand aus
   // der Inhaltsspalte herausgezogen. `--rand` ist der Abstand vom Rand des
   // Schirms bis zum Textanfang, also genau das Stueck, das fehlt.
-  const rand = { "--rand": "max(2rem, calc((100vw - 64rem) / 2 + 2rem))" } as React.CSSProperties;
+  const mass = breitenMass(breite ?? "breit");
+  const rand = {
+    "--rand": mass ? `max(2rem, calc((100vw - ${mass}) / 2 + 2rem))` : "0px",
+  } as React.CSSProperties;
   const bildRandlos = links ? "md:-ml-[var(--rand)]" : "md:-mr-[var(--rand)]";
 
   return (
@@ -634,9 +665,9 @@ export function BildMitKasten({
       style={rand}
       className={`overflow-hidden ${flaechenKlasse(bandGrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}
     >
-      <div className={breitenKlasse("breit")}>
+      <div className={breitenKlasse(breite ?? "breit")}>
       <div className="grid gap-6 md:grid-cols-12 md:items-center md:gap-0">
-        <div className={`${bildSpalte} ${bildRandlos} md:row-start-1`}>
+        <div className={`${bildSpalte} ${bildRandlos} md:row-start-1 min-w-0`}>
           <SeitenBild
             schluessel={bildSchluessel}
             klasse="w-full h-auto object-cover"
@@ -644,13 +675,24 @@ export function BildMitKasten({
             beschriftung={bildSchluessel}
           />
         </div>
-        <div className={`${kastenSpalte} md:row-start-1 relative z-10 px-4 md:px-0`}>
+        {/* `min-w-0`: Ein Rasterplatz darf per Vorgabe nicht schmaler werden als
+              sein Inhalt (`min-width: auto`). Ohne das trat der Kasten auf dem
+              Handy 33 px ueber die Inhaltsspalte hinaus -- sichtbar nur als
+              schiefer Rand, weil `overflow-hidden` den Ueberlauf abschnitt. */}
+          <div className={`${kastenSpalte} md:row-start-1 relative z-10 px-4 md:px-0 min-w-0`}>
+          {/* Die Schriftfarbe steht eine Ebene tiefer als die Flaeche: auf
+              demselben Element haetten `text-white` und die Farbe, die
+              `flaechenKlasse` mitbringt, dieselbe Spezifitaet -- dann
+              entscheidet die Reihenfolge im Stylesheet, und die Wahl im
+              Editor bliebe wirkungslos. */}
           <div className={`${flaechenKlasse(kastenGrund)} p-6 md:p-10`}>
+            <div className={textfarbe ? textKlasse(textfarbe) : ""}>
             {rahmen ? (
               <div className={`border p-5 md:p-8 ${kastenGrund === "akzent" ? "border-current/30" : "border-foreground/20"}`}>{text}</div>
             ) : (
               text
             )}
+            </div>
           </div>
         </div>
       </div>
