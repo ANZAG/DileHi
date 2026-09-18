@@ -616,10 +616,27 @@ export function BildMitKasten({
     />
   );
 
+  // Der Kasten endet buendig mit der Inhaltsspalte, nicht am Bildschirmrand.
+  //
+  // An der Vorlage gemessen (1440 px): die Inhaltsspalte laeuft von 180 bis
+  // 1260, der farbige Kasten von 750 bis 1260 -- er schliesst also rechts mit
+  // dem Text ab. Vorher lag das Raster ueber die ganze Breite, und der Kasten
+  // stiess bis an den Rand des Schirms.
+  //
+  // Das Foto bleibt randlos: Seine Spalte wird mit einem negativen Rand aus
+  // der Inhaltsspalte herausgezogen. `--rand` ist der Abstand vom Rand des
+  // Schirms bis zum Textanfang, also genau das Stueck, das fehlt.
+  const rand = { "--rand": "max(2rem, calc((100vw - 64rem) / 2 + 2rem))" } as React.CSSProperties;
+  const bildRandlos = links ? "md:-ml-[var(--rand)]" : "md:-mr-[var(--rand)]";
+
   return (
-    <section className={`${flaechenKlasse(bandGrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
+    <section
+      style={rand}
+      className={`overflow-hidden ${flaechenKlasse(bandGrund)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}
+    >
+      <div className={breitenKlasse("breit")}>
       <div className="grid gap-6 md:grid-cols-12 md:items-center md:gap-0">
-        <div className={`${bildSpalte} md:row-start-1`}>
+        <div className={`${bildSpalte} ${bildRandlos} md:row-start-1`}>
           <SeitenBild
             schluessel={bildSchluessel}
             klasse="w-full h-auto object-cover"
@@ -636,6 +653,7 @@ export function BildMitKasten({
             )}
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
