@@ -144,6 +144,9 @@ Alles liegt in  dist/
 Jetzt den Inhalt von dist/ per FTP in das Verzeichnis eurer Domain laden.
 Wichtig dabei:
 
+  * Die Passwortdatei ZUERST. Solange die .htaccess auf eine .htpasswd
+    zeigt, die noch nicht oben ist, antwortet der Server auf JEDE Adresse
+    mit 500 -- nicht mit der alten Seite, nicht mit einer Meldung.
   * Der INHALT von dist/ gehört hinein, nicht der Ordner selbst.
   * Die Dateien, die mit einem Punkt anfangen (.htaccess und, falls gesetzt,
     die Passwortdatei), müssen mit. Viele FTP-Programme blenden sie aus —

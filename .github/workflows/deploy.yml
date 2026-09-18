@@ -232,6 +232,11 @@ jobs:
           # ihm den Versuch und haelt die Adresse aus den Ergebnissen.
           printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
 
+          # Der Upload-Schritt muss wissen, wie die Datei heisst: Sie geht
+          # VOR allem anderen hoch, damit die .htaccess nie auf eine
+          # Passwortdatei zeigt, die noch nicht da ist.
+          echo "SCHUTZDATEI=$name" >> "$GITHUB_ENV"
+
           {
             echo "### Verzeichnisschutz aktiv"
             echo ""
@@ -267,12 +272,42 @@ jobs:
             exit 0
           fi
           sudo apt-get install -y lftp
+
+          # Die Passwortdatei zuerst, und zwar allein.
+          #
+          # `mirror --delete` laedt in einer Reihenfolge hoch, die es sich
+          # selbst aussucht. Landet die .htaccess vor der .htpasswd, gibt es
+          # ein Fenster von einigen Minuten, in dem Apache eine
+          # Passwortdatei sucht, die noch nicht da ist -- und dann antwortet
+          # es fuer das GANZE Verzeichnis mit 500. Nicht mit "Seite laedt
+          # noch", nicht mit der alten Fassung: mit einem Serverfehler, auf
+          # jede Adresse, auch auf das Favicon.
+          #
+          # Genau das ist am 18. September passiert, mitten in einem Deploy.
+          # Also erst die Datei, die alles andere braucht, dann der Rest --
+          # und sie wird vom Spiegeln ausgenommen, damit `--delete` sie nicht
+          # kurz wegraeumt und neu schreibt.
+          # SCHUTZDATEI setzt der Schritt "Verzeichnisschutz" oben, wenn es
+          # einen gibt. Ohne Schutz ist sie leer und alles bleibt beim Alten.
+          AUSNAHME=""
+          if [ -n "$SCHUTZDATEI" ] && [ -f "dist/$SCHUTZDATEI" ]; then
+            lftp -c "
+              set ftp:ssl-force true;
+              set ftp:ssl-protect-data true;
+              set ssl:verify-certificate false;
+              open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
+              put -O $ZIEL dist/$SCHUTZDATEI
+            "
+            AUSNAHME="--exclude-glob $SCHUTZDATEI"
+            echo "::notice::Passwortdatei $SCHUTZDATEI vorab hochgeladen."
+          fi
+
           lftp -c "
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
             set ssl:verify-certificate false;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
-            mirror --reverse --delete --verbose ./dist/ $ZIEL
+            mirror --reverse --delete --verbose $AUSNAHME ./dist/ $ZIEL
           "
 
       # Hat es geklappt?

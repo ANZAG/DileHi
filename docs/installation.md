@@ -246,7 +246,10 @@ in die Zusammenfassung, was zurückkam:
 | **200** | Die Seite steht offen. Meist erlaubt der Hoster kein `AllowOverride`, die `.htaccess` wird also ignoriert |
 
 Die Passwortdatei selbst legt der Deploy neben die Seite und sperrt sie gegen
-Abruf.
+Abruf — und zwar **vor** allem anderen. Das ist kein Detail: Solange die
+`.htaccess` auf eine Passwortdatei zeigt, die noch nicht da ist, antwortet
+Apache auf **jede** Adresse mit 500, auch auf das Favicon. Beim Hochladen von
+Hand gilt dasselbe Reihenfolgegebot.
 
 > Der Schutz ersetzt **keine Anmeldung**. Er hält Fremde von der Seite fern;
 > was im Mitgliederbereich wem gehört, regeln weiter die Zugriffsregeln in der
