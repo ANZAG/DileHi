@@ -417,11 +417,20 @@ export function Textabschnitt({
  * vom Wechsel dünner und dicker Striche; `font-bold` walzt genau den platt.
  * Unter 36 px trägt das Fett noch, darüber schadet es.
  */
+// `break-words hyphens-auto` an jeder Stufe: Ein langes deutsches Wort in einer
+// grossen Ueberschrift passt auf einem Telefon in keine Spalte. Ohne Umbruch
+// schiebt es die ganze Seite auf, und sie laesst sich seitlich schieben --
+// gemessen auf "Still und Schwangerschaftskleidung": 509 px Bedarf in einer
+// 326 px breiten Spalte. Die Vorlage setzt dort `overflow-wrap: break-word`.
+// `hyphens-auto` trennt zusaetzlich nach deutschen Regeln; <html lang="de">
+// steht in index.html, die Sprache ist also bekannt.
+const UMBRUCH = "break-words hyphens-auto";
+
 const SCHRIFTGRAD = {
-  riesig: "text-4xl md:text-6xl lg:text-7xl font-medium leading-[1.15]",
-  gross: "text-3xl md:text-4xl font-bold",
-  mittel: "text-2xl font-bold",
-  klein: "text-xl font-bold",
+  riesig: `text-4xl md:text-6xl lg:text-7xl font-medium leading-[1.15] ${UMBRUCH}`,
+  gross: `text-3xl md:text-4xl font-bold ${UMBRUCH}`,
+  mittel: `text-2xl font-bold ${UMBRUCH}`,
+  klein: `text-xl font-bold ${UMBRUCH}`,
 } as const;
 
 export type Schriftgrad = keyof typeof SCHRIFTGRAD;
