@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { woerter, type Words } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
 import { surfaceColors, hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
-import { loadFonts } from "@/lib/schriften";
+import { loadFonts, schriftStapel } from "@/lib/schriften";
 import { iconLinks } from "@/lib/zeichen";
 
 export interface Branding {
@@ -226,10 +226,10 @@ export function useBrandingAnwenden() {
   useEffect(() => {
     loadFonts([font_headings, font_body]);
     const wurzel = document.documentElement;
-    // In Anführungszeichen: Namen wie „Source Sans 3" brauchen sie, sonst
-    // versteht CSS die Zahl als eigenen Wert.
-    wurzel.style.setProperty("--schrift-ueberschrift", `"${font_headings}"`);
-    wurzel.style.setProperty("--schrift-text", `"${font_body}"`);
+    // Geladene Schriften in Anführungszeichen, Systemschriften mit ihrer
+    // Ausweichkette – beides regelt `schriftStapel`.
+    wurzel.style.setProperty("--schrift-ueberschrift", schriftStapel(font_headings));
+    wurzel.style.setProperty("--schrift-text", schriftStapel(font_body));
   }, [font_headings, font_body]);
 
   // Das Zeichen im Reiter. Alle Icon-Links werden ersetzt, nicht einer

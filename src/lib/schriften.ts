@@ -19,6 +19,16 @@ export interface Schriftart {
   name: string;
   /** Was man sieht, wenn man nichts von Schriften versteht. */
   beschreibung: string;
+  /**
+   * Nur bei Systemschriften: die ganze Ausweichkette.
+   *
+   * Georgia und Arial liefert das Betriebssystem, nicht dieser Server – es
+   * gibt nichts zu laden und nichts, was an Dritte geht. Dafür fehlen sie auf
+   * manchen Geräten (Linux, Android). Die Kette sagt, was dann an ihre Stelle
+   * tritt, und zwar dasselbe, was eine Website mit dieser Angabe auch sonst
+   * überall zeigen würde.
+   */
+  stapel?: string;
 }
 
 /**
@@ -113,6 +123,11 @@ export const UEBERSCHRIFT_SCHRIFTEN: Schriftart[] = [
   { name: "Antic Didone", beschreibung: "Schmal und klassisch, hohe Kontraste" },
   { name: "Inter", beschreibung: "Ohne Serifen, sachlich" },
   { name: "Work Sans", beschreibung: "Ohne Serifen, freundlich" },
+  {
+    name: "Georgia",
+    beschreibung: "Systemschrift mit Serifen, wird nicht geladen",
+    stapel: 'Georgia, "Times New Roman", serif',
+  },
 ];
 
 /** Für Fließtext: Schriften, die man lange lesen kann. */
@@ -124,6 +139,11 @@ export const TEXT_SCHRIFTEN: Schriftart[] = [
   { name: "Nunito Sans", beschreibung: "Rund und freundlich" },
   { name: "Work Sans", beschreibung: "Modern, klar" },
   { name: "Lora", beschreibung: "Mit Serifen, wie in einem Buch" },
+  {
+    name: "Arial",
+    beschreibung: "Systemschrift ohne Serifen, wird nicht geladen",
+    stapel: "Arial, Helvetica, sans-serif",
+  },
 ];
 
 const geladen = new Set<string>();
@@ -142,6 +162,17 @@ export function loadFonts(namen: string[]): void {
     geladen.add(name);
     void laden().catch(() => geladen.delete(name));
   }
+}
+
+/**
+ * Der Wert für `--schrift-ueberschrift` und `--schrift-text`.
+ *
+ * Eine geladene Schrift steht als ein Name in Anführungszeichen da – Namen wie
+ * „Source Sans 3" brauchen sie, sonst versteht CSS die Zahl als eigenen Wert.
+ * Eine Systemschrift bringt ihre Ausweichkette mit.
+ */
+export function schriftStapel(name: string): string {
+  return findeSchrift(name)?.stapel ?? `"${name}"`;
 }
 
 export function findeSchrift(name: string | null | undefined): Schriftart | null {

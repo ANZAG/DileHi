@@ -1,6 +1,6 @@
 import type { Config } from "@puckeditor/core";
 import {
-  Abstandhalter, Besucherhinweis, BildMitKasten, Bildnachweise, Darstellungen, EigenesHtml,
+  Abstandhalter, Besucherhinweis, BildMitKasten, Bildnachweise, Darstellungen, EigenesHtml, FotoMitKarte,
   Einzelbild, Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Personenbilder,
   Quellen, Rahmenkasten, Seitenkopf, Termine, Textabschnitt, Titelbild, Trennlinie,
   Ueberschrift, Veranstalteranfrage, ZweiSpalten,
@@ -119,7 +119,22 @@ export type Bausteine = {
     ausrichtung: "links" | "mitte";
     /** Wie gross die Überschrift steht. Ohne Angabe „gross" wie bisher. */
     groesse?: "riesig" | "gross" | "mittel" | "klein";
+    /** „vorlage": Masse einer nachgebauten Vorlage. Ohne Angabe wie bisher. */
+    stil?: "standard" | "vorlage";
   } & typeof gemeinsameVorgaben;
+  FotoMitKarte: {
+    bildSchluessel: string;
+    bandAb: number;
+    bandGrund: Hintergrund;
+    grund: Hintergrund;
+    karteGrund: Hintergrund;
+    karteBreite: "halb" | "dreiviertel";
+    rahmen: boolean;
+    saum: boolean;
+    luftUnten: "mehr" | "wie_oben";
+    inhalt: unknown;
+    breite: Breite;
+  };
   BildMitKasten: {
     bildSchluessel: string;
     bildSeite: "links" | "rechts";
@@ -375,6 +390,13 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Mit Linie", value: true },
           ],
         },
+        stil: {
+          type: "radio", label: "Form",
+          options: [
+            { label: "Eigene", value: "standard" },
+            { label: "Wie die Vorlage", value: "vorlage" },
+          ],
+        },
         ueberschrift: { type: "text", label: "Überschrift" },
         text: textFeld,
         groesse: {
@@ -421,6 +443,53 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         inhalt: "", bildSchluessel: "", bildSeite: "links", ...gemeinsameVorgaben, breite: "breit",
       },
       render: ZweiSpalten,
+    },
+
+    FotoMitKarte: {
+      label: "Foto mit Karte darüber",
+      fields: {
+        bildSchluessel: bildFeld,
+        inhalt: textFeld,
+        karteBreite: {
+          type: "radio", label: "Breite der Karte",
+          options: [
+            { label: "Drei Viertel", value: "dreiviertel" },
+            { label: "Halb", value: "halb" },
+          ],
+        },
+        karteGrund: { type: "select", label: "Grund der Karte", options: HINTERGRUENDE },
+        bandGrund: { type: "select", label: "Farbband über dem Foto", options: HINTERGRUENDE },
+        bandAb: { type: "number", label: "Band beginnt bei (Prozent der Breite)", min: 0, max: 100 },
+        grund: { type: "select", label: "Grund ohne Foto", options: HINTERGRUENDE },
+        rahmen: {
+          type: "radio", label: "Rahmen um die Karte",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit", value: true },
+          ],
+        },
+        saum: {
+          type: "radio", label: "Saum um die Karte",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit", value: true },
+          ],
+        },
+        luftUnten: {
+          type: "radio", label: "Luft unter der Karte",
+          options: [
+            { label: "Mehr als oben", value: "mehr" },
+            { label: "Wie oben", value: "wie_oben" },
+          ],
+        },
+        breite: gemeinsameFelder.breite,
+      },
+      defaultProps: {
+        bildSchluessel: "", inhalt: "", karteBreite: "dreiviertel",
+        karteGrund: "karte" as Hintergrund, bandGrund: "gedaempft" as Hintergrund, bandAb: 65,
+        grund: "karte" as Hintergrund, rahmen: true, saum: true, luftUnten: "mehr", breite: "sehr_breit" as Breite,
+      },
+      render: FotoMitKarte,
     },
 
     BildMitKasten: {

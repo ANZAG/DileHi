@@ -103,42 +103,51 @@ export const FLAECHEN: { label: string; value: Flaeche }[] = [
   { label: "Über die ganze Breite", value: "voll" },
 ];
 
-export type Breite = "schmal" | "breit" | "sehr_breit" | "voll";
+export type Breite = "schmal" | "mittel" | "breit" | "sehr_breit" | "voll";
 
 export const BREITEN: { label: string; value: Breite }[] = [
   { label: "Schmal (gut lesbar)", value: "schmal" },
+  { label: "Mittel, wächst mit dem Fenster", value: "mittel" },
   { label: "Breit", value: "breit" },
-  { label: "Sehr breit", value: "sehr_breit" },
+  { label: "Sehr breit, wächst mit dem Fenster", value: "sehr_breit" },
   { label: "Ganze Seite", value: "voll" },
 ];
+
+/**
+ * Wie weit es vom Rand des Schirms bis zum Textanfang ist, als CSS-Ausdruck.
+ *
+ * Wird gebraucht, wo ein Baustein etwas randlos aus der Inhaltsspalte
+ * herausziehen muss, etwa ein Foto. Muss zu `breitenKlasse` passen.
+ */
+export function randAbstand(breite?: Breite): string {
+  switch (breite) {
+    case "voll": return "0px";
+    // Die beiden mitwachsenden Stufen haben keine Polsterung: Ihre Spalte ist
+    // ein fester Anteil des Fensters, also bleibt links genau die Hälfte
+    // des Rests – bis die Spalte an ihre Höchstbreite stösst.
+    case "sehr_breit": return "max(10vw, calc((100vw - 1080px) / 2))";
+    case "mittel": return "max(21.5vw, calc((100vw - 1080px) / 2))";
+    case "breit": return "max(2rem, calc((100vw - 64rem) / 2 + 2rem))";
+    default: return "max(2rem, calc((100vw - 48rem) / 2 + 2rem))";
+  }
+}
 
 /**
  * `container` zentriert sich selbst, `max-w-*` darin aber nicht – ohne
  * `mx-auto` klebt der Inhalt am linken Rand. Das ist genau der Fehler, der im
  * Prototyp aufgefallen ist.
  */
-/**
- * Die Hoechstbreite derselben Stufe als CSS-Laenge.
- *
- * Wird gebraucht, wo ein Baustein rechnen muss, wie weit es vom Rand des
- * Schirms bis zum Textanfang ist -- etwa um ein Foto randlos aus der
- * Inhaltsspalte herauszuziehen. Muss mit `breitenKlasse` gleich bleiben.
- */
-export function breitenMass(breite?: Breite): string | null {
-  if (breite === "voll") return null;
-  if (breite === "sehr_breit") return "1144px";
-  return breite === "breit" ? "64rem" : "48rem";
-}
-
 export function breitenKlasse(breite?: Breite): string {
   if (breite === "voll") return "w-full";
-  // 1144 statt einer der Stufen von Tailwind: `container` legt links und
-  // rechts 2rem Polsterung an, es bleiben also genau 1080 px Text. Das ist
-  // das Mass der Vorlage, die hier nachgebaut wird -- `max-w-6xl` traefe mit
-  // 1088 daneben, und zwar auf jeder Seite sichtbar.
-  const kasten =
-    breite === "sehr_breit" ? "max-w-[1144px]" : breite === "breit" ? "max-w-5xl" : "max-w-3xl";
-  return `container mx-auto ${kasten}`;
+  // Die beiden mitwachsenden Stufen folgen dem Raster, mit dem die meisten
+  // Baukasten-Themes arbeiten: Eine Zeile ist ein fester Anteil des Fensters,
+  // gedeckelt bei 1080 px. "Sehr breit" nimmt 80 %, "Mittel" 57 % – an einer
+  // nachgebauten Vorlage bei 390, 768, 1024, 1280, 1440 und 1920 px
+  // nachgemessen. Auf einem Telefon bleibt dadurch links und rechts ein
+  // Rand, der mit dem Fenster wächst, statt fester 2rem.
+  if (breite === "sehr_breit") return "mx-auto w-[80%] max-w-[1080px]";
+  if (breite === "mittel") return "mx-auto w-[57%] max-w-[1080px]";
+  return `container mx-auto ${breite === "breit" ? "max-w-5xl" : "max-w-3xl"}`;
 }
 
 export type Abstand = "keiner" | "eng" | "klein" | "normal" | "gross" | "weit" | "riesig";

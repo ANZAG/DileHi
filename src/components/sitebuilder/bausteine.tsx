@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import DOMPurify from "dompurify";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   X, ChevronLeft, ChevronRight, ImageOff,
@@ -11,7 +11,8 @@ import {
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useSiteImage } from "@/hooks/useSiteImage";
+import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
+import { bildplaetzeAufloesen } from "./bildplaetze";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 import ImageCredits from "@/components/epochs/ImageCredits";
@@ -20,7 +21,7 @@ import VeranstalterFelder from "@/components/kontakt/VeranstalterFelder";
 import PublicPersonasSection from "@/components/PublicPersonasSection";
 import {
   FARBGRUND,
-  abstandKlasse, breitenKlasse, breitenMass, flaechenKlasse, grundKlasse, polsterung, textKlasse,
+  abstandKlasse, breitenKlasse, flaechenKlasse, randAbstand, grundKlasse, polsterung, textKlasse,
   type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
 } from "./gestaltung";
 
@@ -183,8 +184,34 @@ export function Titelbild({
  *
  * Leer bleibt leer – kein Platzhalter, keine Lücke.
  */
-function Oberzeile({ text, mitte, strich }: { text?: string; mitte?: boolean; strich?: boolean }) {
-  if (!text?.trim()) return null;
+function Oberzeile({ text, mitte, strich, vorlage }: {
+  text?: string; mitte?: boolean; strich?: boolean;
+  /** Die Form der nachgebauten Vorlage, siehe unten. */
+  vorlage?: boolean;
+}) {
+  const leer = !text?.trim();
+
+  // Die Form der Vorlage, an ihr gemessen: eine 23 px hohe Zeile, das Wort
+  // 14 px fett und um 1 px gesperrt, 32 px Luecke, dann eine schwarze Linie
+  // bis zum Ende der Spalte. Ohne Wort bleibt die Linie allein stehen – so
+  // beginnen dort die Seiten ohne Schlagwort.
+  if (vorlage) {
+    if (leer && !strich) return null;
+    return (
+      <div className={`flex min-h-[23px] items-center gap-8 ${leer ? "mb-[30px]" : "mb-[30px] min-[981px]:mb-[23px]"}`}>
+        {!leer && (
+          // Darf umbrechen: Ein langes Schlagwort passt auf dem Telefon nicht
+          // in die schmale Titelspalte und schob sonst die ganze Seite auf.
+          <span className="min-w-0 text-sm font-bold uppercase tracking-[1px] leading-[1.4] text-primary">
+            {text}
+          </span>
+        )}
+        {strich && <span aria-hidden className="h-px flex-1 bg-black" />}
+      </div>
+    );
+  }
+
+  if (leer) return null;
   const wort = "text-sm font-bold uppercase tracking-[0.08em] leading-[1.4] text-primary";
 
   if (!strich) {
@@ -206,15 +233,65 @@ function Oberzeile({ text, mitte, strich }: { text?: string; mitte?: boolean; st
   );
 }
 
+/**
+ * Der Seitenkopf in der Form der nachgebauten Vorlage.
+ *
+ * Alle Masse an der Vorlage gemessen, bei 390, 768 und 1440 px. Die Vorlage
+ * kennt zwei Fassungen: mit Schlagwort (die Linie läuft rechts daneben weiter)
+ * und ohne (die Linie steht allein über dem Titel, und unter dem Titel bleibt
+ * deutlich mehr Luft). Die Titelzeile hat 24, 40 und 72 px bei einer
+ * Zeilenhöhe von 1,35 – enger gesetzt wirkt eine zweizeilige Überschrift dort
+ * gedrängt, wo die Vorlage ruhig steht.
+ */
+function SeitenkopfVorlage({ oberzeile, strich, ueberschrift, breite, hintergrund, textfarbe }: {
+  oberzeile?: string; strich?: boolean; ueberschrift: string;
+  breite?: Breite; hintergrund?: Hintergrund; textfarbe?: Textfarbe;
+}) {
+  const mitWort = Boolean(oberzeile?.trim());
+  return (
+    <section
+      className={`${flaechenKlasse(hintergrund)} ${
+        mitWort
+          ? "pt-[80px] pb-[35px] min-[981px]:pt-[77px] min-[981px]:pb-[32px]"
+          // Ohne Schlagwort schiebt sich in der Vorlage der folgende Abschnitt
+          // 54 px über das Band; sichtbar bleiben unter dem Titel 46/47 px.
+          : "pt-[80px] pb-[46px] min-[981px]:pt-[81px] min-[981px]:pb-[47px]"
+      }`}
+    >
+      <div className={breitenKlasse(breite)}>
+        <Oberzeile text={oberzeile} strich={strich} vorlage />
+        <h1
+          className={`font-serif font-normal text-[24px] md:text-[40px] min-[981px]:text-[72px] leading-[1.35] pb-[10px] ${UMBRUCH} ${textKlasse(textfarbe)}`}
+        >
+          {ueberschrift}
+        </h1>
+      </div>
+    </section>
+  );
+}
+
 export function Seitenkopf({
   oberzeile, oberzeileStrich, ueberschrift, text, ausrichtung, groesse, breite,
-  abstandOben, abstandUnten, abstand, hintergrund, flaeche, textfarbe,
+  abstandOben, abstandUnten, abstand, hintergrund, flaeche, textfarbe, stil,
 }: Gemeinsam & {
   oberzeile?: string; ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte";
   groesse?: Schriftgrad;
   /** Linie neben dem Schlagwort, wie auf vielen Vorlagen-Seiten. */
   oberzeileStrich?: boolean;
+  /**
+   * „vorlage": Abstände, Schriftgrade und Linie einer nachgebauten Vorlage
+   * statt der eigenen. Ohne Angabe bleibt alles, wie es war.
+   */
+  stil?: "standard" | "vorlage";
 }) {
+  if (stil === "vorlage") {
+    return (
+      <SeitenkopfVorlage
+        oberzeile={oberzeile} strich={oberzeileStrich} ueberschrift={ueberschrift}
+        breite={breite} hintergrund={hintergrund} textfarbe={textfarbe}
+      />
+    );
+  }
   const mitte = ausrichtung === "mitte";
   const inneres = (
     <motion.div
@@ -273,6 +350,15 @@ export type Fliesstextstil = {
    * h3 22 und h4 14 gesperrt und in Grossbuchstaben, beide serifenlos.
    */
   vorlage?: boolean;
+  /**
+   * Die Schrift im Kasten der nachgebauten Vorlage.
+   *
+   * Dort ist der Kasten ein eigenes Blatt: 14 px Text bei 23,8 px Zeilenhöhe
+   * in #666, Zwischentitel serifenlos (h2 26, h3 22 px), Absätze ohne
+   * Aussenabstand und mit 1em Luft darunter, Tabellen mit feinen Linien in
+   * #eee. Alles gemessen, nicht geschätzt.
+   */
+  karte?: boolean;
 };
 
 /**
@@ -323,6 +409,69 @@ export function fliesstextKlassen(
       "prose-hr:border-current prose-hr:opacity-30 prose-hr:my-8 "
     : "";
 
+  if (stil?.karte) {
+    // Auf farbigem Grund folgen Text und Linien der Farbe der Fläche, sonst
+    // die Werte der Vorlage: Text #666, Überschriften und Linien dunkel.
+    const kartenFarben = stil.aufFarbe
+      ? "[--tw-prose-body:currentColor] [--tw-prose-bold:currentColor] [--tw-prose-headings:currentColor] " +
+        "[--tw-prose-links:currentColor] [--tw-prose-bullets:currentColor] [--tw-prose-counters:currentColor] " +
+        "[--linie:currentColor] prose-h4:text-current "
+      : "[--tw-prose-body:#666] [--tw-prose-bold:#666] [--tw-prose-headings:hsl(var(--foreground))] " +
+        "[--tw-prose-bullets:#666] [--tw-prose-counters:#666] [--linie:#000] " +
+        "prose-a:text-[#2ea3f2] prose-h4:text-primary ";
+    return (
+      "prose prose-sm max-w-none " + kartenFarben +
+      "prose-a:font-bold prose-a:no-underline " +
+      "prose-p:my-0 prose-p:pb-[1em] prose-p:leading-[1.7] " +
+      // Listen wie gemessen: 14 px Einzug, Punkte aussen, 26 px Zeilenhöhe.
+      "prose-li:my-0 prose-li:pl-0 prose-li:leading-[26px] prose-ul:my-0 prose-ul:pl-[14px] prose-ul:pb-[1em] " +
+      "prose-headings:font-sans prose-headings:font-normal prose-headings:mt-0 prose-headings:mb-0 " +
+      "prose-h2:text-[26px] prose-h2:leading-none prose-h2:pb-[10px] " +
+      "prose-h3:text-[22px] prose-h3:leading-none prose-h3:pb-[10px] " +
+      // Das Schlagwort im Kasten sitzt auf der Linie – dieselbe Geste wie im
+      // Seitenkopf: Wort, 32 px Luft, Linie bis zum Rand.
+      "prose-h4:text-sm prose-h4:font-bold prose-h4:uppercase prose-h4:tracking-[1px] prose-h4:leading-[1.4] " +
+      "prose-h4:flex prose-h4:items-center prose-h4:gap-8 prose-h4:min-h-[23px] prose-h4:mb-[23px] " +
+      "prose-h4:after:content-[''] prose-h4:after:h-px prose-h4:after:flex-1 prose-h4:after:bg-[var(--linie)] " +
+      // Die Linien oben und unten im Kasten: 1 px, mit je 11 px Luft – so
+      // liegen sie 72 px innerhalb des Rahmens wie in der Vorlage.
+      "prose-hr:border-[var(--linie)] prose-hr:my-[11px] " +
+      // Nach einer Linie 36 px Luft (die 11 px der Linie fallen mit ihnen
+      // zusammen, es bleiben 25 px mehr), und der letzte Absatz vor einer
+      // Linie oder am Ende ohne Abstand darunter. Gemessen: So stehen alle
+      // Zwischentitel und die untere Linie auf den Pixel wie in der Vorlage.
+      "[&_hr+*]:mt-[36px] [&_p:has(+hr)]:pb-0 [&_ul:has(+hr)]:pb-0 [&_p:last-child]:pb-0 " +
+      // Eine Abbildung mit Tabelle: Die Tabelle hat unten 14 px Luft, die
+      // Abbildung darum noch einmal 14 px. Mit nur einem davon rückte der
+      // Text nach jeder Tabelle 15 px höher – nach fünf Tabellen 115 px.
+      // `overflow-x-auto` wie bei WordPress-Tabellen: Die Abbildung wird damit
+      // eine eigene Fläche, und die beiden Abstände fallen nicht zu einem
+      // zusammen. Nebenbei lässt sich eine zu breite Tabelle auf dem Telefon
+      // seitlich schieben, statt die Seite aufzudrücken.
+      "prose-figure:my-0 prose-figure:mb-[14px] prose-figure:overflow-x-auto prose-img:m-0 prose-img:inline-block " +
+      "prose-table:mt-0 prose-table:mb-[14px] prose-table:w-full prose-table:border-collapse " +
+      "prose-thead:border-0 prose-tr:border-0 " +
+      // Tabellen wie gemessen: aussen #eee, die Zellen rechts, unten und
+      // links #666, oben #eee – zusammengefallen ergibt das das sichtbare
+      // Raster der Vorlage.
+      // `prose` setzt Tabellen eine Stufe kleiner (12/18 px); die Vorlage
+      // bleibt dort bei 14/23,8 px wie im übrigen Text.
+      "prose-table:border prose-table:border-[#eee] prose-table:text-[14px] prose-td:leading-[1.7] " +
+      "prose-td:border prose-td:border-[#666] prose-td:border-t-[#eee] prose-td:px-6 prose-td:py-1.5 prose-td:align-middle " +
+      // Bilder, die der Text umfliesst.
+      "[&_.alignleft]:float-left [&_.alignleft]:mt-[7px] [&_.alignleft]:mr-[14px] [&_.alignleft]:mb-[7px] " +
+      "[&_.alignright]:float-right [&_.alignright]:mt-[7px] [&_.alignright]:ml-[14px] [&_.alignright]:mb-[7px] " +
+      // Wo die Vorlage eine leere Überschrift stehen hat, bleibt deren Platz
+      // frei – ohne eine leere Überschrift in die Gliederung zu setzen.
+      "[&_.leerzeile]:h-[30px] " +
+      // Der Rahmen um ein umflossenes Bild hat selbst keine Höhe, aber 1em
+      // Abstand – der Text darunter beginnt dadurch 14 px unter der Bildkante.
+      "[&_.wp-block-image]:mb-[1em] " +
+      "[&_.has-text-align-center]:text-center " +
+      "after:clear-both after:table after:content-['']"
+    );
+  }
+
   return (
     // Fliesstext war im Original gedämpft (grau), Überschriften nicht. Ohne das
     // wirkte die neue Seite dunkler als die alte.
@@ -361,9 +510,30 @@ function Fliesstext({ inhalt, klassen }: { inhalt: unknown; klassen: string }) {
   if (typeof inhalt !== "string") {
     return <div className={klassen}>{(inhalt as React.ReactNode) ?? null}</div>;
   }
+  // Nur wo wirklich Bildplätze im Text stehen, wird die Bildertabelle
+  // gebraucht – alle anderen Texte bleiben, wie sie waren.
+  if (inhalt.includes("data-bild")) {
+    return <FliesstextMitBildern html={DOMPurify.sanitize(inhalt)} klassen={klassen} />;
+  }
   return <div className={klassen} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(inhalt) }} />;
 }
 
+/**
+ * Fliesstext mit Bildern darin – in Tabellen oder vom Text umflossen.
+ *
+ * Im Text steht statt einer Bildadresse ein Platz: `<img data-bild="…">`.
+ * Hier wird er aufgelöst. Ist ein Bild hinterlegt, bekommt das <img> seine
+ * Adresse; sonst tritt ein gestrichelter Platzhalter in derselben Grösse an
+ * seine Stelle. So kann ein Bild mitten in einer Tabellenzelle stehen, ohne
+ * dass der Text in Stücke zerlegt werden muss.
+ */
+function FliesstextMitBildern({ html, klassen }: { html: string; klassen: string }) {
+  const { data: bilder } = useSiteImages();
+  const fertig = useMemo(() => bildplaetzeAufloesen(html, bilder ?? {}), [html, bilder]);
+  // Noch einmal gereinigt: Die eingesetzten Adressen kommen aus der
+  // Datenbank, und es soll keine Stelle geben, an der HTML ungeprüft landet.
+  return <div className={klassen} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fertig) }} />;
+}
 
 export function Textabschnitt({
   inhalt, ausrichtung, aufzaehlung, ...rest
@@ -663,10 +833,7 @@ export function BildMitKasten({
   // Das Foto bleibt randlos: Seine Spalte wird mit einem negativen Rand aus
   // der Inhaltsspalte herausgezogen. `--rand` ist der Abstand vom Rand des
   // Schirms bis zum Textanfang, also genau das Stueck, das fehlt.
-  const mass = breitenMass(breite ?? "breit");
-  const rand = {
-    "--rand": mass ? `max(2rem, calc((100vw - ${mass}) / 2 + 2rem))` : "0px",
-  } as React.CSSProperties;
+  const rand = { "--rand": randAbstand(breite ?? "breit") } as React.CSSProperties;
   const bildRandlos = links ? "md:-ml-[var(--rand)]" : "md:-mr-[var(--rand)]";
 
   return (
@@ -705,6 +872,105 @@ export function BildMitKasten({
           </div>
         </div>
       </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Foto mit Karte darüber ──────────────────────────────────────────────────
+
+/**
+ * Ein Foto als Grund des ganzen Abschnitts, darüber eine Karte mit dem Inhalt.
+ *
+ * So sind sieben der elf Seiten der nachgebauten Vorlage aufgebaut: Das Foto
+ * füllt den Abschnitt, ab einer festen Stelle deckt ein Farbband den rechten
+ * Teil ab, und rechtsbündig in der Zeile liegt eine Karte – mit Rahmen und
+ * einem Saum in ihrer eigenen Farbe, der sie vom Foto absetzt. In der Karte
+ * steht der ganze Text der Seite, Tabellen und Bilder eingeschlossen.
+ *
+ * Anders als `BildMitKasten` ist das Foto hier kein Baustein neben dem
+ * Kasten, sondern der Hintergrund dahinter; es reicht also immer genau so
+ * weit wie der Abschnitt, egal wie lang der Text in der Karte ist.
+ *
+ * Masse an der Vorlage gemessen (390 bis 1920 px): Band ab 65 %, Karte 73,6 %
+ * der Zeile (halb: 47,2 %), Innenabstand 20/30/60 px, Saum 20 px, oben
+ * 4vw (höchstens 54 px) plus 27 px Luft, unten 123 px mehr.
+ */
+export function FotoMitKarte({
+  bildSchluessel, bandAb, bandGrund, grund, karteGrund, karteBreite, rahmen, saum,
+  inhalt, breite, textfarbe, luftUnten,
+}: {
+  bildSchluessel: string;
+  /** Ab wie viel Prozent der Breite das Band das Foto abdeckt. */
+  bandAb?: number;
+  bandGrund?: Hintergrund;
+  /** Grund des Abschnitts, sichtbar solange kein Foto hinterlegt ist. */
+  grund?: Hintergrund;
+  karteGrund?: Hintergrund;
+  karteBreite?: "halb" | "dreiviertel";
+  /** Feiner schwarzer Rahmen um die Karte. */
+  rahmen?: boolean;
+  /** 20 px Rand in der Farbe der Karte, der sie vom Foto absetzt. */
+  saum?: boolean;
+  /**
+   * Luft unter der Karte. „mehr" (Vorgabe): gut 120 px mehr als oben, wie
+   * auf den meisten Seiten der Vorlage; „wie_oben": gleich viel.
+   */
+  luftUnten?: "mehr" | "wie_oben";
+  inhalt: unknown;
+  breite?: Breite;
+  textfarbe?: Textfarbe;
+}) {
+  const foto = useSiteImage(bildSchluessel ?? "");
+  const ab = Math.min(100, Math.max(0, Number(bandAb ?? 65)));
+  const karte = karteGrund ?? "karte";
+  const saumFarbe = karte === "akzent" ? "hsl(var(--primary))" : karte === "gedaempft" ? "hsl(var(--muted))" : "hsl(var(--card))";
+
+  return (
+    <section
+      className={`relative overflow-hidden ${flaechenKlasse(grund ?? "karte")} pt-[80px] min-[981px]:pt-[calc(min(4vw,54px)+27px)] ${
+        luftUnten === "wie_oben"
+          ? "pb-[80px] min-[981px]:pb-[calc(min(4vw,54px)+27px)]"
+          : "pb-[173px] min-[981px]:pb-[calc(min(4vw,54px)+123px)]"
+      }`}
+    >
+      {foto.src ? (
+        <img src={foto.src} alt={foto.alt} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+      ) : (
+        // Ohne Foto ein Platzhalter nur dort, wo das Foto zu sehen wäre, und
+        // die Beschriftung oben links – mittig läge sie hinter der Karte.
+        <div
+          role="img"
+          aria-label={`Platzhalter für ein Bild: ${bildSchluessel}`}
+          className="absolute inset-y-0 left-0 border border-dashed border-muted-foreground/30 bg-muted/60"
+          style={{ width: bandGrund && bandGrund !== "keine" ? `${ab}%` : "100%" }}
+        >
+          <span className="absolute left-4 top-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <ImageOff className="h-4 w-4 opacity-40" aria-hidden />
+            {bildSchluessel}
+          </span>
+        </div>
+      )}
+      {bandGrund && bandGrund !== "keine" && (
+        <div aria-hidden className={`absolute inset-y-0 right-0 ${flaechenKlasse(bandGrund)}`} style={{ left: `${ab}%` }} />
+      )}
+      <div className={`relative ${breitenKlasse(breite ?? "sehr_breit")}`}>
+        <div className="flex justify-end">
+          <div
+            className={`w-full min-w-0 ${karteBreite === "halb" ? "min-[981px]:w-[47.2%]" : "min-[981px]:w-[73.6%]"} ${flaechenKlasse(karte)} ${rahmen ? "border border-black" : ""} p-5 md:p-[30px] min-[981px]:p-[60px]`}
+            style={saum ? { boxShadow: `0 0 0 20px ${saumFarbe}` } : undefined}
+          >
+            <div className={textfarbe ? textKlasse(textfarbe) : ""}>
+              <Fliesstext
+                inhalt={inhalt}
+                klassen={fliesstextKlassen(undefined, undefined, {
+                  karte: true,
+                  aufFarbe: karte === "akzent" || Boolean(textfarbe),
+                })}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
