@@ -7,6 +7,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseIS
 import { getHessenHolidays } from "@/lib/holidays";
 import { calendarUrls } from "@/lib/publicAddresses";
 import type { Event, Attendee, SpanSegment, VisibilityFilter } from "./types";
+import { zeitangabe } from "./zeitangabe";
 
 export function useEvents() {
   const { user, hasPermission } = useAuth();
@@ -364,15 +365,7 @@ export function useEvents() {
   const canEdit = (event: Event) => event.created_by === user?.id || canModerate;
   const canSetPublic = canPublish;
 
-  const formatTimeDisplay = (ev: Event) => {
-    if (ev.all_day) {
-      if (ev.end_date && !isSameDay(parseISO(ev.start_date), parseISO(ev.end_date))) {
-        return `${format(parseISO(ev.start_date), "d. MMM", { locale: de })} – ${format(parseISO(ev.end_date), "d. MMM", { locale: de })}`;
-      }
-      return "Ganztägig";
-    }
-    return `${format(parseISO(ev.start_date), "HH:mm")}${ev.end_date ? ` – ${format(parseISO(ev.end_date), "HH:mm")}` : ""}`;
-  };
+  const formatTimeDisplay = zeitangabe;
 
 
   const copyCalendarUrl = () => {
@@ -437,5 +430,3 @@ export function useEvents() {
     openUnsubmittedForms,
   };
 }
-
-import { de } from "date-fns/locale";
