@@ -9,6 +9,20 @@ export interface MenuEintrag {
 }
 
 /**
+ * Was unter einem Menüpunkt mit Unterpunkten aufklappt.
+ *
+ * Der Punkt selbst steht mit darin – er zeigt auf eine eigene Seite, und die
+ * soll erreichbar bleiben, obwohl ein Klick auf ihn nur aufklappt. Außer ein
+ * Unterpunkt führt schon dorthin: Dann stünde dieselbe Seite zweimal in der
+ * Liste, einmal unter falschem Namen. So ist es auf der nachgebauten
+ * Vorlage, wo „Info" auf „Historie der Gruppe" zeigt.
+ */
+export function aufgeklappt(eintrag: MenuEintrag): MenuEintrag[] {
+  const kinder = eintrag.children ?? [];
+  return kinder.some((k) => k.path === eintrag.path) ? kinder : [eintrag, ...kinder];
+}
+
+/**
  * Wo ein Eintrag erscheint. Die Kopfzeile wird im Fußbereich als Spalte
  * „Navigation" gespiegelt – deshalb gibt es dafür keinen eigenen Bereich.
  */

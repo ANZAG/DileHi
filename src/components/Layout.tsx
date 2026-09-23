@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import OnboardingTour from "@/components/onboarding/OnboardingTour";
 import NotificationBell from "@/components/NotificationBell";
 import { useBrandingAnwenden } from "@/hooks/useBranding";
-import { useSiteMenu, type MenuEintrag } from "@/hooks/useSiteMenu";
+import { aufgeklappt, useSiteMenu, type MenuEintrag } from "@/hooks/useSiteMenu";
 
 /**
  * Ein Menüpunkt kann auf eine fremde Seite zeigen – etwa den Dachverband. Die
@@ -99,7 +99,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             {navItems.flatMap((item) =>
               [item, ...(item.children ?? [])].map((punkt) => (
                 <Link
-                  key={punkt.path}
+                  // Gruppe und Unterpunkt dürfen dasselbe Ziel haben.
+                  key={`${punkt === item ? "gruppe" : "punkt"}:${punkt.path}`}
                   to={punkt.path}
                   {...zielFenster(punkt)}
                   onClick={() => setMenuOpen(false)}
@@ -142,7 +143,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <ul className="space-y-1">
                 {navItems.flatMap((item) =>
                   [item, ...(item.children ?? [])].map((punkt) => (
-                    <li key={punkt.path} className={punkt === item ? "" : "pl-3"}>
+                    <li key={`${punkt === item ? "gruppe" : "punkt"}:${punkt.path}`} className={punkt === item ? "" : "pl-3"}>
                       <Link
                         to={punkt.path}
                         {...zielFenster(punkt)}
@@ -243,8 +244,9 @@ function NavGruppe({ eintrag }: { eintrag: MenuEintrag }) {
       {offen && (
         <div className="absolute left-0 top-full mt-1 min-w-[12rem] rounded-md border bg-background shadow-md py-1 z-50">
           {/* Der Punkt selbst bleibt anklickbar: Er zeigt auf eine eigene
-              Seite, nicht nur auf seine Kinder. */}
-          {[eintrag, ...kinder].map((punkt) => (
+              Seite, nicht nur auf seine Kinder – außer ein Kind führt schon
+              dorthin, siehe `aufgeklappt`. */}
+          {aufgeklappt(eintrag).map((punkt) => (
             <Link
               key={punkt.path}
               to={punkt.path}
