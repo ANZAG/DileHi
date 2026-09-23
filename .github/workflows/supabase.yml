@@ -40,9 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Feste Version statt „latest“: „latest“ fragt ohne Anmeldung die
+      # GitHub-API und scheiterte daran am 17.09.2026 („rate limit exceeded“).
+      # Zum Aktualisieren: `npm view supabase version`.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.117.0
 
       # ── Erst nachsehen, dann anfassen ──────────────────────────────────────
       #
