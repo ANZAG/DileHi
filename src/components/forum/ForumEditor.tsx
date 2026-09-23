@@ -194,14 +194,23 @@ export default function ForumEditor({
     },
   });
 
+  // Ein schon abgebauter Editor kommt hier tatsächlich an: Tiptap baut einen
+  // neuen Editor nach einer Millisekunde wieder ab, wenn die Komponente bis
+  // dahin nicht eingehängt ist. Auf der Themenseite dauert der erste Aufbau mit
+  // allen Beiträgen länger; useEditor legt dann im selben Durchgang einen
+  // frischen Editor an, die Effekte hier sehen aber noch den alten. Sein Schema
+  // ist weg, getHTML() wirft, und die ganze Seite fällt in die Fehlerseite.
+  // Mit dem frischen Editor laufen die Effekte gleich danach noch einmal.
+
   // Von außen geleerter Inhalt (nach dem Absenden) muss ankommen.
   useEffect(() => {
-    if (editor && value === "" && editor.getHTML() !== "<p></p>") editor.commands.clearContent();
+    if (!editor || editor.isDestroyed) return;
+    if (value === "" && editor.getHTML() !== "<p></p>") editor.commands.clearContent();
   }, [value, editor]);
 
   // Zitat aus einem Beitrag übernehmen.
   useEffect(() => {
-    if (!editor || !insert) return;
+    if (!editor || editor.isDestroyed || !insert) return;
     editor.chain().focus("end").insertContent(insert.html).run();
     // Absichtlich nur auf den Zähler hören: derselbe Text darf zweimal
     // eingefügt werden, wenn zweimal auf „Zitieren" geklickt wird.
@@ -211,7 +220,7 @@ export default function ForumEditor({
   // Bereits gespeicherte Bilder tragen eine abgelaufene Adresse. Beim
   // Bearbeiten eines älteren Beitrags werden sie hier frisch signiert.
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     const paths: string[] = [];
     editor.state.doc.descendants((node) => {
       const p = node.attrs?.path as string | undefined;
