@@ -151,6 +151,7 @@ export type Database = {
           board_members: string | null
           calendar_timezone: string
           color_dark: string
+          color_muted: string | null
           color_primary: string
           color_surface: string
           contribution_model: string
@@ -202,6 +203,7 @@ export type Database = {
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
+          color_muted?: string | null
           color_primary?: string
           color_surface?: string
           contribution_model?: string
@@ -253,6 +255,7 @@ export type Database = {
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
+          color_muted?: string | null
           color_primary?: string
           color_surface?: string
           contribution_model?: string
@@ -2754,6 +2757,7 @@ export type Database = {
         Returns: {
           board_members: string
           color_dark: string
+          color_muted: string | null
           color_primary: string
           color_surface: string
           favicon_path: string

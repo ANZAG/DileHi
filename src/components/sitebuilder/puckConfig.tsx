@@ -1,6 +1,7 @@
 import type { Config } from "@puckeditor/core";
 import {
   Abstandhalter, Besucherhinweis, BildMitKasten, Bildnachweise, Darstellungen, EigenesHtml, FotoMitKarte,
+  FotoNebenKopf, TextMitEinzug,
   Einzelbild, Galerie, Karten, Kennzahlen, Knopf, Kontaktformular, Logos, Personenbilder,
   Quellen, Rahmenkasten, Seitenkopf, Termine, Textabschnitt, Titelbild, Trennlinie,
   Ueberschrift, Veranstalteranfrage, ZweiSpalten,
@@ -133,6 +134,34 @@ export type Bausteine = {
     saum: boolean;
     luftUnten: "mehr" | "wie_oben";
     inhalt: unknown;
+    breite: Breite;
+    textfarbe?: Textfarbe;
+    schrift?: "normal" | "gross";
+  };
+  FotoNebenKopf: {
+    bildSchluessel: string;
+    bildSeite: "links" | "rechts";
+    oberzeile: string;
+    oberzeileStrich: boolean;
+    ueberschrift: string;
+    inhalt: unknown;
+    grund: Hintergrund;
+    bildGrund: Hintergrund;
+    textMittig: boolean;
+    luftUnten: number;
+    breite: Breite;
+  };
+  TextMitEinzug: {
+    inhalt: unknown;
+    einzug: number;
+    grund: Hintergrund;
+    kasten: Hintergrund;
+    schrift: "normal" | "klein";
+    titelEinzugSchmal: boolean;
+    luftOben: number;
+    luftUnten: number;
+    luftObenSchmal: number;
+    luftUntenSchmal: number;
     breite: Breite;
   };
   BildMitKasten: {
@@ -482,14 +511,98 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Wie oben", value: "wie_oben" },
           ],
         },
+        schrift: {
+          type: "radio", label: "Schrift in der Karte",
+          options: [
+            { label: "Normal", value: "normal" },
+            { label: "Groß", value: "gross" },
+          ],
+        },
+        textfarbe: gemeinsameFelder.textfarbe,
         breite: gemeinsameFelder.breite,
       },
       defaultProps: {
-        bildSchluessel: "", inhalt: "", karteBreite: "dreiviertel",
+        bildSchluessel: "", inhalt: "", karteBreite: "dreiviertel", schrift: "normal",
         karteGrund: "karte" as Hintergrund, bandGrund: "gedaempft" as Hintergrund, bandAb: 65,
         grund: "karte" as Hintergrund, rahmen: true, saum: true, luftUnten: "mehr", breite: "sehr_breit" as Breite,
       },
       render: FotoMitKarte,
+    },
+
+    FotoNebenKopf: {
+      label: "Foto neben dem Seitenkopf",
+      fields: {
+        bildSchluessel: bildFeld,
+        bildSeite: {
+          type: "radio", label: "Foto",
+          options: [
+            { label: "Links", value: "links" },
+            { label: "Rechts", value: "rechts" },
+          ],
+        },
+        oberzeile: { type: "text", label: "Schlagwort über dem Titel" },
+        oberzeileStrich: {
+          type: "radio", label: "Linie neben dem Schlagwort",
+          options: [
+            { label: "Ohne", value: false },
+            { label: "Mit", value: true },
+          ],
+        },
+        ueberschrift: { type: "text", label: "Titel" },
+        inhalt: textFeld,
+        grund: { type: "select", label: "Grund", options: HINTERGRUENDE },
+        bildGrund: { type: "select", label: "Grund unter dem Foto", options: HINTERGRUENDE },
+        textMittig: {
+          type: "radio", label: "Text auf dem Telefon",
+          options: [
+            { label: "Linksbündig", value: false },
+            { label: "Mittig", value: true },
+          ],
+        },
+        luftUnten: { type: "number", label: "Luft unter dem Text (px)", min: 0, max: 300 },
+        breite: gemeinsameFelder.breite,
+      },
+      defaultProps: {
+        bildSchluessel: "", bildSeite: "links", oberzeile: "", oberzeileStrich: true, ueberschrift: "Titel",
+        inhalt: "", grund: "karte" as Hintergrund, bildGrund: "keine" as Hintergrund, textMittig: false,
+        luftUnten: 60, breite: "sehr_breit" as Breite,
+      },
+      render: FotoNebenKopf,
+    },
+
+    TextMitEinzug: {
+      label: "Text mit Einzug",
+      fields: {
+        inhalt: textFeld,
+        einzug: { type: "number", label: "Einzug links (px, ab 981 px Breite)", min: 0, max: 600 },
+        kasten: { type: "select", label: "Kasten um den Text", options: HINTERGRUENDE },
+        grund: { type: "select", label: "Grund", options: HINTERGRUENDE },
+        schrift: {
+          type: "radio", label: "Schrift",
+          options: [
+            { label: "Normal", value: "normal" },
+            { label: "Klein", value: "klein" },
+          ],
+        },
+        titelEinzugSchmal: {
+          type: "radio", label: "Zwischentitel auf dem Telefon",
+          options: [
+            { label: "Ohne Einzug", value: false },
+            { label: "Eingerückt", value: true },
+          ],
+        },
+        luftOben: { type: "number", label: "Luft oben (px)", min: 0, max: 300 },
+        luftUnten: { type: "number", label: "Luft unten (px)", min: 0, max: 300 },
+        luftObenSchmal: { type: "number", label: "Luft oben auf dem Telefon (px)", min: 0, max: 300 },
+        luftUntenSchmal: { type: "number", label: "Luft unten auf dem Telefon (px)", min: 0, max: 300 },
+        breite: gemeinsameFelder.breite,
+      },
+      defaultProps: {
+        inhalt: "", einzug: 0, kasten: "keine" as Hintergrund, grund: "karte" as Hintergrund, schrift: "normal",
+        titelEinzugSchmal: false, luftOben: 27, luftUnten: 27, luftObenSchmal: 30, luftUntenSchmal: 30,
+        breite: "sehr_breit" as Breite,
+      },
+      render: TextMitEinzug,
     },
 
     BildMitKasten: {

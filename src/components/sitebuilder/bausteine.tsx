@@ -184,10 +184,12 @@ export function Titelbild({
  *
  * Leer bleibt leer – kein Platzhalter, keine Lücke.
  */
-function Oberzeile({ text, mitte, strich, vorlage }: {
+function Oberzeile({ text, mitte, strich, vorlage, unten }: {
   text?: string; mitte?: boolean; strich?: boolean;
   /** Die Form der nachgebauten Vorlage, siehe unten. */
   vorlage?: boolean;
+  /** Nur in der Form der Vorlage: eigener Abstand zur Überschrift darunter. */
+  unten?: string;
 }) {
   const leer = !text?.trim();
 
@@ -198,7 +200,7 @@ function Oberzeile({ text, mitte, strich, vorlage }: {
   if (vorlage) {
     if (leer && !strich) return null;
     return (
-      <div className={`flex min-h-[23px] items-center gap-8 ${leer ? "mb-[30px]" : "mb-[30px] min-[981px]:mb-[23px]"}`}>
+      <div className={`flex min-h-[23px] items-center gap-8 ${unten ?? (leer ? "mb-[30px]" : "mb-[30px] min-[981px]:mb-[23px]")}`}>
         {!leer && (
           // Darf umbrechen: Ein langes Schlagwort passt auf dem Telefon nicht
           // in die schmale Titelspalte und schob sonst die ganze Seite auf.
@@ -359,7 +361,67 @@ export type Fliesstextstil = {
    * #eee. Alles gemessen, nicht geschätzt.
    */
   karte?: boolean;
+  /**
+   * Nur mit `karte`: die grössere Schrift, mit der die Vorlage auf ihrer
+   * Startseite setzt – Text 16/28,8 px (auf dem Telefon 14 px), die
+   * Überschrift in der Serifenschrift mit 48 px.
+   */
+  gross?: boolean;
+  /**
+   * Der Lesetext der Vorlage ausserhalb der Karten, gemessen auf „Ernährung"
+   * und „Naalbinding": „normal" 16 px bei 1,8 Zeilenhöhe (15 px bis 980, 14 px
+   * bis 767 px Breite), „klein" 14 px bei 1,6 wie im sandfarbenen Kasten.
+   * Zwischentitel in der Serifenschrift, fett, 25 px.
+   */
+  lesetext?: "normal" | "klein";
+  /**
+   * Zwischentitel auch auf schmalen Schirmen eingerückt, um `--einzug`. Die
+   * Vorlage rückt sie dort um feste 232 Pixel ein; auf einem Telefon stehen
+   * sie dadurch weit rechts.
+   */
+  titelEinzugSchmal?: boolean;
 };
+
+/**
+ * Was im Fliesstext der Vorlage zwischen den Absätzen steht: umflossene
+ * Bilder, Leerzeilen und Spalten. Für Karte und Lesetext gleich, damit ein
+ * Bild in beiden an derselben Stelle sitzt.
+ */
+const EINGEBETTET =
+  // Bilder, die der Text umfliesst: ein halbes Geviert darüber und
+  // darunter, ein ganzes zum Text – wie bei WordPress, also in `em`. Bei
+  // 14 px Text sind das 7 und 14 px, bei 16 px 8 und 16.
+  "[&_.alignleft]:float-left [&_.alignleft]:mt-[.5em] [&_.alignleft]:mr-[1em] [&_.alignleft]:mb-[.5em] " +
+  "[&_.alignright]:float-right [&_.alignright]:mt-[.5em] [&_.alignright]:ml-[1em] [&_.alignright]:mb-[.5em] " +
+  // Wo die Vorlage eine leere Überschrift stehen hat, bleibt deren Platz
+  // frei – ohne eine leere Überschrift in die Gliederung zu setzen.
+  "[&_.leerzeile]:h-[30px] " +
+  // Der Rahmen um ein umflossenes Bild hat selbst keine Höhe, aber 1em
+  // Abstand – der Text darunter beginnt dadurch 14 px unter der Bildkante.
+  "[&_.wp-block-image]:mb-[1em] " +
+  "[&_.has-text-align-center]:text-center " +
+  // Spalten im Text, etwa Logo neben Text oder ein Zitat neben seinem Bild.
+  // Wie in der Vorlage erst ab 981 px nebeneinander, darunter gestapelt.
+  // Der Abstand ist der der Vorlage (5,5 % der Zeile); wo sie anders setzt,
+  // steht es als `style` am Element.
+  "[&_.spalten]:grid [&_.spalten]:gap-y-[30px] min-[981px]:[&_.spalten]:grid-cols-2 " +
+  "min-[981px]:[&_.spalten]:gap-x-[5.5%] [&_.spalten>*]:min-w-0 " +
+  // Text neben einem Bild, das seine halbe Zeile ganz ausfüllt: so hoch wie
+  // der Text daneben, auf dem Telefon 40 % der Breite hoch. Die beiden
+  // Spalten teilen sich die ganze Zeile, auch wenn der Text darum herum
+  // eingerückt ist – der negative Rand holt die Einrückung zurück. Der Text
+  // steht dann wie in der Vorlage rechtsbündig mit 60,4 % der Spaltenbreite
+  // und 30 px Innenabstand, beginnt also bei 39,6 % + 30 px; bei 1440 px sind
+  // das dieselben 232 px wie der Einzug. Auf dem Telefon 30 px.
+  "min-[981px]:[&_.spalten.bild-halb]:-ml-[var(--einzug,0px)] " +
+  "min-[981px]:[&_.spalten.bild-halb>div:first-child]:pl-[calc(39.6%+30px)] " +
+  "max-[980px]:[&_.spalten.bild-halb>div:first-child]:pl-[30px] " +
+  "[&_.bildflaeche]:relative [&_.bildflaeche]:min-h-[40vw] min-[981px]:[&_.bildflaeche]:min-h-0 " +
+  "[&_.bildflaeche_img]:absolute [&_.bildflaeche_img]:inset-0 [&_.bildflaeche_img]:h-full " +
+  "[&_.bildflaeche_img]:w-full [&_.bildflaeche_img]:max-w-none [&_.bildflaeche_img]:object-cover " +
+  // Ein freigestelltes Bild mit weichem Schatten, mittig in seiner Spalte.
+  "[&_.mitte]:text-center [&_.schatten_img]:shadow-[6px_6px_18px_0_rgba(0,0,0,0.3)] " +
+  "after:clear-both after:table after:content-['']";
 
 /**
  * Wie Fliesstext in den Bausteinen aussieht.
@@ -409,29 +471,81 @@ export function fliesstextKlassen(
       "prose-hr:border-current prose-hr:opacity-30 prose-hr:my-8 "
     : "";
 
+  if (stil?.lesetext) {
+    // Wie die Karte, nur ohne Karte: Text #666, Überschriften dunkel, Links
+    // blau und fett. Die Grössen sind die der Vorlage für Text, der frei auf
+    // der Seite steht.
+    const klein = stil.lesetext === "klein";
+    return (
+      "prose max-w-none " +
+      // Wie `word-wrap: break-word` bei Divi: Ein Wort, das zwischen zwei
+      // umflossenen Bildern keinen Platz hat, wird dort umbrochen, statt unter
+      // die Bilder zu rutschen. So steht es auf „Naalbinding" in der Vorlage.
+      "break-words " +
+      "[--tw-prose-body:#666] [--tw-prose-bold:#666] [--tw-prose-headings:hsl(var(--foreground))] " +
+      "[--tw-prose-bullets:#666] [--tw-prose-counters:#666] [--tw-prose-quotes:#666] " +
+      "prose-a:text-[#2ea3f2] prose-a:font-bold prose-a:no-underline " +
+      (klein
+        ? "text-[14px] leading-[1.6] "
+        : "text-[14px] leading-[1.8] md:text-[15px] min-[981px]:text-[16px] ") +
+      "prose-p:my-0 prose-p:pb-[1em] [&_p:last-child]:pb-0 " +
+      "prose-ul:my-0 prose-ul:pb-[1em] prose-li:my-0 " +
+      "prose-headings:mt-0 prose-headings:mb-0 " +
+      // Zwischentitel: 25 px ab 981, 20 px darunter, 18 px auf dem Telefon.
+      // Nach einem Absatz 23 px Luft – so weit stehen in der Vorlage zwei
+      // Textbausteine auseinander; 1em davon bringt der Absatz schon mit.
+      "prose-h3:font-serif prose-h3:font-bold prose-h3:text-[18px] md:prose-h3:text-[20px] " +
+      "min-[981px]:prose-h3:text-[25px] prose-h3:leading-[1.4] prose-h3:pb-[10px] " +
+      (klein ? "[&_p+h3]:mt-[9px] " : "[&_p+h3]:mt-[7px] ") +
+      // Die Vorlage rückt die Zwischentitel mit festen Pixeln ein, auch auf
+      // schmalen Schirmen. So weit wie möglich dasselbe – aber nie so weit,
+      // dass für den Titel weniger als 9em bleiben; ein langes Wort ragte
+      // sonst über den Rand.
+      (stil.titelEinzugSchmal ? "max-[980px]:prose-h3:pl-[min(var(--einzug,0px),max(0px,calc(100%-9em)))] " : "") +
+      // Im Kasten liegen zwischen Text und Zitatspalten die Nahtstellen dreier
+      // Divi-Zeilen: 31 px davor, 20 px danach (gemessen bei 1440 px).
+      (klein ? "[&_p+.spalten]:mt-[17px] [&_.spalten+p]:mt-[20px] " : "") +
+      "prose-em:text-inherit prose-strong:font-bold " +
+      "prose-figure:my-0 prose-img:m-0 prose-img:inline-block " +
+      EINGEBETTET
+    );
+  }
+
   if (stil?.karte) {
     // Auf farbigem Grund folgen Text und Linien der Farbe der Fläche, sonst
     // die Werte der Vorlage: Text #666, Überschriften und Linien dunkel.
     const kartenFarben = stil.aufFarbe
       ? "[--tw-prose-body:currentColor] [--tw-prose-bold:currentColor] [--tw-prose-headings:currentColor] " +
-        "[--tw-prose-links:currentColor] [--tw-prose-bullets:currentColor] [--tw-prose-counters:currentColor] " +
-        "[--linie:currentColor] prose-h4:text-current "
+        "[--tw-prose-bullets:currentColor] [--tw-prose-counters:currentColor] " +
+        "[--linie:currentColor] prose-h4:text-current prose-a:text-[#2ea3f2] "
       : "[--tw-prose-body:#666] [--tw-prose-bold:#666] [--tw-prose-headings:hsl(var(--foreground))] " +
         "[--tw-prose-bullets:#666] [--tw-prose-counters:#666] [--linie:#000] " +
         "prose-a:text-[#2ea3f2] prose-h4:text-primary ";
+    // Die grosse Fassung steht nur auf der Startseite der Vorlage: Text wie
+    // der Lesetext, die Überschrift in der Serifenschrift – 20 px auf dem
+    // Telefon, 48 px ab 981 px, mit 30 bzw. 22 px Luft zum Text.
+    const schrift = stil.gross
+      ? "text-[14px] md:text-[15px] min-[981px]:text-[16px] prose-p:leading-[1.8] " +
+        "prose-h2:font-serif prose-h2:text-[20px] md:prose-h2:text-[32px] min-[981px]:prose-h2:text-[48px] " +
+        "prose-h2:leading-[1.2] prose-h2:pb-[10px] [&_h2+*]:mt-[30px] min-[981px]:[&_h2+*]:mt-[22px] " +
+        // Divi nimmt dem letzten Absatz eines Textbausteins den Abstand nach
+        // unten, auch wenn danach noch eine Überschrift steht (`p:last-of-type`).
+        // Die Karte ist dort ein einziger Baustein.
+        "[&_p:last-of-type]:pb-0 "
+      : "prose-p:leading-[1.7] prose-h2:text-[26px] prose-h2:leading-none prose-h2:pb-[10px] ";
     return (
-      "prose prose-sm max-w-none " + kartenFarben +
+      "prose prose-sm max-w-none " + kartenFarben + schrift +
       "prose-a:font-bold prose-a:no-underline " +
-      "prose-p:my-0 prose-p:pb-[1em] prose-p:leading-[1.7] " +
+      "prose-p:my-0 prose-p:pb-[1em] " +
       // Listen wie gemessen: 14 px Einzug, Punkte aussen, 26 px Zeilenhöhe.
       "prose-li:my-0 prose-li:pl-0 prose-li:leading-[26px] prose-ul:my-0 prose-ul:pl-[14px] prose-ul:pb-[1em] " +
       "prose-headings:font-sans prose-headings:font-normal prose-headings:mt-0 prose-headings:mb-0 " +
-      "prose-h2:text-[26px] prose-h2:leading-none prose-h2:pb-[10px] " +
       "prose-h3:text-[22px] prose-h3:leading-none prose-h3:pb-[10px] " +
       // Das Schlagwort im Kasten sitzt auf der Linie – dieselbe Geste wie im
       // Seitenkopf: Wort, 32 px Luft, Linie bis zum Rand.
       "prose-h4:text-sm prose-h4:font-bold prose-h4:uppercase prose-h4:tracking-[1px] prose-h4:leading-[1.4] " +
-      "prose-h4:flex prose-h4:items-center prose-h4:gap-8 prose-h4:min-h-[23px] prose-h4:mb-[23px] " +
+      // Darunter 30 px, ab 981 px 23 – wie am Seitenkopf.
+      "prose-h4:flex prose-h4:items-center prose-h4:gap-8 prose-h4:min-h-[23px] prose-h4:mb-[30px] min-[981px]:prose-h4:mb-[23px] " +
       "prose-h4:after:content-[''] prose-h4:after:h-px prose-h4:after:flex-1 prose-h4:after:bg-[var(--linie)] " +
       // Die Linien oben und unten im Kasten: 1 px, mit je 11 px Luft – so
       // liegen sie 72 px innerhalb des Rahmens wie in der Vorlage.
@@ -458,17 +572,7 @@ export function fliesstextKlassen(
       // bleibt dort bei 14/23,8 px wie im übrigen Text.
       "prose-table:border prose-table:border-[#eee] prose-table:text-[14px] prose-td:leading-[1.7] " +
       "prose-td:border prose-td:border-[#666] prose-td:border-t-[#eee] prose-td:px-6 prose-td:py-1.5 prose-td:align-middle " +
-      // Bilder, die der Text umfliesst.
-      "[&_.alignleft]:float-left [&_.alignleft]:mt-[7px] [&_.alignleft]:mr-[14px] [&_.alignleft]:mb-[7px] " +
-      "[&_.alignright]:float-right [&_.alignright]:mt-[7px] [&_.alignright]:ml-[14px] [&_.alignright]:mb-[7px] " +
-      // Wo die Vorlage eine leere Überschrift stehen hat, bleibt deren Platz
-      // frei – ohne eine leere Überschrift in die Gliederung zu setzen.
-      "[&_.leerzeile]:h-[30px] " +
-      // Der Rahmen um ein umflossenes Bild hat selbst keine Höhe, aber 1em
-      // Abstand – der Text darunter beginnt dadurch 14 px unter der Bildkante.
-      "[&_.wp-block-image]:mb-[1em] " +
-      "[&_.has-text-align-center]:text-center " +
-      "after:clear-both after:table after:content-['']"
+      EINGEBETTET
     );
   }
 
@@ -898,7 +1002,7 @@ export function BildMitKasten({
  */
 export function FotoMitKarte({
   bildSchluessel, bandAb, bandGrund, grund, karteGrund, karteBreite, rahmen, saum,
-  inhalt, breite, textfarbe, luftUnten,
+  inhalt, breite, textfarbe, luftUnten, schrift,
 }: {
   bildSchluessel: string;
   /** Ab wie viel Prozent der Breite das Band das Foto abdeckt. */
@@ -920,6 +1024,8 @@ export function FotoMitKarte({
   inhalt: unknown;
   breite?: Breite;
   textfarbe?: Textfarbe;
+  /** „gross": Text 16 px und Überschrift 48 px wie auf der Startseite der Vorlage. */
+  schrift?: "normal" | "gross";
 }) {
   const foto = useSiteImage(bildSchluessel ?? "");
   const ab = Math.min(100, Math.max(0, Number(bandAb ?? 65)));
@@ -965,12 +1071,218 @@ export function FotoMitKarte({
                 inhalt={inhalt}
                 klassen={fliesstextKlassen(undefined, undefined, {
                   karte: true,
+                  gross: schrift === "gross",
                   aufFarbe: karte === "akzent" || Boolean(textfarbe),
                 })}
               />
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Foto neben dem Seitenkopf ───────────────────────────────────────────────
+
+/**
+ * Der Seitenanfang mit einem Foto neben Schlagwort und Titel.
+ *
+ * So beginnen drei Seiten der nachgebauten Vorlage (Startseite, Ernährung,
+ * Naalbinding): Direkt unter dem Menü steht auf einer Seite ein Foto, das bis
+ * an den Rand des Bildschirms läuft, daneben Schlagwort, grosser Titel und
+ * der Text. Kein Titelband darüber.
+ *
+ * Die Masse stammen aus dem Stylesheet der Vorlage und sind bei 390 bis
+ * 1920 px nachgemessen: Die Zeile ist geteilt in ein Drittel (29,666 %) für
+ * das Foto und zwei Drittel (64,833 %) für den Text, 5,5 % dazwischen. Das
+ * Foto ist um 30vw breiter als seine Spalte und ragt damit bis zum Rand; seine
+ * Höhe ergibt sich aus dem Seitenverhältnis. Über dem Schlagwort stehen 8vw
+ * Luft plus der Innenabstand der Zeile (höchstens 30 px).
+ *
+ * Unter 981 px steht alles untereinander, das Foto in der Breite des Textes
+ * und höchstens 400 px hoch, der Titel mittig.
+ */
+export function FotoNebenKopf({
+  bildSchluessel, bildSeite, oberzeile, oberzeileStrich, ueberschrift, inhalt,
+  grund, bildGrund, textMittig, luftUnten, breite, textfarbe,
+}: {
+  bildSchluessel: string;
+  bildSeite?: "links" | "rechts";
+  oberzeile?: string;
+  oberzeileStrich?: boolean;
+  ueberschrift: string;
+  inhalt?: unknown;
+  /** Grund des ganzen Abschnitts. */
+  grund?: Hintergrund;
+  /**
+   * Grund unter dem Foto, von seiner Spalte bis zum Bildschirmrand. Auf der
+   * Startseite der Vorlage ist das Foto kürzer als der Text daneben; darunter
+   * liegt ein sandfarbenes Feld statt des Grundes.
+   */
+  bildGrund?: Hintergrund;
+  /** Auf schmalen Schirmen auch den Text mittig setzen, nicht nur den Titel. */
+  textMittig?: boolean;
+  /** Luft unter dem Text in Pixeln (ab 981 px, ohne den Innenabstand der Zeile). */
+  luftUnten?: number;
+  breite?: Breite;
+  textfarbe?: Textfarbe;
+}) {
+  const foto = useSiteImage(bildSchluessel ?? "");
+  const rechts = bildSeite === "rechts";
+  const unten = Math.max(0, Number(luftUnten ?? 60));
+  const mittig = textMittig ? "max-[980px]:text-center" : "";
+
+  const fotoSpalte = (
+    <div
+      className={`relative min-w-0 min-[981px]:w-[29.666%] min-[981px]:shrink-0 ${
+        // Steht das Foto rechts, kommt es auf dem Telefon nach dem Text.
+        rechts ? "pt-[30px] min-[981px]:pt-0" : ""
+      }`}
+    >
+      {bildGrund && bildGrund !== "keine" && (
+        <div
+          aria-hidden
+          className={`absolute inset-y-0 hidden w-screen min-[981px]:block ${rechts ? "left-0" : "right-0"} ${flaechenKlasse(bildGrund)}`}
+        />
+      )}
+      <div
+        className={`relative ${mittig} min-[981px]:w-[calc(100%+30vw)] ${
+          rechts ? "min-[981px]:-mr-[30vw]" : "min-[981px]:-ml-[30vw]"
+        }`}
+      >
+        {foto.src ? (
+          <img
+            src={foto.src}
+            alt={foto.alt}
+            className="inline-block h-auto max-h-[400px] w-auto max-w-full align-top min-[981px]:block min-[981px]:max-h-none min-[981px]:w-full"
+          />
+        ) : (
+          // Der Platzhalter im Seitenverhältnis des Fotos der Vorlage (3:2).
+          // Seine Beschriftung steht auf der Seite, die sichtbar bleibt – das
+          // Foto ragt zur anderen über den Rand hinaus.
+          <div
+            role="img"
+            aria-label={`Platzhalter für ein Bild: ${bildSchluessel}`}
+            className="relative inline-block aspect-[3/2] w-full max-w-[600px] border border-dashed border-muted-foreground/30 bg-muted/60 align-top min-[981px]:block min-[981px]:max-w-none"
+          >
+            <span className={`absolute top-4 flex items-center gap-2 text-xs text-muted-foreground ${rechts ? "left-4" : "right-4"}`}>
+              <ImageOff className="h-4 w-4 opacity-40" aria-hidden />
+              {bildSchluessel}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const textSpalte = (
+    <div
+      className={`relative min-w-0 min-[981px]:w-[64.833%] ${
+        rechts ? "pt-[calc(8vw+30px)]" : "pt-[60px]"
+      } pb-[30px] min-[981px]:pt-[calc(8vw+min(2.15vw,30px))] min-[981px]:pb-[calc(var(--luft-unten)+min(2.15vw,30px))]`}
+    >
+      <Oberzeile
+        text={oberzeile}
+        strich={oberzeileStrich}
+        vorlage
+        unten="mb-[30px] min-[981px]:mb-[min(2.25vw,30px)]"
+      />
+      <h1
+        className={`font-serif font-normal text-[24px] md:text-[40px] min-[981px]:text-[72px] leading-[1.35] pb-[10px] text-center min-[981px]:text-left ${UMBRUCH} ${textKlasse(textfarbe)}`}
+      >
+        {ueberschrift}
+      </h1>
+      {Boolean(inhalt) && (
+        <div className={`mt-[60px] min-[981px]:mt-[calc(min(2.15vw,30px)+min(2.25vw,30px)-1px)] ${mittig}`}>
+          <Fliesstext inhalt={inhalt} klassen={fliesstextKlassen(undefined, undefined, { lesetext: "normal" })} />
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <section
+      className={`relative overflow-hidden ${flaechenKlasse(grund ?? "karte")}`}
+      style={{ "--luft-unten": `${unten}px` } as React.CSSProperties}
+    >
+      <div className={`${breitenKlasse(breite ?? "sehr_breit")} min-[981px]:flex min-[981px]:gap-[5.5%]`}>
+        {rechts ? <>{textSpalte}{fotoSpalte}</> : <>{fotoSpalte}{textSpalte}</>}
+      </div>
+    </section>
+  );
+}
+
+// ── Text mit Einzug ─────────────────────────────────────────────────────────
+
+/**
+ * Lesetext, der links eingerückt beginnt – frei oder in einem Kasten.
+ *
+ * Auf „Ernährung" läuft der Text der Vorlage nach dem Seitenanfang nicht an
+ * der Kante der Zeile, sondern gut 230 px weiter rechts; der sandfarbene
+ * Kasten beginnt 30 px davor. Die Vorlage setzt das mit festen Pixelwerten,
+ * deshalb auch hier eine Zahl. Unter 981 px gibt es keinen Einzug.
+ *
+ * Die Luft oben und unten ist ebenfalls eine Zahl, getrennt für breite und
+ * schmale Schirme: Die Vorlage schiebt ihre Abschnitte mit festen Werten
+ * übereinander, und die lassen sich nicht aus einer Stufe ablesen.
+ */
+export function TextMitEinzug({
+  inhalt, einzug, grund, kasten, schrift, titelEinzugSchmal,
+  luftOben, luftUnten, luftObenSchmal, luftUntenSchmal, breite,
+}: {
+  inhalt: unknown;
+  /** Einzug in Pixeln ab 981 px Breite. */
+  einzug?: number;
+  /** Grund des Abschnitts über die ganze Breite. */
+  grund?: Hintergrund;
+  /** Grund des Kastens um den Text; „keine" für Text ohne Kasten. */
+  kasten?: Hintergrund;
+  schrift?: "normal" | "klein";
+  titelEinzugSchmal?: boolean;
+  luftOben?: number;
+  luftUnten?: number;
+  luftObenSchmal?: number;
+  luftUntenSchmal?: number;
+  breite?: Breite;
+}) {
+  const px = (wert: number | undefined, vorgabe: number) => `${Math.max(0, Number(wert ?? vorgabe))}px`;
+  const mitKasten = Boolean(kasten && kasten !== "keine");
+  const stil = {
+    "--einzug": px(einzug, 0),
+    "--luft-oben": px(luftOben, 27),
+    "--luft-unten": px(luftUnten, 27),
+    "--luft-oben-schmal": px(luftObenSchmal, 30),
+    "--luft-unten-schmal": px(luftUntenSchmal, 30),
+  } as React.CSSProperties;
+  const text = (
+    <Fliesstext
+      inhalt={inhalt}
+      klassen={fliesstextKlassen(undefined, undefined, {
+        lesetext: schrift === "klein" ? "klein" : "normal",
+        titelEinzugSchmal,
+      })}
+    />
+  );
+
+  return (
+    <section
+      style={stil}
+      className={`${flaechenKlasse(grund ?? "karte")} pt-[var(--luft-oben-schmal)] pb-[var(--luft-unten-schmal)] min-[981px]:pt-[var(--luft-oben)] min-[981px]:pb-[var(--luft-unten)]`}
+    >
+      <div className={breitenKlasse(breite ?? "sehr_breit")}>
+        {mitKasten ? (
+          // Innen 30 px, auf dem Telefon 20 – und unten ab 981 px nur 19, so
+          // endet der Kasten der Vorlage. Er beginnt 27 px vor dem Einzug:
+          // Die Vorlage rückt ihn um 205 px ein, den Text daneben um 232.
+          <div
+            className={`${flaechenKlasse(kasten)} p-5 md:p-[30px] min-[981px]:pb-[19px] min-[981px]:ml-[max(0px,calc(var(--einzug)-27px))]`}
+          >
+            {text}
+          </div>
+        ) : (
+          <div className="min-[981px]:pl-[var(--einzug)]">{text}</div>
+        )}
       </div>
     </section>
   );

@@ -48,6 +48,19 @@ export function hslToTokens({ h, s, l }: Hsl): string {
   return `${h} ${s}% ${l}%`;
 }
 
+/** HSL → „#rrggbb". Die Umkehrung von `hexToHsl`, bis auf dessen Rundung. */
+export function hslToHex({ h, s, l }: Hsl): string {
+  const sa = s / 100;
+  const li = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sa * Math.min(li, 1 - li);
+  const kanal = (n: number) => {
+    const wert = li - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(wert * 255).toString(16).padStart(2, "0");
+  };
+  return `#${kanal(0)}${kanal(8)}${kanal(4)}`;
+}
+
 /** Kanalwert 0–255 auf den linearen Anteil bringen (sRGB-Gammakorrektur). */
 function linear(kanal: number): number {
   const c = kanal / 255;
@@ -114,7 +127,7 @@ export function isDark(hex: string): boolean {
  * Die Sättigung wird für Rahmen und gedämpfte Flächen leicht angehoben, sonst
  * wirken sie neben einer farbigen Fläche schmutzig.
  */
-export function surfaceColors(hex: string, dunkel = false): Record<string, string> | null {
+export function surfaceColors(hex: string, dunkel = false, eigenerTon?: string | null): Record<string, string> | null {
   const basis = hexToHsl(hex);
   if (!basis) return null;
 
@@ -123,7 +136,13 @@ export function surfaceColors(hex: string, dunkel = false): Record<string, strin
 
   const kasten = basis;
   const grund = { ...basis, l: stufe(basis.l - richtung * 2) };
-  const gedaempft = { ...basis, l: stufe(basis.l + richtung * 4) };
+  // Die gedämpfte Fläche ist sonst vier Stufen dunkler als der Kasten. Wer
+  // eine Vorlage nachbaut, braucht aber genau deren Ton – auf vuozvolc.de ist
+  // das Sandband #ebdac8, abgeleitet käme #f6e9db heraus. Im dunklen Modus
+  // bleibt es bei der Ableitung: Ein heller Sandton auf dunklem Grund wäre
+  // ein Loch in der Seite.
+  const eigener = !dunkel && eigenerTon ? hexToHsl(eigenerTon) : null;
+  const gedaempft = eigener ?? { ...basis, l: stufe(basis.l + richtung * 4) };
   const rahmen = { ...basis, s: Math.min(100, basis.s + 4), l: stufe(basis.l + richtung * 8) };
 
   return {

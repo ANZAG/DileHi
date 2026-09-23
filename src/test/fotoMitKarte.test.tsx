@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { bildplaetzeAufloesen } from "@/components/sitebuilder/bildplaetze";
 import { schriftStapel } from "@/lib/schriften";
+import { hexToHsl, hslToHex, hslToTokens, surfaceColors } from "@/lib/farben";
 
 /**
  * Bilder mitten im Fliesstext – in Tabellen oder vom Text umflossen.
@@ -59,5 +60,37 @@ describe("Schriftstapel für die Vereinsschriften", () => {
   it("setzt geladene Schriften wie bisher in Anführungszeichen", () => {
     expect(schriftStapel("Lora")).toBe('"Lora"');
     expect(schriftStapel("Source Sans 3")).toBe('"Source Sans 3"');
+  });
+});
+
+describe("Eigener Ton für gedämpfte Flächen", () => {
+  it("bleibt ohne Angabe bei der Ableitung aus der Kastenfarbe", () => {
+    expect(surfaceColors("#faf2e9")?.["--muted"]).toBe(surfaceColors("#faf2e9", false, null)?.["--muted"]);
+  });
+
+  it("nimmt den eigenen Ton, wenn einer gesetzt ist", () => {
+    const f = surfaceColors("#faf2e9", false, "#ebdac8")!;
+    expect(f["--muted"]).toBe(hslToTokens(hexToHsl("#ebdac8")!));
+    expect(f["--secondary"]).toBe(f["--muted"]);
+    // Kasten und Grund bleiben, wie sie waren.
+    expect(f["--card"]).toBe(surfaceColors("#faf2e9")!["--card"]);
+  });
+
+  it("leitet im dunklen Modus weiter ab – ein Sandton auf dunklem Grund wäre ein Loch", () => {
+    expect(surfaceColors("#faf2e9", true, "#ebdac8")?.["--muted"]).toBe(surfaceColors("#faf2e9", true)?.["--muted"]);
+  });
+
+  it("übergeht einen ungültigen Ton", () => {
+    expect(surfaceColors("#faf2e9", false, "sand")?.["--muted"]).toBe(surfaceColors("#faf2e9")?.["--muted"]);
+  });
+
+  it("rechnet HSL zurück in Hex", () => {
+    expect(hslToHex({ h: 0, s: 0, l: 100 })).toBe("#ffffff");
+    expect(hslToHex({ h: 0, s: 100, l: 50 })).toBe("#ff0000");
+    // Hin und zurück: `hexToHsl` rundet auf ganze Grad und Prozent, die
+    // Farbe darf also um wenige Stufen je Kanal abweichen – mehr nicht.
+    const kanaele = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const zurueck = kanaele(hslToHex(hexToHsl("#ebdac8")!));
+    kanaele("#ebdac8").forEach((k, i) => expect(Math.abs(k - zurueck[i])).toBeLessThanOrEqual(3));
   });
 });

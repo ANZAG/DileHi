@@ -23,6 +23,8 @@ export interface Branding {
   color_primary: string;
   color_surface: string;
   color_dark: string;
+  /** Eigener Ton für gedämpfte Flächen; ohne Angabe aus `color_surface` abgeleitet. */
+  color_muted?: string | null;
   seo_description: string | null;
   seo_image_path: string | null;
   website_url: string | null;
@@ -74,6 +76,7 @@ const VORGABE: Branding = {
   // Genau das Grau aus index.css, damit sich ohne Einstellung nichts aendert.
   color_surface: "#f4f2ee",
   color_dark: "#1c1917",
+  color_muted: null,
   seo_description: null,
   seo_image_path: null,
   website_url: null,
@@ -159,7 +162,7 @@ export function useWoerter(): Words {
 
 export function useBrandingAnwenden() {
   const branding = useBranding();
-  const { color_primary, color_dark, color_surface, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
+  const { color_primary, color_dark, color_surface, color_muted, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
 
   useEffect(() => {
     const wurzel = document.documentElement;
@@ -208,7 +211,7 @@ export function useBrandingAnwenden() {
      * Kaesten heller als der Grund und die Seite saehe aus wie ein Negativ.
      */
     const istDunklerModus = wurzel.classList.contains("dark");
-    const flaechen = surfaceColors(color_surface, istDunklerModus);
+    const flaechen = surfaceColors(color_surface, istDunklerModus, color_muted);
     if (flaechen) {
       for (const [name, wert] of Object.entries(flaechen)) {
         wurzel.style.setProperty(name, wert);
@@ -221,7 +224,7 @@ export function useBrandingAnwenden() {
         wurzel.style.setProperty(name, schrift);
       }
     }
-  }, [color_primary, color_dark, color_surface]);
+  }, [color_primary, color_dark, color_surface, color_muted]);
 
   useEffect(() => {
     loadFonts([font_headings, font_body]);

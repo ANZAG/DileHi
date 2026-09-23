@@ -13,7 +13,7 @@ import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
 import { datumDe, plusMonate, tageBis } from "@/lib/datum";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
-import { surfaceColors, hexToHsl, readableInk } from "@/lib/farben";
+import { surfaceColors, hexToHsl, hslToHex, readableInk } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
 import DateiablageWahl from "./DateiablageWahl";
 import OrganisationsformWahl from "./OrganisationsformWahl";
@@ -36,6 +36,7 @@ interface Einstellungen {
   color_primary: string;
   color_surface: string;
   color_dark: string;
+  color_muted: string | null;
   font_headings: string;
   font_body: string;
   seo_description: string | null;
@@ -80,7 +81,7 @@ const FELDER: (keyof Einstellungen)[] = [
   "org_name", "org_short_name", "org_tagline",
   "org_street", "org_zip", "org_city", "org_email", "org_phone", "website_url",
   "logo_path", "favicon_path", "logo_in_header",
-  "color_primary", "color_surface", "color_dark", "font_headings", "font_body",
+  "color_primary", "color_surface", "color_dark", "color_muted", "font_headings", "font_body",
   "seo_description",
   "mail_from_address", "mail_from_name", "mail_reply_to", "mail_transport",
   "is_nonprofit", "tax_office", "tax_number",
@@ -499,6 +500,11 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
             hinweis="Die Flächen, auf denen Inhalte liegen. Seitengrund und Rahmen ergeben sich daraus."
             vorschau="flaeche"
           />
+          <FarbeGedaempft
+            kasten={entwurf.color_surface}
+            wert={entwurf.color_muted}
+            setze={(v) => setze({ color_muted: v })}
+          />
         </div>
       
         </div>
@@ -814,6 +820,50 @@ function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
         <p className="mt-2 text-xs text-destructive">Keine gültige Farbe (z. B. #dd9933).</p>
       )}
       {hinweis && <p className="text-xs text-muted-foreground mt-1">{hinweis}</p>}
+    </div>
+  );
+}
+
+/**
+ * Der Ton der gedämpften Flächen – wahlweise.
+ *
+ * Normalerweise ergibt er sich aus der Kastenfarbe. Wer eine vorhandene Seite
+ * nachbaut, braucht aber deren Sandton genau; dafür lässt er sich hier
+ * festlegen. Ausgeschaltet wird die Spalte wieder leer, und es gilt die
+ * Ableitung.
+ */
+function FarbeGedaempft({ kasten, wert, setze }: {
+  kasten: string; wert: string | null; setze: (v: string | null) => void;
+}) {
+  const eigen = Boolean(wert);
+  const abgeleitet = (() => {
+    const basis = hexToHsl(kasten);
+    return basis ? hslToHex({ ...basis, l: Math.max(0, basis.l - 4) }) : "#e5e5e5";
+  })();
+  return (
+    <div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={eigen}
+          onChange={(e) => setze(e.target.checked ? abgeleitet : null)}
+        />
+        Eigener Ton für gedämpfte Flächen
+      </label>
+      {eigen ? (
+        <div className="mt-2">
+          <Farbwahl
+            label="Gedämpfte Flächen"
+            wert={wert ?? abgeleitet}
+            setze={setze}
+            hinweis="Farbbänder und abgesetzte Kästen im Seitenbaukasten („Gedämpft“)."
+          />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground mt-1">
+          Ergibt sich aus der Farbe der Kästen ({abgeleitet}).
+        </p>
+      )}
     </div>
   );
 }
