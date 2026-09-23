@@ -127,6 +127,9 @@
 .rich-text .ProseMirror td,
 .rich-text .ProseMirror th { border: 1px solid hsl(var(--border)); padding: 4px 6px; vertical-align: middle; overflow-wrap: anywhere; }
 .rich-text .ProseMirror img { max-width: 100%; height: auto; }
+/* Ein Bild über die ganze Breite des Textes – im Editor wie auf der Seite.
+   Gesetzt über die Grössenwahl „Ganze Breite" (editorErweiterungen.ts). */
+img.bild-ganz { width: 100%; height: auto; }
 .rich-text .ProseMirror .selectedCell { background: hsl(var(--primary) / 0.12); }
 .rich-text .ProseMirror .alignleft { float: left; margin: 0.25rem 1rem 0.5rem 0; }
 .rich-text .ProseMirror .alignright { float: right; margin: 0.25rem 0 0.5rem 1rem; }

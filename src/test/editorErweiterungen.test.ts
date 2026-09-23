@@ -3,7 +3,8 @@ import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { NodeSelection } from "@tiptap/pm/state";
 import {
-  FLIESSTEXT_ERWEITERUNGEN, bildAusrichten, bildBreite, bildEinfuegen, leerzeileEinfuegen,
+  FLIESSTEXT_ERWEITERUNGEN, bildAendern, bildAusrichten, bildBreite, bildEinfuegen, bildEntfernen,
+  bildgroesse, gewaehltesBild, leerzeileEinfuegen,
   spaltenAufloesen, spaltenEinfuegen, tabelleEinfuegen, tabelleLoeschen,
 } from "@/components/sitebuilder/editorErweiterungen";
 
@@ -129,6 +130,72 @@ describe("Fliesstext-Editor: Knöpfe der Leiste", () => {
     bildWaehlen(e);
     bildBreite(e, 120);
     expect(e.getHTML()).toContain('width="120" height="252"');
+  });
+
+  it("bleibt nach dem Umrichten ausgewählt – die Bildknöpfe verschwinden nicht", () => {
+    const e = editor('<p>Vor <img data-bild="x" alt="" width="100" height="50"> nach</p>');
+    bildWaehlen(e);
+    bildAusrichten(e, "links");
+    expect(gewaehltesBild(e)?.ausrichtung).toBe("links");
+    bildAusrichten(e, "rechts");
+    expect(gewaehltesBild(e)?.ausrichtung).toBe("rechts");
+    bildAusrichten(e, "text");
+    expect(gewaehltesBild(e)?.ausrichtung).toBe("text");
+  });
+
+  it("tauscht ein Bild aus: gleiche Breite und Stelle, Höhe nach dem neuen Bild", () => {
+    const e = editor('<div class="wp-block-image"><figure class="alignleft size-large"><img data-bild="alt" alt="Altes Hemd" width="150" height="352"></figure></div><p>Text</p>');
+    bildWaehlen(e);
+    bildAendern(e, { bild: "neu", alt: "Neues Hemd", verhaeltnis: 0.5 });
+    expect(e.getHTML()).toContain('<figure class="alignleft size-large"><img data-bild="neu" alt="Neues Hemd" width="150" height="75"></figure>');
+    expect(gewaehltesBild(e)?.node.attrs.bild).toBe("neu");
+  });
+
+  it("tauscht in einer Zelle mit zwei Bildern genau das gewählte aus", () => {
+    const e = editor('<p><img data-bild="a" alt="" width="150" height="150"><img data-bild="b" alt="" width="150" height="150"></p>');
+    let zweites = -1;
+    e.state.doc.descendants((n, p) => { if (n.attrs.bild === "b") zweites = p; });
+    e.view.dispatch(e.state.tr.setSelection(NodeSelection.create(e.state.doc, zweites)));
+    bildAendern(e, { bild: "c" });
+    expect(e.getHTML()).toContain('data-bild="a"');
+    expect(e.getHTML()).toContain('data-bild="c"');
+    expect(gewaehltesBild(e)?.node.attrs.bild).toBe("c");
+  });
+
+  it("Grössen wie bei WordPress, dazu die ganze Breite und zurück", () => {
+    const e = editor('<p><img data-bild="x" alt="" width="200" height="100"></p>');
+    bildWaehlen(e);
+    expect(bildgroesse(gewaehltesBild(e)!.node.attrs)).toBe("eigen");
+    bildAendern(e, { breite: 300 });
+    expect(e.getHTML()).toContain('width="300" height="150"');
+    expect(bildgroesse(gewaehltesBild(e)!.node.attrs)).toBe("mittel");
+    bildAendern(e, { breite: "ganz" });
+    expect(e.getHTML()).toContain('<img data-bild="x" alt="" class="bild-ganz">');
+    expect(bildgroesse(gewaehltesBild(e)!.node.attrs)).toBe("ganz");
+    // Ohne gemerkte Masse fehlt das Verhältnis – die Höhe bleibt dem Browser.
+    bildAendern(e, { breite: 150 });
+    expect(e.getHTML()).toContain('<img data-bild="x" alt="" width="150">');
+    bildAendern(e, { breite: 600, verhaeltnis: 0.5 });
+    expect(e.getHTML()).toContain('width="600" height="300"');
+  });
+
+  it("andere Klassen am Bild bleiben beim Umstellen der Grösse stehen", () => {
+    const e = editor('<p><img data-bild="x" alt="" width="150" height="150" class="wp-image-7"></p>');
+    bildWaehlen(e);
+    bildAendern(e, { breite: "ganz" });
+    expect(e.getHTML()).toContain('class="wp-image-7 bild-ganz"');
+    bildAendern(e, { breite: 150 });
+    expect(e.getHTML()).toContain('class="wp-image-7"');
+  });
+
+  it("entfernt ein Bild – umflossen samt Hülle, im Text nur das Bild", () => {
+    const e = editor('<div class="wp-block-image"><figure class="alignleft size-large"><img data-bild="x" alt="" width="150" height="150"></figure></div><p>Vor <img data-bild="y" alt=""> nach</p>');
+    bildWaehlen(e);
+    bildEntfernen(e);
+    expect(e.getHTML()).not.toContain("wp-block-image");
+    bildWaehlen(e);
+    bildEntfernen(e);
+    expect(e.getHTML()).toBe("<p>Vor  nach</p>");
   });
 
   it("legt Tabelle und Spalten an und entfernt sie wieder", () => {

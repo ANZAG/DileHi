@@ -1,7 +1,7 @@
 import { Node, mergeAttributes, type Editor, type Extensions } from "@tiptap/core";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import type { Node as PmNode } from "@tiptap/pm/model";
-import { NodeSelection } from "@tiptap/pm/state";
+import { NodeSelection, type Transaction } from "@tiptap/pm/state";
 
 /**
  * Was der Fliesstext-Editor im Seitenbaukasten zusätzlich verstehen muss.
@@ -351,7 +351,7 @@ export function gewaehltesBild(editor: Editor): { node: PmNode; pos: number; aus
 /** Ein Bild einfügen – im Text oder links bzw. rechts umflossen. */
 export function bildEinfuegen(
   editor: Editor,
-  bild: { bild: string; alt?: string; width?: number | null; height?: number | null },
+  bild: { bild: string; alt?: string; width?: number | null; height?: number | null; klasse?: string | null },
   ausrichtung: Ausrichtung,
 ) {
   const platz = { type: "bildplatz", attrs: { alt: "", ...bild } };
@@ -390,21 +390,110 @@ export function bildAusrichten(editor: Editor, ausrichtung: Ausrichtung) {
     );
     tr.replaceSelectionWith(umflossen);
   }
+  bildWiederWaehlen(tr, tr.mapping.map(gewaehlt.pos, -1));
   view.dispatch(tr.scrollIntoView());
+  return true;
+}
+
+/**
+ * Nach einer Änderung dasselbe Bild wieder auswählen.
+ *
+ * Ein ersetzter Knoten verliert die Auswahl, und mit ihr verschwinden die
+ * Bildknöpfe aus der Leiste – mitten im Einstellen. Gesucht wird in der Nähe
+ * der alten Stelle, denn das Umfliessen setzt eine Hülle darum.
+ */
+function bildWiederWaehlen(tr: Transaction, nahe: number) {
+  const von = Math.max(0, nahe - 4);
+  const bis = Math.min(tr.doc.content.size, nahe + 4);
+  // Das nächstgelegene: In einer Tabellenzelle stehen Bilder oft direkt
+  // nebeneinander.
+  let gefunden: number | null = null;
+  tr.doc.nodesBetween(von, bis, (knoten, pos) => {
+    if (knoten.type.name === "bildplatz" && (gefunden === null || Math.abs(pos - nahe) < Math.abs(gefunden - nahe))) gefunden = pos;
+  });
+  if (gefunden !== null) tr.setSelection(NodeSelection.create(tr.doc, gefunden));
+}
+
+/** Die Grössen zur Auswahl, wie bei WordPress – in Pixeln Breite. */
+export const BILDGROESSEN = { klein: 150, mittel: 300, gross: 600 } as const;
+export type Bildgroesse = keyof typeof BILDGROESSEN | "ganz" | "eigen";
+
+/** Klasse für ein Bild über die ganze Breite des Textes (index.css). */
+const GANZ = "bild-ganz";
+
+const klassenOhne = (klasse: unknown, weg: string) =>
+  String(klasse ?? "").split(/\s+/).filter((k) => k && k !== weg).join(" ") || null;
+
+/** Welche Grösse ein Bild gerade hat – für die Auswahl in Leiste und Dialog. */
+export function bildgroesse(attrs: { width?: unknown; klasse?: unknown }): Bildgroesse {
+  if (String(attrs.klasse ?? "").split(/\s+/).includes(GANZ)) return "ganz";
+  const w = Number(attrs.width);
+  const treffer = (Object.keys(BILDGROESSEN) as (keyof typeof BILDGROESSEN)[]).find((k) => BILDGROESSEN[k] === w);
+  return treffer ?? "eigen";
+}
+
+/**
+ * Das ausgewählte Bild ändern: austauschen, Beschreibung, Grösse.
+ *
+ * - `bild` tauscht das Bild und behält Grösse und Stelle. Mit `verhaeltnis`
+ *   (Höhe durch Breite des neuen Bildes) stimmt auch die Höhe wieder.
+ * - `breite` als Zahl setzt die Breite in Pixeln, die Höhe folgt im
+ *   Verhältnis; `"ganz"` lässt das Bild die ganze Breite füllen.
+ */
+export function bildAendern(editor: Editor, aenderung: {
+  bild?: string; alt?: string; breite?: number | "ganz"; verhaeltnis?: number | null;
+}) {
+  const gewaehlt = gewaehltesBild(editor);
+  if (!gewaehlt) return false;
+  const alt = gewaehlt.node.attrs as { width: number | null; height: number | null; klasse: string | null };
+  const neu: Record<string, unknown> = { ...gewaehlt.node.attrs };
+
+  if (aenderung.bild) {
+    neu.bild = aenderung.bild;
+    neu.src = null;
+  }
+  if (aenderung.alt !== undefined) neu.alt = aenderung.alt;
+
+  const verhaeltnis = aenderung.verhaeltnis
+    ?? (alt.width && alt.height ? alt.height / alt.width : null);
+  if (aenderung.breite === "ganz") {
+    neu.klasse = [klassenOhne(alt.klasse, GANZ), GANZ].filter(Boolean).join(" ");
+    neu.width = null;
+    neu.height = null;
+  } else {
+    const breite = typeof aenderung.breite === "number" && aenderung.breite > 0
+      ? Math.round(aenderung.breite)
+      : alt.width;
+    if (typeof aenderung.breite === "number") neu.klasse = klassenOhne(alt.klasse, GANZ);
+    neu.width = breite;
+    neu.height = breite && verhaeltnis ? Math.round(breite * verhaeltnis) : null;
+  }
+
+  mitFokus(editor);
+  const tr = editor.state.tr.setNodeMarkup(gewaehlt.pos, undefined, neu);
+  bildWiederWaehlen(tr, gewaehlt.pos);
+  editor.view.dispatch(tr);
+  return true;
+}
+
+/** Das ausgewählte Bild entfernen – umflossen samt seiner Hülle. */
+export function bildEntfernen(editor: Editor) {
+  const gewaehlt = gewaehltesBild(editor);
+  if (!gewaehlt) return false;
+  mitFokus(editor);
+  const { state } = editor;
+  const $pos = state.doc.resolve(gewaehlt.pos);
+  const tr = gewaehlt.ausrichtung === "text"
+    ? state.tr.deleteSelection()
+    : state.tr.delete($pos.before($pos.depth), $pos.after($pos.depth));
+  editor.view.dispatch(tr.scrollIntoView());
   return true;
 }
 
 /** Breite eines ausgewählten Bildes ändern; die Höhe folgt im Verhältnis. */
 export function bildBreite(editor: Editor, breite: number) {
-  const gewaehlt = gewaehltesBild(editor);
-  if (!gewaehlt || !(breite > 0)) return false;
-  mitFokus(editor);
-  const { width, height } = gewaehlt.node.attrs as { width: number | null; height: number | null };
-  const hoehe = width && height ? Math.round((height * breite) / width) : null;
-  editor.view.dispatch(editor.state.tr.setNodeMarkup(gewaehlt.pos, undefined, {
-    ...gewaehlt.node.attrs, width: Math.round(breite), height: hoehe,
-  }));
-  return true;
+  if (!(breite > 0)) return false;
+  return bildAendern(editor, { breite });
 }
 
 /** Eine leere Tabelle im Rahmen der Vorlage. */
