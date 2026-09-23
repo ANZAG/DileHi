@@ -510,7 +510,7 @@ export function fliesstextKlassen(
         ? "text-[14px] leading-[1.6] "
         : "text-[14px] leading-[1.8] md:text-[15px] min-[981px]:text-[16px] ") +
       "prose-p:my-0 prose-p:pb-[1em] [&_p:last-child]:pb-0 " +
-      "prose-ul:my-0 prose-ul:pb-[1em] prose-li:my-0 " +
+      "prose-ul:my-0 prose-ul:pb-[1em] prose-li:my-0 [&_li>p]:my-0 [&_li>p]:pb-0 [&_li>p]:leading-[inherit] " +
       "prose-headings:mt-0 prose-headings:mb-0 " +
       // Zwischentitel: 25 px ab 981, 20 px darunter, 18 px auf dem Telefon.
       // Nach einem Absatz 23 px Luft – so weit stehen in der Vorlage zwei
@@ -560,6 +560,9 @@ export function fliesstextKlassen(
       "prose-p:my-0 prose-p:pb-[1em] " +
       // Listen wie gemessen: 14 px Einzug, Punkte aussen, 26 px Zeilenhöhe.
       "prose-li:my-0 prose-li:pl-0 prose-li:leading-[26px] prose-ul:my-0 prose-ul:pl-[14px] prose-ul:pb-[1em] " +
+      // Der Editor legt in jeden Listenpunkt einen Absatz; der darf dort
+      // keinen eigenen Abstand mitbringen.
+      "[&_li>p]:my-0 [&_li>p]:pb-0 [&_li>p]:leading-[inherit] " +
       "prose-headings:font-sans prose-headings:font-normal prose-headings:mt-0 prose-headings:mb-0 " +
       "prose-h3:text-[22px] prose-h3:leading-none prose-h3:pb-[10px] " +
       // Das Schlagwort im Kasten sitzt auf der Linie – dieselbe Geste wie im

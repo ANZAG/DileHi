@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AutoField, FieldLabel } from "@puckeditor/core";
 import { Code2, Eye } from "lucide-react";
+import { FLIESSTEXT_FELD } from "./fliesstextFeld";
 
 /**
  * Text bearbeiten – wahlweise sichtbar oder als Quelltext.
@@ -54,7 +55,9 @@ export default function QuelltextFeld({
           // AutoField zeichnet das normale Puck-Feld – hier das Rich-Text-Feld,
           // das der Editor sonst auch benutzt. So ist die eine Ansicht nicht
           // eine Nachbildung der anderen.
-          field={{ type: "richtext", label: "Text" } as never}
+          // Mit den Erweiterungen für Bilder, Tabellen und Spalten – ohne sie
+          // verwürfe der Editor diese Teile beim Öffnen.
+          field={FLIESSTEXT_FELD as never}
           value={value}
           onChange={onChange as never}
           readOnly={readOnly}

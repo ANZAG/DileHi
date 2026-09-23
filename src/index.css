@@ -113,3 +113,29 @@
     max-height: 2.5rem;
   }
 }
+
+/*
+ * Fliesstext-Editor im Seitenbaukasten.
+ *
+ * Nur so viel, dass man im Editor sieht, was man bearbeitet: das Raster einer
+ * Tabelle, umflossene Bilder an ihrer Seite, Spalten und Leerzeilen als
+ * gestrichelte Flächen. Die Seite selbst gestalten die Bausteine.
+ */
+/* Feste Aufteilung: Eine breite Tabelle soll das schmale Feld nicht seitlich
+   aufschieben – sonst rutscht die Leiste mit aus dem Blick. */
+.rich-text .ProseMirror table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; table-layout: fixed; }
+.rich-text .ProseMirror td,
+.rich-text .ProseMirror th { border: 1px solid hsl(var(--border)); padding: 4px 6px; vertical-align: middle; overflow-wrap: anywhere; }
+.rich-text .ProseMirror img { max-width: 100%; height: auto; }
+.rich-text .ProseMirror .selectedCell { background: hsl(var(--primary) / 0.12); }
+.rich-text .ProseMirror .alignleft { float: left; margin: 0.25rem 1rem 0.5rem 0; }
+.rich-text .ProseMirror .alignright { float: right; margin: 0.25rem 0 0.5rem 1rem; }
+.rich-text .ProseMirror .wp-block-image::after,
+.rich-text .ProseMirror::after { content: ""; display: table; clear: both; }
+.rich-text .ProseMirror .spalten { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 0.75rem; margin: 0.5rem 0; }
+.rich-text .ProseMirror .spalten > div { border: 1px dashed hsl(var(--border)); padding: 0.25rem 0.5rem; min-height: 2rem; }
+.rich-text .ProseMirror div[aria-hidden="true"] { min-height: 1rem; border: 1px dashed hsl(var(--border)); margin: 0.25rem 0; }
+.rich-text .ProseMirror div[aria-hidden="true"].ProseMirror-selectednode { outline: 2px solid hsl(var(--primary)); }
+/* Die Leiste bricht um, statt Knöpfe rechts abzuschneiden: Das Seitenfeld ist
+   schmal, und die Zusatzknöpfe stehen hinten. */
+[data-puck-rte-menu] { flex-wrap: wrap; row-gap: 4px; }

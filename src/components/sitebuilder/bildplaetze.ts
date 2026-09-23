@@ -38,7 +38,7 @@ export function bildplaetzeAufloesen(
 }
 
 /** Ein gestrichelter Rahmen mit Beschriftung, als SVG in der Grösse des Bildes. */
-function platzhalterBild(breite: number, hoehe: number, text: string): string {
+export function platzhalterBild(breite: number, hoehe: number, text: string): string {
   const b = breite || 300;
   const h = hoehe || Math.round(b * 2 / 3);
   const sicher = text.replace(/[&<>"']/g, (z) => (
