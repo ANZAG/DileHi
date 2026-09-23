@@ -25,6 +25,12 @@ create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin;
 
+-- Wie bei Supabase: Jede neue Funktion im Schema public ist von sich aus für
+-- anon und authenticated ausführbar. Ohne diese Zeile sah die Bühne nur, was
+-- die Migrationen ausdrücklich vergeben – und nicht, dass anon auf einem
+-- echten Projekt viel mehr durfte (siehe 20260923120000).
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+
 create schema auth;
 create schema storage;
 create schema extensions;
