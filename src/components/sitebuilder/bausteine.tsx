@@ -201,14 +201,18 @@ function Oberzeile({ text, mitte, strich, vorlage, unten }: {
     if (leer && !strich) return null;
     return (
       <div className={`flex min-h-[23px] items-center gap-8 ${unten ?? (leer ? "mb-[30px]" : "mb-[30px] min-[981px]:mb-[23px]")}`}>
+        {/* Mittig steht die Linie auf beiden Seiten. Jede bleibt mindestens
+            76 px lang; auf dem Telefon bricht das Wort dafür um – bei 390 px
+            misst es in der Vorlage 96 px Breite, in zwei Zeilen. */}
+        {mitte && strich && <span aria-hidden className="h-px min-w-[76px] flex-1 bg-black" />}
         {!leer && (
           // Darf umbrechen: Ein langes Schlagwort passt auf dem Telefon nicht
           // in die schmale Titelspalte und schob sonst die ganze Seite auf.
-          <span className="min-w-0 text-sm font-bold uppercase tracking-[1px] leading-[1.4] text-primary">
+          <span className={`min-w-0 text-sm font-bold uppercase tracking-[1px] leading-[1.4] text-primary ${mitte ? "text-center" : ""}`}>
             {text}
           </span>
         )}
-        {strich && <span aria-hidden className="h-px flex-1 bg-black" />}
+        {strich && <span aria-hidden className={`h-px flex-1 bg-black ${mitte ? "min-w-[76px]" : ""}`} />}
       </div>
     );
   }
@@ -245,15 +249,24 @@ function Oberzeile({ text, mitte, strich, vorlage, unten }: {
  * Zeilenhöhe von 1,35 – enger gesetzt wirkt eine zweizeilige Überschrift dort
  * gedrängt, wo die Vorlage ruhig steht.
  */
-function SeitenkopfVorlage({ oberzeile, strich, ueberschrift, breite, hintergrund, textfarbe }: {
+function SeitenkopfVorlage({ oberzeile, strich, ueberschrift, breite, hintergrund, textfarbe, schlagwortHoehe }: {
   oberzeile?: string; strich?: boolean; ueberschrift: string;
   breite?: Breite; hintergrund?: Hintergrund; textfarbe?: Textfarbe;
+  schlagwortHoehe?: number;
 }) {
   const mitWort = Boolean(oberzeile?.trim());
+  // Auf den meisten Seiten der Vorlage liegt das Schlagwort auf einer 23 px
+  // hohen Linie. Die Mitgliederseite setzt es stattdessen als Absatz mit
+  // 30 px Höhe; der Titel steht dann 23 px darunter, und das Band beginnt
+  // 81 statt 77 px über dem Schlagwort.
+  const hoch = mitWort && Number(schlagwortHoehe) > 23 ? Math.round(Number(schlagwortHoehe)) : 0;
   return (
     <section
+      style={hoch ? ({ "--wort-hoehe": `${hoch}px` } as React.CSSProperties) : undefined}
       className={`${flaechenKlasse(hintergrund)} ${
-        mitWort
+        hoch
+          ? "pt-[80px] pb-[35px] min-[981px]:pt-[81px] min-[981px]:pb-[32px]"
+          : mitWort
           ? "pt-[80px] pb-[35px] min-[981px]:pt-[77px] min-[981px]:pb-[32px]"
           // Ohne Schlagwort schiebt sich in der Vorlage der folgende Abschnitt
           // 54 px über das Band; sichtbar bleiben unter dem Titel 46/47 px.
@@ -261,7 +274,13 @@ function SeitenkopfVorlage({ oberzeile, strich, ueberschrift, breite, hintergrun
       }`}
     >
       <div className={breitenKlasse(breite)}>
-        <Oberzeile text={oberzeile} strich={strich} vorlage />
+        {hoch ? (
+          <div className="[&>div]:min-h-[var(--wort-hoehe)]">
+            <Oberzeile text={oberzeile} strich={strich} vorlage unten="mb-[23px]" />
+          </div>
+        ) : (
+          <Oberzeile text={oberzeile} strich={strich} vorlage />
+        )}
         <h1
           className={`font-serif font-normal text-[24px] md:text-[40px] min-[981px]:text-[72px] leading-[1.35] pb-[10px] ${UMBRUCH} ${textKlasse(textfarbe)}`}
         >
@@ -274,7 +293,7 @@ function SeitenkopfVorlage({ oberzeile, strich, ueberschrift, breite, hintergrun
 
 export function Seitenkopf({
   oberzeile, oberzeileStrich, ueberschrift, text, ausrichtung, groesse, breite,
-  abstandOben, abstandUnten, abstand, hintergrund, flaeche, textfarbe, stil,
+  abstandOben, abstandUnten, abstand, hintergrund, flaeche, textfarbe, stil, schlagwortHoehe,
 }: Gemeinsam & {
   oberzeile?: string; ueberschrift: string; text?: string; ausrichtung?: "links" | "mitte";
   groesse?: Schriftgrad;
@@ -285,12 +304,14 @@ export function Seitenkopf({
    * statt der eigenen. Ohne Angabe bleibt alles, wie es war.
    */
   stil?: "standard" | "vorlage";
+  /** Nur mit „vorlage": Höhe der Schlagwortzeile in px (Vorgabe 23). */
+  schlagwortHoehe?: number;
 }) {
   if (stil === "vorlage") {
     return (
       <SeitenkopfVorlage
         oberzeile={oberzeile} strich={oberzeileStrich} ueberschrift={ueberschrift}
-        breite={breite} hintergrund={hintergrund} textfarbe={textfarbe}
+        breite={breite} hintergrund={hintergrund} textfarbe={textfarbe} schlagwortHoehe={schlagwortHoehe}
       />
     );
   }
@@ -710,14 +731,34 @@ const SCHRIFTGRAD = {
 export type Schriftgrad = keyof typeof SCHRIFTGRAD;
 
 export function Ueberschrift({
-  oberzeile, oberzeileStrich, text, groesse, ausrichtung, ...rest
+  oberzeile, oberzeileStrich, text, groesse, ausrichtung, stil, ...rest
 }: Gemeinsam & {
   oberzeile?: string; text: string;
   groesse: Schriftgrad; ausrichtung: "links" | "mitte";
   /** Linie neben dem Schlagwort, wie auf vielen Vorlagen-Seiten. */
   oberzeileStrich?: boolean;
+  /**
+   * „vorlage": das Schlagwort allein in der Form der nachgebauten Vorlage –
+   * schwarze Linien, eine 700 px breite Zeile, Abstände wie dort gemessen.
+   */
+  stil?: "standard" | "vorlage";
 }) {
   const Tag = groesse === "riesig" || groesse === "gross" ? "h1" : groesse === "klein" ? "h3" : "h2";
+
+  // Das Schlagwort zwischen zwei Linien, wie über den Portraits der Vorlage:
+  // eine Zeile von 80 % der Breite, höchstens 700 px, 27 px Luft darüber
+  // (30 auf schmalen Schirmen), darunter so viel, dass der folgende Baustein
+  // mit seinem eigenen Abstand dort beginnt, wo er in der Vorlage steht.
+  if (stil === "vorlage" && !text?.trim()) {
+    const grund = rest.hintergrund && rest.hintergrund !== "keine" ? rest.hintergrund : "karte";
+    return (
+      <section className={`${flaechenKlasse(grund)} pt-[30px] pb-[14px] min-[981px]:pt-[27px] min-[981px]:pb-[19px]`}>
+        <div className="mx-auto w-[80%] max-w-[700px]">
+          <Oberzeile text={oberzeile} mitte={ausrichtung === "mitte"} strich={oberzeileStrich} vorlage unten="mb-0" />
+        </div>
+      </section>
+    );
+  }
 
   // Ein Schlagwort ohne Überschrift darunter.
   //
@@ -1346,14 +1387,50 @@ export function Rahmenkasten({
  * und runden Ecken; Namen standen linksbündig, Bilder gab es keine. Mit der
  * Vorlage hatte das nichts zu tun.
  */
+type Person = {
+  name: string; rolle?: string; bildSchluessel?: string;
+  /** Nur in der Form der Vorlage: Grösse des Bildes in Pixeln. */
+  breite?: number; hoehe?: number;
+  /** Nur in der Form der Vorlage: eine Spalte, die frei bleibt. */
+  leer?: boolean;
+  /**
+   * Nur in der Form der Vorlage: Bild ohne Schatten. In der Vorlage haben
+   * fünf der Portraits keinen.
+   */
+  schlicht?: boolean;
+  /** Nur in der Form der Vorlage: Abstand zwischen Bild und Name in px (Vorgabe 20). */
+  abstand?: number;
+  /** Nur in der Form der Vorlage: Bild links in der Spalte statt mittig. */
+  links?: boolean;
+};
+
 export function Personenbilder({
   personen, spalten, breite, abstandOben, abstandUnten, abstand,
+  stil, jeSpalte, grund, luftOben, luftUnten, luftObenSchmal, luftUntenSchmal,
 }: Pick<Gemeinsam, "breite" | "abstandOben" | "abstandUnten" | "abstand"> & {
-  personen: { name: string; rolle?: string; bildSchluessel?: string }[];
+  personen: Person[];
   spalten: "drei" | "vier";
+  /** „vorlage": Anordnung und Masse der nachgebauten Vorlage, siehe `PersonenVorlage`. */
+  stil?: "standard" | "vorlage";
+  jeSpalte?: number;
+  grund?: Hintergrund;
+  luftOben?: number;
+  luftUnten?: number;
+  luftObenSchmal?: number;
+  luftUntenSchmal?: number;
 }) {
   const liste = personen ?? [];
   if (liste.length === 0) return null;
+
+  if (stil === "vorlage") {
+    return (
+      <PersonenVorlage
+        personen={liste} jeSpalte={jeSpalte} grund={grund} breite={breite}
+        luftOben={luftOben} luftUnten={luftUnten}
+        luftObenSchmal={luftObenSchmal} luftUntenSchmal={luftUntenSchmal}
+      />
+    );
+  }
 
   return (
     <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand)}`}>
@@ -1382,6 +1459,115 @@ export function Personenbilder({
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Portraits in der Anordnung der nachgebauten Vorlage.
+ *
+ * Dort steht jedes Bild in seiner eigenen Grösse – meist 236 × 236 px, manche
+ * schmaler oder höher, eines quer über die ganze Spalte –, mittig in einer von
+ * drei Spalten (29,666 % der Zeile, 5,5 % dazwischen). Rahmen und Schatten
+ * stecken in den Bilddateien selbst. Darunter 20 px Luft, der Name in der
+ * Serifenschrift (25 px, 20 auf dem Tablet, 18 auf dem Telefon), die
+ * Tätigkeit in 14 px.
+ *
+ * Die Vorlage baut mit Zeilen aus drei Spalten, nicht mit einem Raster: In
+ * einer Spalte können mehrere Personen untereinander stehen (`jeSpalte`), und
+ * die Spalten einer Zeile sind nicht auf gleiche Höhe gebracht. Auf schmalen
+ * Schirmen stehen die Spalten untereinander – Spalte für Spalte, also in
+ * derselben Reihenfolge wie dort. 54 px zwischen den Zeilen, auf dem Telefon
+ * 30 px zwischen Personen und 60 zwischen Zeilen. Gemessen bei 390, 768 und
+ * 1440 px.
+ */
+function PersonenVorlage({
+  personen, jeSpalte, grund, breite, luftOben, luftUnten, luftObenSchmal, luftUntenSchmal,
+}: {
+  personen: Person[]; jeSpalte?: number; grund?: Hintergrund; breite?: Breite;
+  luftOben?: number; luftUnten?: number; luftObenSchmal?: number; luftUntenSchmal?: number;
+}) {
+  const je = Math.max(1, Math.round(Number(jeSpalte ?? 1)));
+  const reihen: Person[][][] = [];
+  for (let i = 0; i < personen.length; i += 3 * je) {
+    const reihe = personen.slice(i, i + 3 * je);
+    reihen.push([0, 1, 2].map((s) => reihe.slice(s * je, (s + 1) * je)));
+  }
+  const px = (wert: number | undefined, vorgabe: number) => `${Math.max(0, Number(wert ?? vorgabe))}px`;
+  const stil = {
+    "--luft-oben": px(luftOben, 27),
+    "--luft-unten": px(luftUnten, 27),
+    "--luft-oben-schmal": px(luftObenSchmal, 30),
+    "--luft-unten-schmal": px(luftUntenSchmal, 30),
+  } as React.CSSProperties;
+
+  return (
+    <section
+      style={stil}
+      className={`${flaechenKlasse(grund ?? "karte")} pt-[var(--luft-oben-schmal)] pb-[var(--luft-unten-schmal)] min-[981px]:pt-[var(--luft-oben)] min-[981px]:pb-[var(--luft-unten)]`}
+    >
+      <div className={breitenKlasse(breite ?? "sehr_breit")}>
+        {reihen.map((reihe, r) => (
+          <div
+            key={r}
+            className={`flex flex-col gap-[30px] min-[981px]:flex-row min-[981px]:gap-[5.5%] ${
+              r > 0 ? "pt-[60px] min-[981px]:pt-[54px]" : ""
+            }`}
+          >
+            {reihe.map((leute, s) => {
+              const sichtbar = leute.filter((p) => !p.leer);
+              return (
+                // Eine leere Spalte hält auf dem Schirm ihren Platz frei, auf
+                // dem Telefon verschwindet sie – sonst stünde dort eine Lücke.
+                <div
+                  key={s}
+                  className={`min-w-0 flex-col gap-[30px] min-[981px]:w-[29.666%] ${sichtbar.length ? "flex" : "hidden min-[981px]:flex"}`}
+                >
+                  {sichtbar.map((person, i) => (
+                    <figure key={i} className="text-center">
+                      <BildInGroesse person={person} />
+                      <figcaption style={{ marginTop: `${Math.max(0, Number(person.abstand ?? 20))}px` }}>
+                        <h3 className={`font-serif font-normal text-[18px] md:text-[20px] min-[981px]:text-[25px] leading-[1.4] pb-[10px] ${UMBRUCH}`}>
+                          {person.name}
+                        </h3>
+                        {person.rolle && <p className="text-[14px] leading-[1.6] text-[#666]">{person.rolle}</p>}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Ein Portrait in seiner eigenen Grösse, höchstens so breit wie die Spalte. */
+function BildInGroesse({ person }: { person: Person }) {
+  const bild = useSiteImage(person.bildSchluessel ?? "");
+  const w = Number(person.breite) || 236;
+  const h = Number(person.hoehe) || 236;
+  // Der Schatten der Vorlage: 6 px nach rechts unten, 18 px weich, 30 % Schwarz.
+  const schatten = person.schlicht ? "" : "shadow-[6px_6px_18px_0_rgba(0,0,0,0.3)]";
+  if (bild.src) {
+    return (
+      <img
+        src={bild.src} alt={bild.alt || person.name} width={w} height={h} loading="lazy"
+        className={`${person.links ? "min-[981px]:ml-0 mx-auto" : "mx-auto"} block h-auto max-w-full ${schatten}`}
+      />
+    );
+  }
+  return (
+    <div
+      role="img"
+      aria-label={`Platzhalter für ein Bild: ${person.name}`}
+      className={`${person.links ? "min-[981px]:ml-0 mx-auto" : "mx-auto"} flex max-w-full flex-col items-center justify-center gap-1 border border-dashed border-muted-foreground/30 bg-muted/60 text-xs text-muted-foreground ${schatten}`}
+      style={{ width: w, aspectRatio: `${w} / ${h}` }}
+    >
+      <ImageOff className="h-4 w-4 opacity-40" aria-hidden />
+      {person.name}
+    </div>
   );
 }
 

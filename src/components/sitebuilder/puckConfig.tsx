@@ -105,6 +105,8 @@ export type Bausteine = {
     text: string;
     groesse: "riesig" | "gross" | "mittel" | "klein";
     ausrichtung: "links" | "mitte";
+    /** „vorlage": Schlagwort allein in der Form einer nachgebauten Vorlage. */
+    stil?: "standard" | "vorlage";
   } & typeof gemeinsameVorgaben;
   Textabschnitt: {
     inhalt: unknown;
@@ -122,6 +124,8 @@ export type Bausteine = {
     groesse?: "riesig" | "gross" | "mittel" | "klein";
     /** „vorlage": Masse einer nachgebauten Vorlage. Ohne Angabe wie bisher. */
     stil?: "standard" | "vorlage";
+    /** Nur mit „vorlage": Höhe der Schlagwortzeile in px (Vorgabe 23). */
+    schlagwortHoehe?: number;
   } & typeof gemeinsameVorgaben;
   FotoMitKarte: {
     bildSchluessel: string;
@@ -186,11 +190,23 @@ export type Bausteine = {
     abstandUnten: Abstand;
   };
   Personenbilder: {
-    personen: { name: string; rolle?: string; bildSchluessel?: string }[];
+    personen: {
+      name: string; rolle?: string; bildSchluessel?: string;
+      breite?: number; hoehe?: number; leer?: boolean; schlicht?: boolean;
+      abstand?: number; links?: boolean;
+    }[];
     spalten: "drei" | "vier";
     breite: Breite;
     abstandOben: Abstand;
     abstandUnten: Abstand;
+    /** „vorlage": Anordnung einer nachgebauten Vorlage. Ohne Angabe wie bisher. */
+    stil?: "standard" | "vorlage";
+    jeSpalte?: number;
+    grund?: Hintergrund;
+    luftOben?: number;
+    luftUnten?: number;
+    luftObenSchmal?: number;
+    luftUntenSchmal?: number;
   };
   ZweiSpalten: {
     inhalt: unknown;
@@ -372,6 +388,13 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Mittig", value: "mitte" },
           ],
         },
+        stil: {
+          type: "radio", label: "Form (nur Schlagwort ohne Text)",
+          options: [
+            { label: "Eigene", value: "standard" },
+            { label: "Wie die Vorlage", value: "vorlage" },
+          ],
+        },
         ...gemeinsameFelder,
       },
       defaultProps: {
@@ -426,6 +449,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
             { label: "Wie die Vorlage", value: "vorlage" },
           ],
         },
+        schlagwortHoehe: { type: "number", label: "Höhe der Schlagwortzeile in px (Form der Vorlage)", min: 0, max: 80 },
         ueberschrift: { type: "text", label: "Überschrift" },
         text: textFeld,
         groesse: {
@@ -692,9 +716,46 @@ export const puckConfig: Config<{ components: Bausteine }> = {
                 type: "select" as const, label: "Bild",
                 options: [{ label: "Noch kein Bild", value: "" }, ...bilder],
               },
+              breite: { type: "number" as const, label: "Bildbreite in px (Form der Vorlage)", min: 0 },
+              hoehe: { type: "number" as const, label: "Bildhöhe in px (Form der Vorlage)", min: 0 },
+              schlicht: {
+                type: "radio" as const, label: "Schatten (Form der Vorlage)",
+                options: [
+                  { label: "Mit", value: false },
+                  { label: "Ohne", value: true },
+                ],
+              },
+              abstand: { type: "number" as const, label: "Abstand Bild–Name in px (Form der Vorlage)", min: 0, max: 100 },
+              links: {
+                type: "radio" as const, label: "Bild in der Spalte (Form der Vorlage)",
+                options: [
+                  { label: "Mittig", value: false },
+                  { label: "Links", value: true },
+                ],
+              },
+              leer: {
+                type: "radio" as const, label: "Spalte freilassen (Form der Vorlage)",
+                options: [
+                  { label: "Nein", value: false },
+                  { label: "Ja", value: true },
+                ],
+              },
             },
-            getItemSummary: (item: { name?: string }) => item?.name || "Person",
+            getItemSummary: (item: { name?: string; leer?: boolean }) => item?.leer ? "(frei)" : item?.name || "Person",
           },
+          stil: {
+            type: "radio" as const, label: "Form",
+            options: [
+              { label: "Eigene", value: "standard" },
+              { label: "Wie die Vorlage", value: "vorlage" },
+            ],
+          },
+          jeSpalte: { type: "number" as const, label: "Personen je Spalte (Form der Vorlage)", min: 1, max: 5 },
+          grund: { type: "select" as const, label: "Grund (Form der Vorlage)", options: HINTERGRUENDE },
+          luftOben: { type: "number" as const, label: "Luft oben in px (Form der Vorlage)", min: 0, max: 300 },
+          luftUnten: { type: "number" as const, label: "Luft unten in px (Form der Vorlage)", min: 0, max: 300 },
+          luftObenSchmal: { type: "number" as const, label: "Luft oben auf dem Telefon (px)", min: 0, max: 300 },
+          luftUntenSchmal: { type: "number" as const, label: "Luft unten auf dem Telefon (px)", min: 0, max: 300 },
           spalten: {
             type: "radio" as const, label: "Nebeneinander",
             options: [
