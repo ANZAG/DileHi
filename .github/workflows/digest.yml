@@ -2,7 +2,8 @@ name: Tageszusammenfassung
 
 # Ruft die Edge Function auf, die ungelesene Benachrichtigungen als eine Mail
 # verschickt. Ein Zeitplandienst in der Datenbank (pg_cron) wäre naheliegender,
-# lässt sich in der Lovable-Cloud aber nicht einrichten – deshalb hier.
+# gehört aber nicht zu jedem Tarif und jeder Installation – hier läuft es
+# überall gleich.
 #
 # Einzurichten sind ZWEI Stellen, und das wird leicht verwechselt:
 #
@@ -13,11 +14,11 @@ name: Tageszusammenfassung
 #                          oeffentlich und damit kein Geheimnis; sie darf auch
 #                          als "Variable" statt als "Secret" angelegt werden.
 #
-#   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
+#   2. Bei Supabase (Dashboard → Edge Functions → Secrets)
 #        DIGEST_SECRET     derselbe Wert wie oben
 #
-# Namen mit dem Praefix SUPABASE_ sind in Lovable reserviert – deshalb heisst
-# die Adresse hier FUNCTIONS_URL.
+# Namen mit dem Praefix SUPABASE_ sind bei den Secrets der Edge Functions
+# reserviert – deshalb heisst die Adresse hier FUNCTIONS_URL.
 
 on:
   schedule:

@@ -3,8 +3,8 @@ name: Datenbank-Sicherung
 # Der Tarif enthält keine Backups. Diese Aktion holt täglich einen Abzug,
 # verschlüsselt ihn und legt ihn als Artefakt ab.
 #
-# Warum nicht pg_dump? In der Lovable-Cloud gibt es weder eine
-# Verbindungszeichenfolge noch das Datenbank-Passwort. Der Abzug entsteht
+# Warum nicht pg_dump? Dafuer braeuchte GitHub das Datenbank-Passwort, und das
+# soll nirgends ausserhalb von Supabase liegen. Der Abzug entsteht
 # deshalb INNEN – in der Edge Function `backup-export`, die den
 # Service-Role-Schlüssel ohnehin in ihrer Umgebung hat. Herausgegeben werden
 # muss er dafür an niemanden.
@@ -22,7 +22,7 @@ name: Datenbank-Sicherung
 #                            (Passwortmanager).
 #        FUNCTIONS_URL       optional, nur wenn das Backend woanders liegt.
 #
-#   2. Beim Backend (in Lovable unter den Secrets der Edge Functions)
+#   2. Bei Supabase (Dashboard → Edge Functions → Secrets)
 #        BACKUP_TOKEN       derselbe Wert wie oben
 #
 # Bewusst ein anderes Geheimnis als DIGEST_SECRET: Diese Funktion gibt den
