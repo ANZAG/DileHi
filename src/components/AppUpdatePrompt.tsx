@@ -44,8 +44,18 @@ export default function AppUpdatePrompt() {
       .catch(() => undefined);
 
     // Nach dem Wechsel einmal neu laden, damit alle Teile zusammenpassen.
+    //
+    // Aber nicht beim ersten Besuch: Da übernimmt der Worker die Seite zum
+    // ersten Mal (clients.claim), und auch das meldet sich als Wechsel. Die
+    // Seite kam dann ohnehin frisch vom Server – bisher lud jeder
+    // Erstbesucher sie trotzdem gleich ein zweites Mal.
+    let hatteSteuerung = !!navigator.serviceWorker.controller;
     let reloading = false;
     const onChange = () => {
+      if (!hatteSteuerung) {
+        hatteSteuerung = true;
+        return;
+      }
       if (reloading) return;
       reloading = true;
       window.location.reload();
