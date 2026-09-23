@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { vorabzug } from "@/lib/vorabzug";
 
 export interface MenuEintrag {
   path: string;
@@ -64,6 +65,39 @@ const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
 };
 
 /**
+ * Aus den Zeilen der Tabelle das Menü bauen – geteilt von der Abfrage und
+ * dem Stand vom Bauen (siehe `vorabzug`).
+ */
+function menueBauen(zeilen: Zeile[], seiten: Map<string, string>): Record<MenuBereich, MenuEintrag[]> {
+  const zuEintrag = (z: Zeile): MenuEintrag | null => {
+    const path = z.page_id ? seiten.get(z.page_id) : z.href;
+    // Ein Menüpunkt ohne Ziel ist ein Link ins Leere – lieber weglassen.
+    if (!path) return null;
+    return { path, label: z.label, opensNew: z.opens_new };
+  };
+
+  const bauen = (fuer: MenuBereich): MenuEintrag[] => {
+    // Steht die Spalte noch nicht in der Datenbank (Migration nicht
+    // eingespielt), gilt alles als Kopfzeile – wie vorher.
+    const eigene = zeilen.filter((z) => (z.area ?? "header") === fuer);
+    return eigene
+      .filter((z) => !z.parent_id)
+      .map((z) => {
+        const eintrag = zuEintrag(z);
+        if (!eintrag) return null;
+        const kinder = eigene
+          .filter((k) => k.parent_id === z.id)
+          .map(zuEintrag)
+          .filter((k): k is MenuEintrag => k !== null);
+        return kinder.length > 0 ? { ...eintrag, children: kinder } : eintrag;
+      })
+      .filter((e): e is MenuEintrag => e !== null);
+  };
+
+  return { header: bauen("header"), footer_legal: bauen("footer_legal") };
+}
+
+/**
  * Das Menü aus der Datenbank.
  *
  * Bisher stand es als Array im Layout – für eine Installation, die ein anderer
@@ -113,33 +147,16 @@ export function useSiteMenu(bereich: MenuBereich = "header"): MenuEintrag[] {
         for (const p of pages ?? []) seiten.set(p.id, `/${p.slug}`);
       }
 
-      const zuEintrag = (z: Zeile): MenuEintrag | null => {
-        const path = z.page_id ? seiten.get(z.page_id) : z.href;
-        // Ein Menüpunkt ohne Ziel ist ein Link ins Leere – lieber weglassen.
-        if (!path) return null;
-        return { path, label: z.label, opensNew: z.opens_new };
-      };
-
-      const bauen = (fuer: MenuBereich): MenuEintrag[] => {
-        // Steht die Spalte noch nicht in der Datenbank (Migration nicht
-        // eingespielt), gilt alles als Kopfzeile – wie vorher.
-        const eigene = zeilen.filter((z) => (z.area ?? "header") === fuer);
-        return eigene
-          .filter((z) => !z.parent_id)
-          .map((z) => {
-            const eintrag = zuEintrag(z);
-            if (!eintrag) return null;
-            const kinder = eigene
-              .filter((k) => k.parent_id === z.id)
-              .map(zuEintrag)
-              .filter((k): k is MenuEintrag => k !== null);
-            return kinder.length > 0 ? { ...eintrag, children: kinder } : eintrag;
-          })
-          .filter((e): e is MenuEintrag => e !== null);
-      };
-
-      return { header: bauen("header"), footer_legal: bauen("footer_legal") };
+      return menueBauen(zeilen, seiten);
     },
+    // Der Stand vom Bauen, damit das Menü nicht erst als Notnagel erscheint.
+    initialData: () => {
+      const v = vorabzug()?.menue;
+      if (!v || !Array.isArray(v.zeilen)) return undefined;
+      const zeilen = (v.zeilen as Zeile[]).filter((z) => z.is_visible);
+      return menueBauen(zeilen, new Map(Object.entries(v.seiten ?? {})));
+    },
+    initialDataUpdatedAt: 0,
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

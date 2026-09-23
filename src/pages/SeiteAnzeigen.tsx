@@ -102,8 +102,9 @@ export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
 
   if (isLoading) {
     // Bewusst leer statt „Lädt": Ein kurzes Aufblitzen von Text und dann etwas
-    // anderes wirkt kaputter als ein Moment Ruhe.
-    return <div className="min-h-[50vh]" />;
+    // anderes wirkt kaputter als ein Moment Ruhe. Bildschirmhoch, damit der
+    // Fuss unten bleibt und nicht erst mitten im Bild steht und dann springt.
+    return <div className="min-h-screen" />;
   }
 
   // Unveröffentlichtes ist über die Policy für Besucher ohnehin nicht sichtbar;

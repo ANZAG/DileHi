@@ -135,7 +135,7 @@ const PageLoader = () => {
 
   if (!langsam) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         <span className="sr-only">Seite wird geladen …</span>
       </div>
@@ -143,7 +143,7 @@ const PageLoader = () => {
   }
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
       <p className="text-sm text-muted-foreground max-w-md">
         Das dauert länger als gewöhnlich. Meist hilft es, den Zwischenspeicher
         zu leeren und neu zu laden.

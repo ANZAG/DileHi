@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
+import { vorabzug } from "@/lib/vorabzug";
 import { useQuery } from "@tanstack/react-query";
 import { woerter, type Words } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,6 +128,13 @@ export function useBranding() {
       const row = (data as Branding[] | null)?.[0];
       return row ? { ...VORGABE, ...row } : VORGABE;
     },
+    // Der Stand vom Bauen, damit die Seite nicht mit den Vorgaben beginnt.
+    // Als veraltet markiert: Abgefragt wird trotzdem sofort.
+    initialData: () => {
+      const b = vorabzug()?.branding;
+      return b ? ({ ...VORGABE, ...b } as Branding) : undefined;
+    },
+    initialDataUpdatedAt: 0,
     // Ändert sich praktisch nie und wird auf jeder Seite gebraucht.
     staleTime: 60 * 60 * 1000,
     retry: 1,
@@ -164,7 +172,9 @@ export function useBrandingAnwenden() {
   const branding = useBranding();
   const { color_primary, color_dark, color_surface, color_muted, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
 
-  useEffect(() => {
+  // `useLayoutEffect`: vor dem ersten Zeichnen, sonst stünde die Seite einen
+  // Augenblick in den Vorgabefarben da.
+  useLayoutEffect(() => {
     const wurzel = document.documentElement;
     const primaer = hexToHsl(color_primary);
 
@@ -226,7 +236,7 @@ export function useBrandingAnwenden() {
     }
   }, [color_primary, color_dark, color_surface, color_muted]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     loadFonts([font_headings, font_body]);
     const wurzel = document.documentElement;
     // Geladene Schriften in Anführungszeichen, Systemschriften mit ihrer
