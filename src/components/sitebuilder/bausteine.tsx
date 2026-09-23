@@ -1,7 +1,6 @@
 import { Fragment } from "react";
 import DOMPurify from "dompurify";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -13,6 +12,7 @@ import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
 import { bildplaetzeAufloesen } from "./bildplaetze";
+import { EINBLENDEN, useEinblenden } from "@/lib/einblenden";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
 import EpochSources from "@/components/epochs/EpochSources";
 import ImageCredits from "@/components/epochs/ImageCredits";
@@ -147,7 +147,7 @@ export function Titelbild({
         <div aria-hidden className={`absolute inset-0 ${FARBGRUND}`} />
       )}
       <div className="relative z-10 container pb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <div className={EINBLENDEN}>
           <h1 className={`font-serif text-3xl md:text-5xl font-bold mb-2 ${textKlasse(farbeUeberschrift)}`}>
             {ueberschrift}
           </h1>
@@ -156,7 +156,7 @@ export function Titelbild({
             // Vereinsfarbe bleibt die Voreinstellung.
             <p className={`text-lg font-medium ${textKlasse(farbeUnterzeile ?? "akzent")}`}>{unterzeile}</p>
           )}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -317,12 +317,7 @@ export function Seitenkopf({
   }
   const mitte = ausrichtung === "mitte";
   const inneres = (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className={mitte ? "text-center" : ""}
-    >
+    <div className={`${EINBLENDEN} ${mitte ? "text-center" : ""}`}>
       <Oberzeile text={oberzeile} mitte={mitte} strich={oberzeileStrich} />
       <h1 className={`font-serif ${SCHRIFTGRAD[groesse ?? "gross"]} ${text ? "mb-4" : ""} ${textKlasse(textfarbe)}`}>
         {ueberschrift}
@@ -333,7 +328,7 @@ export function Seitenkopf({
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(text) }}
         />
       )}
-    </motion.div>
+    </div>
   );
 
   // Ueber die ganze Breite: Der Grund liegt am Abschnitt, der Text bleibt in
@@ -1574,6 +1569,32 @@ function BildInGroesse({ person }: { person: Person }) {
   );
 }
 
+// ── Einblenden ──────────────────────────────────────────────────────────────
+
+/** Ein Abschnitt, der beim Hereinscrollen sanft erscheint. */
+function Einblenden({ children }: { children: React.ReactNode }) {
+  const [ref, klasse] = useEinblenden<HTMLDivElement>();
+  return <div ref={ref} className={klasse}>{children}</div>;
+}
+
+/** Eine Kachel der Galerie, gestaffelt eingeblendet. */
+function GalerieKachel({ children, verzoegerung, onClick }: {
+  children: React.ReactNode; verzoegerung: number; onClick: () => void;
+}) {
+  const [ref, klasse] = useEinblenden<HTMLButtonElement>();
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      style={{ animationDelay: `${verzoegerung}ms` }}
+      className={`aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer ${klasse}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ── Karten ──────────────────────────────────────────────────────────────────
 
 export function Karten({
@@ -1743,15 +1764,10 @@ export function Galerie({
       ) : (
         <div className={`grid ${raster} gap-3`}>
           {bilder.map((b, i) => (
-            <motion.button
+            <GalerieKachel
               key={b.src}
-              type="button"
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
+              verzoegerung={i * 50}
               onClick={() => setLightbox(i)}
-              className="aspect-[4/3] rounded-lg overflow-hidden group cursor-pointer"
             >
               <img
                 src={b.src}
@@ -1759,7 +1775,7 @@ export function Galerie({
                 loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-            </motion.button>
+            </GalerieKachel>
           ))}
         </div>
       )}
@@ -1979,12 +1995,7 @@ export function Termine({
 
   return (
     <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "weit")}`}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
+      <Einblenden>
         {ueberschrift && (
           <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-2 text-center">
             {ueberschrift}
@@ -2039,7 +2050,7 @@ export function Termine({
             </Fragment>
           ))}
         </div>
-      </motion.div>
+      </Einblenden>
     </section>
   );
 }

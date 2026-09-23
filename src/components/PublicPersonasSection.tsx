@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { useEinblenden } from "@/lib/einblenden";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PublicPersona {
@@ -65,6 +65,8 @@ export default function PublicPersonasSection({
     staleTime: 1000 * 60 * 10,
   });
 
+  // Vor dem frühen Rückgabewert: Hooks stehen immer in derselben Reihenfolge.
+  const [einblenden, einblendKlasse] = useEinblenden<HTMLDivElement>();
   const gefiltert = kategorie ? personas.filter((p) => p.period === kategorie) : personas;
 
   // Nichts freigegeben, nichts anzeigen – kein leerer Abschnitt.
@@ -81,11 +83,7 @@ export default function PublicPersonasSection({
 
   return (
     <section className={rahmen ?? "container mx-auto py-16 md:py-24 max-w-4xl"}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-      >
+      <div ref={einblenden} className={einblendKlasse}>
         {ueberschrift && (
           <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2">{ueberschrift}</h2>
         )}
@@ -130,7 +128,7 @@ export default function PublicPersonasSection({
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

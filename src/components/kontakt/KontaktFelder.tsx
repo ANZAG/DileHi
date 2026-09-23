@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -81,17 +80,13 @@ export default function KontaktFelder({ kompakt = false }: { kompakt?: boolean }
 
   if (sent) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-8"
-      >
+      <div className="text-center py-8 animate-in fade-in zoom-in-90 duration-300 motion-reduce:animate-none">
         <CheckCircle2 size={48} className="text-primary mx-auto mb-4" />
         <h2 className="font-serif text-2xl font-bold mb-2">Nachricht gesendet!</h2>
         <p className="text-muted-foreground">
           Vielen Dank für deine Nachricht. Wir melden uns so schnell wie möglich bei dir.
         </p>
-      </motion.div>
+      </div>
     );
   }
 

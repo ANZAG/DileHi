@@ -40,7 +40,13 @@ interface Loch {
 const RAND = 8;
 const KARTE_BREIT = 384;
 
-export default function OnboardingTour() {
+export default function OnboardingTour({ ersterAufruf }: {
+  /**
+   * Der Aufruf, der die Führung geladen hat (siehe TourBeiBedarf). Er kam,
+   * bevor diese Komponente zuhören konnte, und wird deshalb nachgereicht.
+   */
+  ersterAufruf?: { tour?: string; key?: string } | null;
+} = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { schritteFuer, merken } = useOnboarding();
@@ -71,6 +77,14 @@ export default function OnboardingTour() {
     window.addEventListener("start-onboarding", starten);
     return () => window.removeEventListener("start-onboarding", starten);
   }, [schritteFuer, zeigen]);
+
+  // Den Aufruf nachholen, mit dem die Führung geladen wurde – einmal.
+  const [nachgeholt, setNachgeholt] = useState(false);
+  useEffect(() => {
+    if (nachgeholt || !ersterAufruf) return;
+    setNachgeholt(true);
+    zeigen(schritteFuer(ersterAufruf.tour ?? "start"), ersterAufruf.key);
+  }, [nachgeholt, ersterAufruf, schritteFuer, zeigen]);
 
   const aktuell = liste[index] ?? null;
   const anker = aktuell?.anchor ?? null;

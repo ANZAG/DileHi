@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import TourBeiBedarf from "@/components/onboarding/TourBeiBedarf";
 import NotificationBell from "@/components/NotificationBell";
 import { useBrandingAnwenden } from "@/hooks/useBranding";
 import { aufgeklappt, useSiteMenu, type MenuEintrag } from "@/hooks/useSiteMenu";
@@ -129,7 +129,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       <main className="flex-1">{children}</main>
-      <OnboardingTour />
+      <TourBeiBedarf />
 
       <footer className="border-t bg-card">
         <div className="container py-8 md:py-12">

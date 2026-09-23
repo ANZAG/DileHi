@@ -1,7 +1,6 @@
 import DOMPurify from "dompurify";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Calendar, Users, MapPin, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSiteImage } from "@/hooks/useSiteImage";
@@ -85,12 +84,7 @@ export function Willkommen({
         <div aria-hidden className={`absolute inset-0 ${FARBGRUND}`} />
       )}
       <div className="relative z-10 container flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center max-w-2xl"
-        >
+        <div className="text-center max-w-2xl animate-in fade-in slide-in-from-bottom-[30px] duration-[800ms] fill-mode-both motion-reduce:animate-none">
           <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg leading-tight">
             {titel}
           </h1>
@@ -119,7 +113,7 @@ export function Willkommen({
               )}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
