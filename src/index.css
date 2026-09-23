@@ -139,3 +139,7 @@
 /* Die Leiste bricht um, statt Knöpfe rechts abzuschneiden: Das Seitenfeld ist
    schmal, und die Zusatzknöpfe stehen hinten. */
 [data-puck-rte-menu] { flex-wrap: wrap; row-gap: 4px; }
+
+/* Bausteinleiste: Pucks eigener Rahmen um den Namen entfällt, die Karte
+   darum herum ist der Rahmen. */
+.baustein-karte [class*="DrawerItem-draggable"] { border: 0; background: transparent; }

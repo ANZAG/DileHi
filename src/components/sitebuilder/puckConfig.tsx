@@ -305,14 +305,19 @@ export type Bausteine = {
 };
 
 export const puckConfig: Config<{ components: Bausteine }> = {
+  // Nach dem geordnet, wofür man etwas sucht – nicht danach, wie es gebaut
+  // ist. Die Bausteine für nachgebaute Vorlagen stehen bei ihresgleichen;
+  // vorher landeten sie ohne Gruppe ganz unten.
   categories: {
-    startseite: { title: "Große Abschnitte", components: ["Willkommen", "Eckdaten", "Zeitstrahl", "Aktionskaesten"] },
+    anfang: { title: "Seitenanfang", components: ["Seitenkopf", "Titelbild", "FotoNebenKopf", "Willkommen"] },
     text: {
       title: "Text",
-      components: ["Seitenkopf", "Ueberschrift", "Textabschnitt", "ZweiSpalten", "Kennzahlen", "Hinweiskasten"],
+      components: ["Ueberschrift", "Textabschnitt", "TextMitEinzug", "Rahmenkasten", "Hinweiskasten", "Kennzahlen"],
     },
-    bilder: { title: "Bilder", components: ["Titelbild", "Einzelbild", "Galerie", "Bildnachweise"] },
-    navigation: { title: "Verweise", components: ["Karten", "Knopf", "Logos"] },
+    bildUndText: { title: "Bild und Text", components: ["ZweiSpalten", "BildMitKasten", "FotoMitKarte"] },
+    bilder: { title: "Bilder", components: ["Einzelbild", "Galerie", "Personenbilder", "Bildnachweise", "Logos"] },
+    startseite: { title: "Für die Startseite", components: ["Eckdaten", "Zeitstrahl", "Aktionskaesten"] },
+    navigation: { title: "Verweise", components: ["Karten", "Knopf"] },
     vereinsdaten: {
       title: "Aus dem Mitgliederbereich",
       components: [

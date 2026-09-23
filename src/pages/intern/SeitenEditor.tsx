@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
 import { WOERTERBUCH } from "@/components/sitebuilder/woerterbuch";
+import { BausteinKarte } from "@/components/sitebuilder/BausteinKarte";
 import {
   fetchPageById, LEERE_SEITE, publish, saveDraft, unpublish,
 } from "@/components/sitebuilder/api";
@@ -29,6 +30,13 @@ import "@puckeditor/core/puck.css";
  */
 /** Zurück dorthin, wo man hergekommen ist: zu den Seiten, nicht zu den Mitgliedern. */
 const ZURUECK = "/intern/verwaltung?reiter=sitepages";
+
+/**
+ * In der Bausteinleiste zu jedem Baustein eine Skizze und ein Satz, wofür er
+ * gut ist – der Name allein sagt das nicht. Als Konstante, damit Puck die
+ * Leiste nicht bei jeder Eingabe neu aufbaut.
+ */
+const UEBERSCHREIBUNGEN = { drawerItem: BausteinKarte };
 
 export default function SeitenEditor() {
   const { pageId } = useParams<{ pageId: string }>();
@@ -110,6 +118,7 @@ export default function SeitenEditor() {
         config={configFuer(darfLayout)}
         data={stand}
         dictionary={WOERTERBUCH}
+        overrides={UEBERSCHREIBUNGEN}
         permissions={rechteFuer(darfLayout)}
         headerTitle={page.title}
         headerPath={`/${page.slug}`}
