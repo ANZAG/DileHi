@@ -84,7 +84,7 @@ export function Willkommen({
         <div aria-hidden className={`absolute inset-0 ${FARBGRUND}`} />
       )}
       <div className="relative z-10 container flex items-center justify-center px-4">
-        <div className="text-center max-w-2xl animate-in fade-in slide-in-from-bottom-[30px] duration-[800ms] fill-mode-both motion-reduce:animate-none">
+        <div className="text-center max-w-2xl animate-in fade-in slide-in-from-bottom-[30px] [animation-duration:800ms] fill-mode-both motion-reduce:animate-none">
           <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg leading-tight">
             {titel}
           </h1>

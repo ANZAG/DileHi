@@ -7,6 +7,12 @@
 /einbindung/*
   Access-Control-Allow-Origin: *
 
+# Grundschutz fuer jede Antwort, Begruendung in der .htaccess.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+
 # index.html nie zwischenspeichern, damit ein neuer Stand sofort greift.
 /
   Cache-Control: no-cache, no-store, must-revalidate

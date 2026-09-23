@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
  * Wer „weniger Bewegung" eingestellt hat, sieht alles sofort.
  */
 export const EINBLENDEN =
-  "animate-in fade-in slide-in-from-bottom-5 duration-[600ms] fill-mode-both motion-reduce:animate-none";
+  "animate-in fade-in slide-in-from-bottom-5 [animation-duration:600ms] fill-mode-both motion-reduce:animate-none";
 
 /**
  * Einblenden, sobald ein Element ins Bild kommt – einmal.

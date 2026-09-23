@@ -43,4 +43,17 @@
   # durch diese Weiterleitung. Ohne die Freigabe hier bricht der Browser
   # schon an ihr ab, bevor er die Funktion erreicht.
   Header always set Access-Control-Allow-Origin "*" env=EINBINDUNG
+
+  # Grundschutz fuer jede Antwort der Seite:
+  # - nosniff: Der Browser nimmt den angegebenen Dateityp ernst und haelt ein
+  #   hochgeladenes Bild nicht fuer ein Skript.
+  # - SAMEORIGIN: Fremde Seiten koennen den Mitgliederbereich nicht unsichtbar
+  #   einrahmen und Klicks darauf umlenken. Der Seitenbaukasten rahmt die
+  #   Vorschau auf derselben Adresse ein, das bleibt erlaubt. Die Einbindungen
+  #   fuer fremde Seiten kommen von den Edge Functions, nicht von hier.
+  # - Referrer: Fremde Seiten erfahren beim Klick auf einen Link nur die
+  #   Adresse der Seite, nicht den Pfad im Mitgliederbereich.
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
