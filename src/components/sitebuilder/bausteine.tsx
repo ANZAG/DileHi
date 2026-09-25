@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
+import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
 import { bildplaetzeAufloesen } from "./bildplaetze";
@@ -1967,12 +1968,12 @@ export function Termine({
         .eq("is_public", true)
         .lte("start_date", `${jahr + 1}-12-31`);
 
-      // Ohne Rückschau nur, was noch kommt – das ist der Normalfall. Mit
+      // Ohne Rückschau nur, was noch kommt oder noch läuft – das ist der Normalfall. Mit
       // Rückschau alles ab dem gewählten Jahr, absteigend, damit das Nächste
       // oben steht und die Archivjahre darunter.
       const gefiltert = zurueck > 0
         ? abfrage.gte("start_date", `${jahr - zurueck}-01-01`)
-        : abfrage.gte("start_date", new Date().toISOString());
+        : abfrage.or(nochAktuellFilter());
 
       const { data, error } = await gefiltert.order("start_date", { ascending: true });
       if (error) throw error;

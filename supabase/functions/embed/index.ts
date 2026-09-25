@@ -59,17 +59,40 @@ interface Item {
   image?: string;
 }
 
+/**
+ * Mitternacht des heutigen Tages in der Vereinszeitzone, als UTC-Zeitpunkt.
+ * Die Funktion läuft in UTC; ein Termin soll aber bis 23:59 Uhr Ortszeit
+ * seines letzten Tages angezeigt werden, nicht bis zum Beginn.
+ */
+const heuteBeginn = (): string => {
+  const tz = Deno.env.get("CALENDAR_TIMEZONE") || "Europe/Berlin";
+  const jetzt = new Date();
+  const teile = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hourCycle: "h23",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    }).formatToParts(jetzt).map((t) => [t.type, t.value]),
+  );
+  // Abstand der Zone zu UTC in diesem Augenblick, dann auf 00:00 Ortszeit.
+  const alsUtc = Date.UTC(+teile.year, +teile.month - 1, +teile.day, +teile.hour, +teile.minute, +teile.second);
+  const versatz = alsUtc - Math.floor(jetzt.getTime() / 1000) * 1000;
+  return new Date(Date.UTC(+teile.year, +teile.month - 1, +teile.day) - versatz).toISOString();
+};
+
 async function loadItems(
   supabase: SupabaseClient,
   resource: Resource,
   limit: number
 ): Promise<Item[]> {
   if (resource === "events") {
+    const grenze = heuteBeginn();
     const { data } = await supabase
       .from("events")
       .select("title, description, location, start_date, end_date, all_day")
       .eq("is_public", true)
-      .gte("start_date", new Date().toISOString())
+      // Was noch läuft, bleibt drin: maßgeblich ist das Ende, ohne Ende der Beginn.
+      .or(`end_date.gte.${grenze},and(end_date.is.null,start_date.gte.${grenze})`)
       .order("start_date", { ascending: true })
       .limit(limit);
 

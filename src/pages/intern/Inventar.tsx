@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowLeft, CalendarDays, Loader2, MapPin, Package, Pencil, Plus, Trash2, Undo2, User,
 } from "lucide-react";
+import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,9 +48,8 @@ export default function Inventar() {
   const { data: termine = [] } = useQuery({
     queryKey: ["inventar", "termine"],
     queryFn: async (): Promise<Termin[]> => {
-      const gestern = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data } = await db.from("events").select("id, title, start_date, end_date")
-        .gte("start_date", gestern).order("start_date").limit(50);
+        .or(nochAktuellFilter()).order("start_date").limit(50);
       return (data ?? []) as Termin[];
     },
   });

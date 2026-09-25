@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Event, Attendee } from "./types";
 import Linkify from "./Linkify";
 import EventBody from "./EventBody";
+import { istNochAktuell } from "./nochAktuell";
 
 interface Props {
   filteredEvents: Event[];
@@ -49,7 +50,7 @@ export default function UpcomingEvents({
   const now = new Date();
   const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
   const upcoming = filteredEvents.filter(
-    (e) => new Date(e.start_date) >= now && new Date(e.start_date) <= yearEnd
+    (e) => istNochAktuell(e, now) && new Date(e.start_date) <= yearEnd
   );
   const showInitial = 5;
 

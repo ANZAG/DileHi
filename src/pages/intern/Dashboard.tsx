@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -47,13 +48,11 @@ const Dashboard = () => {
     queryKey: ["my-organized-events", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const todayIso = new Date().toISOString().slice(0, 10);
-
       // Nur Events mit existierendem event_form (inner join via select)
       const query = supabase
         .from("events")
         .select("id, title, start_date, end_date, created_by, event_forms!inner(id)")
-        .gte("start_date", todayIso)
+        .or(nochAktuellFilter())
         .order("start_date", { ascending: true })
         .limit(10);
 
