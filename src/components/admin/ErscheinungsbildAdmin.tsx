@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronRight, ImagePlus, Loader2, Save, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -295,6 +296,24 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
           </div>
           <Feld label="E-Mail" wert={entwurf.org_email ?? ""} setze={(v) => setze({ org_email: v })} />
           <Feld label="Telefon" wert={entwurf.org_phone ?? ""} setze={(v) => setze({ org_phone: v })} />
+        </div>
+        {/* Gespeichert wurde das Feld schon immer (FELDER), nur zeigte die
+            Maske es nicht. Ohne Eintrag baut die Seite einen Satz aus Name,
+            Ort und Untertitel (src/lib/auffindbarkeit.mjs). */}
+        <div className="mt-3">
+          <Label className="text-sm" htmlFor="seo-beschreibung">Beschreibung für Suchmaschinen</Label>
+          <Textarea
+            id="seo-beschreibung"
+            rows={2}
+            value={entwurf.seo_description ?? ""}
+            onChange={(e) => setze({ seo_description: e.target.value || null })}
+            placeholder="Ein bis zwei Sätze: wer ihr seid, wo, und was ihr macht."
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {(entwurf.seo_description ?? "").trim().length} Zeichen, gut sind bis etwa 155. Steht in
+            Trefferlisten, in der llms.txt für Sprachmodelle und überall dort, wo eine Seite keine
+            eigene Beschreibung hat. Im fertigen HTML der Seiten erst nach dem nächsten Bauen.
+          </p>
         </div>
       </Abschnitt>
 
