@@ -3,6 +3,9 @@ Allow: /
 Disallow: /intern/
 Disallow: /login
 Disallow: /passwort-zuruecksetzen
+# Die fertigen Seiten werden unter ihrer eigenen Adresse ausgeliefert
+# (/verein, nicht /_vorab/verein.html). Direkt abgerufen waeren sie Doppel.
+Disallow: /_vorab/
 
 # Die Sitemap entsteht aus der Datenbank, nicht aus einer Datei: Sie enthaelt
 # genau die Seiten, die gerade veroeffentlicht sind, und die Adresse aus den

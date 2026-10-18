@@ -17,7 +17,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
  * und sonst nichts.
  *
  * Erreichbar unter /llms.txt; die Weiterleitung steht in .htaccess und
- * _redirects, wie bei der Sitemap.
+ * _redirects, wie bei der Sitemap. Deshalb volle Adressen in den Verweisen.
  */
 
 const KOPF = {
@@ -61,19 +61,25 @@ Deno.serve(async (req) => {
   const anriss = (einstellungen?.seo_description ?? einstellungen?.org_tagline ?? "").trim();
   if (anriss) zeilen.push(`> ${anriss}`, "");
 
+  // Volle Adressen statt /verein: Die Datei wird von /llms.txt hierher
+  // weitergeleitet, und ein relativer Verweis zielte dann auf die Adresse
+  // dieser Funktion statt auf die Seite des Vereins. Ohne Website-Adresse
+  // bleibt es beim Pfad – falsch aufgelöst ist er nicht schlechter als keiner.
+  const basis = (einstellungen?.website_url ?? "").trim().replace(/\/+$/, "");
+
   const sichtbare = (seiten ?? []).filter((s) => !s.noindex);
   if (sichtbare.length > 0) {
     zeilen.push("## Seiten", "");
     for (const s of sichtbare) {
       const pfad = s.slug === "startseite" ? "/" : `/${s.slug}`;
       const text = (s.seo_description ?? "").trim();
-      zeilen.push(`- [${s.title}](${pfad})${text ? `: ${text}` : ""}`);
+      zeilen.push(`- [${s.title}](${basis}${pfad})${text ? `: ${text}` : ""}`);
     }
     zeilen.push("");
   }
 
   // Der Kontakt ist keine Baukastenseite, gehört aber dazu.
-  zeilen.push("- [Kontakt](/kontakt): Kontaktformular und E-Mail-Adresse.", "");
+  zeilen.push(`- [Kontakt](${basis}/kontakt): Kontaktformular und E-Mail-Adresse.`, "");
 
   return new Response(zeilen.join("\n"), {
     headers: {

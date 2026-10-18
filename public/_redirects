@@ -22,6 +22,9 @@
 /sitemap.xml                   __FUNCTIONS_URL__/sitemap                                 302
 /llms.txt                      __FUNCTIONS_URL__/llms                                    302
 
+# Hier setzt der Bau die Seiten mit fertigem HTML ein (scripts/vorabzug.mjs).
+# __VORAB_SEITEN__
+
 # Alles andere ist eine Adresse der Anwendung: index.html ausliefern, ohne die
 # Adresse im Browser zu aendern (200, nicht 302).
 /*                             /index.html                                               200

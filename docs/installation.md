@@ -123,6 +123,20 @@ und Vorschaubild setzt die Anwendung aus den Vereinsangaben, und die
 zum Probelauf stand hier, dass `index.html` und `robots.txt` von Hand
 angefasst werden müssen — das stimmt seit dem 16. September nicht mehr.)
 
+Eine Angabe muss aber stimmen: die **Website-Adresse** unter Verwaltung →
+Erscheinungsbild, genau so, wie die Seite im Netz antwortet — mit `www` oder
+ohne. Der Build schreibt für jede veröffentlichte Seite fertiges HTML (für
+Suchmaschinen und Sprachmodelle, die kein JavaScript ausführen), und
+Canonical, Sitemap und `llms.txt` zeigen auf diese Adresse. Antwortet sie beim
+Bauen, leitet die `.htaccess` die andere Schreibweise dorthin um; antwortet
+sie nicht, steht im Lauf eine Warnung. Unbekannte Adressen bekommen ein 404.
+
+Weil das HTML beim Bauen entsteht, baut `deploy.yml` jede Nacht neu. Eine
+gerade veröffentlichte Seite ist für Besucher sofort da, für Suchmaschinen
+nach dem nächsten Lauf — wer nicht warten will: Actions → Build & Deploy →
+*Run workflow*. Wer bei Netlify oder Vercel veröffentlicht, richtet dort einen
+nächtlichen Build-Hook ein.
+
 ### Der mitgelieferte Ausrollen-Knopf für die Website
 
 `.github/workflows/deploy.yml` prüft bei jedem Push (Lint, SEO, Typen,

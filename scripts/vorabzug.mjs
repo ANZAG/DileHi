@@ -10,18 +10,45 @@
 // Vereins statt „DING" – das sehen Suchmaschinen und geteilte Links, bevor
 // die Anwendung läuft.
 //
+// Und seit Oktober 2026 schreibt er für jede veröffentlichte Seite fertiges
+// HTML mit ihrem Text (scripts/vorabSeiten.mjs erklärt, warum), dazu die
+// Serverregeln: welche Adresse es gibt, welche nicht (404), und welche
+// Schreibweise der Domain die richtige ist.
+//
 // Fehlt die Adresse der Datenbank oder antwortet sie nicht, bleibt die
 // index.html unverändert: Die Seite funktioniert dann wie vorher, sie
-// beginnt nur mit den Vorgaben. Der Bau scheitert daran nicht.
+// beginnt nur mit den Vorgaben. Der Bau scheitert daran nicht. Dasselbe gilt
+// für die Seiten: Ohne Seitenliste kein 404 – sonst sagte der Server zu jeder
+// Seite „gibt es nicht".
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import {
+  apacheHauptadresse, apacheSeiten, dateiVon, fehlerDokument, hauptadressePruefen, kontaktDokument,
+  redirectsSeiten, seitenDokument, shellDokument, sichererSlug, skriptJson,
+} from "./vorabSeiten.mjs";
 
-const DATEI = "dist/index.html";
+const DIST = "dist";
+const DATEI = `${DIST}/index.html`;
 const url = process.env.VITE_SUPABASE_URL;
 const schluessel = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+/** Die Platzhalter in public/.htaccess und public/_redirects. */
+const MARKE_HAUPTADRESSE = "# __VORAB_HAUPTADRESSE__";
+const MARKE_SEITEN = "# __VORAB_SEITEN__";
+
+const bericht = [];
+
 function melden(text) {
   console.log(`vorabzug: ${text}`);
+  bericht.push(text);
+}
+
+/** Warnungen auch in die Zusammenfassung des Laufs auf GitHub. */
+function warnen(text) {
+  console.log(`vorabzug: ACHTUNG ${text}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning::${text.replace(/\n/g, " ")}`);
+  bericht.push(`**Achtung:** ${text}`);
 }
 
 async function holen(pfad, init = {}) {
@@ -34,13 +61,25 @@ async function holen(pfad, init = {}) {
   return antwort.json();
 }
 
-/** Für Text und Attribute im HTML. */
-const html = (t) => String(t).replace(/[&<>"']/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[z]);
+function schreiben(datei, inhalt) {
+  const ziel = path.join(DIST, datei);
+  mkdirSync(path.dirname(ziel), { recursive: true });
+  writeFileSync(ziel, inhalt);
+}
 
-/** JSON, das in einem <script> stehen darf, ohne es zu beenden. */
-const skriptJson = (wert) => JSON.stringify(wert)
-  .replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026")
-  .replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+/** Ersetzt einen Platzhalter in einer gebauten Datei, wenn es sie gibt. */
+function einsetzen(datei, marke, text) {
+  const ziel = path.join(DIST, datei);
+  if (!existsSync(ziel)) return;
+  const alt = readFileSync(ziel, "utf8");
+  if (!alt.includes(marke)) {
+    warnen(`${datei}: Platzhalter ${marke} fehlt – Regeln nicht eingesetzt.`);
+    return;
+  }
+  // Samt Einrückung davor: Die eingesetzten Zeilen bringen ihre eigene mit.
+  const zeile = new RegExp(`^[ \\t]*${marke.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m");
+  writeFileSync(ziel, alt.replace(zeile, () => text));
+}
 
 async function main() {
   if (!url || !schluessel) {
@@ -49,6 +88,7 @@ async function main() {
   }
   let branding = null;
   let menue = null;
+  let seiten = null;
   try {
     const zeilen = await holen("rpc/public_branding", { method: "POST", body: "{}" });
     branding = Array.isArray(zeilen) ? zeilen[0] ?? null : null;
@@ -58,42 +98,88 @@ async function main() {
   try {
     const zeilen = await holen("site_menu?select=*&is_visible=eq.true&order=sort_order");
     const ids = [...new Set(zeilen.map((z) => z.page_id).filter(Boolean))];
-    const seiten = {};
+    const zuordnung = {};
     if (ids.length > 0) {
-      for (const p of await holen(`site_pages?select=id,slug&id=in.(${ids.join(",")})`)) seiten[p.id] = `/${p.slug}`;
+      for (const p of await holen(`site_pages?select=id,slug&id=in.(${ids.join(",")})`)) zuordnung[p.id] = `/${p.slug}`;
     }
-    menue = { zeilen, seiten };
+    menue = { zeilen, seiten: zuordnung };
   } catch (e) {
     melden(`Menü nicht erreichbar (${e.message}).`);
+  }
+  try {
+    seiten = await holen(
+      "site_pages?select=slug,title,content,seo_title,seo_description,seo_type,noindex&is_published=eq.true&order=slug"
+    );
+    if (!Array.isArray(seiten)) seiten = null;
+  } catch (e) {
+    melden(`Seiten nicht erreichbar (${e.message}) – kein Vorab-HTML, kein 404.`);
   }
   if (!branding && !menue) {
     melden("nichts abgeholt – index.html bleibt, wie sie ist.");
     return;
   }
 
-  let seite = readFileSync(DATEI, "utf8");
+  let vorlage = readFileSync(DATEI, "utf8");
   const vorab = `<script>window.__VORAB=${skriptJson({ branding, menue })}</script>`;
   // Vor das Programm, damit es beim Start schon dasteht.
-  seite = seite.replace(/(<script type="module")/, `${vorab}\n    $1`);
+  vorlage = vorlage.replace(/(<script type="module")/, `${vorab}\n    $1`);
 
-  const name = branding?.org_name?.trim();
-  const beschreibung = branding?.seo_description?.trim();
-  if (name) {
-    seite = seite
-      .replace(/<title>[^<]*<\/title>/, `<title>${html(name)}</title>`)
-      .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${html(name)}$2`)
-      .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*(")/, `$1${html(branding.org_short_name?.trim() || name)}$2`);
+  // Die index.html bleibt die Hülle für die Adressen der Anwendung
+  // (Anmeldung, Mitgliederbereich): Name und Vereinsbeschreibung, kein Text.
+  writeFileSync(DATEI, shellDokument(vorlage, { marke: branding }));
+  melden(`eingesetzt: ${branding?.org_name ? `„${branding.org_name}"` : "ohne Namen"}, ${menue ? `${menue.zeilen.length} Menüeinträge` : "ohne Menü"}.`);
+  if (!branding?.seo_description?.trim()) {
+    warnen("Keine SEO-Beschreibung des Vereins hinterlegt (Verwaltung → Erscheinungsbild). Bis dahin steht ein Satz aus Name, Ort und Untertitel da.");
   }
-  if (beschreibung) {
-    seite = seite
-      .replace(/(<meta name="description" content=")[^"]*(")/, `$1${html(beschreibung)}$2`)
-      .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${html(beschreibung)}$2`);
+
+  // Ohne Vereinsangaben und Seitenliste ist alles Weitere geraten.
+  if (!branding || !seiten) return;
+
+  // ── Fertiges HTML je Seite ──
+  const vorlageSeite = shellDokument(vorlage, { marke: branding });
+  const fertig = [];
+  for (const seite of seiten) {
+    if (!sichererSlug(seite.slug)) {
+      warnen(`Seite „${seite.slug}": Adresse mit Sonderzeichen – ohne Vorab-HTML. Ohne Umlaute und Leerzeichen benennen.`);
+      continue;
+    }
+    if (seite.slug === "kontakt") continue; // die feste Kontaktseite hat Vorrang (src/App.tsx)
+    schreiben(dateiVon(seite.slug), seitenDokument(vorlageSeite, { seite, marke: branding, menue }));
+    fertig.push(seite.slug);
   }
-  writeFileSync(DATEI, seite);
-  melden(`eingesetzt: ${name ? `„${name}"` : "ohne Namen"}, ${menue ? `${menue.zeilen.length} Menüeinträge` : "ohne Menü"}.`);
+  schreiben(dateiVon("kontakt"), kontaktDokument(vorlageSeite, { marke: branding, menue }));
+  fertig.push("kontakt");
+  schreiben("404.html", fehlerDokument(vorlageSeite, { marke: branding }));
+  melden(`Vorab-HTML für ${fertig.length} Seiten: ${fertig.join(", ")}.`);
+
+  // Seiten mit Sonderzeichen im Namen bekämen von den Regeln ein 404. Dann
+  // lieber gar keins – wie bisher.
+  const mit404 = seiten.every((s) => sichererSlug(s.slug));
+  if (!mit404) warnen("Unbekannte Adressen bekommen weiter 200 statt 404, solange eine Seite Sonderzeichen in der Adresse hat.");
+  einsetzen(".htaccess", MARKE_SEITEN, apacheSeiten(fertig, { mit404 }));
+  einsetzen("_redirects", MARKE_SEITEN, redirectsSeiten(fertig));
+
+  // ── Eine Adresse für die Seite ──
+  if (!branding.website_url?.trim()) {
+    warnen("Keine Website-Adresse hinterlegt (Verwaltung → Erscheinungsbild). Ohne sie gibt es keine Canonical-Angaben und keine Umleitung von www bzw. ohne www.");
+  } else {
+    const pruefung = await hauptadressePruefen(branding.website_url);
+    if (pruefung.ok) {
+      einsetzen(".htaccess", MARKE_HAUPTADRESSE, apacheHauptadresse(pruefung.paar));
+      melden(`Hauptadresse ${pruefung.paar.ursprung}: ${pruefung.paar.anderer} leitet dorthin um.`);
+    } else {
+      warnen(`Hauptadresse nicht gesetzt: ${pruefung.grund}. Canonical-Angaben und Sitemap zeigen trotzdem auf ${branding.website_url} – das muss die Adresse sein, unter der die Seite wirklich antwortet.`);
+    }
+  }
 }
 
-main().catch((e) => {
-  // Nie am Vorabzug scheitern: Ohne ihn läuft die Seite wie bisher.
-  melden(`übersprungen (${e.message}).`);
-});
+main()
+  .catch((e) => {
+    // Nie am Vorabzug scheitern: Ohne ihn läuft die Seite wie bisher.
+    melden(`übersprungen (${e.message}).`);
+  })
+  .finally(() => {
+    if (process.env.GITHUB_STEP_SUMMARY && bericht.length) {
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Vorab-HTML und Serverregeln\n\n${bericht.map((z) => `- ${z}`).join("\n")}\n`);
+    }
+  });

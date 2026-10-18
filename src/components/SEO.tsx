@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useBranding } from "@/hooks/useBranding";
+import { vereinsBeschreibung } from "@/lib/auffindbarkeit.mjs";
 
 interface SEOProps {
   title?: string;
@@ -31,7 +32,9 @@ const SEO = ({
   const marke = useBranding();
   const baseUrl = (marke.website_url || "").replace(/\/$/, "");
   title = title ?? [marke.org_name, marke.org_tagline].filter(Boolean).join(" – ");
-  description = description ?? marke.seo_description ?? undefined;
+  // Ohne hinterlegte Beschreibung ein Satz aus Name, Ort und Untertitel –
+  // derselbe, den der Bau in die index.html schreibt (scripts/vorabzug.mjs).
+  description = description ?? vereinsBeschreibung(marke);
   const fullUrl = url ? `${baseUrl}${url}` : (typeof window !== "undefined" ? window.location.href : baseUrl);
   // Kein Bild als Vorgabe: Hier stand DileHis Hero-Bild, und eine fremde
   // Installation teilte damit ein Foto aus Wiesbaden. Wer eines will, hinterlegt

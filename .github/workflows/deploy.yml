@@ -37,6 +37,16 @@ on:
   pull_request:
     branches:
       - main
+  # Jede Nacht einmal neu bauen und hochladen. Die Seiten stehen in der
+  # Datenbank, das fertige HTML fuer Suchmaschinen schreibt aber der Bau
+  # (scripts/vorabzug.mjs). Ohne diesen Lauf saehe eine Suchmaschine eine
+  # geaenderte Seite erst nach dem naechsten Push – und eine neue Seite
+  # bekaeme bis dahin ein 404. Zeitplaene laufen immer auf main.
+  schedule:
+    - cron: '23 2 * * *'
+  # Von Hand: Actions -> Build & Deploy -> Run workflow, etwa gleich nach dem
+  # Veroeffentlichen einer neuen Seite.
+  workflow_dispatch:
 jobs:
   seo-checks:
     runs-on: ubuntu-latest
@@ -72,7 +82,7 @@ jobs:
         run: npm test
   deploy:
     needs: seo-checks
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     # Immer nur ein Hochladen auf einmal. Drei Pushes kurz hintereinander
     # liefen sonst gleichzeitig auf dasselbe Verzeichnis, und wer zuletzt
     # fertig wurde, bestimmte den Stand – nicht unbedingt der neueste. So

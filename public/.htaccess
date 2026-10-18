@@ -8,6 +8,11 @@
   RewriteEngine On
   RewriteBase /
 
+  # Hier setzt der Bau die Umleitung auf die Hauptadresse ein (www oder ohne,
+  # je nach Website-Adresse in den Vereinsangaben). Steht hier nur diese
+  # Zeile, war die Adresse nicht zu pruefen; siehe scripts/vorabzug.mjs.
+  # __VORAB_HAUPTADRESSE__
+
   # Adressen, die nach draussen gehen - Kalender-Abos, Einbindungen auf
   # fremden Seiten, die Sitemap -, laufen ueber diese Seite und werden von hier
   # an die Edge Functions weitergeleitet. Zieht die Datenbank um, aendert sich
@@ -23,6 +28,12 @@
   RewriteRule ^einbindung/(events|personas|gallery)(\.js|\.html)?$ __FUNCTIONS_URL__/embed/$1$2 [R=302,L,QSA,E=EINBINDUNG:1]
   RewriteRule ^sitemap\.xml$ __FUNCTIONS_URL__/sitemap [R=302,L]
   RewriteRule ^llms\.txt$ __FUNCTIONS_URL__/llms [R=302,L]
+
+  # Hier setzt der Bau die Seiten mit fertigem HTML ein (_vorab/), die
+  # Adressen der Anwendung und fuer alles andere ein 404. Steht hier nur diese
+  # Zeile, gab es beim Bauen keine Seitenliste, und es bleibt bei den beiden
+  # Regeln darunter: jede Adresse bekommt die Anwendung.
+  # __VORAB_SEITEN__
 
   # Bestehende Dateien und Verzeichnisse direkt ausliefern
   RewriteCond %{REQUEST_FILENAME} -f [OR]

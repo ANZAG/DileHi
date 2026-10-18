@@ -15,15 +15,20 @@
       Programms, das sie gerade aufsetzt: DING. Den richtigen Titel setzt die
       Anwendung, sobald sie läuft: aus den Vereinsdaten, je Seite
       (src/components/SEO.tsx). Ab dann steht hier nichts mehr von DING.
+
+      data-rh an den Kopfzeilen: So hält react-helmet sie für seine eigenen
+      und ersetzt sie nach dem Laden. Ohne das stand jede Beschreibung
+      zweimal im Kopf – diese hier und die der Seite –, und welche gilt,
+      entschied die Suchmaschine.
     -->
     <title>DING</title>
-    <meta name="description" content="Mitgliederbereich und Website eines Vereins." />
+    <meta name="description" content="Mitgliederbereich und Website eines Vereins." data-rh="true" />
 
-    <meta property="og:title" content="DING" />
-    <meta property="og:description" content="Mitgliederbereich und Website eines Vereins." />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="de_DE" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:title" content="DING" data-rh="true" />
+    <meta property="og:description" content="Mitgliederbereich und Website eines Vereins." data-rh="true" />
+    <meta property="og:type" content="website" data-rh="true" />
+    <meta property="og:locale" content="de_DE" data-rh="true" />
+    <meta name="twitter:card" content="summary" data-rh="true" />
 
     <!-- Favicon & Touch Icons -->
     <!--
