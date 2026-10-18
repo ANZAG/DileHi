@@ -155,3 +155,39 @@ export function surfaceColors(hex: string, dunkel = false, eigenerTon?: string |
     "--input": hslToTokens(rahmen),
   };
 }
+
+/** „36 72% 55%" → HSL. Die Umkehrung von `hslToTokens`. */
+export function tokensToHsl(tokens: string): Hsl | null {
+  const m = tokens.trim().match(/^(-?[\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
+  return m ? { h: Number(m[1]), s: Number(m[2]), l: Number(m[3]) } : null;
+}
+
+/** Das Kontrastverhältnis nach WCAG, 1 bis 21. */
+export function kontrast(a: string, b: string): number | null {
+  const ya = leuchtdichte(a);
+  const yb = leuchtdichte(b);
+  if (ya === null || yb === null) return null;
+  return (Math.max(ya, yb) + 0.05) / (Math.min(ya, yb) + 0.05);
+}
+
+/**
+ * Die Vereinsfarbe als Schrift auf dem Seitengrund.
+ *
+ * Als Fläche ist ein kräftiges Orange genau richtig, als Schrift auf hellem
+ * Grund aber zu blass: PageSpeed meldete den Vereinsnamen im Kopf, die
+ * Überschrift im Fuss und umrandete Knöpfe als schlecht lesbar. Hier wird der
+ * Ton so weit abgedunkelt (auf dunklem Grund aufgehellt), bis er das WCAG-Mass
+ * für Fliesstext erreicht – 4,5 : 1. Farbton und Sättigung bleiben, es ist
+ * erkennbar dieselbe Farbe. Was schon reicht, bleibt unverändert.
+ */
+export function schriftton(farbe: string, grund: string, mindestens = 4.5): string | null {
+  const basis = hexToHsl(farbe);
+  const y = leuchtdichte(grund);
+  if (!basis || y === null) return null;
+  const richtung = y > SCHWELLE ? -1 : 1;
+  for (let l = basis.l; l >= 0 && l <= 100; l += richtung) {
+    const ton = { ...basis, l };
+    if ((kontrast(hslToHex(ton), grund) ?? 0) >= mindestens) return hslToTokens(ton);
+  }
+  return readableInk(grund);
+}

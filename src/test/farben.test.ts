@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { hexToHsl, hslToHex, hslToTokens, isDark, kontrast, readableInk, schriftton, tokensToHsl } from "@/lib/farben";
 
 /**
  * Farbumrechnung für das Erscheinungsbild.
@@ -88,5 +90,35 @@ describe("isDark", () => {
 
   it("sagt bei Unsinn nein", () => {
     expect(isDark("#xyz")).toBe(false);
+  });
+});
+
+describe("schriftton – die Vereinsfarbe als Schrift", () => {
+  const hell = "#f8f7f5";
+  const dunkel = "#151a21";
+
+  it("dunkelt ein blasses Orange ab, bis es auf hellem Grund lesbar ist", () => {
+    const ton = schriftton("#dd9933", hell)!;
+    const hex = hslToHex(tokensToHsl(ton)!);
+    expect(kontrast(hex, hell)).toBeGreaterThanOrEqual(4.5);
+    // Erkennbar dieselbe Farbe: Farbton und Sättigung bleiben.
+    expect(tokensToHsl(ton)!.h).toBe(hexToHsl("#dd9933")!.h);
+    expect(tokensToHsl(ton)!.l).toBeLessThan(hexToHsl("#dd9933")!.l);
+  });
+
+  it("lässt eine Farbe, die schon reicht, wie sie ist", () => {
+    expect(schriftton("#1d4ed8", hell)).toBe(hslToTokens(hexToHsl("#1d4ed8")!));
+  });
+
+  it("hellt auf dunklem Grund auf statt ab", () => {
+    const ton = schriftton("#7c2d12", dunkel)!;
+    expect(tokensToHsl(ton)!.l).toBeGreaterThan(hexToHsl("#7c2d12")!.l);
+    expect(kontrast(hslToHex(tokensToHsl(ton)!), dunkel)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("die Vorgabe in index.css ist, was herauskommt", () => {
+    const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
+    const vorgabe = css.match(/--primary-text: ([^;]+);/)![1];
+    expect(vorgabe).toBe(schriftton(hslToHex({ h: 36, s: 72, l: 55 }), hslToHex({ h: 40, s: 12, l: 97 })));
   });
 });

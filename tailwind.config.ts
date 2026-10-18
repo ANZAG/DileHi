@@ -21,6 +21,17 @@ export default {
         serif: ["var(--schrift-ueberschrift)", "DM Serif Display", "serif"],
         sans: ["var(--schrift-text)", "Inter", "system-ui", "sans-serif"],
       },
+      // `text-primary` ist die Vereinsfarbe als Schrift: abgedunkelt, bis sie
+      // auf dem Grund lesbar ist (--primary-text, lib/farben.ts → schriftton).
+      // Flächen, Rahmen und Knöpfe (`bg-primary`, `border-primary`) behalten
+      // den vollen Ton. Wer die Farbe selbst als Schrift braucht – etwa auf
+      // einem dunklen Foto –, schreibt `text-[hsl(var(--primary))]`.
+      textColor: {
+        primary: {
+          DEFAULT: "hsl(var(--primary-text))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -95,7 +106,7 @@ export default {
           css: {
             "--tw-prose-body": "hsl(var(--foreground))",
             "--tw-prose-headings": "hsl(var(--foreground))",
-            "--tw-prose-links": "hsl(var(--primary))",
+            "--tw-prose-links": "hsl(var(--primary-text))",
             "--tw-prose-bold": "hsl(var(--foreground))",
             "--tw-prose-counters": "hsl(var(--muted-foreground))",
             "--tw-prose-bullets": "hsl(var(--muted-foreground))",
@@ -108,7 +119,7 @@ export default {
             // Dark mode
             "--tw-prose-invert-body": "hsl(var(--foreground))",
             "--tw-prose-invert-headings": "hsl(var(--foreground))",
-            "--tw-prose-invert-links": "hsl(var(--primary))",
+            "--tw-prose-invert-links": "hsl(var(--primary-text))",
             "--tw-prose-invert-bold": "hsl(var(--foreground))",
             "--tw-prose-invert-counters": "hsl(var(--muted-foreground))",
             "--tw-prose-invert-bullets": "hsl(var(--muted-foreground))",

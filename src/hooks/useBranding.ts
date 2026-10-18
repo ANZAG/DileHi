@@ -3,7 +3,7 @@ import { vorabzug } from "@/lib/vorabzug";
 import { useQuery } from "@tanstack/react-query";
 import { woerter, type Words } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
-import { surfaceColors, hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
+import { surfaceColors, hexToHsl, hslToHex, hslToTokens, isDark, readableInk, schriftton, tokensToHsl } from "@/lib/farben";
 import { loadFonts, schriftStapel } from "@/lib/schriften";
 import { iconLinks } from "@/lib/zeichen";
 
@@ -234,6 +234,15 @@ export function useBrandingAnwenden() {
         wurzel.style.setProperty(name, schrift);
       }
     }
+
+    // Die Vereinsfarbe als Schrift (`text-primary`, tailwind.config.ts): so
+    // weit abgedunkelt, dass sie auf dem Grund lesbar ist. Gemessen am
+    // Seitengrund; der Kasten liegt nur zwei Stufen daneben.
+    const grund = tokensToHsl(
+      flaechen?.["--background"] ?? getComputedStyle(wurzel).getPropertyValue("--background"),
+    );
+    const ton = primaer && grund ? schriftton(color_primary, hslToHex(grund)) : null;
+    if (ton) wurzel.style.setProperty("--primary-text", ton);
   }, [color_primary, color_dark, color_surface, color_muted]);
 
   useLayoutEffect(() => {

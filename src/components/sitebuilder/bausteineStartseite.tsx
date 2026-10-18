@@ -255,7 +255,9 @@ function Kachel({ punkt, gross }: { punkt: Punkt; gross?: boolean }) {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
       <div className={`absolute bottom-0 left-0 right-0 ${gross ? "p-6" : "p-4"}`}>
-        <p className="text-xs text-primary font-medium uppercase tracking-wider mb-1 drop-shadow-md">
+        {/* Die Vereinsfarbe selbst, nicht ihr Schriftton: Der ist für hellen
+            Grund abgedunkelt und wäre auf dem dunklen Verlauf schlecht lesbar. */}
+        <p className="text-xs text-[hsl(var(--primary))] font-medium uppercase tracking-wider mb-1 drop-shadow-md">
           {punkt.untertitel}
           {!gross && punkt.jahre ? ` · ${punkt.jahre}` : ""}
         </p>

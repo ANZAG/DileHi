@@ -19,7 +19,7 @@
 /* ── Erwähnungen ──────────────────────────────────────────────────────────── */
 
 .forum-content .forum-mention {
-  color: hsl(var(--primary));
+  color: hsl(var(--primary-text));
   background: hsl(var(--primary) / 0.08);
   border-radius: 0.25rem;
   padding: 0 0.25rem;

@@ -20,6 +20,9 @@
 
     --primary: 36 72% 55%;
     --primary-foreground: 220 25% 10%;
+    /* Die Vereinsfarbe als Schrift: abgedunkelt bis 4,5 : 1 auf dem Grund
+       (schriftton in lib/farben.ts, gesetzt von useBranding). */
+    --primary-text: 36 72% 35%;
 
     --secondary: 220 15% 90%;
     --secondary-foreground: 220 20% 15%;
@@ -61,6 +64,7 @@
 
     --primary: 36 72% 55%;
     --primary-foreground: 220 25% 10%;
+    --primary-text: 36 72% 55%;
 
     --secondary: 220 15% 20%;
     --secondary-foreground: 40 15% 90%;
