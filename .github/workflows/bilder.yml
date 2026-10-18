@@ -1,0 +1,56 @@
+name: Bilder verkleinern
+
+# Verkleinert die Bilder in der Ablage „gallery" auf Webseitenmass – unter
+# demselben Namen, damit keine Verknüpfung auf der Seite angepasst werden muss.
+# Die Originale landen vorher unter _original/. Einzelheiten stehen in
+# scripts/bilder-verkleinern.mjs.
+#
+# Nur von Hand: Actions -> Bilder verkleinern -> Run workflow. Der erste Lauf
+# ist ein Probelauf und zeigt in der Zusammenfassung, was sich ändern würde.
+# Gebraucht werden dieselben Geheimnisse wie beim Ausrollen
+# (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF).
+
+on:
+  workflow_dispatch:
+    inputs:
+      probelauf:
+        description: "Probelauf – nur anzeigen, nichts ändern"
+        type: boolean
+        default: true
+
+jobs:
+  bilder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # Der Schlüssel mit vollen Rechten, nur für diesen Lauf aus dem Projekt
+      # geholt: Ersetzen darf in der Ablage nur der Server, nicht der Besucher.
+      - name: Zugang zum Speicher holen
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          schluessel=$(curl -sS -f "https://api.supabase.com/v1/projects/$REF/api-keys" \
+            -H "Authorization: Bearer $TOKEN" \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$schluessel" ] || [ "$schluessel" = "null" ]; then
+            echo "Kein service_role-Schlüssel im Projekt gefunden."
+            exit 1
+          fi
+          echo "::add-mask::$schluessel"
+          {
+            echo "SUPABASE_URL=https://$REF.supabase.co"
+            echo "SUPABASE_SERVICE_KEY=$schluessel"
+          } >> "$GITHUB_ENV"
+      - name: Installieren
+        run: |
+          npm install
+          # Nur für diesen Lauf, gehört nicht in die Abhängigkeiten der Seite.
+          npm install --no-save sharp@0.34.4
+      - name: Verkleinern
+        env:
+          PROBELAUF: ${{ inputs.probelauf }}
+        run: node scripts/bilder-verkleinern.mjs
