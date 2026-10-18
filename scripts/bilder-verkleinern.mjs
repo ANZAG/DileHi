@@ -16,9 +16,16 @@
 // Mal) und nicht wieder angefasst. Zurück geht es, indem man es von dort an
 // seinen alten Platz kopiert.
 //
+// Dazu legt es neben jedes Bild kleinere Fassungen (_fassungen/<breite>/…,
+// src/lib/bildfassungen.mjs) und trägt Breite, Höhe und die Fassungen in die
+// Bildzeilen ein (site_images, gallery_images). Erst dann bietet die Seite sie
+// dem Browser an. Neue Bilder bekommen beides schon beim Hochladen
+// (src/lib/bildablage.ts); das hier ist für die, die vorher da waren.
+//
 // Aufruf: .github/workflows/bilder.yml (von Hand, erst als Probelauf).
 
 import sharp from "sharp";
+import { FASSUNGEN_ORDNER, fassungPfad, noetigeBreiten } from "../src/lib/bildfassungen.mjs";
 
 /** Längste Kante. Logos und Zeichen erscheinen klein, Fotos bis Bildschirmbreite. */
 export function hoechstmass(pfad) {
@@ -59,12 +66,36 @@ export async function verkleinern(eingabe, pfad) {
   };
 }
 
+/**
+ * Die kleineren Fassungen eines Bildes, im selben Format wie das Bild – so
+ * stimmt der Name, und ein PNG mit Transparenz bleibt eines.
+ */
+export async function fassungenBilden(eingabe) {
+  const info = await sharp(eingabe, { failOn: "none" }).metadata();
+  const typ = FORMATE[info.format];
+  if (!typ || (info.pages ?? 1) > 1) return null;
+  // Aufrecht gemessen: Ein Handyfoto, das nur laut EXIF steht, ist sonst
+  // breiter als hoch eingetragen.
+  const gedreht = (info.orientation ?? 1) >= 5;
+  const breite = gedreht ? info.height : info.width;
+  const hoehe = gedreht ? info.width : info.height;
+  const fassungen = [];
+  for (const b of noetigeBreiten(breite)) {
+    let neu = sharp(eingabe, { failOn: "none" }).rotate().resize({ width: b, withoutEnlargement: true });
+    if (info.format === "jpeg") neu = neu.jpeg({ quality: 78, mozjpeg: true });
+    if (info.format === "webp") neu = neu.webp({ quality: 78, effort: 6 });
+    if (info.format === "png") neu = neu.png({ compressionLevel: 9, palette: true, quality: 90, effort: 10 });
+    fassungen.push({ breite: b, daten: await neu.toBuffer() });
+  }
+  return { breite, hoehe, typ, fassungen };
+}
+
 // ── Gegen den Speicher ──────────────────────────────────────────────────────
 
 const ABLAGE = "gallery";
 const SICHERUNG = "_original";
 
-async function alleDateien(speicher, ordner = "") {
+async function alleDateien(speicher, ordner = "", ausser = [SICHERUNG, FASSUNGEN_ORDNER]) {
   const dateien = [];
   for (let ab = 0; ; ab += 1000) {
     const { data, error } = await speicher.list(ordner, { limit: 1000, offset: ab, sortBy: { column: "name", order: "asc" } });
@@ -72,7 +103,7 @@ async function alleDateien(speicher, ordner = "") {
     for (const e of data) {
       const pfad = ordner ? `${ordner}/${e.name}` : e.name;
       if (e.id === null) {
-        if (pfad !== SICHERUNG) dateien.push(...await alleDateien(speicher, pfad));
+        if (!ausser.includes(pfad)) dateien.push(...await alleDateien(speicher, pfad, ausser));
       } else if (/\.(jpe?g|png|webp)$/i.test(e.name)) {
         dateien.push(pfad);
       }
@@ -89,49 +120,80 @@ async function main() {
   const probelauf = process.env.PROBELAUF !== "false";
   if (!url || !schluessel) throw new Error("SUPABASE_URL und SUPABASE_SERVICE_KEY fehlen.");
 
-  const speicher = createClient(url, schluessel, { auth: { persistSession: false } }).storage.from(ABLAGE);
+  const datenbank = createClient(url, schluessel, { auth: { persistSession: false } });
+  const speicher = datenbank.storage.from(ABLAGE);
   const dateien = await alleDateien(speicher);
+  // Was schon einmal verkleinert wurde, hat eine Sicherung. Es wird nicht
+  // noch einmal neu gepackt – jedes Mal ginge ein wenig Schärfe verloren.
+  const gesichert = new Set(
+    (await alleDateien(speicher, SICHERUNG, [])).map((p) => p.slice(SICHERUNG.length + 1)),
+  );
   const kb = (b) => `${Math.round(b / 1024)} KB`;
   const zeilen = [];
-  let vorher = 0, nachher = 0, fehler = 0;
+  let vorher = 0, nachher = 0, fehler = 0, verkleinert = 0, mitFassungen = 0;
 
   for (const pfad of dateien) {
     try {
       const { data: blob, error } = await speicher.download(pfad);
       if (error) throw new Error(error.message);
       const eingabe = Buffer.from(await blob.arrayBuffer());
-      const ergebnis = await verkleinern(eingabe, pfad);
-      if (!ergebnis) continue;
+      const ergebnis = gesichert.has(pfad) ? null : await verkleinern(eingabe, pfad);
+      // Die Fassungen aus dem Bild, wie es danach in der Ablage liegt.
+      const satz = await fassungenBilden(ergebnis?.daten ?? eingabe);
+      if (!ergebnis && !satz) continue;
 
-      vorher += ergebnis.vorher.bytes;
-      nachher += ergebnis.nachher.bytes;
-      zeilen.push(`| ${pfad} | ${ergebnis.vorher.breite}×${ergebnis.vorher.hoehe}, ${kb(ergebnis.vorher.bytes)} | ${ergebnis.nachher.breite}×${ergebnis.nachher.hoehe}, ${kb(ergebnis.nachher.bytes)} |`);
+      const vorherText = ergebnis ? `${ergebnis.vorher.breite}×${ergebnis.vorher.hoehe}, ${kb(ergebnis.vorher.bytes)}` : "unverändert";
+      const nachherText = ergebnis ? `${ergebnis.nachher.breite}×${ergebnis.nachher.hoehe}, ${kb(ergebnis.nachher.bytes)}` : "";
+      const fassungenText = satz?.fassungen.length ? satz.fassungen.map((f) => `${f.breite} (${kb(f.daten.length)})`).join(", ") : "–";
+      zeilen.push(`| ${pfad} | ${vorherText} | ${nachherText} | ${fassungenText} |`);
+      if (ergebnis) {
+        verkleinert += 1;
+        vorher += ergebnis.vorher.bytes;
+        nachher += ergebnis.nachher.bytes;
+      }
+      if (satz?.fassungen.length) mitFassungen += 1;
       if (probelauf) continue;
 
-      // Erst sichern, dann ersetzen. upsert: false, damit eine schon
-      // vorhandene Sicherung – das echte Original – nie überschrieben wird.
-      const sicherung = await speicher.upload(`${SICHERUNG}/${pfad}`, eingabe, {
-        contentType: blob.type || ergebnis.typ, upsert: false,
-      });
-      if (sicherung.error && !/exists|Duplicate/i.test(sicherung.error.message)) {
-        throw new Error(`Sicherung: ${sicherung.error.message}`);
+      if (ergebnis) {
+        // Erst sichern, dann ersetzen. upsert: false, damit eine schon
+        // vorhandene Sicherung – das echte Original – nie überschrieben wird.
+        const sicherung = await speicher.upload(`${SICHERUNG}/${pfad}`, eingabe, {
+          contentType: blob.type || ergebnis.typ, upsert: false,
+        });
+        if (sicherung.error && !/exists|Duplicate/i.test(sicherung.error.message)) {
+          throw new Error(`Sicherung: ${sicherung.error.message}`);
+        }
+        const neu = await speicher.upload(pfad, ergebnis.daten, { contentType: ergebnis.typ, upsert: true });
+        if (neu.error) throw new Error(`Ersetzen: ${neu.error.message}`);
       }
-      const neu = await speicher.upload(pfad, ergebnis.daten, { contentType: ergebnis.typ, upsert: true });
-      if (neu.error) throw new Error(`Ersetzen: ${neu.error.message}`);
+
+      if (satz) {
+        // Erst die Dateien, dann der Eintrag: Die Seite bietet nur an, was
+        // in der Zeile steht, und das muss dann auch da sein.
+        for (const f of satz.fassungen) {
+          const hoch = await speicher.upload(fassungPfad(pfad, f.breite), f.daten, { contentType: satz.typ, upsert: true });
+          if (hoch.error) throw new Error(`Fassung ${f.breite}: ${hoch.error.message}`);
+        }
+        const masse = { breite: satz.breite, hoehe: satz.hoehe, fassungen: satz.fassungen.map((f) => f.breite) };
+        for (const tabelle of ["site_images", "gallery_images"]) {
+          const { error: zeile } = await datenbank.from(tabelle).update(masse).eq("storage_path", pfad);
+          if (zeile) throw new Error(`${tabelle}: ${zeile.message}`);
+        }
+      }
     } catch (e) {
       fehler += 1;
-      zeilen.push(`| ${pfad} | Fehler: ${e.message} | |`);
+      zeilen.push(`| ${pfad} | Fehler: ${e.message} | | |`);
     }
   }
 
   const bericht = [
-    `### Bilder ${probelauf ? "– Probelauf, nichts geändert" : "verkleinert"}`,
+    `### Bilder ${probelauf ? "– Probelauf, nichts geändert" : "aufbereitet"}`,
     "",
-    `${dateien.length} Bilder geprüft, ${zeilen.length - fehler} ${probelauf ? "würden" : "wurden"} verkleinert: ${kb(vorher)} → ${kb(nachher)}.${fehler ? ` ${fehler} Fehler.` : ""}`,
-    probelauf ? "Zum Ausführen erneut starten und „Probelauf“ abwählen." : `Die Originale liegen unter \`${SICHERUNG}/\`.`,
+    `${dateien.length} Bilder geprüft. ${verkleinert} ${probelauf ? "würden" : "wurden"} verkleinert (${kb(vorher)} → ${kb(nachher)}), ${mitFassungen} ${probelauf ? "bekämen" : "haben jetzt"} kleinere Fassungen.${fehler ? ` ${fehler} Fehler.` : ""}`,
+    probelauf ? "Zum Ausführen erneut starten und „Probelauf“ abwählen." : `Die Originale liegen unter \`${SICHERUNG}/\`, die Fassungen unter \`${FASSUNGEN_ORDNER}/\`.`,
     "",
-    "| Datei | vorher | nachher |",
-    "| --- | --- | --- |",
+    "| Datei | vorher | nachher | Fassungen (Breite) |",
+    "| --- | --- | --- | --- |",
     ...zeilen,
     "",
   ].join("\n");

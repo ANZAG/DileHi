@@ -61,3 +61,44 @@ export function convertToWebP(file: File, qualitaet = 0.85): Promise<File> {
     img.src = objectUrl;
   });
 }
+
+/**
+ * Die kleineren Fassungen eines Bildes, als WebP (src/lib/bildfassungen.mjs).
+ *
+ * Von der grössten zur kleinsten, jede aus der vorigen gezeichnet: Ein Schritt
+ * von 1920 auf 400 px in einem Zug lässt feine Linien flimmern, mehrere
+ * kleinere Schritte nicht.
+ */
+export function fassungenZeichnen(
+  datei: Blob, breitenFuer: (breite: number) => number[], qualitaet = 0.8,
+): Promise<{ breite: number; hoehe: number; fassungen: { breite: number; datei: Blob }[] }> {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement("img");
+    const objectUrl = URL.createObjectURL(datei);
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      const breite = img.naturalWidth;
+      const hoehe = img.naturalHeight;
+      const fassungen: { breite: number; datei: Blob }[] = [];
+      let quelle: CanvasImageSource = img;
+      for (const b of breitenFuer(breite).filter((w) => w < breite).sort((x, y) => y - x)) {
+        const canvas = document.createElement("canvas");
+        canvas.width = b;
+        canvas.height = Math.max(1, Math.round((hoehe * b) / breite));
+        const zeichnen = canvas.getContext("2d");
+        if (!zeichnen) break;
+        zeichnen.imageSmoothingQuality = "high";
+        zeichnen.drawImage(quelle, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise<Blob | null>((fertig) => canvas.toBlob(fertig, "image/webp", qualitaet));
+        if (blob) fassungen.push({ breite: b, datei: blob });
+        quelle = canvas;
+      }
+      resolve({ breite, hoehe, fassungen });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht geladen werden"));
+    };
+    img.src = objectUrl;
+  });
+}

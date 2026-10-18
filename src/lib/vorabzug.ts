@@ -20,7 +20,7 @@ export interface Vorabzug {
    * erst die Seite ab, dann die Bilder, und erst dann begann der Download
    * des Titelbilds – auf dem Handy der grösste Teil der Wartezeit.
    */
-  bilder?: Record<string, { src: string; alt: string }>;
+  bilder?: Record<string, { src: string; alt: string; breite?: number | null; hoehe?: number | null; fassungen?: number[] }>;
   /** Die Baukastenseite, in deren fertigem HTML dieser Stand steht. */
   seite?: Record<string, unknown> & { slug?: string };
 }

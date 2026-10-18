@@ -117,7 +117,7 @@ async function main() {
     melden(`Seiten nicht erreichbar (${e.message}) – kein Vorab-HTML, kein 404.`);
   }
   try {
-    bilder = bildAdressen(await holen("site_images?select=slot,storage_path,alt_text"), url);
+    bilder = bildAdressen(await holen("site_images?select=*"), url);
   } catch (e) {
     melden(`Bildliste nicht erreichbar (${e.message}) – die Anwendung fragt sie wie bisher selbst ab.`);
   }

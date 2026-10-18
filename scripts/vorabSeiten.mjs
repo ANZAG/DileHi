@@ -20,6 +20,7 @@ import {
   basisVon, kontaktSeite, pfadVon, seitenBeschreibung, seitenInhalt, seitenTitel,
   strukturierteDaten, vereinsBeschreibung,
 } from "../src/lib/auffindbarkeit.mjs";
+import { srcsetVon } from "../src/lib/bildfassungen.mjs";
 
 /** Das Verzeichnis im Build, in dem die fertigen Seiten liegen. */
 export const VORAB_ORDNER = "_vorab";
@@ -79,7 +80,8 @@ export function mitVorverbindung(vorlage, datenbank) {
 /**
  * Bildplatz → öffentliche Adresse, genauso gebildet wie in der Anwendung
  * (useSiteImage: supabase.storage.from("gallery").getPublicUrl). Nur bei
- * gleicher Adresse nutzt der Browser das vorgeladene Bild.
+ * gleicher Adresse nutzt der Browser das vorgeladene Bild. Masse und
+ * Fassungen reisen mit, damit die Anwendung dasselbe `srcset` bildet.
  */
 export function bildAdressen(zeilen, datenbank) {
   const bilder = {};
@@ -90,6 +92,8 @@ export function bildAdressen(zeilen, datenbank) {
     bilder[z.slot] = {
       src: pfad && basis ? encodeURI(`${basis}/storage/v1/object/public/gallery/${pfad}`) : "",
       alt: z.alt_text || "",
+      ...(Number(z.breite) > 0 ? { breite: Number(z.breite), hoehe: Number(z.hoehe) || null } : {}),
+      ...(Array.isArray(z.fassungen) && z.fassungen.length > 0 ? { fassungen: z.fassungen } : {}),
     };
   }
   return bilder;
@@ -106,10 +110,21 @@ export function titelbild(daten, bilder) {
   const bloecke = Array.isArray(daten?.content) ? daten.content.slice(0, 2) : [];
   for (const block of bloecke) {
     const schluessel = block?.props?.bildSchluessel;
-    const src = typeof schluessel === "string" ? bilder?.[schluessel]?.src : "";
-    if (src) return src;
+    const bild = typeof schluessel === "string" ? bilder?.[schluessel] : undefined;
+    if (bild?.src) return bild;
   }
   return undefined;
+}
+
+/**
+ * Das Kopfbild vorladen. Mit Fassungen wählt der Browser schon hier dieselbe,
+ * die das Bild in der Anwendung bekommt – `imagesizes` muss dazu genau dem
+ * `sizes` dort entsprechen (Willkommen, Titelbild: die volle Breite).
+ */
+export function vorladeZeile(bild) {
+  const srcset = srcsetVon(bild);
+  const auswahl = srcset ? ` imagesrcset="${html(srcset)}" imagesizes="100vw"` : "";
+  return `<link rel="preload" as="image" href="${html(bild.src)}"${auswahl} fetchpriority="high" />`;
 }
 
 /** Die Seite so, wie die Anwendung sie abfragt – für den sofortigen Start. */
@@ -203,7 +218,7 @@ export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "websi
     // Das Kopfbild ist auf dem Handy das grösste Element (LCP). Ohne diesen
     // Hinweis begann sein Download erst, nachdem Programm, Seite und
     // Bildliste geladen waren.
-    vorladen ? `<link rel="preload" as="image" href="${html(vorladen)}" fetchpriority="high" />` : "",
+    vorladen ? vorladeZeile(vorladen) : "",
   ].filter(Boolean).map((z) => `    ${z}`).join("\n");
 
   seite = seite.replace(/<\/head>/, `${kopfzeilen}\n  </head>`);

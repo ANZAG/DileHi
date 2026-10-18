@@ -1,11 +1,15 @@
-name: Bilder verkleinern
+name: Bilder aufbereiten
 
 # Verkleinert die Bilder in der Ablage „gallery" auf Webseitenmass – unter
 # demselben Namen, damit keine Verknüpfung auf der Seite angepasst werden muss.
-# Die Originale landen vorher unter _original/. Einzelheiten stehen in
-# scripts/bilder-verkleinern.mjs.
+# Die Originale landen vorher unter _original/. Dazu kommen kleinere Fassungen
+# fürs Handy unter _fassungen/, eingetragen in die Bildzeilen. Einzelheiten
+# stehen in scripts/bilder-verkleinern.mjs.
 #
-# Nur von Hand: Actions -> Bilder verkleinern -> Run workflow. Der erste Lauf
+# Wiederholbar: Schon verkleinerte Bilder werden nicht noch einmal gepackt,
+# die Fassungen nur neu geschrieben.
+#
+# Nur von Hand: Actions -> Bilder aufbereiten -> Run workflow. Der erste Lauf
 # ist ein Probelauf und zeigt in der Zusammenfassung, was sich ändern würde.
 # Gebraucht werden dieselben Geheimnisse wie beim Ausrollen
 # (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF).
@@ -50,7 +54,7 @@ jobs:
           npm install
           # Nur für diesen Lauf, gehört nicht in die Abhängigkeiten der Seite.
           npm install --no-save sharp@0.34.4
-      - name: Verkleinern
+      - name: Aufbereiten
         env:
           PROBELAUF: ${{ inputs.probelauf }}
         run: node scripts/bilder-verkleinern.mjs

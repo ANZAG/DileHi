@@ -3,6 +3,7 @@ import { FieldLabel } from "@puckeditor/core";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { convertToWebP } from "@/lib/imageConversion";
+import { bildAblegen } from "@/lib/bildablage";
 import { bildVorschauen, leereAuswahlMerker, leereVorschauMerker, type BildVorschau } from "./auswahl";
 
 /**
@@ -83,10 +84,8 @@ export default function BildFeld({
       // vielen Fotos spürbar Ladezeit.
       const webp = await convertToWebP(datei);
       const pfad = `site/${Date.now()}_${webp.name}`;
-      const { error: uploadFehler } = await supabase.storage
-        .from("gallery")
-        .upload(pfad, webp, { contentType: "image/webp" });
-      if (uploadFehler) throw new Error(uploadFehler.message);
+      // Samt kleineren Fassungen für das Handy (src/lib/bildfassungen.mjs).
+      const masse = await bildAblegen(pfad, webp);
 
       // Der Schlüssel muss eindeutig sein und lesbar bleiben – er steht später
       // in der Bilderverwaltung.
@@ -101,6 +100,7 @@ export default function BildFeld({
         page: seitentitel || "Seiten",
         storage_path: pfad,
         alt_text: "",
+        ...masse,
       });
       if (zeileFehler) throw new Error(zeileFehler.message);
 

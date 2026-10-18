@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Calendar, Users, MapPin, Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSiteImage } from "@/hooks/useSiteImage";
+import { SpeicherBild } from "@/components/SpeicherBild";
 import { useBranding } from "@/hooks/useBranding";
 import { FARBGRUND, abstandKlasse, flaechenKlasse, type Abstand, type Hintergrund } from "./gestaltung";
 
@@ -78,10 +79,10 @@ export function Willkommen({
       {hatBild ? (
         <>
           {/* Das Bild im Kopf ist meist das grösste Element der Seite. Das
-              fertige HTML lädt es schon vor (scripts/vorabzug.mjs); hier
-              bekommt es dieselbe Vorfahrt. Klein geschrieben, weil React 18
-              fetchPriority noch nicht kennt. */}
-          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" {...{ fetchpriority: "high" }} />
+              fertige HTML lädt es schon vor (scripts/vorabzug.mjs), mit
+              denselben Fassungen und `sizes` wie hier – sonst lüde der
+              Browser es zweimal. */}
+          <SpeicherBild bild={bild} className="absolute inset-0 w-full h-full object-cover" vorrang />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/30" />
         </>
       ) : (
@@ -245,10 +246,11 @@ function Kachel({ punkt, gross }: { punkt: Punkt; gross?: boolean }) {
   const bild = useSiteImage(punkt.bildSchluessel);
   const inhalt = (
     <>
-      <img
-        src={bild.src}
+      <SpeicherBild
+        bild={bild}
         alt={punkt.titel}
         loading="lazy"
+        sizes="auto, (min-width: 896px) 896px, 100vw"
         className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />

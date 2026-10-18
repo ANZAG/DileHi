@@ -12,6 +12,7 @@ import { de } from "date-fns/locale";
 import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
+import { SpeicherBild } from "@/components/SpeicherBild";
 import { bildplaetzeAufloesen } from "./bildplaetze";
 import { EINBLENDEN, useEinblenden } from "@/lib/einblenden";
 import VisitorHighlight from "@/components/epochs/VisitorHighlight";
@@ -102,7 +103,9 @@ function SeitenBild({
 }) {
   const bild = useSiteImage(schluessel ?? "");
   if (bild.src) {
-    return <img src={bild.src} alt={bild.alt} className={klasse} loading="lazy" />;
+    // Alle Aufrufer setzen die Breite über die Klasse (w-full) – deshalb
+    // darf `sizes` hier „auto" sein.
+    return <SpeicherBild bild={bild} className={klasse} loading="lazy" sizes="auto, 100vw" />;
   }
   return (
     <div
@@ -142,10 +145,10 @@ export function Titelbild({
       {hatBild ? (
         <>
           {/* Das Bild im Kopf ist meist das grösste Element der Seite. Das
-              fertige HTML lädt es schon vor (scripts/vorabzug.mjs); hier
-              bekommt es dieselbe Vorfahrt. Klein geschrieben, weil React 18
-              fetchPriority noch nicht kennt. */}
-          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" {...{ fetchpriority: "high" }} />
+              fertige HTML lädt es schon vor (scripts/vorabzug.mjs), mit
+              denselben Fassungen und `sizes` wie hier – sonst lüde der
+              Browser es zweimal. */}
+          <SpeicherBild bild={bild} className="absolute inset-0 w-full h-full object-cover" vorrang />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
         </>
       ) : (
@@ -1085,7 +1088,7 @@ export function FotoMitKarte({
       }`}
     >
       {foto.src ? (
-        <img src={foto.src} alt={foto.alt} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        <SpeicherBild bild={foto} className="absolute inset-0 h-full w-full object-cover" loading="lazy" sizes="auto, 100vw" />
       ) : (
         // Ohne Foto ein Platzhalter nur dort, wo das Foto zu sehen wäre, und
         // die Beschriftung oben links – mittig läge sie hinter der Karte.
@@ -1196,9 +1199,11 @@ export function FotoNebenKopf({
         }`}
       >
         {foto.src ? (
-          <img
-            src={foto.src}
-            alt={foto.alt}
+          <SpeicherBild
+            bild={foto}
+            // Am Rechner ragt das Foto über die Spalte hinaus: gut 30 % plus
+            // 30 vw. Auf dem Handy höchstens so breit wie der Bildschirm.
+            sizes="(min-width: 981px) 60vw, 100vw"
             className="inline-block h-auto max-h-[400px] w-auto max-w-full align-top min-[981px]:block min-[981px]:max-h-none min-[981px]:w-full"
           />
         ) : (
@@ -1555,8 +1560,8 @@ function BildInGroesse({ person }: { person: Person }) {
   const schatten = person.schlicht ? "" : "shadow-[6px_6px_18px_0_rgba(0,0,0,0.3)]";
   if (bild.src) {
     return (
-      <img
-        src={bild.src} alt={bild.alt || person.name} width={w} height={h} loading="lazy"
+      <SpeicherBild
+        bild={bild} alt={bild.alt || person.name} width={w} height={h} loading="lazy" sizes={`${w}px`}
         className={`${person.links ? "min-[981px]:ml-0 mx-auto" : "mx-auto"} block h-auto max-w-full ${schatten}`}
       />
     );
@@ -1743,6 +1748,9 @@ export function Galerie({
         return {
           src: urlData.publicUrl,
           alt: img.alt_text || "",
+          breite: img.breite,
+          hoehe: img.hoehe,
+          fassungen: img.fassungen,
           zeigeUnterschrift: img.show_subtitle ?? false,
         };
       });
@@ -1774,10 +1782,10 @@ export function Galerie({
               verzoegerung={i * 50}
               onClick={() => setLightbox(i)}
             >
-              <img
-                src={b.src}
-                alt={b.alt}
+              <SpeicherBild
+                bild={b}
                 loading="lazy"
+                sizes="auto, (min-width: 640px) 33vw, 50vw"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </GalerieKachel>
@@ -1894,10 +1902,13 @@ function LogoBild({ bildSchluessel, name, ziel, hoehe }: {
   // Herkunft nebeneinander ruhig, statt jedes für sich um Aufmerksamkeit zu
   // kämpfen.
   const img = (
-    <img
-      src={bild.src}
+    <SpeicherBild
+      bild={bild}
       alt={name || bild.alt}
       loading="lazy"
+      // Logos stehen klein in einer Reihe; die Breite kommt vom Bild selbst,
+      // deshalb hier kein „auto".
+      sizes="320px"
       className={`${hoehe} w-auto object-contain opacity-70 grayscale
         hover:opacity-100 hover:grayscale-0 transition-all`}
     />

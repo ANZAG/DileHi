@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { convertToWebP } from "@/lib/imageConversion";
+import { bildAblegen, bildEntfernen } from "@/lib/bildablage";
 
 import { useKategorien } from "@/hooks/useKategorien";
 
@@ -17,6 +18,7 @@ interface GalleryImage {
   alt_text: string;
   epoch: string;
   show_subtitle: boolean;
+  fassungen?: number[];
   publicUrl: string;
 }
 
@@ -65,13 +67,12 @@ const GalleryAdmin = () => {
       // Convert to WebP for better performance
       const webpFile = await convertToWebP(file);
       const path = `${Date.now()}_${webpFile.name}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("gallery")
-        .upload(path, webpFile, { contentType: "image/webp" });
-      if (uploadErr) throw uploadErr;
+      // Samt kleineren Fassungen für das Handy (src/lib/bildfassungen.mjs).
+      const masse = await bildAblegen(path, webpFile);
 
       const { error: dbErr } = await supabase.from("gallery_images").insert({
         storage_path: path,
+        ...masse,
         alt_text: altText || file.name.replace(/\.[^/.]+$/, ""),
         epoch: selectedEpoch,
         created_by: user.id,
@@ -124,8 +125,8 @@ const GalleryAdmin = () => {
   });
 
   const deleteImage = useMutation({
-    mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
-      await supabase.storage.from("gallery").remove([storagePath]);
+    mutationFn: async ({ id, storagePath, fassungen }: { id: string; storagePath: string; fassungen?: number[] }) => {
+      await bildEntfernen(storagePath, fassungen);
       const { error } = await supabase.from("gallery_images").delete().eq("id", id);
       if (error) throw error;
     },
@@ -271,7 +272,7 @@ const GalleryAdmin = () => {
                       ))}
                     </select>
                     <button
-                      onClick={() => deleteImage.mutate({ id: img.id, storagePath: img.storage_path })}
+                      onClick={() => deleteImage.mutate({ id: img.id, storagePath: img.storage_path, fassungen: img.fassungen })}
                       className="p-1 text-muted-foreground hover:text-destructive"
                       title="Löschen"
                     >

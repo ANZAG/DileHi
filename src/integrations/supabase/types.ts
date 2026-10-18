@@ -1434,27 +1434,36 @@ export type Database = {
       gallery_images: {
         Row: {
           alt_text: string
+          breite: number | null
           created_at: string
           created_by: string
           epoch: string
+          fassungen: number[]
+          hoehe: number | null
           id: string
           show_subtitle: boolean
           storage_path: string
         }
         Insert: {
           alt_text?: string
+          breite?: number | null
           created_at?: string
           created_by: string
           epoch?: string
+          fassungen?: number[]
+          hoehe?: number | null
           id?: string
           show_subtitle?: boolean
           storage_path: string
         }
         Update: {
           alt_text?: string
+          breite?: number | null
           created_at?: string
           created_by?: string
           epoch?: string
+          fassungen?: number[]
+          hoehe?: number | null
           id?: string
           show_subtitle?: boolean
           storage_path?: string
@@ -2222,6 +2231,9 @@ export type Database = {
       site_images: {
         Row: {
           alt_text: string
+          breite: number | null
+          fassungen: number[]
+          hoehe: number | null
           id: string
           label: string
           page: string
@@ -2232,6 +2244,9 @@ export type Database = {
         }
         Insert: {
           alt_text?: string
+          breite?: number | null
+          fassungen?: number[]
+          hoehe?: number | null
           id?: string
           label: string
           page: string
@@ -2242,6 +2257,9 @@ export type Database = {
         }
         Update: {
           alt_text?: string
+          breite?: number | null
+          fassungen?: number[]
+          hoehe?: number | null
           id?: string
           label?: string
           page?: string

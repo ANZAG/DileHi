@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { vorabzug } from "@/lib/vorabzug";
+import type { GespeichertesBild } from "@/components/SpeicherBild";
 
 /**
  * Die Bilder der Seitenbausteine.
@@ -21,10 +22,7 @@ import { vorabzug } from "@/lib/vorabzug";
  * (siehe FARBGRUND in components/sitebuilder/gestaltung.ts).
  */
 
-interface SiteImageData {
-  src: string;
-  alt: string;
-}
+type SiteImageData = GespeichertesBild;
 
 /** Alle Bilder auf einmal – die Bausteine fragen daraus einzeln ab. */
 export function useSiteImages() {
@@ -41,7 +39,9 @@ export function useSiteImages() {
         const src = img.storage_path
           ? supabase.storage.from("gallery").getPublicUrl(img.storage_path).data.publicUrl
           : "";
-        map[img.slot] = { src, alt: img.alt_text || "" };
+        // Masse und Fassungen für srcset und den freigehaltenen Platz
+        // (components/SpeicherBild.tsx).
+        map[img.slot] = { src, alt: img.alt_text || "", breite: img.breite, hoehe: img.hoehe, fassungen: img.fassungen };
       }
       return map;
     },

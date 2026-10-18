@@ -6,7 +6,7 @@ import path from "node:path";
 import {
   APP_ADRESSEN, APP_BEREICHE, apacheHauptadresse, apacheSeiten, bildAdressen, dokument, fehlerDokument,
   gegenstueck, hauptadressePruefen, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument,
-  seitenStand, sichererSlug, titelbild,
+  seitenStand, sichererSlug, titelbild, vorladeZeile,
 } from "../../scripts/vorabSeiten.mjs";
 
 /**
@@ -180,7 +180,7 @@ describe("Schneller Start", () => {
   });
 
   it("findet das Kopfbild nur in den ersten beiden Bausteinen", () => {
-    expect(titelbild({ content: [{ type: "Willkommen", props: { bildSchluessel: "hero" } }] }, bilder)).toContain("hero%20startseite");
+    expect(titelbild({ content: [{ type: "Willkommen", props: { bildSchluessel: "hero" } }] }, bilder)?.src).toContain("hero%20startseite");
     const tief = { content: [{ type: "A" }, { type: "B" }, { type: "C", props: { bildSchluessel: "hero" } }] };
     expect(titelbild(tief, bilder)).toBeUndefined();
     expect(titelbild({ content: [{ type: "A", props: { bildSchluessel: "fehlt" } }] }, bilder)).toBeUndefined();
@@ -197,6 +197,21 @@ describe("Schneller Start", () => {
     expect(aus).toMatch(/window\.__VORAB=\{.*"seite":\{"slug":"verein"/);
     // Vor dem Programm, sonst wäre er beim Start noch nicht da.
     expect(aus.indexOf("window.__VORAB")).toBeLessThan(aus.indexOf('<script type="module"'));
+  });
+
+  it("lädt mit Fassungen dieselbe Auswahl vor, die die Anwendung trifft", () => {
+    const mit = bildAdressen(
+      [{ slot: "hero", storage_path: "site/hero.webp", alt_text: "", breite: 1920, hoehe: 1080, fassungen: [400, 960] }],
+      "https://abc.supabase.co",
+    );
+    expect(mit.hero).toMatchObject({ breite: 1920, hoehe: 1080, fassungen: [400, 960] });
+    const zeile = vorladeZeile(mit.hero);
+    expect(zeile).toContain('imagesrcset="https://abc.supabase.co/storage/v1/object/public/gallery/_fassungen/400/site/hero.webp 400w, ');
+    expect(zeile).toContain('/gallery/site/hero.webp 1920w"');
+    // Muss dem `sizes` der Kopfbilder entsprechen (Willkommen, Titelbild).
+    expect(zeile).toContain('imagesizes="100vw"');
+    // Ohne Fassungen wie bisher nur die eine Adresse.
+    expect(vorladeZeile(bilder.hero)).not.toContain("imagesrcset");
   });
 
   it("öffnet die Verbindung zur Datenbank vorab, mit CORS", () => {
