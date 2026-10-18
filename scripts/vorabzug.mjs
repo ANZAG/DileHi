@@ -24,8 +24,9 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
-  apacheHauptadresse, apacheSeiten, dateiVon, fehlerDokument, hauptadressePruefen, kontaktDokument,
-  redirectsSeiten, seitenDokument, shellDokument, sichererSlug, skriptJson,
+  apacheHauptadresse, apacheSeiten, bildAdressen, dateiVon, fehlerDokument, hauptadressePruefen,
+  kontaktDokument, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand,
+  shellDokument, sichererSlug,
 } from "./vorabSeiten.mjs";
 
 const DIST = "dist";
@@ -89,6 +90,7 @@ async function main() {
   let branding = null;
   let menue = null;
   let seiten = null;
+  let bilder = null;
   try {
     const zeilen = await holen("rpc/public_branding", { method: "POST", body: "{}" });
     branding = Array.isArray(zeilen) ? zeilen[0] ?? null : null;
@@ -114,15 +116,21 @@ async function main() {
   } catch (e) {
     melden(`Seiten nicht erreichbar (${e.message}) – kein Vorab-HTML, kein 404.`);
   }
+  try {
+    bilder = bildAdressen(await holen("site_images?select=slot,storage_path,alt_text"), url);
+  } catch (e) {
+    melden(`Bildliste nicht erreichbar (${e.message}) – die Anwendung fragt sie wie bisher selbst ab.`);
+  }
   if (!branding && !menue) {
     melden("nichts abgeholt – index.html bleibt, wie sie ist.");
     return;
   }
 
-  let vorlage = readFileSync(DATEI, "utf8");
-  const vorab = `<script>window.__VORAB=${skriptJson({ branding, menue })}</script>`;
-  // Vor das Programm, damit es beim Start schon dasteht.
-  vorlage = vorlage.replace(/(<script type="module")/, `${vorab}\n    $1`);
+  // Die gebaute index.html ohne alles, was hier dazukommt. Jede Datei bekommt
+  // ihren eigenen Vorabstand: die Seiten zusätzlich sich selbst.
+  const roh = mitVorverbindung(readFileSync(DATEI, "utf8"), url);
+  const gemeinsam = { branding, menue, ...(bilder ? { bilder } : {}) };
+  const vorlage = mitVorab(roh, gemeinsam);
 
   // Die index.html bleibt die Hülle für die Adressen der Anwendung
   // (Anmeldung, Mitgliederbereich): Name und Vereinsbeschreibung, kein Text.
@@ -144,7 +152,8 @@ async function main() {
       continue;
     }
     if (seite.slug === "kontakt") continue; // die feste Kontaktseite hat Vorrang (src/App.tsx)
-    schreiben(dateiVon(seite.slug), seitenDokument(vorlageSeite, { seite, marke: branding, menue }));
+    const eigene = shellDokument(mitVorab(roh, { ...gemeinsam, seite: seitenStand(seite) }), { marke: branding });
+    schreiben(dateiVon(seite.slug), seitenDokument(eigene, { seite, marke: branding, menue, bilder }));
     fertig.push(seite.slug);
   }
   schreiben(dateiVon("kontakt"), kontaktDokument(vorlageSeite, { marke: branding, menue }));

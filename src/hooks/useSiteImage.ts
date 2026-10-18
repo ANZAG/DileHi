@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { vorabzug } from "@/lib/vorabzug";
 
 /**
  * Die Bilder der Seitenbausteine.
@@ -45,6 +46,11 @@ export function useSiteImages() {
       return map;
     },
     staleTime: 5 * 60 * 1000,
+    // Der Stand vom Bauen, damit die Bilder sofort eine Adresse haben. Als
+    // veraltet markiert (Zeitpunkt 0): Die Abfrage läuft trotzdem gleich im
+    // Hintergrund, und ein neues Bild seit dem Bauen erscheint wie bisher.
+    initialData: () => vorabzug()?.bilder,
+    initialDataUpdatedAt: 0,
   });
 }
 

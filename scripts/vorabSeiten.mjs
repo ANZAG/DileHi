@@ -52,6 +52,72 @@ export function sichererSlug(slug) {
   return typeof slug === "string" && /^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)*$/i.test(slug);
 }
 
+/**
+ * Der Stand vom Bauen als `window.__VORAB`, vor das Programm gesetzt, damit
+ * er beim Start schon dasteht (src/lib/vorabzug.ts).
+ */
+export function mitVorab(vorlage, daten) {
+  const skript = `<script>window.__VORAB=${skriptJson(daten)}</script>`;
+  return vorlage.replace(/(<script type="module")/, () => `${skript}\n    <script type="module"`);
+}
+
+/**
+ * Die Verbindung zur Datenbank schon beim Lesen des HTML öffnen.
+ *
+ * Die Anwendung fragt dort als Erstes Vereinsangaben, Menü und Seite ab. Ohne
+ * den Hinweis baut der Browser die Verbindung erst auf, wenn das Programm
+ * geladen ist – auf dem Handy mehrere Hundert Millisekunden später.
+ * `crossorigin`, weil die Abfragen mit CORS laufen; ohne passt die Verbindung
+ * nicht und wird verworfen.
+ */
+export function mitVorverbindung(vorlage, datenbank) {
+  let ursprung;
+  try { ursprung = new URL(datenbank).origin; } catch { return vorlage; }
+  return vorlage.replace(/<\/head>/, () => `    <link rel="preconnect" href="${html(ursprung)}" crossorigin />\n  </head>`);
+}
+
+/**
+ * Bildplatz → öffentliche Adresse, genauso gebildet wie in der Anwendung
+ * (useSiteImage: supabase.storage.from("gallery").getPublicUrl). Nur bei
+ * gleicher Adresse nutzt der Browser das vorgeladene Bild.
+ */
+export function bildAdressen(zeilen, datenbank) {
+  const bilder = {};
+  const basis = String(datenbank ?? "").replace(/\/+$/, "");
+  for (const z of Array.isArray(zeilen) ? zeilen : []) {
+    if (!z?.slot) continue;
+    const pfad = String(z.storage_path ?? "").replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+    bilder[z.slot] = {
+      src: pfad && basis ? encodeURI(`${basis}/storage/v1/object/public/gallery/${pfad}`) : "",
+      alt: z.alt_text || "",
+    };
+  }
+  return bilder;
+}
+
+/**
+ * Das Bild im Kopf der Seite, wenn sie mit einem beginnt.
+ *
+ * Gesucht wird nur in den ersten beiden Bausteinen: Was weiter unten steht,
+ * ist beim Laden nicht zu sehen, und es vorzuziehen, nähme dem Kopfbild die
+ * Leitung weg.
+ */
+export function titelbild(daten, bilder) {
+  const bloecke = Array.isArray(daten?.content) ? daten.content.slice(0, 2) : [];
+  for (const block of bloecke) {
+    const schluessel = block?.props?.bildSchluessel;
+    const src = typeof schluessel === "string" ? bilder?.[schluessel]?.src : "";
+    if (src) return src;
+  }
+  return undefined;
+}
+
+/** Die Seite so, wie die Anwendung sie abfragt – für den sofortigen Start. */
+export function seitenStand(seite) {
+  const { slug, title, content, seo_title, seo_description, seo_type, noindex } = seite;
+  return { slug, title, content, seo_title, seo_description, seo_type, noindex, is_published: true };
+}
+
 /** Wo die fertige Datei einer Seite im Build liegt, relativ zu dist/. */
 export function dateiVon(slug) {
   return `${VORAB_ORDNER}/${slug}.html`;
@@ -123,7 +189,7 @@ export function koerper({ marke, menue, inhalt }) {
  * jeder Seite kurz eine schmucklose Textfassung auf. Wer kein JavaScript
  * ausführt, setzt die Klasse nie und liest den Text.
  */
-export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "website", noindex = false, jsonLd, inhalt }) {
+export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "website", noindex = false, jsonLd, inhalt, vorladen }) {
   let seite = kopfSetzen(vorlage, { titel, beschreibung });
   seite = seite.replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${html(typ)}$2`);
 
@@ -134,6 +200,10 @@ export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "websi
     kanonisch ? `<meta property="og:url" content="${html(kanonisch)}" data-rh="true" />` : "",
     noindex ? `<meta name="robots" content="noindex, nofollow" data-rh="true" />` : "",
     jsonLd ? `<script type="application/ld+json" data-rh="true">${skriptJson(jsonLd)}</script>` : "",
+    // Das Kopfbild ist auf dem Handy das grösste Element (LCP). Ohne diesen
+    // Hinweis begann sein Download erst, nachdem Programm, Seite und
+    // Bildliste geladen waren.
+    vorladen ? `<link rel="preload" as="image" href="${html(vorladen)}" fetchpriority="high" />` : "",
   ].filter(Boolean).map((z) => `    ${z}`).join("\n");
 
   seite = seite.replace(/<\/head>/, `${kopfzeilen}\n  </head>`);
@@ -144,7 +214,7 @@ export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "websi
 }
 
 /** Eine Baukastenseite als fertiges Dokument. */
-export function seitenDokument(vorlage, { seite, marke, menue }) {
+export function seitenDokument(vorlage, { seite, marke, menue, bilder }) {
   const basis = basisVon(marke);
   const { html: text, hatH1 } = seitenInhalt(seite.content);
   const kopf = hatH1 ? "" : `<h1>${html(seite.title)}</h1>\n`;
@@ -155,6 +225,7 @@ export function seitenDokument(vorlage, { seite, marke, menue }) {
     typ: seite.seo_type === "organisation" ? "website" : "article",
     noindex: Boolean(seite.noindex),
     jsonLd: strukturierteDaten(seite, marke),
+    vorladen: titelbild(seite.content, bilder),
     inhalt: koerper({ marke, menue, inhalt: `<article>\n${kopf}${text}\n</article>` }),
   });
 }

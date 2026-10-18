@@ -15,6 +15,14 @@
 export interface Vorabzug {
   branding?: Record<string, unknown>;
   menue?: { zeilen: unknown[]; seiten: Record<string, string> };
+  /**
+   * Die Bilder der Seite, Platz → Adresse. Ohne sie fragte die Anwendung
+   * erst die Seite ab, dann die Bilder, und erst dann begann der Download
+   * des Titelbilds – auf dem Handy der grösste Teil der Wartezeit.
+   */
+  bilder?: Record<string, { src: string; alt: string }>;
+  /** Die Baukastenseite, in deren fertigem HTML dieser Stand steht. */
+  seite?: Record<string, unknown> & { slug?: string };
 }
 
 export function vorabzug(): Vorabzug | null {

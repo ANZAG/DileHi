@@ -4,8 +4,9 @@ import fs from "node:fs";
 import path from "node:path";
 // Bauwerkzeug, absichtlich kein Teil der Anwendung -- deshalb aus scripts/.
 import {
-  APP_ADRESSEN, APP_BEREICHE, apacheHauptadresse, apacheSeiten, dokument, fehlerDokument, gegenstueck,
-  hauptadressePruefen, redirectsSeiten, seitenDokument, sichererSlug,
+  APP_ADRESSEN, APP_BEREICHE, apacheHauptadresse, apacheSeiten, bildAdressen, dokument, fehlerDokument,
+  gegenstueck, hauptadressePruefen, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument,
+  seitenStand, sichererSlug, titelbild,
 } from "../../scripts/vorabSeiten.mjs";
 
 /**
@@ -158,5 +159,48 @@ describe("Adressen der Anwendung", () => {
       const gedeckt = APP_BEREICHE.includes(erstes) || (APP_ADRESSEN.includes(erstes) && !route.slice(1).includes("/"));
       expect(gedeckt, `${route} fehlt in APP_ADRESSEN/APP_BEREICHE (scripts/vorabSeiten.mjs)`).toBe(true);
     }
+  });
+});
+
+describe("Schneller Start", () => {
+  const bilder = bildAdressen(
+    [
+      { slot: "hero", storage_path: "site/hero startseite.webp", alt_text: "Lager" },
+      { slot: "leer", storage_path: null, alt_text: null },
+    ],
+    "https://abc.supabase.co/",
+  );
+
+  it("bildet die Bildadresse wie die Anwendung (getPublicUrl)", () => {
+    expect(bilder.hero).toEqual({
+      src: "https://abc.supabase.co/storage/v1/object/public/gallery/site/hero%20startseite.webp",
+      alt: "Lager",
+    });
+    expect(bilder.leer).toEqual({ src: "", alt: "" });
+  });
+
+  it("findet das Kopfbild nur in den ersten beiden Bausteinen", () => {
+    expect(titelbild({ content: [{ type: "Willkommen", props: { bildSchluessel: "hero" } }] }, bilder)).toContain("hero%20startseite");
+    const tief = { content: [{ type: "A" }, { type: "B" }, { type: "C", props: { bildSchluessel: "hero" } }] };
+    expect(titelbild(tief, bilder)).toBeUndefined();
+    expect(titelbild({ content: [{ type: "A", props: { bildSchluessel: "fehlt" } }] }, bilder)).toBeUndefined();
+  });
+
+  it("lädt das Kopfbild vor und legt die Seite in den Vorabstand", () => {
+    const seite = {
+      slug: "verein", title: "Über uns", seo_title: null, seo_description: null, seo_type: "ueber_uns", noindex: false,
+      content: { content: [{ type: "Titelbild", props: { bildSchluessel: "hero", ueberschrift: "Über uns" } }] },
+    };
+    const eigene = mitVorab(vorlage, { bilder, seite: seitenStand(seite) });
+    const aus = seitenDokument(eigene, { seite, marke, menue, bilder });
+    expect(aus).toContain('<link rel="preload" as="image" href="https://abc.supabase.co/storage/v1/object/public/gallery/site/hero%20startseite.webp" fetchpriority="high" />');
+    expect(aus).toMatch(/window\.__VORAB=\{.*"seite":\{"slug":"verein"/);
+    // Vor dem Programm, sonst wäre er beim Start noch nicht da.
+    expect(aus.indexOf("window.__VORAB")).toBeLessThan(aus.indexOf('<script type="module"'));
+  });
+
+  it("öffnet die Verbindung zur Datenbank vorab, mit CORS", () => {
+    expect(mitVorverbindung(vorlage, "https://abc.supabase.co")).toContain('<link rel="preconnect" href="https://abc.supabase.co" crossorigin />');
+    expect(mitVorverbindung(vorlage, "kaputt")).toBe(vorlage);
   });
 });

@@ -141,7 +141,11 @@ export function Titelbild({
     <section className={`relative ${hoehen[hoehe] ?? hoehen.mittel} flex items-end overflow-hidden`}>
       {hatBild ? (
         <>
-          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" />
+          {/* Das Bild im Kopf ist meist das grösste Element der Seite. Das
+              fertige HTML lädt es schon vor (scripts/vorabzug.mjs); hier
+              bekommt es dieselbe Vorfahrt. Klein geschrieben, weil React 18
+              fetchPriority noch nicht kennt. */}
+          <img src={bild.src} alt={bild.alt} className="absolute inset-0 w-full h-full object-cover" {...{ fetchpriority: "high" }} />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
         </>
       ) : (

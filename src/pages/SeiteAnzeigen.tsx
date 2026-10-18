@@ -3,9 +3,10 @@ import { useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import NotFound from "@/pages/NotFound";
 import SeitenRenderer, { type SeitenDaten } from "@/components/sitebuilder/SeitenRenderer";
-import { fetchPageBySlug } from "@/components/sitebuilder/api";
+import { fetchPageBySlug, type SitePage } from "@/components/sitebuilder/api";
 import { useBranding } from "@/hooks/useBranding";
 import { pfadVon, seitenBeschreibung, seitenTitel, strukturierteDaten } from "@/lib/auffindbarkeit.mjs";
+import { vorabzug } from "@/lib/vorabzug";
 
 /**
  * Eine im Editor gebaute Seite, öffentlich.
@@ -24,6 +25,14 @@ export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
     queryKey: ["site-page-slug", slug],
     queryFn: () => fetchPageBySlug(slug),
     enabled: slug !== "",
+    // Im fertigen HTML einer Seite steht sie selbst schon (scripts/vorabzug.mjs).
+    // Damit zeigt die Anwendung sie sofort, statt erst die Datenbank zu
+    // fragen; die Abfrage läuft im Hintergrund trotzdem (Zeitpunkt 0).
+    initialData: () => {
+      const vorab = vorabzug()?.seite;
+      return vorab?.slug === slug ? (vorab as unknown as SitePage) : undefined;
+    },
+    initialDataUpdatedAt: 0,
   });
 
   const branding = useBranding();

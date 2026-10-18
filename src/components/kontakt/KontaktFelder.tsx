@@ -1,8 +1,51 @@
-import { useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import ForumEditor from "@/components/forum/ForumEditor";
+
+/**
+ * Der Editor kommt erst, wenn das Formular in Sicht kommt.
+ *
+ * Er ist der grösste Teil dieses Formulars (rund 150 KB gepackt), und das
+ * Formular steht als Baustein auch auf der Startseite – ganz unten. Fest
+ * eingebunden lud jeder Besucher ihn mit, bevor die Seite überhaupt etwas
+ * zeigte; PageSpeed führte ihn auf dem Handy als grössten Posten unter
+ * „nicht verwendetes JavaScript". Bis er da ist, steht ein gleich hoher
+ * Rahmen an seiner Stelle.
+ */
+const ForumEditor = lazy(() => import("@/components/forum/ForumEditor"));
+
+/** Platzhalter in der Grösse des Editors (Leiste plus min-h-[8rem]). */
+function EditorPlatzhalter({ aufwecken }: { aufwecken?: () => void }) {
+  return (
+    <div
+      className="rounded-md border border-input bg-background min-h-[10.75rem] px-3 py-2.5 text-sm text-muted-foreground"
+      onPointerDown={aufwecken}
+      onFocus={aufwecken}
+      tabIndex={aufwecken ? 0 : -1}
+      aria-label="Nachricht"
+    >
+      Deine Nachricht an uns …
+    </div>
+  );
+}
+
+/** Wird true, sobald das Element in die Nähe des sichtbaren Bereichs kommt. */
+function useInSicht<T extends Element>(): [React.RefObject<T>, boolean, () => void] {
+  const ref = useRef<T>(null);
+  const [inSicht, setInSicht] = useState(false);
+  useEffect(() => {
+    if (inSicht || !ref.current) return;
+    if (typeof IntersectionObserver === "undefined") { setInSicht(true); return; }
+    const beobachter = new IntersectionObserver(
+      (eintraege) => { if (eintraege.some((e) => e.isIntersecting)) setInSicht(true); },
+      { rootMargin: "400px" },
+    );
+    beobachter.observe(ref.current);
+    return () => beobachter.disconnect();
+  }, [inSicht]);
+  return [ref, inSicht, () => setInSicht(true)];
+}
 
 const generateCaptcha = () => {
   const a = Math.floor(Math.random() * 10) + 1;
@@ -37,6 +80,7 @@ export default function KontaktFelder({ kompakt = false }: { kompakt?: boolean }
   const [captcha, setCaptcha] = useState(generateCaptcha);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [editorOrt, editorLaden, editorJetzt] = useInSicht<HTMLDivElement>();
 
   const nachrichtLeer = form.message.replace(/<[^>]*>/g, "").trim() === "";
 
@@ -125,14 +169,20 @@ export default function KontaktFelder({ kompakt = false }: { kompakt?: boolean }
         />
       </div>
 
-      <div>
+      <div ref={editorOrt}>
         <span className="text-sm font-medium mb-1.5 block">Nachricht *</span>
-        <ForumEditor
-          value={form.message}
-          onChange={(html) => setForm((f) => ({ ...f, message: html }))}
-          placeholder="Deine Nachricht an uns …"
-          umfang="knapp"
-        />
+        {editorLaden ? (
+          <Suspense fallback={<EditorPlatzhalter />}>
+            <ForumEditor
+              value={form.message}
+              onChange={(html) => setForm((f) => ({ ...f, message: html }))}
+              placeholder="Deine Nachricht an uns …"
+              umfang="knapp"
+            />
+          </Suspense>
+        ) : (
+          <EditorPlatzhalter aufwecken={editorJetzt} />
+        )}
       </div>
 
       <div>
