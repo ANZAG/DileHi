@@ -40,6 +40,44 @@ function installationAddresses(supabaseUrl: string | undefined): Plugin {
 }
 
 /**
+ * Lädt die beiden Vorgabeschriften schon mit dem HTML vor.
+ *
+ * Sonst findet der Browser sie erst spät: HTML, dann das Hauptprogramm, das
+ * sie anfordert (src/main.tsx → lib/schriften.ts), dann ihr CSS, dann die
+ * Datei. PageSpeed zeigte das als längste Kette der Startseite, gut 1,1 s
+ * auf dem Handy – und bis dahin steht der Text in der Ersatzschrift da und
+ * springt beim Wechsel.
+ *
+ * Nur die zwei Schnitte, die auf jeder Seite stehen: Fliesstext und
+ * Überschrift. Jede weitere Datei nähme dem Kopfbild Leitung weg. Die Namen
+ * tragen einen Prüfwert, deshalb werden sie erst nach dem Bauen gesucht.
+ */
+const VORLADE_SCHRIFTEN = [/^inter-latin-400-normal-.*\.woff2$/, /^dm-serif-display-latin-400-normal-.*\.woff2$/];
+
+function schriftenVorladen(): Plugin {
+  return {
+    name: "schriften-vorladen",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(_html, ctx) {
+        const dateien = Object.keys(ctx.bundle ?? {});
+        return VORLADE_SCHRIFTEN.flatMap((muster) => {
+          const datei = dateien.find((d) => muster.test(path.basename(d)));
+          return datei
+            ? [{
+              tag: "link",
+              attrs: { rel: "preload", as: "font", type: "font/woff2", href: `/${datei}`, crossorigin: "" },
+              injectTo: "head" as const,
+            }]
+            : [];
+        });
+      },
+    },
+  };
+}
+
+/**
  * Die Versionen der Migrationen, die zu diesem Stand des Programms gehören.
  *
  * Der Einrichtungsassistent vergleicht sie mit dem, was in der Datenbank
@@ -72,7 +110,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __MIGRATIONEN__: JSON.stringify(migrationsVersionen()),
     },
-    plugins: [react(), installationAddresses(env.VITE_SUPABASE_URL)],
+    plugins: [react(), installationAddresses(env.VITE_SUPABASE_URL), schriftenVorladen()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
