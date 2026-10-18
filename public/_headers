@@ -13,8 +13,17 @@
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
 
-# index.html nie zwischenspeichern, damit ein neuer Stand sofort greift.
+# HTML nie zwischenspeichern, damit ein neuer Stand sofort greift -- auch die
+# fertigen Seiten unter _vorab/ und die 404.html (Begruendung in der .htaccess).
 /
   Cache-Control: no-cache, no-store, must-revalidate
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
+/404.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/_vorab/*
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Programmteile mit Pruefsumme im Namen: ein Jahr, ohne Nachfrage.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
