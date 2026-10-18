@@ -68,13 +68,18 @@ export function mitVorab(vorlage, daten) {
  * Die Anwendung fragt dort als Erstes Vereinsangaben, Menü und Seite ab. Ohne
  * den Hinweis baut der Browser die Verbindung erst auf, wenn das Programm
  * geladen ist – auf dem Handy mehrere Hundert Millisekunden später.
- * `crossorigin`, weil die Abfragen mit CORS laufen; ohne passt die Verbindung
- * nicht und wird verworfen.
+ *
+ * Zwei Hinweise, weil der Browser zwei Verbindungen braucht: eine mit
+ * `crossorigin` für die Abfragen (CORS), eine ohne für die Bilder aus dem
+ * Speicher. Mit nur der ersten musste das Kopfbild seine Verbindung selbst
+ * aufbauen; PageSpeed schätzte das auf 300 ms.
  */
 export function mitVorverbindung(vorlage, datenbank) {
   let ursprung;
   try { ursprung = new URL(datenbank).origin; } catch { return vorlage; }
-  return vorlage.replace(/<\/head>/, () => `    <link rel="preconnect" href="${html(ursprung)}" crossorigin />\n  </head>`);
+  const href = html(ursprung);
+  return vorlage.replace(/<\/head>/, () =>
+    `    <link rel="preconnect" href="${href}" crossorigin />\n    <link rel="preconnect" href="${href}" />\n  </head>`);
 }
 
 /**

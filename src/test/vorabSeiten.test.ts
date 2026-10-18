@@ -215,7 +215,10 @@ describe("Schneller Start", () => {
   });
 
   it("öffnet die Verbindung zur Datenbank vorab, mit CORS", () => {
-    expect(mitVorverbindung(vorlage, "https://abc.supabase.co")).toContain('<link rel="preconnect" href="https://abc.supabase.co" crossorigin />');
+    const aus = mitVorverbindung(vorlage, "https://abc.supabase.co");
+    expect(aus).toContain('<link rel="preconnect" href="https://abc.supabase.co" crossorigin />');
+    // Und eine ohne CORS für die Bilder.
+    expect(aus).toContain('<link rel="preconnect" href="https://abc.supabase.co" />');
     expect(mitVorverbindung(vorlage, "kaputt")).toBe(vorlage);
   });
 });
