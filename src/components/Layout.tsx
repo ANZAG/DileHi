@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import TourBeiBedarf from "@/components/onboarding/TourBeiBedarf";
@@ -30,6 +30,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   // Beide Aufrufe teilen sich eine Abfrage – siehe useSiteMenu.
   const navItems = useSiteMenu("header");
   const rechtliches = useSiteMenu("footer_legal");
+  const { eng, kopf, marke, name, leiste } = useEngeKopfzeile([navItems, user, org_short_name, logo_in_header]);
+
+  // Wird das Fenster breit genug für die ganze Leiste, ist die Klappe weg –
+  // sie darf beim nächsten Schmalwerden nicht schon offen dastehen.
+  useEffect(() => {
+    if (!eng) setMenuOpen(false);
+  }, [eng]);
 
   // roleLabels comes from useAuth (loaded from role_catalog in DB)
   // → no frontend change needed when a new role is added
@@ -48,13 +55,25 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       )}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container flex h-16 items-center justify-between">
-          <Link to="/" className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
-            {logoUrl && logo_in_header && <img src={logoUrl} alt="" className="h-7 w-auto" />}
-            {org_short_name}
+        <div ref={kopf} className="container relative flex h-16 items-center justify-between gap-6">
+          <Link
+            ref={marke}
+            to="/"
+            className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2 min-w-0 whitespace-nowrap"
+          >
+            {logoUrl && logo_in_header && <img src={logoUrl} alt="" className="h-7 w-auto shrink-0" />}
+            <span ref={name} className="truncate">{org_short_name}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Die Leiste steht immer im Dokument, damit sich messen lässt, ob
+              sie passt. Passt sie nicht, ist sie unsichtbar (und damit auch
+              nicht per Tab erreichbar), und das Menü steckt hinter dem
+              Knopf. */}
+          <nav
+            ref={leiste}
+            aria-hidden={eng || undefined}
+            className={`flex w-max shrink-0 items-center gap-1 ${eng ? "invisible absolute right-0 pointer-events-none" : ""}`}
+          >
             {navItems.map((item) =>
               item.children ? (
                 <NavGruppe key={item.path} eintrag={item} />
@@ -84,16 +103,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </Link>
           </nav>
 
-          <div className="flex md:hidden items-center gap-1">
+          <div className={eng ? "flex items-center gap-1" : "hidden"}>
             {user && <NotificationBell />}
-            <button className="p-2 text-foreground" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menü">
+            <button
+              className="p-2 text-foreground"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Menü"
+              aria-expanded={menuOpen}
+            >
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
-        {menuOpen && (
-          <nav className="md:hidden border-t bg-background px-4 pb-4 pt-2 space-y-1">
+        {eng && menuOpen && (
+          <nav className="border-t bg-background px-4 pb-4 pt-2 space-y-1">
             {/* Untermenüs klappen hier nicht auf, sondern stehen eingerückt
                 darunter: Auf einem Handy ist Scrollen billiger als Tippen. */}
             {navItems.flatMap((item) =>
@@ -182,13 +206,68 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {org_name}. Alle Rechte vorbehalten.
+            {/* Endet der Name schon auf einen Punkt („e. V."), keinen zweiten. */}
+            © {new Date().getFullYear()} {org_name.replace(/\.$/, "")}. Alle Rechte vorbehalten.
           </div>
         </div>
       </footer>
     </div>
   );
 };
+
+/**
+ * Passt die ganze Menüleiste neben den Namen?
+ *
+ * Vorher entschied eine feste Bildschirmbreite (768 px). Bei sieben
+ * Menüpunkten und einem langen Vereinsnamen reichte die auf dem Tablet nicht:
+ * Der Name brach auf drei Zeilen um, die Punkte auf zwei, und die Seite liess
+ * sich 154 px seitwärts schieben. Wie viele Punkte ein Verein anlegt und wie
+ * lang sein Name ist, weiss aber nur die Installation – also wird gemessen:
+ * Passt die Leiste, steht sie da, sonst das Menü hinter dem Knopf.
+ *
+ * Gemessen vor dem ersten Zeichnen (`useLayoutEffect`), sonst sähe man die
+ * falsche Fassung aufblitzen. Erneut gemessen, wenn sich die Breite ändert,
+ * die Schrift nachlädt oder Menü, Name und Anmeldung wechseln.
+ */
+function useEngeKopfzeile(abhaengig: unknown[]) {
+  const kopf = useRef<HTMLDivElement>(null);
+  const marke = useRef<HTMLAnchorElement>(null);
+  const name = useRef<HTMLSpanElement>(null);
+  const leiste = useRef<HTMLElement>(null);
+  // Zuerst eng: Auf dem Handy ist das ohnehin richtig, und auf dem Rechner
+  // wird vor dem Zeichnen umgestellt.
+  const [eng, setEng] = useState(true);
+
+  const messen = useCallback(() => {
+    const k = kopf.current;
+    const m = marke.current;
+    const n = name.current;
+    const l = leiste.current;
+    if (!k || !m || !n || !l) return;
+    const stil = getComputedStyle(k);
+    const platz = k.clientWidth - parseFloat(stil.paddingLeft) - parseFloat(stil.paddingRight);
+    const abstand = parseFloat(stil.columnGap) || 0;
+    // Der Name in voller Länge, nicht so, wie er gerade dasteht: Ist er
+    // schon gekürzt („D…"), passte die Leiste sonst scheinbar daneben.
+    const volleMarke = m.offsetWidth - n.clientWidth + n.scrollWidth;
+    setEng(volleMarke + abstand + l.scrollWidth > platz);
+  }, []);
+
+  useLayoutEffect(messen, [messen, ...abhaengig]);
+
+  useEffect(() => {
+    const k = kopf.current;
+    if (!k) return;
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(k);
+    // Bis die Vereinsschrift da ist, steht der Name in der Ersatzschrift –
+    // die ist oft schmaler.
+    void document.fonts?.ready.then(messen);
+    return () => beobachter.disconnect();
+  }, [messen]);
+
+  return { eng, kopf, marke, name, leiste };
+}
 
 /**
  * Ein Menüpunkt mit Unterpunkten.
