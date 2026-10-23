@@ -155,3 +155,11 @@ export function surfaceColors(hex: string, dunkel = false, eigenerTon?: string |
     "--input": hslToTokens(rahmen),
   };
 }
+
+/** Das Kontrastverhältnis nach WCAG, 1 bis 21. Ungültiges ergibt null. */
+export function kontrast(a: string, b: string): number | null {
+  const ya = leuchtdichte(a);
+  const yb = leuchtdichte(b);
+  if (ya === null || yb === null) return null;
+  return (Math.max(ya, yb) + 0.05) / (Math.min(ya, yb) + 0.05);
+}

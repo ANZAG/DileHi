@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
+import { hexToHsl, hslToTokens, isDark, kontrast, readableInk } from "@/lib/farben";
 
 /**
  * Farbumrechnung für das Erscheinungsbild.
@@ -88,5 +88,24 @@ describe("isDark", () => {
 
   it("sagt bei Unsinn nein", () => {
     expect(isDark("#xyz")).toBe(false);
+  });
+});
+
+describe("kontrast – für die Anzeige im Erscheinungsbild", () => {
+  it("misst Schwarz auf Weiss als 21 : 1", () => {
+    expect(kontrast("#000000", "#ffffff")).toBeCloseTo(21, 5);
+  });
+
+  it("ist gleich, egal welche Farbe zuerst steht", () => {
+    expect(kontrast("#dc9832", "#f9f8f6")).toBeCloseTo(kontrast("#f9f8f6", "#dc9832")!, 10);
+  });
+
+  it("hält das Orange von dilehi.de als Schrift für zu blass", () => {
+    // Gemessen auf der Seite: 2,2 : 1 auf dem Seitengrund.
+    expect(kontrast("#dc9832", "#f9f8f6")!).toBeLessThan(3);
+  });
+
+  it("gibt bei ungültiger Farbe nichts zurück", () => {
+    expect(kontrast("#xyz", "#ffffff")).toBeNull();
   });
 });

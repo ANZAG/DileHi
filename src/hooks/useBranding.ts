@@ -26,6 +26,8 @@ export interface Branding {
   color_dark: string;
   /** Eigener Ton für gedämpfte Flächen; ohne Angabe aus `color_surface` abgeleitet. */
   color_muted?: string | null;
+  /** Schriftfarbe für Hervorhebungen auf hellem Grund; ohne Angabe die Vereinsfarbe. */
+  color_accent_text?: string | null;
   seo_description: string | null;
   seo_image_path: string | null;
   website_url: string | null;
@@ -78,6 +80,7 @@ const VORGABE: Branding = {
   color_surface: "#f4f2ee",
   color_dark: "#1c1917",
   color_muted: null,
+  color_accent_text: null,
   seo_description: null,
   seo_image_path: null,
   website_url: null,
@@ -170,7 +173,7 @@ export function useWoerter(): Words {
 
 export function useBrandingAnwenden() {
   const branding = useBranding();
-  const { color_primary, color_dark, color_surface, color_muted, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
+  const { color_primary, color_dark, color_surface, color_muted, color_accent_text, faviconUrl, org_name, org_short_name, font_headings, font_body } = branding;
 
   // `useLayoutEffect`: vor dem ersten Zeichnen, sonst stünde die Seite einen
   // Augenblick in den Vorgabefarben da.
@@ -190,6 +193,16 @@ export function useBrandingAnwenden() {
         wurzel.style.setProperty(name, schrift);
       }
     }
+
+    // Die Vereinsfarbe als Schrift (`text-primary`). Ein kräftiges Orange ist
+    // als Knopf richtig, als Schrift auf hellem Grund aber zu blass. Statt es
+    // automatisch abzudunkeln – das ergab ein Braun, das niemand gewählt
+    // hätte – wählt der Verein dafür im Erscheinungsbild einen eigenen Ton.
+    // Der gilt nur im hellen Modus: Auf dunklem Grund wäre ein Ton, der für
+    // hellen Grund dunkel genug ist, wieder zu dunkel.
+    const eigeneSchrift = color_accent_text ? hexToHsl(color_accent_text) : null;
+    const schriftton = !wurzel.classList.contains("dark") && eigeneSchrift ? eigeneSchrift : primaer;
+    if (schriftton) wurzel.style.setProperty("--primary-text", hslToTokens(schriftton));
 
     // Die zweite Vereinsfarbe ist der dunkle Ton: im hellen Modus die Schrift,
     // im dunklen der Hintergrund. Ist sie nicht dunkel, bleibt sie unbenutzt –
@@ -234,7 +247,7 @@ export function useBrandingAnwenden() {
         wurzel.style.setProperty(name, schrift);
       }
     }
-  }, [color_primary, color_dark, color_surface, color_muted]);
+  }, [color_primary, color_dark, color_surface, color_muted, color_accent_text]);
 
   useLayoutEffect(() => {
     loadFonts([font_headings, font_body]);

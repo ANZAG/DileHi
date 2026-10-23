@@ -21,6 +21,18 @@ export default {
         serif: ["var(--schrift-ueberschrift)", "DM Serif Display", "serif"],
         sans: ["var(--schrift-text)", "Inter", "system-ui", "sans-serif"],
       },
+      // `text-primary` ist die Vereinsfarbe als Schrift (--primary-text). Der
+      // Verein kann dafür im Erscheinungsbild einen eigenen, lesbaren Ton
+      // wählen; ohne Wahl ist es die Vereinsfarbe selbst. Flächen, Rahmen und
+      // Knöpfe (`bg-primary`, `border-primary`) behalten immer den vollen Ton.
+      // Wer die Vereinsfarbe selbst als Schrift braucht – etwa auf einem
+      // dunklen Foto –, schreibt `text-[hsl(var(--primary))]`.
+      textColor: {
+        primary: {
+          DEFAULT: "hsl(var(--primary-text))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -95,7 +107,7 @@ export default {
           css: {
             "--tw-prose-body": "hsl(var(--foreground))",
             "--tw-prose-headings": "hsl(var(--foreground))",
-            "--tw-prose-links": "hsl(var(--primary))",
+            "--tw-prose-links": "hsl(var(--primary-text))",
             "--tw-prose-bold": "hsl(var(--foreground))",
             "--tw-prose-counters": "hsl(var(--muted-foreground))",
             "--tw-prose-bullets": "hsl(var(--muted-foreground))",

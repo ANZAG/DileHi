@@ -151,6 +151,7 @@ export type Database = {
           board_members: string | null
           calendar_timezone: string
           color_dark: string
+          color_accent_text: string | null
           color_muted: string | null
           color_primary: string
           color_surface: string
@@ -203,6 +204,7 @@ export type Database = {
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
+          color_accent_text?: string | null
           color_muted?: string | null
           color_primary?: string
           color_surface?: string
@@ -255,6 +257,7 @@ export type Database = {
           board_members?: string | null
           calendar_timezone?: string
           color_dark?: string
+          color_accent_text?: string | null
           color_muted?: string | null
           color_primary?: string
           color_surface?: string
@@ -2775,6 +2778,7 @@ export type Database = {
         Returns: {
           board_members: string
           color_dark: string
+          color_accent_text: string | null
           color_muted: string | null
           color_primary: string
           color_surface: string

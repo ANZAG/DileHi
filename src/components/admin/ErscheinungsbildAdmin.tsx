@@ -14,7 +14,7 @@ import Beitragsstufen from "@/components/beitraege/Beitragsstufen";
 import { ZWEISPALTIG } from "@/lib/layout";
 import { datumDe, plusMonate, tageBis } from "@/lib/datum";
 import { TEXT_SCHRIFTEN, UEBERSCHRIFT_SCHRIFTEN } from "@/lib/schriften";
-import { surfaceColors, hexToHsl, hslToHex, readableInk } from "@/lib/farben";
+import { surfaceColors, hexToHsl, hslToHex, kontrast, readableInk } from "@/lib/farben";
 import { invokeFunction, readFunctionError } from "@/lib/functionError";
 import DateiablageWahl from "./DateiablageWahl";
 import OrganisationsformWahl from "./OrganisationsformWahl";
@@ -38,6 +38,7 @@ interface Einstellungen {
   color_surface: string;
   color_dark: string;
   color_muted: string | null;
+  color_accent_text: string | null;
   font_headings: string;
   font_body: string;
   seo_description: string | null;
@@ -82,7 +83,8 @@ const FELDER: (keyof Einstellungen)[] = [
   "org_name", "org_short_name", "org_tagline",
   "org_street", "org_zip", "org_city", "org_email", "org_phone", "website_url",
   "logo_path", "favicon_path", "logo_in_header",
-  "color_primary", "color_surface", "color_dark", "color_muted", "font_headings", "font_body",
+  "color_primary", "color_surface", "color_dark", "color_muted", "color_accent_text",
+  "font_headings", "font_body",
   "seo_description",
   "mail_from_address", "mail_from_name", "mail_reply_to", "mail_transport",
   "is_nonprofit", "tax_office", "tax_number",
@@ -525,6 +527,15 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
             setze={(v) => setze({ color_muted: v })}
           />
         </div>
+        <div className="mt-4">
+          <SchriftfarbeHervorhebung
+            vereinsfarbe={entwurf.color_primary}
+            kasten={entwurf.color_surface}
+            dunkel={entwurf.color_dark}
+            wert={entwurf.color_accent_text}
+            setze={(v) => setze({ color_accent_text: v })}
+          />
+        </div>
       
         </div>
 
@@ -792,8 +803,8 @@ function Feld({ label, wert, setze }: { label: string; wert: string; setze: (v: 
  */
 function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
   label: string; wert: string; setze: (v: string) => void; hinweis?: string;
-  /** Was die Vorschau zeigen soll: einen Knopf oder eine Fläche mit Rahmen. */
-  vorschau?: "knopf" | "flaeche";
+  /** Was die Vorschau zeigen soll: einen Knopf, eine Fläche mit Rahmen oder nichts. */
+  vorschau?: "knopf" | "flaeche" | "keine";
 }) {
   const gueltig = hexToHsl(wert) !== null;
   return (
@@ -828,7 +839,7 @@ function Farbwahl({ label, wert, setze, hinweis, vorschau = "knopf" }: {
             So sieht ein Kasten aus
           </div>
         </div>
-      ) : gueltig ? (
+      ) : gueltig && vorschau === "keine" ? null : gueltig ? (
         <div
           className="mt-2 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium"
           style={{ background: wert, color: `hsl(${readableInk(wert)})` }}
@@ -884,6 +895,97 @@ function FarbeGedaempft({ kasten, wert, setze }: {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Die Schriftfarbe für Hervorhebungen – wahlweise.
+ *
+ * Eure Farbe steht auch als Schrift auf der Seite: der Name in der
+ * Kopfzeile, der aktive Menüpunkt, Jahreszahlen, Untertitel, Links. Ein
+ * kräftiges Orange oder Gelb ist als Knopf richtig, als Schrift auf hellem
+ * Grund aber kaum zu lesen. Automatisch abdunkeln hat ein Braun ergeben, das
+ * niemand gewählt hätte; deshalb wählt der Verein den Ton selbst, und die
+ * Maske sagt dazu, ob er lesbar ist. Knöpfe und Flächen bleiben in eurer
+ * Farbe.
+ */
+function SchriftfarbeHervorhebung({ vereinsfarbe, kasten, dunkel, wert, setze }: {
+  vereinsfarbe: string; kasten: string; dunkel: string;
+  wert: string | null; setze: (v: string | null) => void;
+}) {
+  const eigen = Boolean(wert);
+  // Gemessen am Seitengrund: zwei Stufen heller als die Kästen, wie in
+  // surfaceColors. Auf den Kästen selbst liegt der Wert kaum anders.
+  const grund = (() => {
+    const basis = hexToHsl(kasten);
+    return basis ? hslToHex({ ...basis, l: Math.min(100, basis.l + 2) }) : "#ffffff";
+  })();
+  const schrift = eigen && wert && hexToHsl(wert) ? wert : vereinsfarbe;
+  const wertVereinsfarbe = kontrast(vereinsfarbe, grund);
+  return (
+    <div className="rounded-md bg-muted/50 p-4">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input
+          type="checkbox"
+          checked={eigen}
+          // Als Ausgangspunkt der dunkle Ton: Der ist sicher lesbar. Ein Ton
+          // aus Wappen oder Landesfarben passt meist besser – den trägt man
+          // dann ein.
+          onChange={(e) => setze(e.target.checked ? (hexToHsl(dunkel) ? dunkel : "#1c1917") : null)}
+          className="h-4 w-4 accent-primary"
+        />
+        Eigene Schriftfarbe für Hervorhebungen
+      </label>
+      <p className="text-xs text-muted-foreground mt-1">
+        Eure Farbe steht auch als Schrift auf der Seite: Name in der Kopfzeile,
+        aktiver Menüpunkt, Jahreszahlen, Untertitel, Links. Als Schrift auf
+        hellem Grund lesbar ist sie{" "}
+        <Kontrastwert wert={wertVereinsfarbe} />.
+        Knöpfe und Flächen bleiben in jedem Fall in eurer Farbe.
+      </p>
+      {eigen && (
+        <div className="mt-3 max-w-sm">
+          <Farbwahl
+            label="Schrift für Hervorhebungen"
+            wert={wert ?? ""}
+            setze={setze}
+            vorschau="keine"
+            hinweis="Ein Ton aus eurem Wappen oder euren Landesfarben passt meist besser als eine abgedunkelte Vereinsfarbe."
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Lesbar: <Kontrastwert wert={wert ? kontrast(wert, grund) : null} />
+          </p>
+        </div>
+      )}
+      {/* Wie es auf der Seite aussieht: Schrift auf dem Seitengrund, daneben
+          ein Knopf in eurer Farbe – beides muss zueinander passen. */}
+      <div
+        className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md px-4 py-3"
+        style={{ background: grund }}
+      >
+        <span className="font-serif text-lg font-semibold" style={{ color: schrift }}>Euer Vereinsname</span>
+        <span className="text-sm font-medium" style={{ color: schrift }}>1290–1310</span>
+        <span className="text-sm underline" style={{ color: schrift }}>ein Link</span>
+        <span
+          className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium"
+          style={{ background: vereinsfarbe, color: `hsl(${readableInk(vereinsfarbe)})` }}
+        >
+          Knopf
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** „4,8 : 1 – gut lesbar". Ab 4,5 : 1 reicht es nach WCAG für Fließtext. */
+function Kontrastwert({ wert }: { wert: number | null }) {
+  if (wert === null) return <span>–</span>;
+  const zahl = wert.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const urteil = wert >= 4.5 ? "gut lesbar" : wert >= 3 ? "nur für große Schrift" : "zu blass";
+  return (
+    <span className={wert >= 4.5 ? "font-medium text-foreground" : "font-medium text-destructive"}>
+      {zahl} : 1, {urteil}
+    </span>
   );
 }
 
