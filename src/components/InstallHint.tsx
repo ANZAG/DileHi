@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Share, Plus, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -19,8 +20,16 @@ const DISMISSED_KEY = "install-hint-dismissed";
  *
  * Android und Chrome bieten die Installation selbst an; dort wird der
  * eingebaute Dialog benutzt. Safari kann das nicht, dort steht die Anleitung.
+ *
+ * Nur für Angemeldete. Die Benachrichtigungen gibt es nur im
+ * Mitgliederbereich; einem Veranstalter, der sich die öffentliche Seite
+ * ansieht, nützt der Hinweis nichts, und auf dem Handy verdeckte er beim
+ * ersten Besuch die Überschriften. Gehört wird das Angebot des Browsers
+ * trotzdem von Anfang an: Es kommt nur einmal, beim Laden der Seite – wer
+ * sich danach anmeldet, bekommt den Hinweis dann ohne Neuladen.
  */
 export default function InstallHint() {
+  const { user } = useAuth();
   const [promptEvent, setPromptEvent] = useState<InstallEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
 
@@ -62,7 +71,7 @@ export default function InstallHint() {
     setShowIosHint(false);
   };
 
-  if (!promptEvent && !showIosHint) return null;
+  if (!user || (!promptEvent && !showIosHint)) return null;
 
   return (
     <div className="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-80 z-40 rounded-lg border bg-card shadow-lg p-4">
