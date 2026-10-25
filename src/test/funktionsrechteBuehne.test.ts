@@ -17,12 +17,12 @@ import { installation } from "./hilfe/buehne";
  */
 
 const OHNE_ANMELDUNG = [
-  "contribution_category_offered", "contribution_category_status", "count_members",
+  "contribution_category_offered", "contribution_category_status",
   "forum_mentioned_users", "get_contribution_rate", "get_current_contribution_rate",
   "get_current_statutes_path", "get_form_by_token", "get_public_personas",
   "get_public_settings", "get_response_by_edit_token", "has_leadership_role",
   "has_permission", "is_member", "module_enabled", "module_status",
-  "onboarding_completed_tasks", "public_branding", "public_contribution_settings",
+  "public_branding", "public_contribution_settings",
   "remove_contribution_category", "restore_contribution_category",
   "seo_organization_pages", "setup_needed", "statutes_options",
   "submit_form_response", "update_response_by_edit_token",
@@ -45,9 +45,19 @@ describe("Rechte an Datenbankfunktionen, so wie sie in der Datenbank stehen", ()
 
   it("das Mitgliederverzeichnis und die Sicherung nie ohne Anmeldung", async () => {
     const anon = await ausfuehrbar("anon");
-    for (const f of ["get_member_directory", "get_member_ids", "pending_digests", "backup_schema_ddl", "backup_manifest"]) {
+    for (const f of [
+      "get_member_directory", "get_member_ids", "pending_digests", "backup_schema_ddl", "backup_manifest",
+      // Mitgliederzahl und Stand der Einrichtung (Bankkonto hinterlegt?) gehen Gäste nichts an.
+      "count_members", "onboarding_completed_tasks",
+    ]) {
       expect(anon, f).not.toContain(f);
     }
+  });
+
+  it("Angemeldete sehen Mitgliederzahl und ihre erledigten Schritte weiter", async () => {
+    const angemeldet = await ausfuehrbar("authenticated");
+    expect(angemeldet).toContain("count_members");
+    expect(angemeldet).toContain("onboarding_completed_tasks");
   });
 
   it("die Server-Funktionen auch nicht für Angemeldete", async () => {
