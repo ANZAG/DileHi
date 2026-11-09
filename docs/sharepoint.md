@@ -160,6 +160,11 @@ Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
    als neue Quelle in einer Epoche. Dann einmal **Dateien zuordnen** für alle.
    Die Dateien wandern dabei nach `Quellensammlung/<Epoche>/`.
 
+Der Ordner der **Wissensbibliothek** erscheint nicht im Eingangskorb, wenn er
+auf derselben Website liegt (oder für die Bibliothek noch keine eigene Website
+eingetragen ist). Seine Dateien liest die Bibliothek selbst ein; zuordnen
+lassen sie sich hier auch nicht.
+
 ---
 
 ## Wie es funktioniert

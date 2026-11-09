@@ -274,7 +274,7 @@ export default function BibliothekPflege() {
 
 /**
  * Wo der Ordner liegt: Adresse der SharePoint-Website und der Weg in deren
- * Dokumentbibliothek. Eine eigene Website, nicht die der Quellensammlung.
+ * Dokumentbibliothek. Eine eigene Website oder die der Quellensammlung.
  */
 function Ablage() {
   const { toast } = useToast();
@@ -350,8 +350,9 @@ function Ablage() {
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        Die Website muss für DING eigens freigegeben sein – wie bei der Quellensammlung, Schritt 5 der Anleitung,
-        nur mit der Adresse dieser Website. Ohne Freigabe meldet die Prüfung „darf diese Website nicht lesen“.
+        Liegt der Ordner auf der Website der Quellensammlung, ist nichts weiter zu tun. Eine andere Website muss
+        für DING eigens freigegeben sein (Schritt 5 der SharePoint-Anleitung, mit ihrer Adresse); ohne Freigabe
+        meldet die Prüfung „darf diese Website nicht lesen“.
       </p>
     </div>
   );

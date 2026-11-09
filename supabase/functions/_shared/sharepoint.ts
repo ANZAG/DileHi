@@ -196,8 +196,17 @@ export async function ensureFolder(
  * in einen anders benannten Ordner gelegt hat, soll sie trotzdem
  * wiederfinden. Ordner bis zu vier Ebenen tief, höchstens `max` Dateien,
  * damit eine grosse Bibliothek die Funktion nicht sprengt.
+ *
+ * `ausgenommen`: Ordner (Weg ab der Bibliothek), die einem anderen Zweck
+ * gehören und deshalb nicht im Eingangskorb erscheinen – etwa der Ordner der
+ * Wissensbibliothek, wenn er auf derselben Website liegt.
  */
-export async function listUnsorted(target: SharePointTarget, max = 300): Promise<UnsortedFile[]> {
+export async function listUnsorted(
+  target: SharePointTarget,
+  max = 300,
+  ausgenommen: string[] = []
+): Promise<UnsortedFile[]> {
+  const gesperrt = new Set(ausgenommen.map(ordnerSchluessel));
   const gefunden: UnsortedFile[] = [];
 
   const besuche = async (relativ: string, tiefe: number): Promise<void> => {
@@ -213,6 +222,7 @@ export async function listUnsorted(target: SharePointTarget, max = 300): Promise
       const weg = relativ === "" ? eintrag.name : `${relativ}/${eintrag.name}`;
       if (eintrag.folder) {
         if (relativ === "" && eintrag.name === FOLDER) continue; // die Ablage selbst
+        if (gesperrt.has(ordnerSchluessel(weg))) continue;
         await besuche(weg, tiefe + 1);
       } else if (eintrag.file) {
         gefunden.push({
@@ -238,13 +248,18 @@ export async function listUnsorted(target: SharePointTarget, max = 300): Promise
 export async function moveIntoCollection(
   target: SharePointTarget,
   itemId: string,
-  epoch: string
+  epoch: string,
+  ausgenommen: string[] = []
 ): Promise<DriveItem> {
   const item = await graphJson<DriveItem>(
     `/drives/${target.driveId}/items/${encodeURIComponent(itemId)}` +
       "?$select=id,name,size,file,parentReference"
   );
   if (!item.file) throw new Error("Das ist keine Datei, sondern ein Ordner.");
+  // Was der Eingangskorb nicht zeigt, lässt sich auch nicht über eine
+  // erfundene Kennung zuordnen.
+  const gesperrt = ausgenommen.find((f) => isInFolder(item.parentReference?.path?.toLowerCase(), f.toLowerCase()));
+  if (gesperrt) throw new Error(`Diese Datei gehört zum Ordner „${gesperrt}“ und nicht in die Quellensammlung.`);
   if (isInFolder(item.parentReference?.path)) return item; // liegt schon richtig
 
   await ensureFolder(target);
@@ -257,6 +272,21 @@ export async function moveIntoCollection(
       "@microsoft.graph.conflictBehavior": "rename",
     }),
   });
+}
+
+/** SharePoint unterscheidet bei Ordnernamen nicht nach Gross- und Kleinschreibung. */
+function ordnerSchluessel(weg: string): string {
+  return weg.replace(/^\/+|\/+$/g, "").toLowerCase();
+}
+
+/**
+ * Gehört die Wissensbibliothek auf dieselbe Website? Ja, wenn für sie keine
+ * eigene Website eingetragen ist oder dieselbe. Dann ist ihr Ordner für den
+ * Eingangskorb tabu.
+ */
+export function sameSite(a: string | null | undefined, b: string): boolean {
+  const norm = (u: string) => u.trim().replace(/\/+$/, "").toLowerCase();
+  return !a || norm(a) === norm(b);
 }
 
 /** Zeichen, die SharePoint in Dateinamen nicht annimmt. Umlaute bleiben. */

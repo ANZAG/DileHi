@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { requirePermission } from "../_shared/authz.ts";
 import {
   createUploadSession, deleteFile, ensureFolder, fileInFolder, FOLDER, INBOX, listUnsorted,
-  missingSecrets, moveIntoCollection, previewUrl, resolveTarget, uploadBytes, type DriveItem,
+  missingSecrets, moveIntoCollection, previewUrl, resolveTarget, sameSite, uploadBytes, type DriveItem,
 } from "../_shared/sharepoint.ts";
 
 /**
@@ -80,6 +80,15 @@ Deno.serve(async (req) => {
     const target = async () => {
       if (!siteUrl) throw new Refusal("Es ist noch keine SharePoint-Website eingetragen (Verwaltung → Dateiablage).", 409);
       return await resolveTarget(siteUrl);
+    };
+
+    // Der Ordner der Wissensbibliothek, wenn er auf dieser Website liegt. Er
+    // gehört nicht in den Eingangskorb: Seine Dateien werden von der
+    // Bibliothek eingelesen, nicht einer Quelle zugeordnet.
+    const ausgenommen = async (): Promise<string[]> => {
+      const { data } = await admin.from("library_settings").select("site_url, folder").maybeSingle();
+      if (!data || !sameSite(data.site_url as string | null, siteUrl)) return [];
+      return [String(data.folder ?? "Bibliothek")];
     };
 
     const requireMember = async () => {
@@ -210,7 +219,7 @@ Deno.serve(async (req) => {
         await requirePermission(admin, user.id, "system.integrations", "Keine Berechtigung für die Dateiablage.");
         const t = await target();
         await ensureFolder(t, INBOX);
-        const dateien = await listUnsorted(t);
+        const dateien = await listUnsorted(t, 300, await ausgenommen());
         const { data: belegt } = await admin.from("sources")
           .select("drive_item_id").not("drive_item_id", "is", null);
         const bekannt = new Set((belegt ?? []).map((z) => z.drive_item_id as string));
@@ -229,7 +238,7 @@ Deno.serve(async (req) => {
             .select("id, epoch, drive_item_id").eq("id", sourceId).maybeSingle();
           if (!source) throw new Refusal("Diese Quelle gibt es nicht.", 404);
           if (source.drive_item_id) throw new Refusal("Diese Quelle hat schon eine Datei.", 409);
-          const item = await moveIntoCollection(t, driveItemId, source.epoch ?? "");
+          const item = await moveIntoCollection(t, driveItemId, source.epoch ?? "", await ausgenommen());
           const { error } = await admin.from("sources")
             .update({ ...fileColumns(item), file_path: null, file_missing: false }).eq("id", sourceId);
           if (error) throw new Error(error.message);
@@ -238,7 +247,7 @@ Deno.serve(async (req) => {
 
         const epoch = String(body.epoch ?? "").trim();
         if (!epoch) throw new Refusal("Für eine neue Quelle fehlt die Epoche.", 400);
-        const item = await moveIntoCollection(t, driveItemId, epoch);
+        const item = await moveIntoCollection(t, driveItemId, epoch, await ausgenommen());
         const { data, error } = await asUser.from("sources").insert({
           epoch,
           title: String(body.title ?? item.name).slice(0, 300),

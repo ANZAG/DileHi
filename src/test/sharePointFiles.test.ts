@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
 import { CHUNK, chunkRanges, uploadToSharePoint } from "@/lib/sharePointFiles";
-import { CHUNK as SERVER_CHUNK, fileInFolder, isInFolder, safeFileName } from "../../supabase/functions/_shared/sharepoint";
+import {
+  CHUNK as SERVER_CHUNK, fileInFolder, isInFolder, listUnsorted, moveIntoCollection, safeFileName, sameSite,
+} from "../../supabase/functions/_shared/sharepoint";
 
 /**
  * Dateien der Quellensammlung in SharePoint.
@@ -149,5 +151,56 @@ describe("Download-Adresse", () => {
     const abfrage = adressen.find((a) => a.includes("/items/"));
     expect(abfrage).toBeTruthy();
     expect(abfrage).not.toContain("$select");
+  });
+});
+
+describe("Eingangskorb und Wissensbibliothek", () => {
+  /*
+   * Liegt der Ordner der Wissensbibliothek auf derselben Website wie die
+   * Quellensammlung, erschienen seine Karten und Bilder im Eingangskorb –
+   * und liessen sich mit einem Klick in die Quellensammlung verschieben.
+   */
+  const ZIEL = { siteId: "s", siteName: "Vereinsablage", driveId: "b!abc", driveName: "Dokumente" };
+  const ordner: Record<string, unknown[]> = {
+    "": [
+      { id: "q", name: "Quellensammlung", folder: {} },
+      { id: "b", name: "Bibliothek", folder: {} },
+      { id: "p", name: "Posteingang", folder: {} },
+    ],
+    Bibliothek: [{ id: "k1", name: "PI21-0001.md", file: {}, size: 1 }],
+    Posteingang: [{ id: "scan", name: "Scan.pdf", file: { mimeType: "application/pdf" }, size: 9 }],
+  };
+
+  const graphNachbauen = (eltern: string) => {
+    vi.stubGlobal("Deno", { env: { get: () => "geheim" } });
+    vi.stubGlobal("fetch", vi.fn(async (adresse: string) => {
+      const a = decodeURIComponent(String(adresse));
+      if (a.includes("login.microsoftonline.com")) {
+        return new Response(JSON.stringify({ access_token: "abc", expires_in: 3600 }), { status: 200 });
+      }
+      const m = a.match(/root(?::\/(.*?):)?\/children/);
+      if (m) return new Response(JSON.stringify({ value: ordner[m[1] ?? ""] ?? [] }), { status: 200 });
+      return new Response(JSON.stringify({ id: "k1", name: "PI21-0001.md", file: {}, parentReference: { path: eltern } }), { status: 200 });
+    }));
+  };
+
+  it("lässt den Ordner der Bibliothek aus, alles andere nicht", async () => {
+    graphNachbauen("");
+    const ohne = await listUnsorted(ZIEL, 300, ["bibliothek"]);
+    expect(ohne.map((d) => d.path)).toEqual(["Posteingang/Scan.pdf"]);
+    const mit = await listUnsorted(ZIEL);
+    expect(mit.map((d) => d.path).sort()).toEqual(["Bibliothek/PI21-0001.md", "Posteingang/Scan.pdf"]);
+  });
+
+  it("ordnet eine Datei der Bibliothek nicht der Quellensammlung zu", async () => {
+    graphNachbauen("/drives/b!abc/root:/Bibliothek/karten/PI21");
+    await expect(moveIntoCollection(ZIEL, "k1", "weltkrieg", ["Bibliothek"])).rejects.toThrow(/gehört zum Ordner/);
+  });
+
+  it("nimmt den Ordner aus, solange die Bibliothek keine eigene Website hat", () => {
+    const hier = "https://dilehi.sharepoint.com/sites/Vereinsablage";
+    expect(sameSite(null, hier)).toBe(true);
+    expect(sameSite("https://DiLeHi.sharepoint.com/sites/Vereinsablage/", hier)).toBe(true);
+    expect(sameSite("https://dilehi.sharepoint.com/sites/Bibliothek", hier)).toBe(false);
   });
 });

@@ -12,8 +12,8 @@ import {
  * stellt Bildadressen aus; die Datenbank hält die Texte und weiss, welche
  * Datei zu welchem Bildpfad gehört (library_images).
  *
- * Eigene Website, getrennt von der Quellensammlung, aber dieselbe
- * App-Registrierung. Sie muss für diese Website eigens freigegeben sein
+ * Eine eigene Website oder die der Quellensammlung, immer dieselbe
+ * App-Registrierung. Eine andere Website muss für sie eigens freigegeben sein
  * (Sites.Selected), sonst antwortet Graph mit 403.
  *
  * Aktionen (POST, JSON mit `action`):

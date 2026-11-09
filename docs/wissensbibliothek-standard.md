@@ -41,9 +41,10 @@ unterscheiden und steht in der Darstellung (`bereiche`).
 
 ## 2 Wo was liegt
 
-**Gepflegt wird ein Ordner in SharePoint.** Er liegt auf einer eigenen
-SharePoint-Website des Vereins, getrennt von der Quellensammlung, und ist auf
-die Rechner der Pflegenden synchronisiert. Karten schreiben, Ausschnitte
+**Gepflegt wird ein Ordner in SharePoint.** Er liegt auf einer
+SharePoint-Website des Vereins – auf einer eigenen oder auf der der
+Quellensammlung – und ist auf die Rechner der Pflegenden synchronisiert. Liegt
+er auf der Website der Quellensammlung, nimmt deren Eingangskorb ihn aus. Karten schreiben, Ausschnitte
 ablegen, Quellen eintragen: alles im Explorer, wie bei jedem anderen Ordner.
 SharePoint führt dabei einen Versionsverlauf je Datei.
 
@@ -191,11 +192,12 @@ Bezugspunkte, jeweils mit fettem Stichwort am Absatzanfang
 
 ### Einmalig: Website und Freigabe
 
-1. In SharePoint eine Website für die Bibliothek anlegen (oder eine vorhandene
-   nehmen) und den Ordner `Bibliothek` in ihre **Dokumente** legen. Mit
+1. Den Ordner `Bibliothek` in die **Dokumente** einer SharePoint-Website legen,
+   etwa der Website der Quellensammlung. Mit
    **Synchronisieren** erscheint er im Explorer, etwa unter
    `D:\Diu lebendec Histôrje e.V\<Website> - Dokumente\Bibliothek`.
-2. Die Website für DING freigeben. Das ist derselbe Schritt wie bei der
+2. Ist es nicht die Website der Quellensammlung: die Website für DING
+   freigeben. Das ist derselbe Schritt wie bei der
    Quellensammlung (docs/sharepoint.md, Schritt 5), nur mit der Adresse dieser
    Website: im Graph Explorer die Kennung der Website holen und für die
    Anwendung „DING Dateiablage" `write` eintragen. Eine neue App-Registrierung
