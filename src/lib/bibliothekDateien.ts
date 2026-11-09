@@ -1,9 +1,9 @@
 import { parse as yamlLesen } from "yaml";
 
 /**
- * Den Ordner der Wissensbibliothek lesen, so wie er im Dateiordner des
- * Vereins liegt. Nur für die Pflegeseite – deshalb in einer eigenen Datei,
- * sonst lüde jede Bibliotheksseite den YAML-Leser mit.
+ * Den Ordner der Wissensbibliothek lesen, so wie er in SharePoint liegt.
+ * Nur für die Pflegeseite – deshalb in einer eigenen Datei, sonst lüde jede
+ * Bibliotheksseite den YAML-Leser mit.
  *
  * Standard: docs/wissensbibliothek-standard.md, Abschnitt 3 und 4.
  */
@@ -35,7 +35,8 @@ export function dateiLesen(inhalt: string): { daten: Record<string, unknown>; te
 
 /**
  * Welche Art von Eintrag eine Datei ist, nach ihrem Ordner. Der Pfad ist
- * relativ zum Bibliotheksordner oder fängt mit dessen Namen an – beides geht.
+ * relativ zum Bibliotheksordner (`karten/PI21/PI21-0001.md`) oder fängt mit
+ * dessen Namen an – beides geht.
  * Was nicht hineingehört (README, Arbeitsordner), ergibt null.
  */
 export function artVon(pfad: string): Art | null {
@@ -49,7 +50,7 @@ export function artVon(pfad: string): Art | null {
   ];
 }
 
-const BILDENDUNG = /\.(jpe?g|png|webp)$/i;
+const BILDENDUNG = /\.(jpe?g|png|webp|gif)$/i;
 
 /**
  * Wie ein Bild in den Kopfdaten heisst: `bilder/becher-2018/s29.jpg` wird
@@ -63,13 +64,107 @@ export function bildpfadVon(pfad: string): string | null {
   return `${teile[i + 1]}/${teile[i + 2]}`;
 }
 
-/** Wo die Webfassung eines Bildes im Speicher liegt, und wo seine Vorschau. */
-export function speicherorte(bildpfad: string): { objekt: string; vorschau: string } {
-  const ohneEndung = bildpfad.replace(BILDENDUNG, "");
-  return { objekt: `${ohneEndung}.webp`, vorschau: `_vorschau/${ohneEndung}.webp` };
+// ── Abgleich mit dem Ordner in SharePoint ──────────────────────────────────
+
+/** Eine Datei, wie die Edge Function `library-files` sie meldet. */
+export interface OrdnerDatei {
+  id: string;
+  path: string;
+  size: number;
+  etag: string | null;
+  modified: string | null;
+  width: number | null;
+  height: number | null;
+  /** Nur bei Markdown. */
+  text?: string;
 }
 
-/** Lange Kante der Webfassung. Kleinere Bilder bleiben, wie sie sind. */
-export const WEB_KANTE = 2000;
-/** Lange Kante der Vorschau in Listen. */
-export const VORSCHAU_KANTE = 600;
+/** Eine Zeile für library_images. */
+export interface BildZeile {
+  path: string;
+  item_id: string;
+  etag: string | null;
+  size: number;
+  width: number | null;
+  height: number | null;
+  modified_at: string | null;
+}
+
+export interface Meldung {
+  datei: string;
+  meldung: string;
+}
+
+/** Die Kennung eines Eintrags: `id`, bei Seiten ersatzweise `slug`. */
+export const kennungVon = (e: Eintrag) => String(e.daten.id ?? e.daten.slug ?? "");
+
+/**
+ * Was im Ordner liegt, sortiert zum Einspielen: Einträge in der richtigen
+ * Reihenfolge, Bilder als Zeilen für library_images, und was nicht lesbar
+ * ist. Eine Kennung, die zweimal vorkommt, gilt als Fehler – sonst gewänne
+ * zufällig die zuletzt gelesene Datei.
+ */
+export function ordnerLesen(dateien: OrdnerDatei[]): {
+  eintraege: Eintrag[];
+  bilder: BildZeile[];
+  fehler: Meldung[];
+  uebergangen: number;
+} {
+  const eintraege: Eintrag[] = [];
+  const bilder: BildZeile[] = [];
+  const fehler: Meldung[] = [];
+  let uebergangen = 0;
+
+  for (const d of dateien) {
+    const art = artVon(d.path);
+    const bild = art ? null : bildpfadVon(d.path);
+    if (art) {
+      if (d.text == null) {
+        fehler.push({ datei: d.path, meldung: "Inhalt nicht lesbar." });
+        continue;
+      }
+      try {
+        const { daten, text } = dateiLesen(d.text);
+        eintraege.push({ art, datei: d.path, daten, text });
+      } catch (e) {
+        fehler.push({ datei: d.path, meldung: (e as Error).message });
+      }
+    } else if (bild) {
+      bilder.push({
+        path: bild, item_id: d.id, etag: d.etag, size: d.size, width: d.width, height: d.height, modified_at: d.modified,
+      });
+    } else {
+      uebergangen++;
+    }
+  }
+
+  const gesehen = new Map<string, string>();
+  const eindeutig = eintraege.filter((e) => {
+    const schluessel = `${e.art}:${kennungVon(e)}`;
+    const frueher = gesehen.get(schluessel);
+    if (frueher) {
+      fehler.push({ datei: e.datei, meldung: `Dieselbe Kennung „${kennungVon(e)}“ steht schon in ${frueher}.` });
+      return false;
+    }
+    gesehen.set(schluessel, e.datei);
+    return true;
+  });
+
+  eindeutig.sort((a, b) => REIHENFOLGE.indexOf(a.art) - REIHENFOLGE.indexOf(b.art) || a.datei.localeCompare(b.datei));
+  return { eintraege: eindeutig, bilder, fehler, uebergangen };
+}
+
+/**
+ * Was in der Bibliothek steht, aber im Ordner nicht mehr: gelöscht oder
+ * umbenannt. Entfernt wird es erst auf Nachfrage – eine Datei, die gerade
+ * nicht synchronisiert ist, soll keine Karte mitnehmen.
+ */
+export function nichtMehrImOrdner(
+  eintraege: Eintrag[],
+  bestand: Partial<Record<Art, string[]>>
+): { art: Art; id: string }[] {
+  const da = new Set(eintraege.map((e) => `${e.art}:${kennungVon(e)}`));
+  return REIHENFOLGE.flatMap((art) =>
+    (bestand[art] ?? []).filter((id) => !da.has(`${art}:${id}`)).map((id) => ({ art, id }))
+  );
+}

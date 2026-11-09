@@ -99,7 +99,7 @@ async function accessToken(): Promise<string> {
 }
 
 /** Die Meldung aus einer Antwort von Graph, ohne den ganzen Rumpf. */
-async function graphReason(resp: Response): Promise<string> {
+export async function graphReason(resp: Response): Promise<string> {
   try {
     const body = await resp.json();
     return body?.error?.message ?? body?.error_description ?? `HTTP ${resp.status}`;
@@ -120,7 +120,7 @@ export async function graph(path: string, init: RequestInit = {}): Promise<Respo
   return resp;
 }
 
-async function graphJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function graphJson<T>(path: string, init: RequestInit = {}): Promise<T> {
   const resp = await graph(path, init);
   if (!resp.ok) throw new Error(`SharePoint: ${await graphReason(resp)}`);
   return await resp.json() as T;
@@ -329,11 +329,11 @@ export async function previewUrl(target: SharePointTarget, itemId: string): Prom
 
 /**
  * Liegt ein Eltern-Pfad wie `/drives/…/root:/Quellensammlung/mittelalter`
- * unter FOLDER? Genau dieser Ordner oder darunter – nicht
- * „QuellensammlungPrivat", nicht ein Ordner gleichen Namens tiefer in der
- * Bibliothek.
+ * unter FOLDER (oder dem angegebenen Ordner)? Genau dieser Ordner oder
+ * darunter – nicht „QuellensammlungPrivat", nicht ein Ordner gleichen Namens
+ * tiefer in der Bibliothek.
  */
-export function isInFolder(parentPath: string | undefined): boolean {
+export function isInFolder(parentPath: string | undefined, folder: string = FOLDER): boolean {
   let path = parentPath ?? "";
   try {
     path = decodeURIComponent(path);
@@ -343,7 +343,7 @@ export function isInFolder(parentPath: string | undefined): boolean {
   const marker = path.indexOf("/root:");
   if (marker < 0) return false;
   const below = path.slice(marker + "/root:".length);
-  return below === `/${FOLDER}` || below.startsWith(`/${FOLDER}/`);
+  return below === `/${folder}` || below.startsWith(`/${folder}/`);
 }
 
 /** In den Papierkorb der Website – dort lässt sie sich 93 Tage wiederherstellen. */

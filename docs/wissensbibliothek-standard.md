@@ -41,30 +41,37 @@ unterscheiden und steht in der Darstellung (`bereiche`).
 
 ## 2 Wo was liegt
 
-**Die Datenbank ist die Quelle der Wahrheit.** Jede Änderung hält die Tabelle
-`library_history` mit altem und neuem Stand fest. Eine unveränderte
-Einspielung hinterlässt dort nichts.
+**Gepflegt wird ein Ordner in SharePoint.** Er liegt auf einer eigenen
+SharePoint-Website des Vereins, getrennt von der Quellensammlung, und ist auf
+die Rechner der Pflegenden synchronisiert. Karten schreiben, Ausschnitte
+ablegen, Quellen eintragen: alles im Explorer, wie bei jedem anderen Ordner.
+SharePoint führt dabei einen Versionsverlauf je Datei.
 
-- **Texte** liegen in der Datenbank des Vereins (Supabase), Tabellen
-  `library_*`.
-- **Bilder** liegen als Webfassung im privaten Speicher `library`.
-- **Originale** (Scans, Fotos, PDFs) bleiben im Dateiordner des Vereins. Sie
-  kommen weder in die Bibliothek noch in dieses Repository.
-- **Nichts davon steht im Repository oder im Build.** Was im Build steckt, liegt
-  ohne Anmeldung auf dem Webspace und ist per Adresse abrufbar, auch wenn die
-  Seite in der App hinter dem Login liegt.
+**„Aus SharePoint einlesen" bringt ihn in die Bibliothek.**
+
+- **Texte** (Kopfdaten und Text der Markdown-Dateien) kommen in die Datenbank
+  des Vereins, Tabellen `library_*`. Dort laufen Suche, Rechte und Verlauf
+  (`library_history`, mit altem und neuem Stand; unverändertes Einlesen
+  hinterlässt nichts).
+- **Bilder bleiben in SharePoint.** Die Datenbank merkt sich nur, welche Datei
+  zu welchem Bildpfad gehört (`library_images`). Angezeigt werden sie über
+  Adressen, die die Edge Function `library-files` ausstellt und die nur Minuten
+  gelten. Seitenbilder erscheinen zuerst als Vorschau mit 800 px, die
+  SharePoint selbst erzeugt; die ganze Datei lädt, wer das Bild öffnet.
+- **Nichts davon steht im Repository oder im Build.** Was im Build steckt,
+  liegt ohne Anmeldung auf dem Webspace und ist per Adresse abrufbar, auch
+  wenn die Seite in der App hinter dem Login liegt.
 
 Lesen darf, wer das Recht `library.read` hat (bei der Einrichtung alle
 Rollen). Pflegen darf, wer `library.manage` hat (bei der Einrichtung die
-Leitung). Bilder holt die Seite über signierte Adressen, die zehn Minuten
-gelten.
+Leitung). Die Edge Function gibt Bildadressen nur heraus, wenn die Person die
+Bibliothek lesen darf, und nur für Dateien, die im Ordner der Bibliothek
+liegen.
 
-## 3 Ordner zum Hochladen
-
-So, wie der Ordner im Dateiordner des Vereins liegt:
+## 3 Der Ordner
 
 ```
-Bibliothek/
+Bibliothek/                         Name frei wählbar, eingetragen unter Pflege → Ablage
   darstellungen/<Kürzel>.md         eine Datei je Darstellung
   seiten/<name>.md                  freie Seiten; „start" erscheint auf der Startseite
   quellen/<quellen-id>.md           Quellenregister, gemeinsam für alle Darstellungen
@@ -75,6 +82,10 @@ Bibliothek/
   bilder/<Kürzel>/Tnn.jpg           Bild der Tafel, Ausschnitte als Tnn_aN.jpg
   _arbeit/                          wird übergangen (alles, was mit _ beginnt)
 ```
+
+Seitenbilder liegen bei ihrer **Quelle**, nicht bei der Darstellung: Das
+Register ist gemeinsam, und eine Seite, die zwei Darstellungen zitieren, liegt
+so nur einmal da. Karten und Bildtafeln liegen je **Darstellung**.
 
 Die README und alle anderen Dateien werden übergangen.
 
@@ -166,39 +177,58 @@ Bezugspunkte, jeweils mit fettem Stichwort am Absatzanfang
 
 - **Seitenbild:** die ganze Seite oder Doppelseite.
   **Zeigebild:** der Ausschnitt mit der Stelle, rot markiert.
-- Beim Hochladen entsteht im Browser eine **Webfassung** (WebP, höchstens
-  2000 px an der langen Seite, nie vergrössert) und eine **Vorschau** (600 px).
-  Zeigebilder sind meist kleiner und bleiben dann in Originalgrösse.
+- JPEG, PNG oder WebP. Was im Ordner liegt, wird so gezeigt; für das Handy
+  reichen Seitenbilder mit etwa 2000 px an der langen Seite (300 dpi, 0,5–1 MB).
+  Originalscans mit 3–4 MB gehen auch, laden am Lagerplatz aber spürbar länger,
+  wenn jemand die ganze Seite öffnet.
 - Ein Bild liegt im Ordner seiner Quelle oder seiner Darstellung. Gibt es
-  keine Quelle bzw. Darstellung dieses Namens, lehnt die Datenbank das Bild ab,
-  denn es hätte keinen Rechtsstatus.
-- Ein Bild, das schon in derselben Dateigrösse hochgeladen ist, wird beim
-  nächsten Hochladen übersprungen.
-- Kosten: Der Probesatz Pi 21 hat als Originale 4,1 MB. Geschätzt sind es je
-  Darstellung 150–200 MB Webfassungen. Der kostenlose Supabase-Tarif hat 1 GB
-  Speicher insgesamt; was der Verein schon belegt, zeigt das Supabase-Dashboard
-  unter *Storage*.
+  keine Quelle bzw. Darstellung dieses Namens, wird es nicht verzeichnet, denn
+  es hätte keinen Rechtsstatus. Die Pflegeseite meldet das.
+- Wird eine Datei überschrieben, behält sie in SharePoint ihre Kennung; die
+  Karte zeigt nach dem nächsten Einlesen das neue Bild.
 
 ## 6 Einpflegen
 
-Beide Wege laufen durch dieselbe Funktion `library_import()` und damit durch
-dieselben Prüfungen: Pflichtfelder, Rechtsstatus, Ebene aus dem Vokabular,
-Fundstelle mit bekannter Quelle oder Tafel.
+### Einmalig: Website und Freigabe
 
-### Ordner hochladen
+1. In SharePoint eine Website für die Bibliothek anlegen (oder eine vorhandene
+   nehmen) und den Ordner `Bibliothek` in ihre **Dokumente** legen. Mit
+   **Synchronisieren** erscheint er im Explorer, etwa unter
+   `D:\Diu lebendec Histôrje e.V\<Website> - Dokumente\Bibliothek`.
+2. Die Website für DING freigeben. Das ist derselbe Schritt wie bei der
+   Quellensammlung (docs/sharepoint.md, Schritt 5), nur mit der Adresse dieser
+   Website: im Graph Explorer die Kennung der Website holen und für die
+   Anwendung „DING Dateiablage" `write` eintragen. Eine neue App-Registrierung
+   oder neue Geheimnisse braucht es nicht. (`read` genügte auch; `write` hält
+   die Tür offen, falls DING später etwas ablegen soll.)
+3. In DING unter **Wissensbibliothek → Pflege → Ablage in SharePoint** die
+   Adresse der Website und den Ordner eintragen, **Speichern**, **Verbindung
+   prüfen**.
 
-**Wissensbibliothek → Pflege → Ordner wählen**, den Ordner `Bibliothek`
-auswählen, **Einspielen**. Neues kommt dazu, Geändertes wird ersetzt. Was
-abgelehnt wird, steht mit Grund in der Liste. Die Seite zeigt ausserdem, wo
-Bilder fehlen, welche Karten nicht geprüft sind und was zuletzt geändert wurde.
+### Einlesen
 
-Gelöscht wird beim Hochladen nichts. Eine Datei, die im Ordner fehlt, bleibt in
-der Bibliothek.
+**Wissensbibliothek → Pflege → Aus SharePoint einlesen.** Neues kommt dazu,
+Geändertes wird ersetzt. Was abgelehnt wird, steht mit Grund in der Liste.
+Die Seite zeigt ausserdem, wo Bilder fehlen, welche Karten nicht geprüft sind
+und was zuletzt geändert wurde.
+
+Gelöschtes wird nicht von selbst entfernt: Was in der Bibliothek steht, aber
+nicht mehr im Ordner, listet die Seite auf. Entfernt wird es erst mit
+**Aus der Bibliothek entfernen**. Eine Datei, die nur gerade nicht
+synchronisiert ist, soll keine Karte mitnehmen. Ist eine Datei nicht lesbar,
+bietet die Seite gar nichts zum Entfernen an, weil sie deren Kennung nicht
+kennt.
+
+Bilder, die im Ordner fehlen, werden dagegen sofort ausgetragen: Sie sind nur
+ein Verweis, und die Karte zeigt dann „Bild fehlt".
 
 ### Per SQL, etwa aus einem Claude-Chat mit Supabase-Konnektor
 
-Kopfdaten als JSON, Text als dritter Wert. Reihenfolge: Darstellung, Quelle,
-Bildtafel, Karte.
+Für Texte geht es auch ohne Ordner: Kopfdaten als JSON, Text als dritter
+Wert. Reihenfolge: Darstellung, Quelle, Bildtafel, Karte. **Aber:** Beim
+nächsten Einlesen gilt der Ordner. Was nur per SQL eingetragen wurde,
+erscheint dann unter „nicht mehr im Ordner". Für Dauerhaftes also die Datei
+in den Ordner legen.
 
 ```sql
 select public.library_import('karte', $json${
@@ -209,15 +239,6 @@ select public.library_import('karte', $json${
                     "zeigebild": "hiss-ir116-1924/s130_a1.jpg", "seitenbild": "hiss-ir116-1924/s130.jpg" }],
   "status": "bild-fehlt", "stand": "2026-11-09"
 }$json$::jsonb, $text$**Einschränkung:** belegt die 3. Kompanie, nicht die 2.$text$);
-```
-
-Bilder lassen sich so nicht hochladen. Sie kommen über die Pflegeseite herein;
-bis dahin zeigt die Karte „Bild fehlt“.
-
-Löschen geht nur per SQL und landet ebenfalls im Verlauf:
-
-```sql
-delete from public.library_cards where id = 'PI21-0042';   -- Fundstellen gehen mit
 ```
 
 ### Verlauf
@@ -236,12 +257,14 @@ from public.library_history where entry_id = 'PI21-0042' order by id;
 | `library_plates` | Bildtafeln |
 | `library_cards` | Belegkarten (`status`: `draft`, `checked`, `image_missing`, `image_replace`) |
 | `library_findings` | Fundstellen, je Karte in Reihenfolge |
-| `library_images` | welches Bild unter welchem Namen im Speicher liegt, mit Grösse |
+| `library_images` | welcher Bildpfad zu welcher Datei in SharePoint gehört, mit Grösse |
 | `library_pages` | freie Seiten |
 | `library_history` | Verlauf, nur für die Pflege lesbar |
+| `library_settings` | Adresse der SharePoint-Website und Ordner |
 
 Funktionen: `library_import(art, kopfdaten, text)`, `library_search(begriff)`
-(deutsche Volltextsuche, Wortanfänge, Kennungen direkt).
+(deutsche Volltextsuche, Wortanfänge, Kennungen direkt). Edge Function
+`library-files`: `status`, `scan` (Ordner lesen), `urls` (Bildadressen).
 Migration: `supabase/migrations/20261109100000_wissensbibliothek.sql`.
 
 ## 8 Später

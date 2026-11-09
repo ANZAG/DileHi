@@ -1,88 +1,68 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, FolderUp, ImageOff, Loader2, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CloudDownload, ImageOff, Loader2, PlugZap, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Rahmen, StatusAbzeichen } from "@/components/bibliothek/Bausteine";
-import { db, useBilder, useKarten, useVerweise, type Bild } from "@/hooks/useBibliothek";
-import { useBibliotheksrechte } from "@/hooks/useBibliothek";
 import {
-  REIHENFOLGE, VORSCHAU_KANTE, WEB_KANTE, artVon, bildpfadVon, dateiLesen, speicherorte, type Art, type Eintrag,
+  db, useBibliotheksrechte, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useVerweise, type Bild,
+} from "@/hooks/useBibliothek";
+import {
+  REIHENFOLGE, nichtMehrImOrdner, ordnerLesen, type Art, type Meldung, type OrdnerDatei,
 } from "@/lib/bibliothekDateien";
-import { verkleinern } from "@/lib/imageConversion";
+import { invokeFunction } from "@/lib/functionError";
 
 const ART_LABEL: Record<Art, string> = {
   darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", karte: "Karten",
 };
+const TABELLE: Record<Art, { tabelle: string; spalte: string }> = {
+  darstellung: { tabelle: "library_presentations", spalte: "id" },
+  seite: { tabelle: "library_pages", spalte: "slug" },
+  quelle: { tabelle: "library_sources", spalte: "id" },
+  bild: { tabelle: "library_plates", spalte: "id" },
+  karte: { tabelle: "library_cards", spalte: "id" },
+};
 
-interface Fehler { datei: string; meldung: string }
-interface Vorbereitet {
-  eintraege: Eintrag[];
-  bilder: { pfad: string; datei: File }[];
-  fehler: Fehler[];
-  uebergangen: number;
-}
-
-/** Den relativen Pfad einer Datei aus Ordnerauswahl oder Ziehen. */
-const pfadVon = (f: File) => (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
-
-async function vorbereiten(dateien: File[]): Promise<Vorbereitet> {
-  const v: Vorbereitet = { eintraege: [], bilder: [], fehler: [], uebergangen: 0 };
-  for (const f of dateien) {
-    const pfad = pfadVon(f);
-    const art = artVon(pfad);
-    const bild = art ? null : bildpfadVon(pfad);
-    if (art) {
-      try {
-        const { daten, text } = dateiLesen(await f.text());
-        v.eintraege.push({ art, datei: pfad, daten, text });
-      } catch (e) {
-        v.fehler.push({ datei: pfad, meldung: (e as Error).message });
-      }
-    } else if (bild) {
-      v.bilder.push({ pfad: bild, datei: f });
-    } else {
-      v.uebergangen++;
-    }
-  }
-  v.eintraege.sort((a, b) => REIHENFOLGE.indexOf(a.art) - REIHENFOLGE.indexOf(b.art) || a.datei.localeCompare(b.datei));
-  return v;
+interface Ergebnis {
+  gefunden: string;
+  eingespielt: number;
+  bilder: number;
+  bilderEntfernt: number;
+  fehler: Meldung[];
+  veraltet: { art: Art; id: string }[];
 }
 
 /**
- * Pflege der Bibliothek: den Ordner hochladen, so wie er im OneDrive liegt.
+ * Pflege der Bibliothek.
  *
- * Markdown-Dateien gehen durch library_import() – dieselben Prüfungen wie
- * beim Einpflegen per SQL. Bilder werden hier im Browser verkleinert: Die
- * Seite bekommt eine Webfassung mit höchstens 2000 px und eine Vorschau mit
- * 600 px, das Original bleibt, wo es ist. Ein Bild, das schon in derselben
- * Grösse hochgeladen ist, wird übersprungen.
+ * Gepflegt wird im Ordner in SharePoint, synchronisiert auf den eigenen
+ * Rechner: Karten schreiben, Ausschnitte ablegen. Hier wird er eingelesen.
+ * Markdown geht durch library_import() – dieselben Prüfungen wie beim
+ * Einpflegen per SQL –, Bilder werden nur verzeichnet; sie bleiben in
+ * SharePoint.
+ *
+ * Neues kommt dazu, Geändertes wird ersetzt. Was im Ordner fehlt, bleibt
+ * stehen, bis jemand es hier ausdrücklich entfernt.
  */
 export default function BibliothekPflege() {
   const { pflegen } = useBibliotheksrechte();
   const qc = useQueryClient();
-  const eingabe = useRef<HTMLInputElement>(null);
-  const [vorbereitet, setVorbereitet] = useState<Vorbereitet | null>(null);
+  const { toast } = useToast();
   const [laeuft, setLaeuft] = useState(false);
-  const [fortschritt, setFortschritt] = useState({ fertig: 0, gesamt: 0, was: "" });
-  const [ergebnis, setErgebnis] = useState<{ eingespielt: number; bilder: number; uebersprungen: number; fehler: Fehler[] } | null>(null);
-  const [neuHochladen, setNeuHochladen] = useState(false);
+  const [schritt, setSchritt] = useState({ fertig: 0, gesamt: 0, was: "" });
+  const [ergebnis, setErgebnis] = useState<Ergebnis | null>(null);
 
   const { data: karten = [] } = useKarten();
+  const { data: quellen = [] } = useQuellen();
+  const { data: tafeln = [] } = useTafeln();
+  const { data: darstellungen = [] } = useDarstellungen();
+  const { data: seiten = [] } = useSeiten();
   const { data: verweise = [] } = useVerweise();
-  const { data: bilder = new Map<string, Bild & { bytes?: number }>() } = useBilder();
-  const { data: groessen = new Map<string, number>() } = useQuery({
-    queryKey: ["bibliothek", "bildgroessen"],
-    enabled: pflegen,
-    queryFn: async () => {
-      const { data } = await db.from("library_images").select("path, bytes");
-      return new Map(((data ?? []) as { path: string; bytes: number | null }[]).map((b) => [b.path, b.bytes ?? -1]));
-    },
-  });
+  const { data: bilder = new Map<string, Bild>() } = useBilder();
   const { data: verlauf = [] } = useQuery({
     queryKey: ["bibliothek", "verlauf"],
     enabled: pflegen,
@@ -104,70 +84,82 @@ export default function BibliothekPflege() {
   }, [verweise, bilder]);
   const offen = karten.filter((k) => k.status !== "checked");
 
-  const waehlen = async (liste: FileList | null) => {
-    if (!liste?.length) return;
-    setErgebnis(null);
-    setVorbereitet(await vorbereiten([...liste]));
-  };
-
-  const einspielen = async () => {
-    if (!vorbereitet) return;
+  const einlesen = async () => {
     setLaeuft(true);
-    const fehler: Fehler[] = [...vorbereitet.fehler];
-    let eingespielt = 0;
-    let hochgeladen = 0;
-    let uebersprungen = 0;
-    const gesamt = vorbereitet.eintraege.length + vorbereitet.bilder.length;
-    let fertig = 0;
-    const weiter = (was: string) => setFortschritt({ fertig: ++fertig, gesamt, was });
+    setErgebnis(null);
+    try {
+      setSchritt({ fertig: 0, gesamt: 0, was: "Ordner wird gelesen …" });
+      const { files } = await invokeFunction<{ files: OrdnerDatei[] }>("library-files", { body: { action: "scan" } });
+      const { eintraege, bilder: zeilen, fehler, uebergangen } = ordnerLesen(files);
+      const lesefehler = fehler.length;
+      const zaehlen = (art: Art) => eintraege.filter((e) => e.art === art).length;
+      const gefunden = [
+        ...REIHENFOLGE.filter(zaehlen).map((a) => `${zaehlen(a)} ${ART_LABEL[a]}`),
+        `${zeilen.length} Bilder`,
+        ...(uebergangen ? [`${uebergangen} andere Dateien übergangen`] : []),
+      ].join(", ");
 
-    for (const e of vorbereitet.eintraege) {
-      const { error } = await db.rpc("library_import", { _art: e.art, _d: e.daten, _text: e.text });
-      if (error) fehler.push({ datei: e.datei, meldung: error.message });
-      else eingespielt++;
-      weiter(e.datei);
-    }
-
-    for (const b of vorbereitet.bilder) {
-      try {
-        if (!neuHochladen && groessen.get(b.pfad) === b.datei.size) {
-          uebersprungen++;
-        } else {
-          const { objekt, vorschau } = speicherorte(b.pfad);
-          const web = await verkleinern(b.datei, WEB_KANTE, 0.85);
-          const klein = await verkleinern(b.datei, VORSCHAU_KANTE, 0.8);
-          for (const [ziel, blob] of [[objekt, web.datei], [vorschau, klein.datei]] as const) {
-            const { error } = await supabase.storage.from("library")
-              .upload(ziel, blob, { upsert: true, contentType: "image/webp", cacheControl: "3600" });
-            if (error) throw new Error(error.message);
-          }
-          const { error } = await db.from("library_images").upsert({
-            path: b.pfad, object: objekt, preview: vorschau, width: web.breite, height: web.hoehe, bytes: b.datei.size,
-          });
-          if (error) {
-            // Die Datenbank hat das Bild abgelehnt (kein Rechtsstatus) – dann
-            // soll es auch nicht im Speicher liegen bleiben.
-            await supabase.storage.from("library").remove([objekt, vorschau]);
-            throw new Error(error.message);
-          }
-          hochgeladen++;
-        }
-      } catch (err) {
-        fehler.push({ datei: `bilder/${b.pfad}`, meldung: (err as Error).message });
+      let eingespielt = 0;
+      const gesamt = eintraege.length + 1;
+      for (const [i, e] of eintraege.entries()) {
+        setSchritt({ fertig: i, gesamt, was: e.datei });
+        const { error } = await db.rpc("library_import", { _art: e.art, _d: e.daten, _text: e.text });
+        if (error) fehler.push({ datei: e.datei, meldung: error.message });
+        else eingespielt++;
       }
-      weiter(b.pfad);
-    }
 
-    setErgebnis({ eingespielt, bilder: hochgeladen, uebersprungen, fehler });
-    setVorbereitet(null);
-    setLaeuft(false);
-    if (eingabe.current) eingabe.current.value = "";
-    qc.invalidateQueries({ queryKey: ["bibliothek"] });
+      // Bilder: erst alle auf einmal. Lehnt die Datenbank eines ab (Ordner
+      // ohne Quelle, also ohne Rechtsstatus), einzeln – damit klar ist, welches.
+      setSchritt({ fertig: eintraege.length, gesamt, was: "Bilder werden verzeichnet …" });
+      let verzeichnet = 0;
+      if (zeilen.length) {
+        const { error } = await db.from("library_images").upsert(zeilen);
+        if (!error) verzeichnet = zeilen.length;
+        else {
+          for (const z of zeilen) {
+            const { error: einzeln } = await db.from("library_images").upsert(z);
+            if (einzeln) fehler.push({ datei: `bilder/${z.path}`, meldung: einzeln.message });
+            else verzeichnet++;
+          }
+        }
+      }
+      const imOrdner = new Set(zeilen.map((z) => z.path));
+      const weg = [...bilder.keys()].filter((p) => !imOrdner.has(p));
+      if (weg.length) await db.from("library_images").delete().in("path", weg);
+
+      // Ist eine Datei nicht lesbar, kennen wir ihre Kennung nicht – dann
+      // sähe ihr Eintrag aus wie gelöscht. Also erst gar nichts anbieten.
+      const veraltet = lesefehler ? [] : nichtMehrImOrdner(eintraege, {
+        darstellung: darstellungen.map((d) => d.id),
+        seite: seiten.map((s) => s.slug),
+        quelle: quellen.map((q) => q.id),
+        bild: tafeln.map((t) => t.id),
+        karte: karten.map((k) => k.id),
+      });
+
+      setErgebnis({ gefunden, eingespielt, bilder: verzeichnet, bilderEntfernt: weg.length, fehler, veraltet });
+    } catch (e) {
+      toast({ title: "Einlesen fehlgeschlagen", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setLaeuft(false);
+      qc.invalidateQueries({ queryKey: ["bibliothek"] });
+    }
   };
 
-  const zaehlen = (art: Art) => vorbereitet?.eintraege.filter((e) => e.art === art).length ?? 0;
-  const krumen = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }, { label: "Pflege" }];
+  /** Rückwärts entfernen: erst Karten, dann was sie zitieren. */
+  const entfernen = async (liste: { art: Art; id: string }[]) => {
+    const fehler: Meldung[] = [];
+    for (const v of [...liste].sort((a, b) => REIHENFOLGE.indexOf(b.art) - REIHENFOLGE.indexOf(a.art))) {
+      const { tabelle, spalte } = TABELLE[v.art];
+      const { error } = await db.from(tabelle).delete().eq(spalte, v.id);
+      if (error) fehler.push({ datei: v.id, meldung: error.message });
+    }
+    qc.invalidateQueries({ queryKey: ["bibliothek"] });
+    setErgebnis((e) => e && { ...e, veraltet: e.veraltet.filter((v) => fehler.some((f) => f.datei === v.id)), fehler: [...e.fehler, ...fehler] });
+    if (!fehler.length) toast({ title: `${liste.length} Einträge entfernt` });
+  };
 
+  const krumen = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }, { label: "Pflege" }];
   if (!pflegen) {
     return (
       <Rahmen krumen={krumen} titel="Pflege">
@@ -178,66 +170,46 @@ export default function BibliothekPflege() {
 
   return (
     <Rahmen krumen={krumen} titel="Pflege der Wissensbibliothek"
-      untertitel="Den Ordner der Bibliothek hochladen. Neues kommt dazu, Geändertes wird ersetzt, Unverändertes bleibt.">
+      untertitel="Gepflegt wird im Ordner in SharePoint. Hier wird er eingelesen.">
       <section className="mb-6 rounded-lg border bg-card p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <input
-            ref={eingabe}
-            type="file"
-            multiple
-            className="hidden"
-            id="bibliothek-ordner"
-            // Ordnerauswahl. Steht nicht in den Typen von React, die Browser können es alle.
-            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
-            onChange={(e) => waehlen(e.target.files)}
-          />
-          <Button asChild disabled={laeuft}>
-            <label htmlFor="bibliothek-ordner" className="cursor-pointer">
-              <FolderUp size={16} className="mr-1.5" /> Ordner wählen
-            </label>
+          <Button onClick={einlesen} disabled={laeuft}>
+            {laeuft ? <Loader2 size={16} className="mr-1.5 animate-spin" /> : <CloudDownload size={16} className="mr-1.5" />}
+            Aus SharePoint einlesen
           </Button>
-          <div className="flex items-center gap-2">
-            <Checkbox id="neu-hochladen" checked={neuHochladen} onCheckedChange={(v) => setNeuHochladen(v === true)} />
-            <Label htmlFor="neu-hochladen" className="text-sm font-normal">Bilder auch dann neu hochladen, wenn sie schon da sind</Label>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Neues kommt dazu, Geändertes wird ersetzt, Unverändertes bleibt, wie es ist.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Erwartet wird der Aufbau aus dem Standard: <code>darstellungen/</code>, <code>quellen/</code>, <code>karten/&lt;Kürzel&gt;/</code>,{" "}
-          <code>bilder/&lt;Quelle oder Kürzel&gt;/</code>, <code>seiten/</code>. Ordner, die mit <code>_</code> beginnen, und die README werden übergangen.
-        </p>
 
-        {vorbereitet && (
-          <div className="rounded border p-3 space-y-2">
-            <p className="text-sm">
-              Gefunden:{" "}
-              {REIHENFOLGE.filter((a) => zaehlen(a)).map((a) => `${zaehlen(a)} ${ART_LABEL[a]}`).join(", ") || "keine Einträge"}
-              {vorbereitet.bilder.length > 0 && `, ${vorbereitet.bilder.length} Bilder`}
-              {vorbereitet.uebergangen > 0 && ` (${vorbereitet.uebergangen} andere Dateien übergangen)`}.
-            </p>
-            <FehlerListe fehler={vorbereitet.fehler} titel="Nicht lesbar" />
-            <div className="flex gap-2">
-              <Button onClick={einspielen} disabled={laeuft || (!vorbereitet.eintraege.length && !vorbereitet.bilder.length)}>
-                {laeuft && <Loader2 size={15} className="mr-1.5 animate-spin" />} Einspielen
-              </Button>
-              <Button variant="ghost" onClick={() => setVorbereitet(null)} disabled={laeuft}>Abbrechen</Button>
-            </div>
-            {laeuft && (
-              <div className="space-y-1">
-                <Progress value={(fortschritt.fertig / Math.max(1, fortschritt.gesamt)) * 100} />
-                <p className="text-xs text-muted-foreground truncate">{fortschritt.fertig} von {fortschritt.gesamt} · {fortschritt.was}</p>
-              </div>
-            )}
+        {laeuft && (
+          <div className="space-y-1">
+            <Progress value={schritt.gesamt ? (schritt.fertig / schritt.gesamt) * 100 : 5} />
+            <p className="text-xs text-muted-foreground truncate">{schritt.was}</p>
           </div>
         )}
 
         {ergebnis && (
           <div className="rounded border p-3 space-y-2" role="status">
+            <p className="text-sm text-muted-foreground">Im Ordner: {ergebnis.gefunden}.</p>
             <p className="flex items-center gap-2 text-sm">
               {ergebnis.fehler.length ? <AlertTriangle size={16} className="text-amber-600" /> : <CheckCircle2 size={16} className="text-green-600" />}
-              {ergebnis.eingespielt} Einträge eingespielt, {ergebnis.bilder} Bilder hochgeladen
-              {ergebnis.uebersprungen > 0 && `, ${ergebnis.uebersprungen} unveränderte Bilder übersprungen`}.
+              {ergebnis.eingespielt} Einträge eingelesen, {ergebnis.bilder} Bilder verzeichnet
+              {ergebnis.bilderEntfernt > 0 && `, ${ergebnis.bilderEntfernt} nicht mehr vorhandene Bilder ausgetragen`}.
             </p>
             <FehlerListe fehler={ergebnis.fehler} titel="Nicht übernommen" />
+            {ergebnis.veraltet.length > 0 && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900 space-y-2">
+                <p className="font-medium">Nicht mehr im Ordner ({ergebnis.veraltet.length})</p>
+                <p>Gelöscht, umbenannt – oder nur noch nicht synchronisiert. Erst entfernen, wenn das sicher ist.</p>
+                <ul className="font-mono text-xs">
+                  {ergebnis.veraltet.map((v) => <li key={`${v.art}-${v.id}`}>{ART_LABEL[v.art]}: {v.id}</li>)}
+                </ul>
+                <Button size="sm" variant="outline" onClick={() => entfernen(ergebnis.veraltet)}>
+                  <Trash2 size={14} className="mr-1" /> Aus der Bibliothek entfernen
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -251,7 +223,7 @@ export default function BibliothekPflege() {
                 <li key={karte} className="px-3 py-2">
                   <Link to={`/intern/bibliothek/karte/${karte}`} className="font-mono text-primary hover:underline">{karte}</Link>
                   <ul className="mt-1 text-xs text-muted-foreground">
-                    {pfade.map((p) => <li key={p} className="flex items-center gap-1"><ImageOff size={12} /> {p}</li>)}
+                    {pfade.map((p) => <li key={p} className="flex items-center gap-1"><ImageOff size={12} /> bilder/{p}</li>)}
                   </ul>
                 </li>
               ))}
@@ -269,6 +241,8 @@ export default function BibliothekPflege() {
               ))}
             </ul>
           )}
+
+          <Ablage />
         </section>
 
         <section>
@@ -280,7 +254,7 @@ export default function BibliothekPflege() {
                   <span>
                     <span className="font-mono">{v.entry_id}</span>{" "}
                     <span className="text-muted-foreground">
-                      {{ insert: "neu", update: "geändert", delete: "gelöscht" }[v.operation] ?? v.operation}
+                      {{ insert: "neu", update: "geändert", delete: "entfernt" }[v.operation] ?? v.operation}
                       {v.table_name === "library_findings" && " (Fundstellen)"}
                       {v.table_name === "library_images" && " (Bild)"}
                     </span>
@@ -298,7 +272,92 @@ export default function BibliothekPflege() {
   );
 }
 
-function FehlerListe({ fehler, titel }: { fehler: Fehler[]; titel: string }) {
+/**
+ * Wo der Ordner liegt: Adresse der SharePoint-Website und der Weg in deren
+ * Dokumentbibliothek. Eine eigene Website, nicht die der Quellensammlung.
+ */
+function Ablage() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: einstellung } = useQuery({
+    queryKey: ["bibliothek", "ablage"],
+    queryFn: async () => {
+      const { data } = await db.from("library_settings").select("site_url, folder").maybeSingle();
+      return (data ?? { site_url: null, folder: "Bibliothek" }) as { site_url: string | null; folder: string };
+    },
+  });
+  const [site, setSite] = useState("");
+  const [ordner, setOrdner] = useState("Bibliothek");
+  const [pruefung, setPruefung] = useState<{ ok: boolean; text: string } | null>(null);
+  const [prueft, setPrueft] = useState(false);
+
+  useEffect(() => {
+    if (!einstellung) return;
+    setSite(einstellung.site_url ?? "");
+    setOrdner(einstellung.folder);
+  }, [einstellung]);
+
+  const geaendert = !!einstellung && (site !== (einstellung.site_url ?? "") || ordner !== einstellung.folder);
+
+  const speichern = async () => {
+    const { error } = await db.from("library_settings")
+      .update({ site_url: site.trim() || null, folder: ordner.trim().replace(/^\/+|\/+$/g, "") || "Bibliothek" })
+      .eq("id", true);
+    if (error) toast({ title: "Nicht gespeichert", description: error.message, variant: "destructive" });
+    else {
+      setPruefung(null);
+      qc.invalidateQueries({ queryKey: ["bibliothek", "ablage"] });
+    }
+  };
+
+  const pruefen = async () => {
+    setPrueft(true);
+    try {
+      const r = await invokeFunction<{ ok: boolean; site: string; library?: string; folder: string; entries?: number; meldung?: string }>(
+        "library-files", { body: { action: "status" } }
+      );
+      setPruefung(r.ok
+        ? { ok: true, text: `Verbunden: „${r.site}“, Ordner „${r.folder}“ mit ${r.entries ?? "?"} Einträgen.` }
+        : { ok: false, text: r.meldung ?? "Ordner nicht gefunden." });
+    } catch (e) {
+      setPruefung({ ok: false, text: (e as Error).message });
+    } finally {
+      setPrueft(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-lg border bg-card p-4 space-y-3">
+      <h2 className="font-semibold">Ablage in SharePoint</h2>
+      <div className="space-y-1">
+        <Label htmlFor="bib-site">Adresse der SharePoint-Website</Label>
+        <Input id="bib-site" value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://verein.sharepoint.com/sites/Bibliothek" />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="bib-ordner">Ordner in den Dokumenten der Website</Label>
+        <Input id="bib-ordner" value={ordner} onChange={(e) => setOrdner(e.target.value)} placeholder="Bibliothek" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={speichern} disabled={!geaendert}>Speichern</Button>
+        <Button size="sm" variant="outline" onClick={pruefen} disabled={prueft || geaendert}>
+          {prueft ? <Loader2 size={14} className="mr-1 animate-spin" /> : <PlugZap size={14} className="mr-1" />} Verbindung prüfen
+        </Button>
+      </div>
+      {pruefung && (
+        <p className={`text-sm flex items-start gap-1.5 ${pruefung.ok ? "text-green-700" : "text-red-700"}`}>
+          {pruefung.ok ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" /> : <XCircle size={15} className="mt-0.5 shrink-0" />}
+          {pruefung.text}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Die Website muss für DING eigens freigegeben sein – wie bei der Quellensammlung, Schritt 5 der Anleitung,
+        nur mit der Adresse dieser Website. Ohne Freigabe meldet die Prüfung „darf diese Website nicht lesen“.
+      </p>
+    </div>
+  );
+}
+
+function FehlerListe({ fehler, titel }: { fehler: Meldung[]; titel: string }) {
   if (!fehler.length) return null;
   return (
     <div className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-900">

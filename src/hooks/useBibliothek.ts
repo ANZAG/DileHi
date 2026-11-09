@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { invokeFunction } from "@/lib/functionError";
 import type { KartenStatus, Rechte, Stufe } from "@/lib/bibliothek";
 
 /**
@@ -84,12 +85,17 @@ export interface Tafel {
   body: string | null;
 }
 
+/** Ein Bild aus dem Ordner der Bibliothek in SharePoint. */
 export interface Bild {
   path: string;
-  object: string;
-  preview: string | null;
   width: number | null;
   height: number | null;
+}
+
+/** Wo der Browser ein Bild holt: die ganze Datei und eine Vorschau mit 800 px. */
+export interface BildAdresse {
+  full: string;
+  preview: string | null;
 }
 
 export interface Seite {
@@ -189,7 +195,7 @@ export const useBilder = () =>
   useQuery({
     queryKey: ["bibliothek", "bilder"],
     queryFn: async () => {
-      const liste = await holen<Bild[]>(db.from("library_images").select("path, object, preview, width, height"));
+      const liste = await holen<Bild[]>(db.from("library_images").select("path, width, height"));
       return new Map(liste.map((b) => [b.path, b]));
     },
   });
@@ -203,25 +209,45 @@ export const useSuche = (begriff: string) =>
   });
 
 /**
- * Signierte Adressen für Bilder aus dem privaten Speicher. Zehn Minuten
- * gültig; die Abfrage erneuert sich nach acht, falls die Seite offen bleibt.
+ * Adressen für Bilder aus SharePoint. Die Edge Function stellt sie aus; sie
+ * gelten ohne Anmeldung, aber nur kurz. Nach acht Minuten holt die Seite
+ * neue, falls sie offen bleibt.
+ *
+ * Gebündelt: Was die Bilder einer Seite im selben Augenblick anfragen, geht
+ * als ein Aufruf hinaus – sonst kostete jede Karte zwei, die Seite einer
+ * Quelle ein Dutzend Aufrufe der Funktion.
  */
-export const useBildAdressen = (objekte: string[]) => {
-  const liste = [...new Set(objekte)].sort();
-  const { data } = useQuery({
-    queryKey: ["bibliothek", "adressen", liste.join("|")],
-    enabled: liste.length > 0,
+let wartend: { pfad: string; fertig: (a: BildAdresse | null) => void; fehler: (e: unknown) => void }[] = [];
+let geplant: ReturnType<typeof setTimeout> | null = null;
+
+function adresseHolen(pfad: string): Promise<BildAdresse | null> {
+  return new Promise((fertig, fehler) => {
+    wartend.push({ pfad, fertig, fehler });
+    geplant ??= setTimeout(async () => {
+      const runde = wartend;
+      wartend = [];
+      geplant = null;
+      for (let i = 0; i < runde.length; i += 100) {
+        const teil = runde.slice(i, i + 100);
+        try {
+          const { urls } = await invokeFunction<{ urls: Record<string, BildAdresse> }>("library-files", {
+            body: { action: "urls", paths: [...new Set(teil.map((t) => t.pfad))] },
+          });
+          teil.forEach((t) => t.fertig(urls[t.pfad] ?? null));
+        } catch (e) {
+          teil.forEach((t) => t.fehler(e));
+        }
+      }
+    }, 15);
+  });
+}
+
+export const useBildAdresse = (pfad: string | null) =>
+  useQuery({
+    queryKey: ["bibliothek", "adresse", pfad],
+    enabled: !!pfad,
     staleTime: 8 * 60 * 1000,
     refetchInterval: 8 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase.storage.from("library").createSignedUrls(liste, 10 * 60);
-      if (error || !data) return {} as Record<string, string>;
-      const karte: Record<string, string> = {};
-      data.forEach((e, i) => {
-        if (e.signedUrl) karte[liste[i]] = e.signedUrl;
-      });
-      return karte;
-    },
-  });
-  return data ?? {};
-};
+    retry: 1,
+    queryFn: () => adresseHolen(pfad!),
+  }).data ?? null;

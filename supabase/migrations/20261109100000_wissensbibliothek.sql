@@ -13,21 +13,28 @@
 --   library_plates         Bildtafeln, mit den fünf Angaben zum Bild
 --   library_cards          die Belegkarten
 --   library_findings       die Fundstellen einer Karte, in Quelle oder Bildtafel
---   library_images         welche Bilder im Speicher liegen und wie gross sie sind
+--   library_images         welche Bilder im Ordner liegen, mit ihrer Datei in SharePoint
 --   library_pages          freie Seiten: Startseite, Methode, Prüfregeln
 --   library_history        jede Änderung mit altem und neuem Stand
+--   library_settings       wo der Ordner der Bibliothek in SharePoint liegt
 --   library_import()       legt einen Eintrag an oder aktualisiert ihn, aus den
 --                          Kopfdaten einer Markdown-Datei (als JSON)
 --   library_search()       Volltextsuche über Karten, Quellen und Bildtafeln
 --
--- Die Datenbank ist die Quelle der Wahrheit. Eingepflegt wird über die Seite
--- „Pflege" (Ordner hochladen) oder direkt per SQL mit library_import(); beides
--- läuft durch dieselben Prüfungen. Was sich ändert, hält library_history fest.
+-- Der Ordner der Bibliothek liegt in SharePoint: Markdown-Dateien und Bilder,
+-- so wie sie im Explorer gepflegt werden. „Aus SharePoint einlesen" auf der
+-- Seite „Pflege" bringt die Texte in diese Tabellen – dort laufen Suche,
+-- Rechte und Verlauf. Die Bilder bleiben in SharePoint; library_images merkt
+-- sich nur, welche Datei zu welchem Pfad gehört. Angezeigt werden sie über
+-- Adressen, die die Edge Function `library-files` für Minuten ausstellt.
+-- Texte lassen sich auch direkt per SQL mit library_import() einpflegen;
+-- beides läuft durch dieselben Prüfungen. Was sich ändert, hält
+-- library_history fest.
 --
 -- Nichts davon gehört in den Build: Alles, was im Build steckt, liegt ohne
 -- Anmeldung auf dem Webspace. Texte und Bilder kommen deshalb nur über die
--- Datenbank und einen privaten Speicher, beides nur für angemeldete Mitglieder
--- mit dem Recht library.read.
+-- Datenbank und SharePoint, beides nur für angemeldete Mitglieder mit dem
+-- Recht library.read.
 --
 -- Abgeschaltet ausgeliefert. Werte in der Datenbank sind englisch (`checked`,
 -- `internal`), die Kopfdaten der Dateien deutsch (`geprüft`, `intern`);
@@ -166,17 +173,17 @@ create index if not exists library_findings_card_idx on public.library_findings 
 create index if not exists library_findings_source_idx on public.library_findings (source_id);
 create index if not exists library_findings_plate_idx on public.library_findings (plate_id);
 
--- Ein Bild, wie es in den Kopfdaten heisst (`becher-2018/s29.jpg`), und wo es
--- im Speicher liegt. Gespeichert wird eine Webfassung, nicht das Original.
+-- Ein Bild, wie es in den Kopfdaten heisst (`becher-2018/s29.jpg`), und die
+-- Datei dazu in SharePoint. Die Kennung ändert sich nicht, wenn die Datei
+-- überschrieben wird; `etag` schon.
 create table if not exists public.library_images (
   path text primary key,
-  object text not null,
-  preview text,
+  item_id text not null,
+  etag text,
+  size bigint,
   width integer,
   height integer,
-  bytes integer,
-  uploaded_by uuid references public.profiles(id) on delete set null default auth.uid(),
-  uploaded_at timestamptz not null default now()
+  modified_at timestamptz
 );
 
 create table if not exists public.library_pages (
@@ -199,6 +206,18 @@ create table if not exists public.library_history (
 );
 
 create index if not exists library_history_entry_idx on public.library_history (entry_id, changed_at desc);
+
+-- Wo der Ordner liegt. Eine eigene Website, getrennt von der Quellensammlung;
+-- dieselbe App-Registrierung, die aber für diese Website eigens freigegeben
+-- sein muss (docs/wissensbibliothek-standard.md, Abschnitt 6).
+create table if not exists public.library_settings (
+  id boolean primary key default true check (id),
+  site_url text,
+  folder text not null default 'Bibliothek',
+  updated_at timestamptz not null default now()
+);
+
+insert into public.library_settings (id) values (true) on conflict (id) do nothing;
 
 -- ── Änderungsverlauf ────────────────────────────────────────────────────────
 --
@@ -255,8 +274,8 @@ $$;
 
 -- ── Bilder nur mit Rechtsstatus ─────────────────────────────────────────────
 --
--- Ein Bild liegt im Ordner seiner Quelle (`becher-2018/…`) oder seiner
--- Darstellung (`PI21/…`, für Bildtafeln). Beide tragen einen Rechtsstatus;
+-- Ein Bild liegt unter bilder/ im Ordner seiner Quelle (`becher-2018/…`) oder
+-- seiner Darstellung (`PI21/…`, für Bildtafeln). Beide tragen einen Rechtsstatus;
 -- ein Bild, das zu keiner von beiden gehört, hätte keinen und kommt nicht
 -- herein.
 
@@ -629,6 +648,20 @@ begin
 end;
 $$;
 
+alter table public.library_settings enable row level security;
+drop policy if exists "Library: settings for managers" on public.library_settings;
+create policy "Library: settings for managers" on public.library_settings
+  for all to authenticated
+  using (public.has_permission(auth.uid(), 'library.manage'))
+  with check (public.has_permission(auth.uid(), 'library.manage'));
+revoke all on public.library_settings from anon;
+grant select, update on public.library_settings to authenticated;
+grant all on public.library_settings to service_role;
+
+drop trigger if exists library_touch on public.library_settings;
+create trigger library_touch before update on public.library_settings
+  for each row execute function public.update_updated_at();
+
 alter table public.library_history enable row level security;
 drop policy if exists "Library: history for managers" on public.library_history;
 create policy "Library: history for managers" on public.library_history
@@ -637,37 +670,6 @@ create policy "Library: history for managers" on public.library_history
 revoke all on public.library_history from anon;
 grant select on public.library_history to authenticated;
 grant all on public.library_history to service_role;
-
--- ── Speicher ────────────────────────────────────────────────────────────────
---
--- Privat. Die Seite holt Bilder über signierte Adressen mit kurzer Laufzeit.
--- Pfad wie in library_images.object: <Quelle oder Darstellung>/<Datei>.webp,
--- Vorschauen unter _vorschau/.
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
-  ('library', 'library', false, 10485760, '{image/webp,image/jpeg,image/png}'::text[])
-on conflict (id) do nothing;
-
-drop policy if exists "Library: read images" on storage.objects;
-create policy "Library: read images" on storage.objects
-  for select to authenticated
-  using (bucket_id = 'library' and public.library_reader(auth.uid()));
-
-drop policy if exists "Library: upload images" on storage.objects;
-create policy "Library: upload images" on storage.objects
-  for insert to authenticated
-  with check (bucket_id = 'library' and public.has_permission(auth.uid(), 'library.manage'));
-
-drop policy if exists "Library: replace images" on storage.objects;
-create policy "Library: replace images" on storage.objects
-  for update to authenticated
-  using (bucket_id = 'library' and public.has_permission(auth.uid(), 'library.manage'))
-  with check (bucket_id = 'library' and public.has_permission(auth.uid(), 'library.manage'));
-
-drop policy if exists "Library: delete images" on storage.objects;
-create policy "Library: delete images" on storage.objects
-  for delete to authenticated
-  using (bucket_id = 'library' and public.has_permission(auth.uid(), 'library.manage'));
 
 -- ── Wer die Funktionen aufrufen darf ────────────────────────────────────────
 

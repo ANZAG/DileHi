@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { kartenVerlinken } from "@/lib/bibliothek";
-import { artVon, bildpfadVon, dateiLesen, speicherorte } from "@/lib/bibliothekDateien";
+import { artVon, bildpfadVon, dateiLesen, nichtMehrImOrdner, ordnerLesen, type OrdnerDatei } from "@/lib/bibliothekDateien";
 
 /**
  * Den Ordner der Wissensbibliothek lesen, so wie er im OneDrive liegt.
@@ -63,10 +63,49 @@ describe("Ordner", () => {
     expect(bildpfadVon("Bibliothek/bilder/x/tief/s1.jpg")).toBeNull();
   });
 
-  it("legt Webfassung und Vorschau getrennt ab", () => {
-    expect(speicherorte("becher-2018/s29.jpg")).toEqual({
-      objekt: "becher-2018/s29.webp", vorschau: "_vorschau/becher-2018/s29.webp",
-    });
+});
+
+describe("Abgleich mit dem Ordner in SharePoint", () => {
+  const datei = (path: string, text?: string): OrdnerDatei => ({
+    id: `id-${path}`, path, size: 10, etag: "e", modified: null, width: 100, height: 200, text,
+  });
+  const karte = (id: string) => `---\nid: ${id}\ndarstellung: TST\n---\n`;
+
+  it("sortiert Einträge zum Einspielen und verzeichnet Bilder", () => {
+    const r = ordnerLesen([
+      datei("karten/TST/TST-0001.md", karte("TST-0001")),
+      datei("quellen/muster.md", "---\nid: muster\n---\n"),
+      datei("darstellungen/TST.md", "---\nid: TST\n---\n"),
+      datei("bilder/muster/s1.jpg"),
+      datei("README.md", "# Liesmich"),
+      datei("bilder/muster/s1.txt"),
+    ]);
+    expect(r.eintraege.map((e) => e.art)).toEqual(["darstellung", "quelle", "karte"]);
+    expect(r.bilder).toEqual([{
+      path: "muster/s1.jpg", item_id: "id-bilder/muster/s1.jpg", etag: "e", size: 10, width: 100, height: 200, modified_at: null,
+    }]);
+    expect(r.uebergangen).toBe(2);
+    expect(r.fehler).toEqual([]);
+  });
+
+  it("meldet doppelte Kennungen und unlesbare Dateien", () => {
+    const r = ordnerLesen([
+      datei("karten/TST/TST-0001.md", karte("TST-0001")),
+      datei("karten/TST/Kopie von TST-0001.md", karte("TST-0001")),
+      datei("karten/TST/kaputt.md", "kein Kopf"),
+      datei("karten/TST/leer.md"),
+    ]);
+    expect(r.eintraege).toHaveLength(1);
+    expect(r.fehler.map((f) => f.datei).sort()).toEqual([
+      "karten/TST/Kopie von TST-0001.md", "karten/TST/kaputt.md", "karten/TST/leer.md",
+    ]);
+  });
+
+  it("findet, was in der Bibliothek steht, aber nicht mehr im Ordner", () => {
+    const { eintraege } = ordnerLesen([datei("karten/TST/TST-0001.md", karte("TST-0001"))]);
+    expect(nichtMehrImOrdner(eintraege, { karte: ["TST-0001", "TST-0002"], quelle: ["alt"] })).toEqual([
+      { art: "quelle", id: "alt" }, { art: "karte", id: "TST-0002" },
+    ]);
   });
 });
 

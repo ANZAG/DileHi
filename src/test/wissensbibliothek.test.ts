@@ -96,9 +96,9 @@ describe("Das Modul", () => {
     expect(pflege.length).toBeGreaterThan(0);
   });
 
-  it("legt einen privaten Speicher an", async () => {
-    const [b] = await zeilen<{ public: boolean }>("select public from storage.buckets where id = 'library'");
-    expect(b.public).toBe(false);
+  it("legt die Einstellung für den Ordner in SharePoint an, ohne Website", async () => {
+    const z = await zeilen<{ site_url: string | null; folder: string }>("select site_url, folder from public.library_settings");
+    expect(z).toEqual([{ site_url: null, folder: "Bibliothek" }]);
   });
 
   it("gibt Gästen keinen Zugriff auf die Tabellen", async () => {
@@ -200,7 +200,7 @@ describe("Einspielen", () => {
 
 describe("Bilder", () => {
   const bild = (pfad: string) =>
-    db.query("insert into public.library_images (path, object) values ($1, $1) on conflict (path) do nothing", [pfad]);
+    db.query("insert into public.library_images (path, item_id) values ($1, 'item-' || $1) on conflict (path) do nothing", [pfad]);
 
   it("nimmt Bilder im Ordner einer Quelle oder Darstellung", async () => {
     await expect(bild("muster-1910/s118.jpg")).resolves.toBeTruthy();

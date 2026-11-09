@@ -100,7 +100,7 @@ export default function BibliothekStart() {
               <Loader2 className="animate-spin text-muted-foreground" />
             ) : darstellungen.length === 0 ? (
               <p className="text-muted-foreground">
-                Noch keine Darstellung angelegt.{pflegen && " Unter „Pflege“ lässt sich der Ordner der Bibliothek hochladen."}
+                Noch keine Darstellung angelegt.{pflegen && " Unter „Pflege“ lässt sich der Ordner der Bibliothek aus SharePoint einlesen."}
               </p>
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2">

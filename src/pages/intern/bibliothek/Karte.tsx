@@ -163,13 +163,13 @@ function FundstelleAnzeige({
       <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-start">
         {(f.pointer_image || !f.page_image) && (
           <figure>
-            <BildAnsicht bild={zeige} alt={`Markierte Stelle: ${herkunft}`} beschriftung={`Zeigebild – ${herkunft}${f.page ? `, S. ${f.page}` : ""}`} />
+            <BildAnsicht pfad={f.pointer_image} bild={zeige} alt={`Markierte Stelle: ${herkunft}`} beschriftung={`Zeigebild – ${herkunft}${f.page ? `, S. ${f.page}` : ""}`} />
             <figcaption className="mt-1 text-xs text-muted-foreground">Zeigebild, Stelle markiert</figcaption>
           </figure>
         )}
         {f.page_image && (
           <figure>
-            <BildAnsicht bild={seite} vorschau alt={`Ganze Seite: ${herkunft}`} beschriftung={`Ganze Seite – ${herkunft}${f.page ? `, S. ${f.page}` : ""}`} />
+            <BildAnsicht pfad={f.page_image} bild={seite} vorschau alt={`Ganze Seite: ${herkunft}`} beschriftung={`Ganze Seite – ${herkunft}${f.page ? `, S. ${f.page}` : ""}`} />
             <figcaption className="mt-1 text-xs text-muted-foreground">Ganze Seite – tippen zum Vergrössern</figcaption>
           </figure>
         )}

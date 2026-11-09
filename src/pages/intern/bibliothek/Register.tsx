@@ -153,7 +153,7 @@ export function BibliothekQuelle() {
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {seitenbilder.map((s) => (
               <li key={s.page_image}>
-                <BildAnsicht bild={bilder.get(s.page_image!)} vorschau alt={`${q.title}, S. ${s.page ?? ""}`} />
+                <BildAnsicht pfad={s.page_image} bild={bilder.get(s.page_image!)} vorschau alt={`${q.title}, S. ${s.page ?? ""}`} />
                 <Link to={`/intern/bibliothek/karte/${s.card_id}`} className="mt-1 block text-xs text-muted-foreground hover:text-foreground">
                   S. {s.page ?? "?"} · <span className="font-mono">{s.card_id}</span>
                 </Link>
@@ -267,7 +267,7 @@ export function BibliothekTafel() {
       untertitel={<span className="font-mono">Bildtafel {t.id}</span>}
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
-        {datei && <BildAnsicht bild={bilder.get(datei)} alt={t.title} />}
+        {datei && <BildAnsicht pfad={datei} bild={bilder.get(datei)} vorschau alt={t.title} />}
         <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
           <Angabe label="Objekt">{t.object}</Angabe>
           <Angabe label="Datierung">{t.dating}</Angabe>

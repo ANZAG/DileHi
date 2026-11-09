@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronRight, ImageOff, Lock, Maximize2 } from "lucide-react
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SEITE } from "@/lib/layout";
 import { RECHTE, STATUS, STUFE, kartenVerlinken, type KartenStatus, type Rechte, type Stufe } from "@/lib/bibliothek";
-import { useBibliotheksrechte, useBildAdressen, type Bild } from "@/hooks/useBibliothek";
+import { useBibliotheksrechte, useBildAdresse, type Bild } from "@/hooks/useBibliothek";
 
 export interface Krume {
   label: string;
@@ -123,13 +123,18 @@ export function RechteAbzeichen({ rechte }: { rechte: Rechte }) {
 }
 
 /**
- * Ein Bild aus dem privaten Speicher. Ein Tipp öffnet es gross; dort lässt es
- * sich in Originalgrösse ansehen und verschieben – für Kleingedrucktes auf
- * einer ganzen Seite.
+ * Ein Bild aus dem Ordner der Bibliothek in SharePoint. Ein Tipp öffnet es
+ * gross; dort lässt es sich in Originalgrösse ansehen und verschieben – für
+ * Kleingedrucktes auf einer ganzen Seite.
+ *
+ * `vorschau` zeigt erst die Fassung mit 800 px, die SharePoint selbst
+ * erzeugt: Ein Seitenscan hat gern ein Megabyte, und auf dem Handy am
+ * Lagerplatz zählt jedes. Die ganze Datei lädt erst, wer das Bild öffnet.
  */
 export function BildAnsicht({
-  bild, alt, vorschau = false, className = "", beschriftung,
+  pfad, bild, alt, vorschau = false, className = "", beschriftung,
 }: {
+  pfad: string | null;
   bild: Bild | undefined;
   alt: string;
   vorschau?: boolean;
@@ -138,19 +143,18 @@ export function BildAnsicht({
 }) {
   const [offen, setOffen] = useState(false);
   const [voll, setVoll] = useState(false);
-  const objekt = bild ? (vorschau && bild.preview ? bild.preview : bild.object) : undefined;
-  const adressen = useBildAdressen(objekt ? [objekt, ...(offen && bild ? [bild.object] : [])] : []);
+  const adresse = useBildAdresse(bild && pfad ? pfad : null);
 
-  if (!bild) {
+  if (!bild || !pfad) {
     return (
       <div className={`flex flex-col items-center justify-center gap-1 rounded border border-dashed bg-muted/40 p-4 text-xs text-muted-foreground ${className}`}>
         <ImageOff size={18} aria-hidden />
-        Bild fehlt
+        Bild fehlt{pfad && <span className="font-mono break-all">{pfad}</span>}
       </div>
     );
   }
 
-  const src = adressen[objekt!];
+  const src = adresse && (vorschau ? adresse.preview ?? adresse.full : adresse.full);
   return (
     <>
       <button
@@ -169,7 +173,10 @@ export function BildAnsicht({
             loading="lazy"
           />
         ) : (
-          <div className="aspect-[3/4] w-full animate-pulse bg-muted" />
+          <div
+            className="w-full animate-pulse bg-muted"
+            style={{ aspectRatio: bild.width && bild.height ? `${bild.width} / ${bild.height}` : "3 / 4" }}
+          />
         )}
         <span className="absolute right-1.5 top-1.5 rounded bg-background/80 p-1 opacity-70 group-hover:opacity-100">
           <Maximize2 size={14} aria-hidden />
@@ -180,9 +187,9 @@ export function BildAnsicht({
         <DialogContent className="max-w-[96vw] w-[96vw] h-[94dvh] p-2 sm:p-3 flex flex-col gap-2">
           <DialogTitle className="text-sm font-medium pr-8">{beschriftung ?? alt}</DialogTitle>
           <div className="flex-1 min-h-0 overflow-auto rounded bg-muted/30">
-            {adressen[bild.object] ? (
+            {adresse ? (
               <img
-                src={adressen[bild.object]}
+                src={adresse.full}
                 alt={alt}
                 onClick={() => setVoll((v) => !v)}
                 className={voll ? "max-w-none cursor-zoom-out" : "h-full w-full object-contain cursor-zoom-in"}
