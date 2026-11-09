@@ -63,6 +63,44 @@ export function convertToWebP(file: File, qualitaet = 0.85): Promise<File> {
 }
 
 /**
+ * Ein Bild als WebP mit höchstens `maxKante` Pixeln an der langen Seite – nie
+ * vergrössert. Für die Wissensbibliothek, die Seitenbilder in einer festen
+ * Grösse ablegt und eine Vorschau dazu.
+ */
+export function verkleinern(
+  datei: Blob, maxKante: number, qualitaet = 0.85,
+): Promise<{ datei: Blob; breite: number; hoehe: number }> {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement("img");
+    const objectUrl = URL.createObjectURL(datei);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { breite, hoehe } = zielmass(img.naturalWidth, img.naturalHeight, maxKante);
+      const canvas = document.createElement("canvas");
+      canvas.width = breite;
+      canvas.height = hoehe;
+      const zeichnen = canvas.getContext("2d");
+      if (!zeichnen) {
+        reject(new Error("Zeichenfläche nicht verfügbar"));
+        return;
+      }
+      zeichnen.imageSmoothingQuality = "high";
+      zeichnen.drawImage(img, 0, 0, breite, hoehe);
+      canvas.toBlob(
+        (blob) => (blob ? resolve({ datei: blob, breite, hoehe }) : reject(new Error("Konvertierung fehlgeschlagen"))),
+        "image/webp",
+        qualitaet
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Bild konnte nicht geladen werden"));
+    };
+    img.src = objectUrl;
+  });
+}
+
+/**
  * Die kleineren Fassungen eines Bildes, als WebP (src/lib/bildfassungen.mjs).
  *
  * Von der grössten zur kleinsten, jede aus der vorigen gezeichnet: Ein Schritt

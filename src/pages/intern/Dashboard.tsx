@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
   FileText, Coins, MapPin, ClipboardList, ScrollText, Package, Gavel, Receipt, HandCoins,
-  Compass,
+  Compass, Library,
 } from "lucide-react";
 import BirthdayBanner from "@/components/birthday-banner/BirthdayBanner";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
@@ -31,6 +31,7 @@ const baseCards = [
   { title: "Auslagen", desc: "Auslagen mit Beleg einreichen und erstattet bekommen.", icon: Receipt, path: "/intern/auslagen", module: "expense_claims" },
   { title: "Zuwendungen", desc: "Zuwendungsbestätigungen fürs Finanzamt.", icon: HandCoins, path: "/intern/zuwendungen", module: "donation_receipts" },
   { title: "Dokumente", desc: "Unterlagen zum Nachlesen und Herunterladen.", icon: FileText, path: "/intern/dokumente", module: "documents" },
+  { title: "Wissensbibliothek", desc: "Belege nachschlagen: Kernsatz, Fundstelle, Wortlaut und Seitenbild.", icon: Library, path: "/intern/bibliothek", module: "library" },
   { title: "Quellensammlung", desc: "Quellen nach Kategorie durchsuchen und hinzufügen.", icon: BookOpen, path: "/intern/quellen", module: "sources" },
   { title: "Mitgliederkarte", desc: "Wohnorte der Mitglieder auf einer Karte.", icon: MapPin, path: "/intern/karte", module: "member_map" },
   { title: "Inventar", desc: "Was uns gehört, wo es liegt und wer es gerade hat.", icon: Package, path: "/intern/inventar", module: "inventory" },

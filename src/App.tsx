@@ -88,6 +88,14 @@ const Documents            = lazyPage(() => import("./pages/intern/Documents"));
 const Contributions        = lazyPage(() => import("./pages/intern/Contributions"));
 const MemberMap            = lazyPage(() => import("./pages/intern/MemberMap"));
 const Inventar             = lazyPage(() => import("./pages/intern/Inventar"));
+const BibliothekStart      = lazyPage(() => import("./pages/intern/bibliothek/Start"));
+const BibliothekDarstellung = lazyPage(() => import("./pages/intern/bibliothek/Darstellung"));
+const BibliothekKarte      = lazyPage(() => import("./pages/intern/bibliothek/Karte"));
+const BibliothekPflege     = lazyPage(() => import("./pages/intern/bibliothek/Pflege"));
+const BibliothekQuellen    = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekQuellen })));
+const BibliothekQuelle     = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekQuelle })));
+const BibliothekTafel      = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekTafel })));
+const BibliothekSeite      = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekSeite })));
 const Beschluesse          = lazyPage(() => import("./pages/intern/Beschluesse"));
 const Auslagen             = lazyPage(() => import("./pages/intern/Auslagen"));
 const Zuwendungen          = lazyPage(() => import("./pages/intern/Zuwendungen"));
@@ -203,6 +211,14 @@ const App = () => (
                 <Route path="/intern/beitraege" element={<ModuleRoute k="contributions"><ProtectedRoute><Contributions /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/karte" element={<ModuleRoute k="member_map"><ProtectedRoute><MemberMap /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/inventar" element={<ModuleRoute k="inventory"><ProtectedRoute><Inventar /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekStart /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/pflege" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekPflege /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/quellen" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekQuellen /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/quelle/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekQuelle /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/tafel/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekTafel /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/karte/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekKarte /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/seite/:slug" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekSeite /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/:darstellung" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekDarstellung /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/beschluesse" element={<ModuleRoute k="resolutions"><ProtectedRoute><Beschluesse /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/auslagen" element={<ModuleRoute k="expense_claims"><ProtectedRoute><Auslagen /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/zuwendungen" element={<ModuleRoute k="donation_receipts"><ProtectedRoute><Zuwendungen /></ProtectedRoute></ModuleRoute>} />
