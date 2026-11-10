@@ -4,10 +4,11 @@ import {
   BildAnsicht, Rahmen, RechteAbzeichen, StatusAbzeichen, StufeAbzeichen, Text,
 } from "@/components/bibliothek/Bausteine";
 import {
-  useBilder, useDarstellungen, useKarte, useQuellen, useTafeln, type Fundstelle, type Quelle, type Tafel,
+  useBilder, useDarstellungen, useKarte, useQuellen, useTafeln, useThemen, type Fundstelle, type Quelle, type Tafel,
 } from "@/hooks/useBibliothek";
 import type { Bild } from "@/hooks/useBibliothek";
-import { STATUS } from "@/lib/bibliothek";
+import { STATUS, themenDerKarte } from "@/lib/bibliothek";
+import { CornerUpLeft } from "lucide-react";
 
 const datum = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("de-DE") : null);
 
@@ -25,6 +26,7 @@ export default function BibliothekKarte() {
   const { data: darstellungen = [] } = useDarstellungen();
   const { data: quellen = [] } = useQuellen();
   const { data: tafeln = [] } = useTafeln();
+  const { data: themen = [] } = useThemen();
   const { data: bilder = new Map<string, Bild>() } = useBilder();
 
   const krumen = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }];
@@ -93,7 +95,19 @@ export default function BibliothekKarte() {
             </dd>
           </>
         )}
+        {karte.roles?.length > 0 && (
+          <>
+            <dt className="text-sm text-muted-foreground">Nur für</dt>
+            <dd className="flex flex-wrap gap-1.5">
+              {karte.roles.map((r) => (
+                <span key={r} className="rounded bg-muted px-1.5 py-0.5 text-sm">{d?.roles.find((x) => x.id === r)?.titel ?? r}</span>
+              ))}
+            </dd>
+          </>
+        )}
       </dl>
+
+      <GehoertZu karte={karte} themen={themen} />
 
       <section className="mb-6 space-y-4">
         <h2 className="font-serif text-xl font-bold">{data!.fundstellen.length === 1 ? "Fundstelle" : "Fundstellen"}</h2>
@@ -175,5 +189,35 @@ function FundstelleAnzeige({
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * Der Rückweg von der Karte zu den Themenseiten, die sie nennen oder auf die
+ * sie zeigt. Wer über die Suche auf einer Karte landet, findet so den
+ * Zusammenhang.
+ */
+function GehoertZu({ karte, themen }: { karte: { id: string; topics: string[] }; themen: ReturnType<typeof useThemen>["data"] }) {
+  const liste = themenDerKarte({ id: karte.id, topics: karte.topics ?? [] }, themen ?? []);
+  const fehlend = (karte.topics ?? []).filter((t) => !(themen ?? []).some((x) => x.id === t));
+  if (!liste.length && !fehlend.length) return null;
+  return (
+    <section className="mb-6">
+      <h2 className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <CornerUpLeft size={15} aria-hidden /> Gehört zu
+      </h2>
+      <ul className="flex flex-wrap gap-1.5">
+        {liste.map((t) => (
+          <li key={t.id}>
+            <Link to={`/intern/bibliothek/thema/${t.id}`} className="inline-block rounded-full border bg-card px-3 py-1 text-sm hover:bg-muted">
+              {t.title}
+            </Link>
+          </li>
+        ))}
+        {fehlend.map((t) => (
+          <li key={t} className="rounded-full border border-dashed px-3 py-1 font-mono text-xs text-muted-foreground" title="Diese Themenseite gibt es noch nicht">{t}</li>
+        ))}
+      </ul>
+    </section>
   );
 }

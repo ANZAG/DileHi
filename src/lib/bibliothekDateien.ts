@@ -1,4 +1,5 @@
 import { parse as yamlLesen } from "yaml";
+import { ABSCHNITTE, abschnitt, abschnitte, kennungenImText } from "@/lib/bibliothek";
 
 /**
  * Den Ordner der Wissensbibliothek lesen, so wie er in SharePoint liegt.
@@ -8,10 +9,18 @@ import { parse as yamlLesen } from "yaml";
  * Standard: docs/wissensbibliothek-standard.md, Abschnitt 3 und 4.
  */
 
-export type Art = "darstellung" | "seite" | "quelle" | "bild" | "karte";
+export type Art = "darstellung" | "seite" | "quelle" | "bild" | "thema" | "karte";
 
-/** In dieser Reihenfolge einspielen: Karten verweisen auf Quellen, Tafeln und Darstellungen. */
-export const REIHENFOLGE: Art[] = ["darstellung", "seite", "quelle", "bild", "karte"];
+/**
+ * In dieser Reihenfolge einspielen: Karten verweisen auf Quellen, Tafeln und
+ * Darstellungen, Themenseiten auf die Darstellung (Kapitel). Dass Karten auf
+ * Themenseiten zeigen und umgekehrt, prüft erst die Warnliste – dafür ist die
+ * Reihenfolge gleich.
+ */
+export const REIHENFOLGE: Art[] = ["darstellung", "seite", "quelle", "bild", "thema", "karte"];
+
+/** Der Ordner mit Entwürfen von Themenseiten. Nur auf ausdrücklichen Wunsch eingelesen. */
+export const ENTWURFSORDNER = "_themen_entwurf";
 
 export interface Eintrag {
   art: Art;
@@ -43,11 +52,11 @@ export function artVon(pfad: string): Art | null {
   const teile = pfad.replace(/\\/g, "/").split("/").filter(Boolean);
   if (!teile.length || !/\.md$/i.test(teile[teile.length - 1])) return null;
   const ordner = teile.slice(0, -1);
-  const i = ordner.findIndex((o) => ["darstellungen", "seiten", "quellen", "karten", "bilder"].includes(o));
+  const i = ordner.findIndex((o) => ["darstellungen", "seiten", "quellen", "karten", "bilder", "themen"].includes(o));
   if (i < 0 || ordner.slice(i).some((o) => o.startsWith("_"))) return null;
-  return ({ darstellungen: "darstellung", seiten: "seite", quellen: "quelle", karten: "karte", bilder: "bild" } as const)[
-    ordner[i] as "darstellungen"
-  ];
+  return ({
+    darstellungen: "darstellung", seiten: "seite", quellen: "quelle", karten: "karte", bilder: "bild", themen: "thema",
+  } as const)[ordner[i] as "darstellungen"];
 }
 
 const BILDENDUNG = /\.(jpe?g|png|webp|gif)$/i;
@@ -104,7 +113,7 @@ export const kennungVon = (e: Eintrag) => String(e.daten.id ?? e.daten.slug ?? "
  * ist. Eine Kennung, die zweimal vorkommt, gilt als Fehler – sonst gewänne
  * zufällig die zuletzt gelesene Datei.
  */
-export function ordnerLesen(dateien: OrdnerDatei[]): {
+export function ordnerLesen(dateien: OrdnerDatei[], { entwuerfe = false }: { entwuerfe?: boolean } = {}): {
   eintraege: Eintrag[];
   bilder: BildZeile[];
   fehler: Meldung[];
@@ -115,7 +124,12 @@ export function ordnerLesen(dateien: OrdnerDatei[]): {
   const fehler: Meldung[] = [];
   let uebergangen = 0;
 
-  for (const d of dateien) {
+  for (const roh of dateien) {
+    // Entwürfe von Themenseiten zählen wie themen/, wenn sie ausdrücklich
+    // mit eingelesen werden; sonst bleiben sie wie jeder _-Ordner draussen.
+    const d = entwuerfe && roh.path.startsWith(`${ENTWURFSORDNER}/`)
+      ? { ...roh, path: `themen/${roh.path.slice(ENTWURFSORDNER.length + 1)}` }
+      : roh;
     const art = artVon(d.path);
     const bild = art ? null : bildpfadVon(d.path);
     if (art) {
@@ -167,4 +181,98 @@ export function nichtMehrImOrdner(
   return REIHENFOLGE.flatMap((art) =>
     (bestand[art] ?? []).filter((id) => !da.has(`${art}:${id}`)).map((id) => ({ art, id }))
   );
+}
+
+// ── Warnungen ───────────────────────────────────────────────────────────────
+
+/** Was es in der Bibliothek schon gibt – zusammen mit dem Ordner der Massstab für Verweise. */
+export interface Bestand {
+  karten: string[];
+  tafeln: string[];
+  themen: string[];
+  darstellungen: { id: string; levels: string[]; roles: { id: string }[] }[];
+}
+
+const liste = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : v == null || v === "" ? [] : [String(v).trim()];
+
+interface Knoten { id?: unknown; ebene?: unknown; stufe?: unknown; belege?: unknown; kinder?: unknown }
+const knotenListe = (v: unknown): Knoten[] => (Array.isArray(v) ? (v as Knoten[]) : []);
+
+/**
+ * Verweise, die ins Leere zeigen. Keine Fehler: Eine Themenseite darf auf eine
+ * Karte zeigen, die erst noch geschrieben wird, und eine Elternseite darf
+ * fehlen. Aber wer pflegt, soll es sehen.
+ */
+export function warnungen(eintraege: Eintrag[], bestand: Bestand): Meldung[] {
+  const ids = (art: Art) => eintraege.filter((e) => e.art === art).map(kennungVon);
+  const karten = new Set([...bestand.karten, ...ids("karte")]);
+  const tafeln = new Set([...bestand.tafeln, ...ids("bild")]);
+  const themen = new Set([...bestand.themen, ...ids("thema")]);
+  const darstellungen = new Map(bestand.darstellungen.map((d) => [d.id, { levels: d.levels, rollen: d.roles.map((r) => r.id) }]));
+  for (const e of eintraege.filter((x) => x.art === "darstellung")) {
+    darstellungen.set(kennungVon(e), {
+      levels: liste(e.daten.ebenen),
+      rollen: (Array.isArray(e.daten.rollen) ? e.daten.rollen : []).map((r: { id?: unknown }) => String(r?.id ?? "")),
+    });
+  }
+
+  const meldungen: Meldung[] = [];
+  const melden = (e: Eintrag, text: string) => meldungen.push({ datei: e.datei, meldung: text });
+  const fehlend = (art: string, wo: string, alle: string[], bekannt: Set<string>, e: Eintrag) => {
+    const weg = [...new Set(alle)].filter((id) => !bekannt.has(id));
+    if (weg.length) melden(e, `${wo}: ${art} ${weg.join(", ")} gibt es nicht.`);
+  };
+  const rollenPruefen = (e: Eintrag) => {
+    const d = darstellungen.get(String(e.daten.darstellung ?? ""));
+    const weg = liste(e.daten.rollen).filter((r) => !d?.rollen.includes(r));
+    if (weg.length) melden(e, `rollen: ${weg.join(", ")} steht nicht bei den Rollen der Darstellung.`);
+  };
+  const imText = (e: Eintrag) => {
+    const funde = kennungenImText(e.text);
+    fehlend("Karte", "Text", funde.karte, karten, e);
+    fehlend("Tafel", "Text", funde.tafel, tafeln, e);
+    fehlend("Themenseite", "Text", funde.thema, themen, e);
+  };
+
+  for (const e of eintraege) {
+    if (e.art === "thema") {
+      const eltern = e.daten.eltern == null ? "" : String(e.daten.eltern).trim();
+      if (eltern && !themen.has(eltern)) {
+        melden(e, `eltern: Die Themenseite ${eltern} gibt es nicht; die Seite steht so lange oben im Kapitel.`);
+      }
+      fehlend("Karte", "karten", liste(e.daten.karten), karten, e);
+      fehlend("Tafel", "tafeln", liste(e.daten.tafeln), tafeln, e);
+      rollenPruefen(e);
+      imText(e);
+      if (!abschnitt(e.text, "Kurzantwort")) melden(e, "Ohne „## Kurzantwort“.");
+      const fremde = abschnitte(e.text).map((a) => a.titel).filter((t) => t && !(ABSCHNITTE as readonly string[]).includes(t));
+      if (fremde.length) melden(e, `Abschnitte ausserhalb des Standards: ${fremde.join(", ")}.`);
+
+      const levels = darstellungen.get(String(e.daten.darstellung ?? ""))?.levels ?? [];
+      const belege: string[] = [];
+      const besuchen = (knoten: Knoten[]) => {
+        for (const k of knoten) {
+          belege.push(...liste(k.belege));
+          if (k.ebene != null && levels.length && !levels.includes(String(k.ebene))) {
+            melden(e, `baum ${String(k.id ?? "?")}: Ebene „${String(k.ebene)}“ steht nicht im Vokabular.`);
+          }
+          if (k.stufe != null && !["Q", "F", "A", "offen"].includes(String(k.stufe))) {
+            melden(e, `baum ${String(k.id ?? "?")}: stufe „${String(k.stufe)}“ ist nicht Q, F, A oder offen.`);
+          }
+          besuchen(knotenListe(k.kinder));
+        }
+      };
+      besuchen(knotenListe(e.daten.baum));
+      fehlend("Karte", "baum.belege", belege, karten, e);
+    } else if (e.art === "karte") {
+      fehlend("Themenseite", "thema", liste(e.daten.thema), themen, e);
+      rollenPruefen(e);
+      imText(e);
+    } else if (e.art === "bild") {
+      const zeigt = Array.isArray(e.daten.zeigt) ? (e.daten.zeigt as { thema?: unknown }[]) : [];
+      fehlend("Themenseite", "zeigt.thema", zeigt.map((z) => String(z?.thema ?? "")).filter(Boolean), themen, e);
+    }
+  }
+  return meldungen;
 }

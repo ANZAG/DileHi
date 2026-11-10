@@ -15,16 +15,44 @@ sich der Standard, wird er hier geändert.
 
 | Bereich | Inhalt | Stand |
 |---|---|---|
-| Start | Suche über alles, Kurzerklärung (Seite `start`), Einstieg je Darstellung | da |
-| Darstellungen | je Darstellung die Belegkarten in neun Sachbereichen | da |
+| Start | Suche über alles (Themenseiten zuerst), Kurzerklärung (Seite `start`), Einstieg je Darstellung | da |
+| Darstellungen | je Darstellung zehn Kapitel mit Themenseiten; daneben die Reiter Belege (Karten nach Sachbereich), Bildtafeln, Quellen, Offen; Schalter „Ich stelle dar“ und Prüfliste je Rolle | da |
 | Quellen | gemeinsames Register aller Werke, Archivalien und Bildtafeln, filterbar nach Darstellung und Rechtsstatus | da |
 | Methode | freie Seiten (`seiten/*.md`): Belegstufen, Zitierstandard, Prüfregeln, Rechte | da, Inhalt fehlt noch |
 | Begriffe | gemeinsames Glossar mit Namensfallen | später |
-| Leitfaden, Am Lagerplatz, Offen | je Darstellung | später |
+| Leitfaden als PDF, Am Lagerplatz | je Darstellung | später |
 
-### Die neun Sachbereiche
+### Zwei Schichten je Darstellung
 
-Sie haben in jeder Darstellung dieselbe Nummer. Nur der Name darf sich
+1. **Themenseiten** sind die Navigation und der Lesetext. Wer etwas sucht,
+   landet zuerst hier. Jede Seite trennt, was die Quellen sagen, was sich in
+   der Realität findet und was das für uns heißt.
+2. **Belege** sind Belegkarten (eine Aussage, Fundstelle, Seitenbild) und
+   Bildtafeln. Die Themenseite verweist auf sie; jede Karte zeigt umgekehrt,
+   zu welchen Themenseiten sie gehört.
+
+### Die zehn Kapitel
+
+Gleich für alle Darstellungen. Die Nummern stehen fest, die Bezeichnungen
+darf eine Darstellung in `kapitel` anpassen.
+
+| Nr. | Kapitel | Beispiel Pi 21 |
+|---|---|---|
+| 1 | Region | Nassau 1916/17, Garnison, Heimatfront |
+| 2 | Zeitgeist | Kriegswinter, Versorgung, Stimmung |
+| 3 | Weg in die Rolle | Wehrpflicht, Ausbildung, Ersatzweg |
+| 4 | Rollen und Ränge | Dienstgrade, Funktionen, Abzeichen |
+| 5 | Gliederung | Armee bis Kompanie, mit Gliederungsbaum |
+| 6 | Sonderformen | Ersatz-, Reserve-, Landwehr-, Festungspioniere |
+| 7 | Eigenheiten | Pioniere gegen Infanterie |
+| 8 | Ausrüstung | je Stück, von Kopf bis Fuß; hier greift der Rollenfilter |
+| 9 | Dienst und Alltag | Stellungsbau, Lager, Verpflegung |
+| 10 | Nützliche Nebeninfos | Sprache, Feldpost, Geld, Namensfallen |
+
+### Die neun Sachbereiche der Karten
+
+Sie sind nicht mehr der Einstieg, bleiben aber als Feld und Filter (Reiter
+„Belege“). Sie haben in jeder Darstellung dieselbe Nummer. Nur der Name darf sich
 unterscheiden und steht in der Darstellung (`bereiche`).
 
 | Nr. | Bereich |
@@ -76,12 +104,15 @@ Bibliothek/                         Name frei wählbar, eingetragen unter Pflege
   darstellungen/<Kürzel>.md         eine Datei je Darstellung
   seiten/<name>.md                  freie Seiten; „start" erscheint auf der Startseite
   quellen/<quellen-id>.md           Quellenregister, gemeinsam für alle Darstellungen
+  themen/<Kürzel>/<id>.md           Themenseiten
   karten/<Kürzel>/<Kürzel>-NNNN.md  Belegkarten
   bilder/<quellen-id>/sNNN.jpg      Seitenbild (ganze Seite oder Doppelseite)
   bilder/<quellen-id>/sNNN_aN.jpg   Zeigebild (Ausschnitt, Stelle rot markiert)
   bilder/<Kürzel>/<Kürzel>-Tnn.md   Bildtafel mit den fünf Angaben
   bilder/<Kürzel>/Tnn.jpg           Bild der Tafel, Ausschnitte als Tnn_aN.jpg
   _arbeit/                          wird übergangen (alles, was mit _ beginnt)
+  _themen_entwurf/<Kürzel>/         Entwürfe von Themenseiten; übergangen, ausser
+                                    beim Einlesen mit „Entwürfe mit einlesen“
 ```
 
 Seitenbilder liegen bei ihrer **Quelle**, nicht bei der Darstellung: Das
@@ -93,8 +124,11 @@ Die README und alle anderen Dateien werden übergangen.
 ## 4 Einträge und Kopfdaten
 
 Jeder Eintrag ist eine Markdown-Datei mit Kopfdaten (YAML zwischen `---` und
-`---`). Der Text darunter erscheint unter dem Eintrag; Kartenkennungen darin
-(`PI21-0042`, `PI21-T27`) werden zu Links. Schlüssel und Werte sind deutsch.
+`---`). Der Text darunter erscheint unter dem Eintrag. Kennungen darin werden
+zu Links: Karten (`PI21-0042`, beim Antippen eine Vorschau mit Kernsatz, Stufe
+und Zeigebild), Bildtafeln (`PI21-T27`) und Themenseiten
+(`PI21-ausruestung-kopfbedeckung`). Tabellen im Markdown werden dargestellt.
+Schlüssel und Werte sind deutsch.
 
 ### Darstellung (`darstellungen/PI21.md`)
 
@@ -105,7 +139,12 @@ Jeder Eintrag ist eine Markdown-Datei mit Kopfdaten (YAML zwischen `---` und
 | `epoche`, `zeitraum` | | |
 | `ebenen` | | Ebenen-Vokabular von allgemein nach konkret; die `ebene` jeder Karte muss daraus stammen |
 | `bereiche` | | Namen der neun Sachbereiche, `1: "…"` bis `9: "…"` |
+| `kapitel` | | Bezeichnungen der zehn Kapitel: `- {nr: 3, titel: "Weg in die Truppe"}`; fehlende Kapitel tragen den Namen aus Abschnitt 1. Sind Kapitel angegeben, darf eine Themenseite nur diese benutzen |
+| `rollen` | | Rollen für „Ich stelle dar“: `- {id: pionier, titel: "Pionier", text: "…"}`; `id` aus Kleinbuchstaben, Ziffern, `-`, `_` |
 | `stand` | | Datum `JJJJ-MM-TT` |
+
+`zeitraum` dient auch der Zählung (Abschnitt 8): Alle vierstelligen Jahre darin
+ergeben den Darstellungszeitraum, ein Jahr Luft auf jeder Seite.
 
 ### Quelle (`quellen/hiss-ir116-1924.md`)
 
@@ -132,6 +171,13 @@ lässt beide stehen.
 | `datei` | | Bilddatei im selben Ordner (`T27.jpg`) |
 | `objekt`, `datierung`, `reproduktion`, `ablesbar`, `nicht_ablesbar` | | die fünf Angaben |
 | `einheit`, `rechte`, `stand` | | |
+| `jahr` | | Aufnahmejahr als Zahl, nur wenn belastbar |
+| `datierung_herkunft` | | `rueckseite`, `aufschrift`, `poststempel`, `beschriftung`, `dateiname`, `objekt` oder `keine`. `objekt` heisst: datiert nur durch ein abgebildetes Stück (Stahlhelm → frühestens 1916) |
+| `lage` | | `front`, `ruhe`, `heimat`, `uebungsplatz`, `atelier` oder `unbekannt` |
+| `zeigt` | | was die Tafel für welche Themenseite zeigt: `- {thema: PI21-ausruestung-kopfbedeckung, merkmal: "Stahlhelm ohne Überzug", anzahl: 3}`; `anzahl` freiwillig |
+
+Unbekannte Werte bei `jahr`, `datierung_herkunft` und `lage` lehnt das
+Einlesen ab; eine unbekannte Themenseite in `zeigt` ist eine Warnung.
 
 ### Belegkarte (`karten/PI21/PI21-0042.md`)
 
@@ -147,6 +193,8 @@ lässt beide stehen.
 | `gilt_stand` | | auf welchen Stand sich der Beleg bezieht („1910 (Vorkriegsvorschrift)“) |
 | `schlagworte` | | Liste; Zahlen in Anführungszeichen (`"21"`) |
 | `status` | | `entwurf` (Vorgabe), `geprüft`, `bild-fehlt`, `bild-ersetzen` |
+| `thema` | | Liste von Themenseiten, auf die die Karte zeigt; eine Karte kann auf mehrere Seiten gehören. Unbekannte Seiten sind eine Warnung |
+| `rollen` | | nur, wenn der Beleg nur für bestimmte Rollen gilt (z. B. Unteroffiziersborte); leer heisst: für alle |
 | `stand` | | Datum |
 | `fundstellen` | ja, mindestens eine | siehe unten |
 
@@ -165,6 +213,40 @@ oder `bild` (Kennung einer Bildtafel). Dazu:
 Der Text unter den Kopfdaten trägt die Einschränkung, Gegenpositionen und
 Bezugspunkte, jeweils mit fettem Stichwort am Absatzanfang
 (`**Einschränkung:** …`).
+
+### Themenseite (`themen/PI21/PI21-ausruestung-kopfbedeckung.md`)
+
+| Feld | Pflicht | Inhalt |
+|---|---|---|
+| `id` | ja | `<Kürzel>-<sprechender-name>` in Kleinbuchstaben, Ziffern und Bindestrichen, z. B. `PI21-ausruestung-kopfbedeckung`; eindeutig |
+| `darstellung` | ja | Kürzel; muss zum Anfang der `id` passen |
+| `titel` | ja | |
+| `kapitel` | ja | 1–10, aus der Darstellung |
+| `eltern` | | `id` der übergeordneten Themenseite; leer heisst: oben im Kapitel. Fehlt die Elternseite, ist das eine Warnung, und die Seite steht so lange oben. Ein Kreis (A unter B unter A) wird abgelehnt |
+| `reihenfolge` | | Zahl für die Sortierung unter der Elternseite |
+| `suchbegriffe` | | Liste; Schreibweisen, unter denen man die Seite sucht („Helm Bezug“, „Krätzchen“). Ein Treffer hier stellt die Seite an die Spitze der Suche |
+| `rollen` | | Rollen-ids der Darstellung; leer heisst: für alle. Wirkt in Kapitel 8 |
+| `karten` | | Karten-ids in der Reihenfolge der Anzeige |
+| `tafeln` | | Tafel-ids |
+| `baum` | | Gliederungsbaum, nur für Kapitel 5 (Abschnitt 8) |
+| `stand` | ja | Datum |
+
+Der Text hat fünf feste Abschnitte, Überschriften genau so und in dieser
+Reihenfolge; jeder darf fehlen:
+
+1. `## Kurzantwort` – drei Sätze für den Besucher. Steht oben, hervorgehoben;
+   erscheint auch in der Suche und in der Prüfliste.
+2. `## Was die Quellen sagen` – Vorschrift, Regel, Literatur.
+3. `## Was sich in der Realität findet` – Fotos, Funde, Häufigkeit. Darüber
+   setzt die Seite die Zähltabelle (Abschnitt 8).
+4. `## Was das für uns heißt` – Folgerung, Soll für die Darstellung,
+   Abweichungen. Erscheint in der Prüfliste.
+5. `## Offen` – was nicht belegt ist. Erscheint im Reiter „Offen“.
+
+Unter dem Text zeigt die Seite ihre Unterseiten und die Belege: zuerst die
+Karten aus `karten`, dann weitere Karten, die über `thema` auf die Seite
+zeigen, dann die Tafeln aus `tafeln` und die, deren `zeigt` auf die Seite
+verweist.
 
 ### Seite (`seiten/methode.md`)
 
@@ -211,8 +293,23 @@ Bezugspunkte, jeweils mit fettem Stichwort am Absatzanfang
 
 **Wissensbibliothek → Pflege → Aus SharePoint einlesen.** Neues kommt dazu,
 Geändertes wird ersetzt. Was abgelehnt wird, steht mit Grund in der Liste.
-Die Seite zeigt ausserdem, wo Bilder fehlen, welche Karten nicht geprüft sind
-und was zuletzt geändert wurde.
+Die Seite zeigt ausserdem, wo Bilder fehlen, welche Karten nicht geprüft sind,
+welche Themenseiten keine Kurzantwort haben, welche Karten auf keiner
+Themenseite vorkommen („verwaiste Belege“) und was zuletzt geändert wurde.
+
+**Fehler** halten einen Eintrag auf: doppelte Kennung, fehlendes Pflichtfeld,
+ein Kapitel, das die Darstellung nicht hat, ein Kreis in `eltern`. **Hinweise**
+lassen ihn durch und stehen aufklappbar darunter: unbekannte Karten, Tafeln
+oder Themenseiten in Text, `karten`, `tafeln`, `baum.belege`, `thema` und
+`zeigt.thema`; eine fehlende Elternseite; Rollen, die die Darstellung nicht
+kennt; Ebenen im Baum ausserhalb des Vokabulars; Abschnitte ausserhalb der
+fünf festen.
+
+**Entwürfe ansehen:** Mit „Entwürfe aus `_themen_entwurf` mit einlesen“ kommen
+die Seiten aus dem Entwurfsordner herein, als lägen sie in `themen/`. So lässt
+sich eine Musterseite am Handy prüfen, bevor sie verschoben wird. Beim
+nächsten normalen Einlesen erscheinen sie unter „nicht mehr im Ordner“ und
+lassen sich dort wieder entfernen.
 
 Gelöschtes wird nicht von selbst entfernt: Was in der Bibliothek steht, aber
 nicht mehr im Ordner, listet die Seite auf. Entfernt wird es erst mit
@@ -227,7 +324,8 @@ ein Verweis, und die Karte zeigt dann „Bild fehlt".
 ### Per SQL, etwa aus einem Claude-Chat mit Supabase-Konnektor
 
 Für Texte geht es auch ohne Ordner: Kopfdaten als JSON, Text als dritter
-Wert. Reihenfolge: Darstellung, Quelle, Bildtafel, Karte. **Aber:** Beim
+Wert. Reihenfolge: Darstellung, Quelle, Bildtafel, Themenseite (Art `thema`),
+Karte. **Aber:** Beim
 nächsten Einlesen gilt der Ordner. Was nur per SQL eingetragen wurde,
 erscheint dann unter „nicht mehr im Ordner". Für Dauerhaftes also die Datei
 in den Ordner legen.
@@ -250,7 +348,65 @@ select changed_at, table_name, operation, old_row, new_row
 from public.library_history where entry_id = 'PI21-0042' order by id;
 ```
 
-## 7 In der Datenbank
+## 7 Themenseiten im Einzelnen
+
+### Zähltabelle
+
+Unter „Was sich in der Realität findet“ zählt die Seite alle Tafeln, deren
+`zeigt` auf sie verweist: Merkmal × Lage, Anzahl der **Tafeln** (nicht der
+Personen auf einem Foto). Gezählt werden nur Tafeln mit `datierung_herkunft`
+`rueckseite`, `aufschrift`, `poststempel` oder `beschriftung`. Ein Schalter
+wechselt zwischen „nur Darstellungszeitraum“ (Jahr nötig) und „alle“.
+Darunter steht fest: „Gezählt sind nur belastbar datierte Fotos unserer
+Sammlung; die Auswahl ist zufällig und nicht repräsentativ.“ Die übrigen
+Tafeln stehen aufklappbar unter „Nicht gezählt“, mit Grund. Eine Handtabelle
+im Text wird damit überflüssig.
+
+### Gliederungsbaum (Kapitel 5)
+
+`baum` ist eine Liste von Knoten:
+
+| Feld | Inhalt |
+|---|---|
+| `id` | eindeutig im Baum |
+| `titel` | |
+| `ebene` | aus dem Ebenen-Vokabular der Darstellung (sonst Hinweis) |
+| `stufe` | `Q`, `F`, `A` oder `offen` |
+| `text` | |
+| `belege` | Karten-ids |
+| `kinder` | Knoten darunter |
+| `darstellung: true` | unsere Einheit, hervorgehoben |
+| `fremd: true` | nicht Teil des eigenen Verbands, gestrichelt |
+
+Die Seite zeigt ihn als aufklappbare Kästen von oben nach unten: oberste
+Ebene offen, darunter zu, der Weg zur eigenen Einheit von Anfang an offen. Jeder
+Kasten trägt die Stufe als Abzeichen und die Belege als Links mit Vorschau.
+
+### Rollen
+
+Auf dem Reiter „Themen“ einer Darstellung steht „Ich stelle dar: …“ mit den
+Rollen aus der Darstellung. Die Wahl merkt sich der Browser je Darstellung.
+Mit gewählter Rolle blendet Kapitel 8 Themenseiten und Karten aus, deren
+`rollen` die Rolle nicht enthalten (leer heisst: immer sichtbar). Die
+**Prüfliste** zeigt alle Themenseiten aus Kapitel 8 in ihrer Reihenfolge, je
+Seite Kurzantwort und „Was das für uns heißt“, mit Kästchen zum Abhaken und
+druckbar auf A4.
+
+### Suche
+
+- Themenseiten stehen vor Karten, Tafeln und Quellen. Ein Treffer in
+  `suchbegriffe` stellt die Seite an die Spitze, mit ihrer Kurzantwort.
+- Verglichen wird gefaltet: Kleinschreibung, Umlaute ausgeschrieben
+  (ü = ue), ß = ss, Leerzeichen, Bindestriche und Satzzeichen zählen nicht.
+  „Helm Bezug“, „Helm-Bezug“ und „Helmbezug“ sind gleich, ebenso „Überzug“
+  und „Ueberzug“.
+- Daneben die deutsche Volltextsuche mit Wortanfängen und gebeugten Formen.
+- Wer nur eine Nummer eingibt („0042“, „T27“), bekommt zuerst die Karte oder
+  Tafel, nicht die Seiten, die sie nennen.
+- Grenze: Verschiedene Wörter werden nicht gleichgesetzt. „Helm Bezug“ findet
+  „Helmüberzug“ nur, weil die Seite „Helm Bezug“ unter `suchbegriffe` führt.
+
+## 8 In der Datenbank
 
 | Tabelle | Inhalt |
 |---|---|
@@ -263,16 +419,25 @@ from public.library_history where entry_id = 'PI21-0042' order by id;
 | `library_pages` | freie Seiten |
 | `library_history` | Verlauf, nur für die Pflege lesbar |
 | `library_settings` | Adresse der SharePoint-Website und Ordner |
+| `library_topics` | Themenseiten; `summary` ist die herausgezogene Kurzantwort |
+
+Darstellungen tragen `chapters` und `roles`, Karten `topics` und `roles`,
+Tafeln `year`, `dating_origin`, `situation` und `shows` (Werte wie in den
+Kopfdaten).
 
 Funktionen: `library_import(art, kopfdaten, text)`, `library_search(begriff)`
-(deutsche Volltextsuche, Wortanfänge, Kennungen direkt). Edge Function
-`library-files`: `status`, `scan` (Ordner lesen), `urls` (Bildadressen).
-Migration: `supabase/migrations/20261109100000_wissensbibliothek.sql`.
+(Abschnitt 7), `library_section(text, überschrift)`, `library_fold(text)`.
+Edge Function `library-files`: `status`, `scan` (Ordner lesen, auf Wunsch mit
+Entwürfen), `urls` (Bildadressen). Migrationen:
+`supabase/migrations/20261109100000_wissensbibliothek.sql`,
+`supabase/migrations/20261110100000_wissensbibliothek_themen.sql`.
 
-## 8 Später
+## 9 Später
 
 - PDF-Fassung von Nachschlagewerk und Leitfaden, wenn die Inhalte zu etwa 95 %
   stehen. Erzeugt wird sie aus der Datenbank, nicht aus Dateien.
-- Glossar (Begriffe mit Epoche, Namensfallen markiert), Leitfaden-Kapitel,
-  Antwortkarten „Am Lagerplatz“, Bereich „Offen“.
+- Leitfaden als PDF: Themenseiten in Kapitelreihenfolge, Karten als Anhang mit
+  Zeigebild.
+- Glossar (Begriffe mit Epoche, Namensfallen markiert), Antwortkarten „Am
+  Lagerplatz“.
 - Offline am Lagerplatz deckt erst die PDF-Fassung ab.

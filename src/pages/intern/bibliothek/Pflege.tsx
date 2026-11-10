@@ -3,27 +3,32 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, CloudDownload, ImageOff, Loader2, PlugZap, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Rahmen, StatusAbzeichen } from "@/components/bibliothek/Bausteine";
 import {
-  db, useBibliotheksrechte, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useVerweise, type Bild,
+  db, useBibliotheksrechte, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen,
+  useVerweise, type Bild,
 } from "@/hooks/useBibliothek";
 import {
-  REIHENFOLGE, nichtMehrImOrdner, ordnerLesen, type Art, type Meldung, type OrdnerDatei,
+  ENTWURFSORDNER, REIHENFOLGE, nichtMehrImOrdner, ordnerLesen, warnungen, type Art, type Meldung, type OrdnerDatei,
 } from "@/lib/bibliothekDateien";
+import { themenDerKarte } from "@/lib/bibliothek";
 import { invokeFunction } from "@/lib/functionError";
 
 const ART_LABEL: Record<Art, string> = {
-  darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", karte: "Karten",
+  darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", thema: "Themenseiten",
+  karte: "Karten",
 };
 const TABELLE: Record<Art, { tabelle: string; spalte: string }> = {
   darstellung: { tabelle: "library_presentations", spalte: "id" },
   seite: { tabelle: "library_pages", spalte: "slug" },
   quelle: { tabelle: "library_sources", spalte: "id" },
   bild: { tabelle: "library_plates", spalte: "id" },
+  thema: { tabelle: "library_topics", spalte: "id" },
   karte: { tabelle: "library_cards", spalte: "id" },
 };
 
@@ -33,6 +38,7 @@ interface Ergebnis {
   bilder: number;
   bilderEntfernt: number;
   fehler: Meldung[];
+  hinweise: Meldung[];
   veraltet: { art: Art; id: string }[];
 }
 
@@ -55,12 +61,14 @@ export default function BibliothekPflege() {
   const [laeuft, setLaeuft] = useState(false);
   const [schritt, setSchritt] = useState({ fertig: 0, gesamt: 0, was: "" });
   const [ergebnis, setErgebnis] = useState<Ergebnis | null>(null);
+  const [entwuerfe, setEntwuerfe] = useState(false);
 
   const { data: karten = [] } = useKarten();
   const { data: quellen = [] } = useQuellen();
   const { data: tafeln = [] } = useTafeln();
   const { data: darstellungen = [] } = useDarstellungen();
   const { data: seiten = [] } = useSeiten();
+  const { data: themen = [] } = useThemen();
   const { data: verweise = [] } = useVerweise();
   const { data: bilder = new Map<string, Bild>() } = useBilder();
   const { data: verlauf = [] } = useQuery({
@@ -83,14 +91,29 @@ export default function BibliothekPflege() {
     return m;
   }, [verweise, bilder]);
   const offen = karten.filter((k) => k.status !== "checked");
+  const ohneKurzantwort = themen.filter((t) => !t.summary);
+  // Eine Karte, die auf keiner Themenseite vorkommt, findet niemand, der über
+  // die Kapitel kommt – nur die Suche.
+  const verwaist = useMemo(
+    () => themen.length ? karten.filter((k) => !themenDerKarte(k, themen).length) : [],
+    [karten, themen]
+  );
 
   const einlesen = async () => {
     setLaeuft(true);
     setErgebnis(null);
     try {
       setSchritt({ fertig: 0, gesamt: 0, was: "Ordner wird gelesen …" });
-      const { files } = await invokeFunction<{ files: OrdnerDatei[] }>("library-files", { body: { action: "scan" } });
-      const { eintraege, bilder: zeilen, fehler, uebergangen } = ordnerLesen(files);
+      const { files } = await invokeFunction<{ files: OrdnerDatei[] }>("library-files", {
+        body: { action: "scan", entwuerfe },
+      });
+      const { eintraege, bilder: zeilen, fehler, uebergangen } = ordnerLesen(files, { entwuerfe });
+      const hinweise = warnungen(eintraege, {
+        karten: karten.map((k) => k.id),
+        tafeln: tafeln.map((t) => t.id),
+        themen: themen.map((t) => t.id),
+        darstellungen,
+      });
       const lesefehler = fehler.length;
       const zaehlen = (art: Art) => eintraege.filter((e) => e.art === art).length;
       const gefunden = [
@@ -134,10 +157,11 @@ export default function BibliothekPflege() {
         seite: seiten.map((s) => s.slug),
         quelle: quellen.map((q) => q.id),
         bild: tafeln.map((t) => t.id),
+        thema: themen.map((t) => t.id),
         karte: karten.map((k) => k.id),
       });
 
-      setErgebnis({ gefunden, eingespielt, bilder: verzeichnet, bilderEntfernt: weg.length, fehler, veraltet });
+      setErgebnis({ gefunden, eingespielt, bilder: verzeichnet, bilderEntfernt: weg.length, fehler, hinweise, veraltet });
     } catch (e) {
       toast({ title: "Einlesen fehlgeschlagen", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -181,6 +205,13 @@ export default function BibliothekPflege() {
             Neues kommt dazu, Geändertes wird ersetzt, Unverändertes bleibt, wie es ist.
           </p>
         </div>
+        <div className="flex items-start gap-2">
+          <Checkbox id="entwuerfe" checked={entwuerfe} onCheckedChange={(v) => setEntwuerfe(v === true)} disabled={laeuft} />
+          <Label htmlFor="entwuerfe" className="text-sm font-normal leading-snug">
+            Entwürfe aus <code>{ENTWURFSORDNER}</code> mit einlesen, als wären sie in <code>themen/</code> – zum Ansehen
+            vor der Freigabe. Beim nächsten normalen Einlesen erscheinen sie unter „nicht mehr im Ordner“.
+          </Label>
+        </div>
 
         {laeuft && (
           <div className="space-y-1">
@@ -198,6 +229,16 @@ export default function BibliothekPflege() {
               {ergebnis.bilderEntfernt > 0 && `, ${ergebnis.bilderEntfernt} nicht mehr vorhandene Bilder ausgetragen`}.
             </p>
             <FehlerListe fehler={ergebnis.fehler} titel="Nicht übernommen" />
+            {ergebnis.hinweise.length > 0 && (
+              <details className="rounded border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900" open={ergebnis.hinweise.length <= 12}>
+                <summary className="font-medium cursor-pointer">Hinweise ({ergebnis.hinweise.length}) – eingelesen, aber bitte ansehen</summary>
+                <ul className="mt-1 space-y-1">
+                  {ergebnis.hinweise.map((f, i) => (
+                    <li key={i}><span className="font-mono text-xs">{f.datei}</span>: {f.meldung}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {ergebnis.veraltet.length > 0 && (
               <div className="rounded border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900 space-y-2">
                 <p className="font-medium">Nicht mehr im Ordner ({ergebnis.veraltet.length})</p>
@@ -241,6 +282,34 @@ export default function BibliothekPflege() {
               ))}
             </ul>
           )}
+
+          <h2 className="font-serif text-xl font-bold mt-6 mb-2">Themenseiten ohne Kurzantwort</h2>
+          {ohneKurzantwort.length === 0 ? <p className="text-sm text-muted-foreground">Jede Themenseite hat eine.</p> : (
+            <ul className="divide-y rounded-lg border bg-card text-sm">
+              {ohneKurzantwort.map((t) => (
+                <li key={t.id} className="px-3 py-2">
+                  <Link to={`/intern/bibliothek/thema/${t.id}`} className="font-mono text-primary hover:underline">{t.id}</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h2 className="font-serif text-xl font-bold mt-6 mb-2">Verwaiste Belege</h2>
+          {!themen.length ? <p className="text-sm text-muted-foreground">Noch keine Themenseiten.</p>
+            : verwaist.length === 0 ? <p className="text-sm text-muted-foreground">Jede Karte steht auf mindestens einer Themenseite.</p> : (
+              <details className="rounded-lg border bg-card text-sm">
+                <summary className="cursor-pointer px-3 py-2">
+                  {verwaist.length} Karten auf keiner Themenseite – weder in <code>karten</code>, im Text, im Baum noch über <code>thema</code>
+                </summary>
+                <ul className="flex flex-wrap gap-x-3 gap-y-1 px-3 pb-3">
+                  {verwaist.map((k) => (
+                    <li key={k.id}>
+                      <Link to={`/intern/bibliothek/karte/${k.id}`} className="font-mono text-primary hover:underline">{k.id}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
 
           <Ablage />
         </section>

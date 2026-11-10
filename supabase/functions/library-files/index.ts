@@ -19,6 +19,8 @@ import {
  * Aktionen (POST, JSON mit `action`):
  *   status  Website und Ordner erreichbar? Braucht library.manage.
  *   scan    Alle Dateien des Ordners; Markdown mit Inhalt, Bilder mit Grösse.
+ *           Ordner, die mit _ beginnen, bleiben aussen vor – mit
+ *           `entwuerfe: true` ausser `_themen_entwurf` auf oberster Ebene.
  *           Braucht library.manage.
  *   urls    Adressen für Bildpfade: ganze Datei und Vorschau (800 px), gültig
  *           für Minuten. Wer die Bibliothek nicht lesen darf, bekommt keine –
@@ -81,8 +83,15 @@ async function nebenlaeufig<T>(liste: T[], n: number, f: (x: T) => Promise<void>
   }));
 }
 
+/** Entwürfe von Themenseiten; nur auf Wunsch gelesen. */
+const ENTWURFSORDNER = "_themen_entwurf";
+
 /** Alle Dateien unter dem Ordner. Unterordner, die mit _ beginnen, bleiben aussen vor. */
-async function auflisten(target: SharePointTarget, folder: string): Promise<{ dateien: Datei[]; downloads: Map<string, string> }> {
+async function auflisten(
+  target: SharePointTarget,
+  folder: string,
+  entwuerfe = false
+): Promise<{ dateien: Datei[]; downloads: Map<string, string> }> {
   const dateien: Datei[] = [];
   const downloads = new Map<string, string>();
 
@@ -97,7 +106,7 @@ async function auflisten(target: SharePointTarget, folder: string): Promise<{ da
       for (const e of seite.value) {
         const pfad = relativ ? `${relativ}/${e.name}` : e.name;
         if (e.folder) {
-          if (!e.name.startsWith("_")) unterordner.push(pfad);
+          if (!e.name.startsWith("_") || (entwuerfe && relativ === "" && e.name === ENTWURFSORDNER)) unterordner.push(pfad);
         } else if (e.file && (MARKDOWN.test(e.name) || BILD.test(e.name))) {
           dateien.push({
             id: e.id,
@@ -179,7 +188,7 @@ Deno.serve(async (req) => {
       case "scan": {
         await pflege();
         const t = await target();
-        const { dateien, downloads } = await auflisten(t, folder);
+        const { dateien, downloads } = await auflisten(t, folder, body.entwuerfe === true);
         // Markdown gleich mitliefern: Das sind ein paar Kilobyte je Datei, und
         // der Browser braucht sie alle, um zu wissen, was es gibt.
         await nebenlaeufig(dateien.filter((d) => downloads.has(d.id)), 8, async (d) => {

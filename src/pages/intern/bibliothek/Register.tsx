@@ -8,10 +8,10 @@ import {
   BildAnsicht, KartenZeile, Rahmen, RechteAbzeichen, Text,
 } from "@/components/bibliothek/Bausteine";
 import {
-  db, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useVerweise, type Bild,
+  db, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen, useVerweise, type Bild,
 } from "@/hooks/useBibliothek";
 import { useBibliotheksrechte } from "@/hooks/useBibliothek";
-import { RECHTE, type Rechte } from "@/lib/bibliothek";
+import { DATIERUNG, LAGE, RECHTE, type Rechte } from "@/lib/bibliothek";
 
 const KRUMEN = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }];
 const ALLE = "__alle__";
@@ -252,6 +252,7 @@ export function BibliothekTafel() {
   const { data: karten = [] } = useKarten();
   const { data: verweise = [] } = useVerweise();
   const { data: bilder = new Map<string, Bild>() } = useBilder();
+  const { data: themen = [] } = useThemen();
   const t = tafeln.find((x) => x.id === id);
 
   if (isLoading) return <Rahmen krumen={KRUMEN} titel="Bildtafel"><Loader2 className="animate-spin" /></Rahmen>;
@@ -275,6 +276,31 @@ export function BibliothekTafel() {
           <Angabe label="Ablesbar">{t.readable}</Angabe>
           <Angabe label="Nicht ablesbar">{t.not_readable}</Angabe>
           <Angabe label="Einheit">{t.unit}</Angabe>
+          <Angabe label="Aufnahmejahr">{t.year}</Angabe>
+          <Angabe label="Datiert über">{t.dating_origin ? (DATIERUNG[t.dating_origin] ?? t.dating_origin) : null}</Angabe>
+          <Angabe label="Lage">{t.situation ? (LAGE[t.situation] ?? t.situation) : null}</Angabe>
+          {t.shows.length > 0 && (
+            <>
+              <dt className="text-sm text-muted-foreground">Zeigt</dt>
+              <dd>
+                <ul className="space-y-0.5">
+                  {t.shows.map((z, i) => (
+                    <li key={i}>
+                      {z.merkmal}{z.anzahl ? ` (${z.anzahl}×)` : ""}{" – "}
+                      {themen.some((x) => x.id === z.thema) ? (
+                        <Link to={`/intern/bibliothek/thema/${z.thema}`} className="text-primary hover:underline">
+                          {themen.find((x) => x.id === z.thema)!.title}
+                        </Link>
+                      ) : <span className="font-mono text-xs text-muted-foreground">{z.thema}</span>}
+                    </li>
+                  ))}
+                </ul>
+                {t.dating_origin === "objekt" && (
+                  <p className="mt-1 text-xs text-muted-foreground">Nur durch ein abgebildetes Stück datiert – zählt in der Häufigkeit nicht mit.</p>
+                )}
+              </dd>
+            </>
+          )}
           <dt className="text-sm text-muted-foreground">Rechte</dt>
           <dd className="space-y-1">
             <RechteAbzeichen rechte={t.rights_status} />

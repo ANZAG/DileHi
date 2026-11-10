@@ -4,9 +4,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ChevronRight, ImageOff, Lock, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SEITE } from "@/lib/layout";
 import { RECHTE, STATUS, STUFE, kartenVerlinken, type KartenStatus, type Rechte, type Stufe } from "@/lib/bibliothek";
-import { useBibliotheksrechte, useBildAdresse, type Bild } from "@/hooks/useBibliothek";
+import {
+  useBibliotheksrechte, useBildAdresse, useBilder, useKarten, useVerweise, type Bild,
+} from "@/hooks/useBibliothek";
 
 export interface Krume {
   label: string;
@@ -78,16 +81,25 @@ export function Rahmen({
 export function Text({ inhalt, className = "" }: { inhalt: string | null | undefined; className?: string }) {
   if (!inhalt) return null;
   return (
-    <div className={`prose prose-sm dark:prose-invert max-w-[68ch] prose-p:my-2 prose-a:text-primary ${className}`}>
+    <div className={`prose prose-sm dark:prose-invert max-w-[68ch] prose-p:my-2 prose-a:text-primary
+      prose-table:my-3 prose-th:px-2 prose-td:px-2 prose-th:py-1 prose-td:py-1 prose-table:text-[0.8125rem] ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ href, children }) =>
-            href?.startsWith("/") ? (
-              <Link to={href}>{children}</Link>
+            href?.startsWith("/intern/bibliothek/karte/") ? (
+              <KartenLink id={href.split("/").pop()!}>{children}</KartenLink>
+            ) : href?.startsWith("/") ? (
+              <Link to={href} className={href.startsWith("/intern/bibliothek/") ? "whitespace-nowrap" : undefined}>{children}</Link>
             ) : (
               <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
             ),
+          // Breite Tabellen scrollen auf dem Handy für sich, statt die Seite zu verbreitern.
+          table: ({ children }) => (
+            <div className="-mx-1 overflow-x-auto px-1">
+              <table>{children}</table>
+            </div>
+          ),
         }}
       >
         {kartenVerlinken(inhalt)}
@@ -96,16 +108,63 @@ export function Text({ inhalt, className = "" }: { inhalt: string | null | undef
   );
 }
 
-export function StufeAbzeichen({ stufe, gross = false }: { stufe: Stufe; gross?: boolean }) {
+export function StufeAbzeichen({ stufe, gross = false }: { stufe: Stufe | "offen"; gross?: boolean }) {
+  const offen = stufe === "offen";
   return (
     <span
-      title={`Belegstufe ${stufe}`}
-      className={`inline-flex items-center justify-center rounded border font-bold ${STUFE[stufe].farbe} ${
-        gross ? "h-9 min-w-9 px-2 text-lg" : "h-6 min-w-6 px-1.5 text-xs"
-      }`}
+      title={offen ? "Nicht belegt" : `Belegstufe ${stufe}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded border font-bold ${
+        offen ? "border-dashed bg-muted text-muted-foreground" : STUFE[stufe].farbe
+      } ${gross ? "h-9 min-w-9 px-2 text-lg" : offen ? "h-6 px-1.5 text-[0.6875rem] font-medium" : "h-6 min-w-6 px-1.5 text-xs"}`}
     >
-      {STUFE[stufe].kurz}
+      {offen ? "offen" : STUFE[stufe].kurz}
     </span>
+  );
+}
+
+/**
+ * Eine Kartennummer im Text. Antippen zeigt Kernsatz, Stufe und Zeigebild,
+ * ohne die Seite zu verlassen – wer liest, will meist nur kurz sehen, worauf
+ * sich der Satz stützt.
+ */
+export function KartenLink({ id, children }: { id: string; children?: React.ReactNode }) {
+  const [offen, setOffen] = useState(false);
+  const { data: karten = [] } = useKarten();
+  const { data: verweise = [] } = useVerweise();
+  const { data: bilder = new Map<string, Bild>() } = useBilder();
+  const karte = karten.find((k) => k.id === id);
+  const zeigebild = verweise.find((v) => v.card_id === id && v.pointer_image)?.pointer_image ?? null;
+
+  if (!karte) {
+    return <span className="whitespace-nowrap font-mono text-muted-foreground" title="Diese Karte gibt es (noch) nicht">{children ?? id}</span>;
+  }
+  return (
+    <Popover open={offen} onOpenChange={setOffen}>
+      {/* Ein Span statt eines Knopfs: Ein Knopf ist ein Block in der Zeile, und
+          davor darf umbrochen werden – „(" stand dann allein am Zeilenende. */}
+      <PopoverTrigger asChild>
+        <span
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOffen(true); } }}
+          className="cursor-pointer whitespace-nowrap font-mono text-primary underline decoration-dotted underline-offset-2 hover:decoration-solid"
+        >
+          {children ?? id}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-[min(22rem,calc(100vw-2rem))] space-y-2 p-3 text-sm" align="start">
+        <div className="flex items-start gap-2">
+          <StufeAbzeichen stufe={karte.grade} />
+          <p className="leading-snug">{karte.statement}</p>
+        </div>
+        {offen && zeigebild && (
+          <BildAnsicht pfad={zeigebild} bild={bilder.get(zeigebild)} alt={`Zeigebild zu ${id}`} className="max-h-60" />
+        )}
+        <Link to={`/intern/bibliothek/karte/${id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+          Karte <span className="font-mono">{id}</span> öffnen <ChevronRight size={14} />
+        </Link>
+      </PopoverContent>
+    </Popover>
   );
 }
 

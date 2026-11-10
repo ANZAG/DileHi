@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { invokeFunction } from "@/lib/functionError";
-import type { KartenStatus, Rechte, Stufe } from "@/lib/bibliothek";
+import type { BaumKnoten, KartenStatus, Rechte, Stufe } from "@/lib/bibliothek";
 
 /**
  * Daten der Wissensbibliothek. Alles kommt aus der Datenbank, nichts aus dem
@@ -16,8 +17,34 @@ export interface Darstellung {
   period: string | null;
   levels: string[];
   areas: Record<string, string>;
+  chapters: { nr: number; titel: string }[];
+  roles: Rolle[];
   body: string | null;
   as_of: string | null;
+}
+
+export interface Rolle {
+  id: string;
+  titel: string;
+  text?: string;
+}
+
+export interface Thema {
+  id: string;
+  presentation_id: string;
+  title: string;
+  chapter: number;
+  parent_id: string | null;
+  sort_order: number;
+  keywords: string[];
+  roles: string[];
+  cards: string[];
+  plates: string[];
+  tree: BaumKnoten[] | null;
+  summary: string | null;
+  body: string | null;
+  as_of: string | null;
+  updated_at: string;
 }
 
 export interface Karte {
@@ -30,6 +57,8 @@ export interface Karte {
   level: string | null;
   valid_for: string | null;
   keywords: string[];
+  topics: string[];
+  roles: string[];
   status: KartenStatus;
   as_of: string | null;
   body: string | null;
@@ -81,6 +110,10 @@ export interface Tafel {
   unit: string | null;
   rights: string | null;
   rights_status: Rechte;
+  year: number | null;
+  dating_origin: string | null;
+  situation: string | null;
+  shows: { thema: string; merkmal: string; anzahl?: number }[];
   as_of: string | null;
   body: string | null;
 }
@@ -106,10 +139,11 @@ export interface Seite {
 }
 
 export interface Treffer {
-  kind: "card" | "source" | "plate";
+  kind: "topic" | "card" | "source" | "plate";
   id: string;
   presentation_id: string | null;
   title: string;
+  summary: string | null;
   rank: number;
 }
 
@@ -150,10 +184,17 @@ export const useKarten = (darstellung?: string) =>
     queryKey: ["bibliothek", "karten", darstellung ?? "alle"],
     queryFn: () => {
       let q = db.from("library_cards")
-        .select("id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, status, as_of, updated_at");
+        .select("id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, topics, roles, status, as_of, updated_at");
       if (darstellung) q = q.eq("presentation_id", darstellung);
       return holen<Karte[]>(q.order("id"));
     },
+  });
+
+/** Alle Themenseiten, mit Text: Die Seiten brauchen ihn für „gehört zu", Offen und Prüfliste. */
+export const useThemen = () =>
+  useQuery({
+    queryKey: ["bibliothek", "themen"],
+    queryFn: () => holen<Thema[]>(db.from("library_topics").select("*").order("chapter").order("sort_order").order("title")),
   });
 
 export const useKarte = (id: string | undefined) =>
@@ -251,3 +292,43 @@ export const useBildAdresse = (pfad: string | null) =>
     retry: 1,
     queryFn: () => adresseHolen(pfad!),
   }).data ?? null;
+
+/**
+ * „Ich stelle dar: …" – je Darstellung gemerkt, im Browser der Person. Die
+ * Wahl gilt auf allen Seiten der Darstellung, auch in einem zweiten Reiter.
+ */
+const ROLLE_EREIGNIS = "bibliothek-rolle";
+const rolleLesen = (darstellung: string) => {
+  try {
+    return localStorage.getItem(`bibliothek-rolle-${darstellung}`);
+  } catch {
+    return null;
+  }
+};
+
+export function useGewaehlteRolle(darstellung: string | undefined): [string | null, (rolle: string | null) => void] {
+  const [rolle, setRolle] = useState<string | null>(() => (darstellung ? rolleLesen(darstellung) : null));
+  useEffect(() => {
+    if (!darstellung) return;
+    setRolle(rolleLesen(darstellung));
+    const neu = () => setRolle(rolleLesen(darstellung));
+    window.addEventListener(ROLLE_EREIGNIS, neu);
+    window.addEventListener("storage", neu);
+    return () => {
+      window.removeEventListener(ROLLE_EREIGNIS, neu);
+      window.removeEventListener("storage", neu);
+    };
+  }, [darstellung]);
+  const waehlen = (r: string | null) => {
+    if (!darstellung) return;
+    try {
+      if (r) localStorage.setItem(`bibliothek-rolle-${darstellung}`, r);
+      else localStorage.removeItem(`bibliothek-rolle-${darstellung}`);
+    } catch {
+      // Ohne Speicher gilt die Wahl nur auf dieser Seite.
+    }
+    setRolle(r);
+    window.dispatchEvent(new Event(ROLLE_EREIGNIS));
+  };
+  return [rolle, waehlen];
+}

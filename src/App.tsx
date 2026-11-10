@@ -92,6 +92,8 @@ const BibliothekStart      = lazyPage(() => import("./pages/intern/bibliothek/St
 const BibliothekDarstellung = lazyPage(() => import("./pages/intern/bibliothek/Darstellung"));
 const BibliothekKarte      = lazyPage(() => import("./pages/intern/bibliothek/Karte"));
 const BibliothekPflege     = lazyPage(() => import("./pages/intern/bibliothek/Pflege"));
+const BibliothekThema      = lazyPage(() => import("./pages/intern/bibliothek/Thema"));
+const BibliothekPruefliste = lazyPage(() => import("./pages/intern/bibliothek/Pruefliste"));
 const BibliothekQuellen    = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekQuellen })));
 const BibliothekQuelle     = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekQuelle })));
 const BibliothekTafel      = lazyPage(() => import("./pages/intern/bibliothek/Register").then((m) => ({ default: m.BibliothekTafel })));
@@ -218,6 +220,8 @@ const App = () => (
                 <Route path="/intern/bibliothek/tafel/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekTafel /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/bibliothek/karte/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekKarte /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/bibliothek/seite/:slug" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekSeite /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/thema/:id" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekThema /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/bibliothek/:darstellung/pruefliste" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekPruefliste /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/bibliothek/:darstellung" element={<ModuleRoute k="library"><ProtectedRoute><BibliothekDarstellung /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/beschluesse" element={<ModuleRoute k="resolutions"><ProtectedRoute><Beschluesse /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/auslagen" element={<ModuleRoute k="expense_claims"><ProtectedRoute><Auslagen /></ProtectedRoute></ModuleRoute>} />
