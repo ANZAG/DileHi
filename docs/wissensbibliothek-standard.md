@@ -15,7 +15,7 @@ sich der Standard, wird er hier geändert.
 
 | Bereich | Inhalt | Stand |
 |---|---|---|
-| Start | Suche über alles (Themenseiten zuerst), Kurzerklärung (Seite `start`), Einstieg je Darstellung | da |
+| Start | Suche über alles (Themenseiten zuerst) mit „Häufig gesucht“, drei Einstiege (nachsehen, Darstellung erkunden, Ausrüstung prüfen), Darstellungen mit Bild, offene Fragen, zuletzt ergänzte Karten, die drei Belegstufen | da |
 | Darstellungen | je Darstellung zehn Kapitel mit Themenseiten; daneben die Reiter Belege (Karten nach Sachbereich), Bildtafeln, Quellen, Offen; Schalter „Ich stelle dar“ und Prüfliste je Rolle | da |
 | Quellen | gemeinsames Register aller Werke, Archivalien und Bildtafeln, filterbar nach Darstellung und Rechtsstatus | da |
 | Methode | freie Seiten (`seiten/*.md`): Belegstufen, Zitierstandard, Prüfregeln, Rechte | da, Inhalt fehlt noch |
@@ -25,8 +25,8 @@ sich der Standard, wird er hier geändert.
 ### Zwei Schichten je Darstellung
 
 1. **Themenseiten** sind die Navigation und der Lesetext. Wer etwas sucht,
-   landet zuerst hier. Jede Seite trennt, was die Quellen sagen, was sich in
-   der Realität findet und was das für uns heißt.
+   landet zuerst hier. Jede Seite trennt Quellen, Befund und unsere
+   Darstellung.
 2. **Belege** sind Belegkarten (eine Aussage, Fundstelle, Seitenbild) und
    Bildtafeln. Die Themenseite verweist auf sie; jede Karte zeigt umgekehrt,
    zu welchen Themenseiten sie gehört.
@@ -140,10 +140,12 @@ Schlüssel und Werte sind deutsch.
 | `ebenen` | | Ebenen-Vokabular von allgemein nach konkret; die `ebene` jeder Karte muss daraus stammen |
 | `bereiche` | | Namen der neun Sachbereiche, `1: "…"` bis `9: "…"` |
 | `kapitel` | | Bezeichnungen der zehn Kapitel: `- {nr: 3, titel: "Weg in die Truppe"}`; fehlende Kapitel tragen den Namen aus Abschnitt 1. Sind Kapitel angegeben, darf eine Themenseite nur diese benutzen |
+| `kapitel` (Fortsetzung) | | je Kapitel freiwillig `status` und `text`: `- {nr: 6, titel: "Sonderformen", status: nicht-relevant, text: "Pi 21 war ein aktives Bataillon."}`. `status` ist `bereit`, `entwurf`, `recherche` oder `nicht-relevant`; angezeigt als „Bereit“, „Im Entwurf“, „Recherche geplant“, „Für diese Darstellung nicht relevant“ |
 | `rollen` | | Rollen für „Ich stelle dar“: `- {id: pionier, titel: "Pionier", text: "…"}`; `id` aus Kleinbuchstaben, Ziffern, `-`, `_` |
+| `bild` | | Bild für die Startseite, Pfad wie bei Fundstellen (`PI21/T27.jpg`). Nur eine Tafel mit `rechte_status: frei` oder ein eigenes Foto; liegt das Bild nicht im Ordner, ist das eine Warnung |
 | `stand` | | Datum `JJJJ-MM-TT` |
 
-`zeitraum` dient auch der Zählung (Abschnitt 8): Alle vierstelligen Jahre darin
+`zeitraum` dient auch der Zählung (Abschnitt 7): Alle vierstelligen Jahre darin
 ergeben den Darstellungszeitraum, ein Jahr Luft auf jeder Seite.
 
 ### Quelle (`quellen/hiss-ir116-1924.md`)
@@ -186,8 +188,8 @@ Einlesen ab; eine unbekannte Themenseite in `zeigt` ist eine Warnung.
 | `id` | ja | `<Kürzel>-NNNN`. Die Nummer enthält bewusst nicht die Gliederung: Wandert die Karte in einen anderen Bereich, bleibt sie gültig |
 | `darstellung` | ja | Kürzel; muss zum Anfang der `id` passen |
 | `bereich` | ja | 1–9 |
-| `kernsatz` | ja | die Sachaussage in einem Satz |
-| `stufe` | ja | `Q`, `F` oder `A` |
+| `kernsatz` | ja | die Sachaussage in einem Satz. Faustregel 120–180 Zeichen; ab 250 Zeichen gibt das Einlesen einen Hinweis (kein Fehler) |
+| `stufe` | ja | `Q` Belegt, `F` Forschungsmeinung oder `A` Annahme oder Analogie (Abschnitt 7, Belegstufen) |
 | `stufe_hinweis` | | wenn die Stufe einer Erklärung bedarf („A eng an Q: …“) |
 | `ebene` | | aus dem Vokabular der Darstellung |
 | `gilt_stand` | | auf welchen Stand sich der Beleg bezieht („1910 (Vorkriegsvorschrift)“) |
@@ -224,24 +226,36 @@ Bezugspunkte, jeweils mit fettem Stichwort am Absatzanfang
 | `kapitel` | ja | 1–10, aus der Darstellung |
 | `eltern` | | `id` der übergeordneten Themenseite; leer heisst: oben im Kapitel. Fehlt die Elternseite, ist das eine Warnung, und die Seite steht so lange oben. Ein Kreis (A unter B unter A) wird abgelehnt |
 | `reihenfolge` | | Zahl für die Sortierung unter der Elternseite |
+| `gruppe` | | Zwischentitel in der Kapitelübersicht, z. B. „Uniform“, „Gepäck“, „Waffen“. Seiten derselben Gruppe stehen beieinander; Seiten ohne Gruppe vorne |
 | `suchbegriffe` | | Liste; Schreibweisen, unter denen man die Seite sucht („Helm Bezug“, „Krätzchen“). Ein Treffer hier stellt die Seite an die Spitze der Suche |
 | `rollen` | | Rollen-ids der Darstellung; leer heisst: für alle. Wirkt in Kapitel 8 |
 | `karten` | | Karten-ids in der Reihenfolge der Anzeige |
 | `tafeln` | | Tafel-ids |
-| `baum` | | Gliederungsbaum, nur für Kapitel 5 (Abschnitt 8) |
+| `baum` | | Gliederungsbaum, nur für Kapitel 5 (Abschnitt 7) |
+| `rahmen` | | Darstellungsrahmen: was wir wie darstellen, Zeile für Zeile (Abschnitt 7). Daraus entsteht die Prüfliste |
 | `stand` | ja | Datum |
 
-Der Text hat fünf feste Abschnitte, Überschriften genau so und in dieser
-Reihenfolge; jeder darf fehlen:
+Der Text hat feste Abschnitte, in dieser Reihenfolge; jeder darf fehlen. Die
+früheren, längeren Überschriften gelten weiter und meinen denselben Abschnitt:
 
-1. `## Kurzantwort` – drei Sätze für den Besucher. Steht oben, hervorgehoben;
-   erscheint auch in der Suche und in der Prüfliste.
-2. `## Was die Quellen sagen` – Vorschrift, Regel, Literatur.
-3. `## Was sich in der Realität findet` – Fotos, Funde, Häufigkeit. Darüber
-   setzt die Seite die Zähltabelle (Abschnitt 8).
-4. `## Was das für uns heißt` – Folgerung, Soll für die Darstellung,
-   Abweichungen. Erscheint in der Prüfliste.
-5. `## Offen` – was nicht belegt ist. Erscheint im Reiter „Offen“.
+| Überschrift | gleichwertig | Inhalt |
+|---|---|---|
+| `## Kurzantwort` | | drei Sätze für den Besucher. Steht oben, hervorgehoben; erscheint auch in der Suche und in der Prüfliste |
+| `## Historischer Hintergrund` | | Zusammenhang für Einsteiger; steht unter der Kurzantwort, eingeklappt. Regel unten |
+| `## Unsere Darstellung` | `## Was das für uns heißt` | Folgerung, Soll, Abweichungen. Mit `rahmen` steht darüber die Tabelle; der Text ergänzt sie |
+| `## Quellen` | `## Was die Quellen sagen` | Vorschrift, Regel, Literatur |
+| `## Befund` | `## Was sich in der Realität findet` | Fotos, Funde, Häufigkeit; darüber die Zähltabelle (Abschnitt 7) |
+| `## Offen` | `## Offene Fragen` | was nicht belegt ist, eine Frage je Absatz oder Listenpunkt. Erscheint als einzelne Fragen auf der Seite, im Reiter „Offen“ und auf der Startseite |
+
+Andere Überschriften zeigt die Seite an, das Einlesen gibt aber einen Hinweis.
+Die Seite ordnet nach Antwort → Erklärung → Nachweis: Kurzantwort, Hintergrund,
+unsere Darstellung, dann Quellen, Befund, Offen und die Belege.
+
+**Historischer Hintergrund: keine neuen Fakten ohne Karte.** Jeder Satz nennt
+eine Karte oder Tafel (`PI21-0042`, `PI21-T27`) oder ist als redaktionelle
+Einordnung gekennzeichnet: entweder mit „(Einordnung)“ am Satzende oder als
+Absatz, der mit `**Einordnung:**` beginnt. Sätze ohne beides meldet das
+Einlesen als Hinweis.
 
 Unter dem Text zeigt die Seite ihre Unterseiten und die Belege: zuerst die
 Karten aus `karten`, dann weitere Karten, die über `thema` auf die Seite
@@ -252,9 +266,13 @@ verweist.
 
 | Feld | Pflicht | Inhalt |
 |---|---|---|
-| `id` | ja | Kleinbuchstaben; `start` erscheint auf der Startseite, alle anderen als Link dort |
+| `id` | ja | Kleinbuchstaben. Alle Seiten ausser `start` erscheinen als Link auf der Startseite, `methode` zuerst |
 | `titel` | ja | |
 | `reihenfolge` | | Zahl |
+| `haeufig` | | nur bei `start`: Liste der Begriffe unter „Häufig gesucht“, z. B. `[Stahlhelm, Helmüberzug, Feldmütze]` |
+
+Der Text von `start` erscheint nicht mehr auf der Startseite (Z0, 10.11.2026);
+was dort stand, gehört nach `methode`.
 
 ## 5 Bilder
 
@@ -352,7 +370,7 @@ from public.library_history where entry_id = 'PI21-0042' order by id;
 
 ### Zähltabelle
 
-Unter „Was sich in der Realität findet“ zählt die Seite alle Tafeln, deren
+Unter „Befund“ zählt die Seite alle Tafeln, deren
 `zeigt` auf sie verweist: Merkmal × Lage, Anzahl der **Tafeln** (nicht der
 Personen auf einem Foto). Gezählt werden nur Tafeln mit `datierung_herkunft`
 `rueckseite`, `aufschrift`, `poststempel` oder `beschriftung`. Ein Schalter
@@ -382,15 +400,78 @@ Die Seite zeigt ihn als aufklappbare Kästen von oben nach unten: oberste
 Ebene offen, darunter zu, der Weg zur eigenen Einheit von Anfang an offen. Jeder
 Kasten trägt die Stufe als Abzeichen und die Belege als Links mit Vorschau.
 
+### Darstellungsrahmen (`rahmen`)
+
+Was wir wie darstellen, als Liste von Zeilen:
+
+```yaml
+rahmen:
+  - lage: Winter, Stellung
+    gegenstand: Stahlhelm M16 mit Überzug
+    status: bevorzugt
+    karten: [PI21-0042, PI21-0051]
+  - gegenstand: Feldmütze
+    status: variante
+    text: In Ruhe und hinter der Front.
+    karten: [PI21-0044]
+  - gegenstand: Pickelhaube
+    status: nicht-empfohlen
+    karten: [PI21-0047]
+```
+
+| Feld | Pflicht | Inhalt |
+|---|---|---|
+| `gegenstand` | ja | was |
+| `status` | ja | `pflicht`, `bevorzugt`, `variante`, `offen` oder `nicht-empfohlen` |
+| `lage` | | wann oder wo; frei, z. B. „Winter“, „Stellung“, „Ruhe“, „Heimat“ (ein eigener Status „situativ“ entfällt) |
+| `text` | | kurze Erläuterung |
+| `karten` | | Belege; unbekannte Karten sind eine Warnung |
+| `rollen` | | nur für diese Rollen; leer heisst: für alle |
+| `stufe` | | überschreibt die Stufe der Zeile |
+
+Die Stufe einer Zeile ist die **schwächste** ihrer Karten (A vor F vor Q),
+ausser `stufe` ist gesetzt. Bewusste Abweichungen der Gruppe (Karten aus
+Bereich 9, z. B. PI21-0078 Tombakschloss) stehen als `variante` mit Verweis
+auf die Abweichungskarte. Varianten sind zulässig, keine Fehler.
+
+### Belegstufen
+
+| Stufe | Name | wann |
+|---|---|---|
+| Q | Belegt | Quelle oder Literatur mit Fundstelle |
+| F | Forschungsmeinung | ein Autor schätzt es veröffentlicht so ein |
+| A | Annahme oder Analogie | Rückschluss, Analogie, kein Beleg für unsere Einheit selbst |
+
+Interpretationen zählen nur dann als F, wenn sie veröffentlicht sind.
+Deutungen der Gruppe oder einer KI sind A. Eigene Befunde der Gruppe kommen
+nur mit Fundstelle (Foto, Fundstück, Dokument) in eine Karte, sonst als Frage
+unter „Offen“. Das gilt auch für Material aus OneNote: Es wird nicht
+übernommen, sondern geprüft und mit Fundstelle neu als Karte angelegt.
+
+### Kapitel
+
+Die Darstellung zeigt die zehn Kapitel als ruhige Liste: Nummer, Name, der
+Arbeitsstand in Worten (`status`) und ein Satz (`text`), wenn gesetzt;
+daneben die Themenseiten, nach `gruppe` geordnet. Ein Kapitel ohne Seite heisst
+nie „fehlt“.
+
 ### Rollen
 
 Auf dem Reiter „Themen“ einer Darstellung steht „Ich stelle dar: …“ mit den
 Rollen aus der Darstellung. Die Wahl merkt sich der Browser je Darstellung.
-Mit gewählter Rolle blendet Kapitel 8 Themenseiten und Karten aus, deren
-`rollen` die Rolle nicht enthalten (leer heisst: immer sichtbar). Die
-**Prüfliste** zeigt alle Themenseiten aus Kapitel 8 in ihrer Reihenfolge, je
-Seite Kurzantwort und „Was das für uns heißt“, mit Kästchen zum Abhaken und
-druckbar auf A4.
+Mit gewählter Rolle blendet Kapitel 8 Themenseiten, Karten und
+Rahmenzeilen aus, deren `rollen` die Rolle nicht enthalten (leer heisst:
+immer sichtbar).
+
+### Prüfliste
+
+Die Prüfliste zeigt alle Themenseiten aus Kapitel 8 in ihrer Reihenfolge.
+Hat eine Seite einen `rahmen`, ist jede Zeile ein Punkt mit Kästchen, Status
+und Stufe; `nicht-empfohlen` steht als Warnung ohne Kästchen da. Seiten ohne
+Rahmen erscheinen mit Kurzantwort und „Unsere Darstellung“ und einem Kästchen
+für die ganze Seite. Oben steht „x von y abgehakt“ und der Schalter „Alle ·
+Noch offen“. Abgehakt wird **nur auf dem Gerät** (Browser), je Darstellung und
+Rolle; nichts geht in die Datenbank. Druckbar auf A4.
 
 ### Suche
 
@@ -421,7 +502,8 @@ druckbar auf A4.
 | `library_settings` | Adresse der SharePoint-Website und Ordner |
 | `library_topics` | Themenseiten; `summary` ist die herausgezogene Kurzantwort |
 
-Darstellungen tragen `chapters` und `roles`, Karten `topics` und `roles`,
+Darstellungen tragen `chapters` (mit `status`, `text`), `roles` und
+`image`, Themenseiten `grp` und `frame`, Seiten `frequent`, Karten `topics` und `roles`,
 Tafeln `year`, `dating_origin`, `situation` und `shows` (Werte wie in den
 Kopfdaten).
 
@@ -430,7 +512,8 @@ Funktionen: `library_import(art, kopfdaten, text)`, `library_search(begriff)`
 Edge Function `library-files`: `status`, `scan` (Ordner lesen, auf Wunsch mit
 Entwürfen), `urls` (Bildadressen). Migrationen:
 `supabase/migrations/20261109100000_wissensbibliothek.sql`,
-`supabase/migrations/20261110100000_wissensbibliothek_themen.sql`.
+`supabase/migrations/20261110100000_wissensbibliothek_themen.sql`,
+`supabase/migrations/20261110120000_wissensbibliothek_rahmen.sql`.
 
 ## 9 Später
 

@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronRight, ClipboardList, CornerDownRight, UserRound } from "lucide-react";
+import { Check, CheckCheck, ChevronDown, ChevronRight, CircleDashed, ClipboardList, CornerDownRight, GitBranch, MinusCircle, UserRound } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { KartenLink, StufeAbzeichen } from "@/components/bibliothek/Bausteine";
+import { KartenLink, StufeAbzeichen, Text } from "@/components/bibliothek/Bausteine";
 import type { Darstellung, Tafel, Thema } from "@/hooks/useBibliothek";
 import {
-  DATIERUNG, LAGE, fuerRolle, pfadZurEigenenEinheit, themenBaum, zaehlen, zeitraumJahre,
-  type BaumKnoten, type Stufe, type ThemaImBaum,
+  DATIERUNG, KAPITEL_AUSRUESTUNG, KAPITEL_STATUS, LAGE, RAHMEN_STATUS, fuerRolle, nachGruppe, pfadZurEigenenEinheit, rahmenFuerRolle, rahmenStufe, themenBaum,
+  zaehlen, zeitraumJahre, type BaumKnoten, type RahmenStatus, type RahmenZeile, type Stufe, type ThemaImBaum,
 } from "@/lib/bibliothek";
 
 // ── Zähltabelle ─────────────────────────────────────────────────────────────
@@ -28,20 +28,21 @@ export function Zaehltabelle({ thema, tafeln, darstellung }: { thema: string; ta
   if (!z.gezaehlt.length && !z.nichtGezaehlt.length) return null;
 
   return (
-    <div className="my-3 space-y-2 rounded-lg border bg-card p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Gezählt: {z.gezaehlt.length} {z.gezaehlt.length === 1 ? "Tafel" : "Tafeln"}</h3>
+    <div className="my-3 space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold">Datierte Fotos unserer Sammlung: {z.gezaehlt.length} {z.gezaehlt.length === 1 ? "Tafel" : "Tafeln"}</h3>
         {zeitraum && (
-          <div className="inline-flex rounded-md border text-xs" role="group" aria-label="Zeitraum der Zählung">
+          <p className="text-xs text-muted-foreground" role="group" aria-label="Zeitraum der Zählung">
             <button type="button" aria-pressed={nurZeitraum} onClick={() => setNurZeitraum(true)}
-              className={`rounded-l-md px-2.5 py-1 ${nurZeitraum ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-              nur Darstellungszeitraum ({zeitraum[0]}–{zeitraum[1]})
+              className={nurZeitraum ? "font-semibold text-foreground" : "underline underline-offset-2 hover:text-foreground"}>
+              nur {zeitraum[0]}–{zeitraum[1]}
             </button>
+            {" · "}
             <button type="button" aria-pressed={!nurZeitraum} onClick={() => setNurZeitraum(false)}
-              className={`rounded-r-md px-2.5 py-1 ${!nurZeitraum ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+              className={!nurZeitraum ? "font-semibold text-foreground" : "underline underline-offset-2 hover:text-foreground"}>
               alle
             </button>
-          </div>
+          </p>
         )}
       </div>
 
@@ -49,7 +50,7 @@ export function Zaehltabelle({ thema, tafeln, darstellung }: { thema: string; ta
         <div className="-mx-1 overflow-x-auto px-1">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left">
+              <tr className="border-y text-left">
                 <th className="py-1 pr-3 font-medium">Merkmal</th>
                 {z.lagen.map((l) => <th key={l} className="px-2 py-1 text-right font-medium">{LAGE[l] ?? l}</th>)}
               </tr>
@@ -193,12 +194,12 @@ export function ThemenListe({ knoten, rolle, kapitelMitRolle }: {
     <ul className="space-y-0.5">
       {sichtbar.map((k) => (
         <li key={k.thema.id}>
-          <Link to={`/intern/bibliothek/thema/${k.thema.id}`} className="block rounded-md px-2 py-1.5 hover:bg-muted/60">
+          <Link to={`/intern/bibliothek/thema/${k.thema.id}`} className="-mx-2 block rounded-md px-2 py-1.5 hover:bg-muted/60">
             <span className="font-medium">{k.thema.title}</span>
-            {k.thema.summary && <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{k.thema.summary}</span>}
+            {k.thema.summary && <span className="mt-0.5 line-clamp-2 block text-sm text-muted-foreground">{k.thema.summary}</span>}
           </Link>
           {k.kinder.length > 0 && (
-            <div className="ml-3 border-l pl-2">
+            <div className="ml-1 border-l pl-3">
               <ThemenListe knoten={k.kinder} rolle={rolle} kapitelMitRolle={kapitelMitRolle} />
             </div>
           )}
@@ -208,27 +209,43 @@ export function ThemenListe({ knoten, rolle, kapitelMitRolle }: {
   );
 }
 
-/** Kapitel 1 bis 10 einer Darstellung mit ihren Themenseiten. */
+/**
+ * Kapitel 1 bis 10 einer Darstellung: eine ruhige Liste, kein Kachelfeld. Je
+ * Kapitel der Arbeitsstand in Worten und ein Satz, wenn Z0 einen gesetzt hat;
+ * darunter die Themenseiten, nach Gruppen.
+ */
 export function Kapiteluebersicht({ kapitel, themen, rolle }: {
-  kapitel: { nr: number; titel: string }[];
+  kapitel: { nr: number; titel: string; status?: string; text?: string }[];
   themen: Thema[];
   rolle: string | null;
 }) {
   return (
-    <ol className="grid gap-3 md:grid-cols-2">
+    <ol className="divide-y border-y">
       {kapitel.map((k) => {
         const baum = themenBaum(themen, k.nr);
-        const mitRolle = k.nr === 8;
+        const mitRolle = k.nr === KAPITEL_AUSRUESTUNG;
+        const nichtRelevant = k.status === "nicht-relevant";
+        const sichtbar = baum.filter((b) => !mitRolle || fuerRolle(b.thema.roles, rolle));
         return (
-          <li key={k.nr} id={`kapitel-${k.nr}`} className={`scroll-mt-20 rounded-lg border ${baum.length ? "bg-card p-3" : "border-dashed px-3 py-2"}`}>
-            <h3 className={`font-serif font-bold ${baum.length ? "mb-1 text-lg" : "flex items-baseline justify-between gap-2 text-base text-muted-foreground"}`}>
-              <span><span className="mr-2 text-muted-foreground">{k.nr}</span>{k.titel}</span>
-              {!baum.length && <span className="font-sans text-xs font-normal">noch keine Seite</span>}
-            </h3>
-            {baum.length > 0 && <ThemenListe knoten={baum} rolle={rolle} kapitelMitRolle={mitRolle} />}
-            {mitRolle && rolle && baum.length > 0 && !baum.some((b) => fuerRolle(b.thema.roles, rolle)) && (
-              <p className="px-2 text-sm text-muted-foreground">Für diese Rolle keine Seite.</p>
-            )}
+          <li key={k.nr} id={`kapitel-${k.nr}`} className="grid scroll-mt-20 gap-x-6 gap-y-1 py-4 md:grid-cols-[16rem_minmax(0,1fr)]">
+            <div>
+              <h3 className={`font-serif text-lg font-bold leading-snug ${nichtRelevant || !baum.length ? "text-muted-foreground" : ""}`}>
+                <span className="mr-2 font-sans text-sm font-normal text-muted-foreground">{k.nr}</span>{k.titel}
+              </h3>
+              {k.status && KAPITEL_STATUS[k.status] && <p className="text-xs text-muted-foreground">{KAPITEL_STATUS[k.status]}</p>}
+              {k.text && <p className="mt-1 text-sm text-muted-foreground">{k.text}</p>}
+            </div>
+            <div className="min-w-0">
+              {nachGruppe(baum).map((g) => (
+                <div key={g.gruppe ?? ""} className={g.gruppe ? "mt-3 first:mt-0" : ""}>
+                  {g.gruppe && <h4 className="mb-0.5 font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.gruppe}</h4>}
+                  <ThemenListe knoten={g.knoten} rolle={rolle} kapitelMitRolle={mitRolle} />
+                </div>
+              ))}
+              {mitRolle && rolle && baum.length > 0 && !sichtbar.length && (
+                <p className="text-sm text-muted-foreground">Für diese Rolle keine Seite.</p>
+              )}
+            </div>
           </li>
         );
       })}
@@ -298,3 +315,64 @@ export function Unterseiten({ themen, id, rolle, mitRolle }: { themen: Thema[]; 
 
 export const datierungText = (t: Pick<Tafel, "year" | "dating_origin">) =>
   [t.year, t.dating_origin ? `aus ${DATIERUNG[t.dating_origin] ?? t.dating_origin}` : null].filter(Boolean).join(" ");
+
+// ── Darstellungsrahmen ─────────────────────────────────────────────────────
+
+const STATUS_ICON: Record<RahmenStatus, typeof Check> = {
+  pflicht: CheckCheck,
+  bevorzugt: Check,
+  variante: GitBranch,
+  offen: CircleDashed,
+  "nicht-empfohlen": MinusCircle,
+};
+
+/** Status einer Zeile: Wort mit kleinem Zeichen, keine Farbfläche. */
+export function RahmenStatusText({ status }: { status: RahmenStatus }) {
+  const Icon = STATUS_ICON[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${RAHMEN_STATUS[status].farbe}`}>
+      <Icon size={15} aria-hidden /> {RAHMEN_STATUS[status].label}
+    </span>
+  );
+}
+
+/**
+ * „Unsere Darstellung" als Tabelle: Lage, Gegenstand, Status, Stufe. Varianten
+ * stehen gleichrangig neben dem Bevorzugten – sie sind zulässig, keine Fehler.
+ */
+export function RahmenTabelle({ rahmen, rolle, stufeVon }: {
+  rahmen: RahmenZeile[];
+  rolle: string | null;
+  stufeVon: (karte: string) => Stufe | null | undefined;
+}) {
+  const zeilen = rahmenFuerRolle(rahmen, rolle);
+  const ausgeblendet = rahmen.length - zeilen.length;
+  return (
+    <div>
+      <ul className="divide-y border-y">
+        {zeilen.map((z, i) => {
+          const stufe = rahmenStufe(z, stufeVon);
+          return (
+            <li key={i} className="grid gap-x-5 gap-y-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)_auto]">
+              <span className="text-sm text-muted-foreground sm:pt-0.5">{z.lage ?? ""}</span>
+              <span className="min-w-0">
+                <span className="block font-semibold">{z.gegenstand}</span>
+                {z.text && <Text inhalt={z.text} className="text-sm prose-p:my-0" />}
+                {!!z.karten?.length && (
+                  <span className="mt-0.5 flex flex-wrap gap-x-2 text-xs">{z.karten.map((k) => <KartenLink key={k} id={k} />)}</span>
+                )}
+              </span>
+              <span className="flex items-center gap-2 sm:justify-end sm:self-start sm:pt-0.5">
+                <RahmenStatusText status={z.status} />
+                {stufe && <StufeAbzeichen stufe={stufe} />}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {ausgeblendet > 0 && (
+        <p className="mt-2 text-xs text-muted-foreground">{ausgeblendet} {ausgeblendet === 1 ? "Zeile gilt" : "Zeilen gelten"} nur für andere Rollen.</p>
+      )}
+    </div>
+  );
+}

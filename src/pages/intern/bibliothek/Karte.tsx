@@ -68,7 +68,7 @@ export default function BibliothekKarte() {
       <dl className="mb-6 grid gap-x-6 gap-y-3 sm:grid-cols-[auto_1fr] items-start">
         <dt className="text-sm text-muted-foreground pt-1.5">Belegstufe</dt>
         <dd className="flex items-start gap-3">
-          <StufeAbzeichen stufe={karte.grade} gross />
+          <StufeAbzeichen stufe={karte.grade} gross mitText />
           {karte.grade_note && <span className="text-sm pt-1.5">{karte.grade_note}</span>}
         </dd>
         {karte.level && (

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { invokeFunction } from "@/lib/functionError";
-import type { BaumKnoten, KartenStatus, Rechte, Stufe } from "@/lib/bibliothek";
+import type { BaumKnoten, KartenStatus, RahmenZeile, Rechte, Stufe } from "@/lib/bibliothek";
 
 /**
  * Daten der Wissensbibliothek. Alles kommt aus der Datenbank, nichts aus dem
@@ -17,10 +17,18 @@ export interface Darstellung {
   period: string | null;
   levels: string[];
   areas: Record<string, string>;
-  chapters: { nr: number; titel: string }[];
+  chapters: Kapitel[];
   roles: Rolle[];
+  image: string | null;
   body: string | null;
   as_of: string | null;
+}
+
+export interface Kapitel {
+  nr: number;
+  titel: string;
+  status?: "bereit" | "entwurf" | "recherche" | "nicht-relevant";
+  text?: string;
 }
 
 export interface Rolle {
@@ -36,11 +44,13 @@ export interface Thema {
   chapter: number;
   parent_id: string | null;
   sort_order: number;
+  grp: string | null;
   keywords: string[];
   roles: string[];
   cards: string[];
   plates: string[];
   tree: BaumKnoten[] | null;
+  frame: RahmenZeile[] | null;
   summary: string | null;
   body: string | null;
   as_of: string | null;
@@ -136,6 +146,7 @@ export interface Seite {
   title: string;
   body: string | null;
   sort_order: number;
+  frequent: string[];
 }
 
 export interface Treffer {

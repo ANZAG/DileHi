@@ -14,11 +14,27 @@ export type Stufe = "Q" | "F" | "A";
 export type KartenStatus = "draft" | "checked" | "image_missing" | "image_replace";
 export type Rechte = "free" | "internal" | "open";
 
-export const STUFE: Record<Stufe, { kurz: string; farbe: string }> = {
-  Q: { kurz: "Q", farbe: "bg-green-100 text-green-900 border-green-300" },
-  F: { kurz: "F", farbe: "bg-sky-100 text-sky-900 border-sky-300" },
-  A: { kurz: "A", farbe: "bg-amber-100 text-amber-900 border-amber-300" },
+/**
+ * Die Belegstufen. Bewusst zurückhaltend dargestellt: ein umrandeter
+ * Buchstabe in gedeckter Farbe, keine Fläche – die Stufe soll man finden,
+ * nicht von ihr angesprungen werden. Bezeichnungen nach Z0 (10.11.2026):
+ * Viele A-Karten sind Übertragungen von anderen Einheiten, nicht freie
+ * Annahmen.
+ */
+export const STUFE: Record<Stufe, { kurz: string; label: string; farbe: string }> = {
+  Q: { kurz: "Q", label: "Belegt", farbe: "text-green-800" },
+  F: { kurz: "F", label: "Forschungsmeinung", farbe: "text-sky-800" },
+  A: { kurz: "A", label: "Annahme oder Analogie", farbe: "text-amber-800" },
 };
+
+/** Von schwach nach stark: Eine Zeile im Rahmen ist so sicher wie ihre schwächste Karte. */
+const STAERKE: Record<Stufe, number> = { A: 0, F: 1, Q: 2 };
+
+export function schwaechsteStufe(stufen: (Stufe | null | undefined)[]): Stufe | null {
+  const da = stufen.filter((s): s is Stufe => !!s);
+  if (!da.length) return null;
+  return da.reduce((a, b) => (STAERKE[b] < STAERKE[a] ? b : a));
+}
 
 export const STATUS: Record<KartenStatus, { label: string; farbe: string }> = {
   draft: { label: "Entwurf", farbe: "bg-muted text-muted-foreground" },
@@ -100,22 +116,80 @@ export const KAPITEL_VORGABE: { nr: number; titel: string }[] = [
 /** Das Kapitel, dessen Seiten der Rollenfilter betrifft. */
 export const KAPITEL_AUSRUESTUNG = 8;
 
-export function kapitelDer(chapters: { nr: number; titel: string }[] | null | undefined) {
-  const eigene = new Map((chapters ?? []).map((k) => [k.nr, k.titel]));
-  return KAPITEL_VORGABE.map((k) => ({ nr: k.nr, titel: eigene.get(k.nr) ?? k.titel }));
+export function kapitelDer(
+  chapters: { nr: number; titel: string; status?: string; text?: string }[] | null | undefined
+): { nr: number; titel: string; status?: string; text?: string }[] {
+  const eigene = new Map((chapters ?? []).map((k) => [k.nr, k]));
+  return KAPITEL_VORGABE.map((k) => ({ ...k, ...eigene.get(k.nr), titel: eigene.get(k.nr)?.titel ?? k.titel }));
 }
 
-/** Die fünf festen Abschnitte, in dieser Reihenfolge. */
+/**
+ * Die obersten Seiten eines Kapitels nach ihrer Gruppe (Feld `gruppe`), in der
+ * Reihenfolge, in der die Gruppen zuerst vorkommen. Seiten ohne Gruppe stehen
+ * vorne, ohne Zwischentitel.
+ */
+export function nachGruppe<T extends { thema: { grp: string | null } }>(knoten: T[]): { gruppe: string | null; knoten: T[] }[] {
+  const gruppen: { gruppe: string | null; knoten: T[] }[] = [];
+  for (const k of knoten) {
+    const g = k.thema.grp?.trim() || null;
+    let eintrag = gruppen.find((x) => x.gruppe === g);
+    if (!eintrag) {
+      eintrag = { gruppe: g, knoten: [] };
+      if (g === null) gruppen.unshift(eintrag);
+      else gruppen.push(eintrag);
+    }
+    eintrag.knoten.push(k);
+  }
+  return gruppen;
+}
+
+/** Wie der Arbeitsstand eines Kapitels heisst – nie „noch keine Seite", das klingt nach Fehler. */
+export const KAPITEL_STATUS: Record<string, string> = {
+  bereit: "Bereit",
+  entwurf: "Im Entwurf",
+  recherche: "Recherche geplant",
+  "nicht-relevant": "Für diese Darstellung nicht relevant",
+};
+
+/**
+ * Die festen Abschnitte einer Themenseite, in der Reihenfolge der Seite.
+ * Anzeigenamen nach Z0 (10.11.2026). Die früheren, längeren Überschriften
+ * bleiben gültig – sie werden hier auf denselben Abschnitt abgebildet.
+ */
 export const ABSCHNITTE = [
   "Kurzantwort",
-  "Was die Quellen sagen",
-  "Was sich in der Realität findet",
-  "Was das für uns heißt",
+  "Historischer Hintergrund",
+  "Unsere Darstellung",
+  "Quellen",
+  "Befund",
   "Offen",
 ] as const;
 
+export type AbschnittName = (typeof ABSCHNITTE)[number];
+
+const GLEICHWERTIG: Record<string, AbschnittName> = {
+  "kurzantwort": "Kurzantwort",
+  "historischer hintergrund": "Historischer Hintergrund",
+  "unsere darstellung": "Unsere Darstellung",
+  "was das für uns heißt": "Unsere Darstellung",
+  "was das für uns heisst": "Unsere Darstellung",
+  "quellen": "Quellen",
+  "was die quellen sagen": "Quellen",
+  "befund": "Befund",
+  "was sich in der realität findet": "Befund",
+  "offen": "Offen",
+  "offene fragen": "Offen",
+};
+
+/** Der Abschnitt, den eine Überschrift meint – oder null, wenn sie nicht zum Standard gehört. */
+export const abschnittName = (ueberschrift: string): AbschnittName | null =>
+  GLEICHWERTIG[ueberschrift.trim().toLowerCase()] ?? null;
+
 export interface Abschnitt {
+  /** Die Überschrift, wie sie in der Datei steht. */
   titel: string;
+  /** Der Abschnitt des Standards, den sie meint. */
+  name: AbschnittName | null;
   text: string;
 }
 
@@ -126,12 +200,12 @@ export interface Abschnitt {
 export function abschnitte(body: string | null | undefined): Abschnitt[] {
   const zeilen = (body ?? "").replace(/\r\n/g, "\n").split("\n");
   const liste: Abschnitt[] = [];
-  let aktuell: Abschnitt = { titel: "", text: "" };
+  let aktuell: Abschnitt = { titel: "", name: null, text: "" };
   for (const z of zeilen) {
     const m = z.match(/^##\s+(.+?)\s*$/);
     if (m) {
       if (aktuell.titel || aktuell.text.trim()) liste.push(aktuell);
-      aktuell = { titel: m[1], text: "" };
+      aktuell = { titel: m[1], name: abschnittName(m[1]), text: "" };
     } else {
       aktuell.text += `${z}\n`;
     }
@@ -140,8 +214,98 @@ export function abschnitte(body: string | null | undefined): Abschnitt[] {
   return liste.map((a) => ({ ...a, text: a.text.trim() }));
 }
 
-export const abschnitt = (body: string | null | undefined, titel: string) =>
-  abschnitte(body).find((a) => a.titel === titel)?.text || null;
+/** Der Text eines Abschnitts, gleich unter welcher der gültigen Überschriften er steht. */
+export const abschnitt = (body: string | null | undefined, name: AbschnittName) =>
+  abschnitte(body).find((a) => a.name === name)?.text || null;
+
+/** Ein Abschnitt „Offen" in einzelne Fragen geteilt: Absätze oder Listenpunkte. */
+export function offeneFragen(text: string | null | undefined): string[] {
+  return (text ?? "")
+    .split(/\n\s*\n|\n(?=\s*[-*]\s)/)
+    .map((t) => t.replace(/^\s*[-*]\s+/, "").trim())
+    .filter(Boolean);
+}
+
+// ── Historischer Hintergrund: die Regel von Z0 ─────────────────────────────
+
+/** So kennzeichnet man einen Satz ohne Karte als redaktionelle Einordnung. */
+export const EINORDNUNG = /\(Einordnung\)\s*$|^\**Einordnung:?\**:?/;
+
+const ABKUERZUNG = /(?:\b(?:z|u|d|o|v|s|vgl|bzw|ca|Nr|Abb|Bd|Jh|Hrsg|Anm|Kp|Btl|Rgt|Div|Inf|Pi|Gen|Lt|Hptm|Uffz|Gefr|Ers|Res|bzw|usw|etc|ff)\.|\d\.)$/;
+
+/** Ein Text in Sätze geteilt – grob, aber ohne an „z. B.", „Nr." oder „29." zu brechen. */
+export function saetze(text: string): string[] {
+  const ergebnis: string[] = [];
+  for (const absatz of text.split(/\n\s*\n/)) {
+    const flach = absatz.replace(/\s+/g, " ").trim();
+    if (!flach) continue;
+    let anfang = 0;
+    const re = /[.!?](?=\s+[A-ZÄÖÜ„"(*])/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(flach))) {
+      const bis = m.index + 1;
+      if (ABKUERZUNG.test(flach.slice(anfang, bis))) continue;
+      ergebnis.push(flach.slice(anfang, bis).trim());
+      anfang = bis;
+    }
+    const rest = flach.slice(anfang).trim();
+    if (rest) ergebnis.push(rest);
+  }
+  return ergebnis;
+}
+
+/**
+ * Sätze im Historischen Hintergrund, die weder eine Karte nennen noch als
+ * Einordnung gekennzeichnet sind. Der Hintergrund soll kein Schlupfloch für
+ * ungeprüftes Wissen werden (Z0, 10.11.2026).
+ */
+export function hintergrundOhneBeleg(text: string | null | undefined): string[] {
+  if (!text) return [];
+  let absatzEinordnung = false;
+  const ohne: string[] = [];
+  for (const absatz of text.split(/\n\s*\n/)) {
+    absatzEinordnung = /^\s*\**Einordnung:?\**:?/.test(absatz);
+    for (const satz of saetze(absatz)) {
+      if (absatzEinordnung || EINORDNUNG.test(satz) || kennungenImText(satz).karte.length || kennungenImText(satz).tafel.length) continue;
+      ohne.push(satz);
+    }
+  }
+  return ohne;
+}
+
+// ── Darstellungsrahmen ─────────────────────────────────────────────────────
+
+export type RahmenStatus = "pflicht" | "bevorzugt" | "variante" | "offen" | "nicht-empfohlen";
+
+export interface RahmenZeile {
+  lage?: string;
+  gegenstand: string;
+  status: RahmenStatus;
+  text?: string;
+  karten?: string[];
+  rollen?: string[];
+  stufe?: Stufe;
+}
+
+export const RAHMEN_STATUS: Record<RahmenStatus, { label: string; farbe: string }> = {
+  pflicht: { label: "Pflicht", farbe: "text-foreground" },
+  bevorzugt: { label: "Bevorzugt", farbe: "text-foreground" },
+  variante: { label: "Variante", farbe: "text-sky-800" },
+  offen: { label: "Offen", farbe: "text-muted-foreground" },
+  "nicht-empfohlen": { label: "Nicht empfohlen", farbe: "text-red-800" },
+};
+
+/** Die Stufe einer Zeile: ausdrücklich gesetzt, sonst die schwächste ihrer Karten. */
+export function rahmenStufe(zeile: RahmenZeile, stufeVon: (karte: string) => Stufe | null | undefined): Stufe | null {
+  return zeile.stufe ?? schwaechsteStufe((zeile.karten ?? []).map(stufeVon));
+}
+
+/** Welche Zeilen die gewählte Rolle sieht. Leer heisst: für alle. */
+export const rahmenFuerRolle = (rahmen: RahmenZeile[] | null | undefined, rolle: string | null) =>
+  (rahmen ?? []).filter((z) => fuerRolle(z.rollen, rolle));
+
+/** Lange Kernsätze: Ab hier zeigt die Pflege einen Hinweis (Z0: Faustregel 120–180, Hinweis ab 250). */
+export const KERNSATZ_HINWEIS = 250;
 
 /** Sieht die gewählte Rolle das? Leer heisst: für alle. */
 export const fuerRolle = (rollen: string[] | null | undefined, rolle: string | null) =>

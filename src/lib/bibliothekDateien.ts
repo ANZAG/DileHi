@@ -1,5 +1,5 @@
 import { parse as yamlLesen } from "yaml";
-import { ABSCHNITTE, abschnitt, abschnitte, kennungenImText } from "@/lib/bibliothek";
+import { KERNSATZ_HINWEIS, abschnitt, abschnitte, hintergrundOhneBeleg, kennungenImText } from "@/lib/bibliothek";
 
 /**
  * Den Ordner der Wissensbibliothek lesen, so wie er in SharePoint liegt.
@@ -191,6 +191,8 @@ export interface Bestand {
   tafeln: string[];
   themen: string[];
   darstellungen: { id: string; levels: string[]; roles: { id: string }[] }[];
+  /** Bildpfade im Ordner oder in der Bibliothek – für `bild` der Darstellung. */
+  bilder?: string[];
 }
 
 const liste = (v: unknown): string[] =>
@@ -210,6 +212,7 @@ export function warnungen(eintraege: Eintrag[], bestand: Bestand): Meldung[] {
   const tafeln = new Set([...bestand.tafeln, ...ids("bild")]);
   const themen = new Set([...bestand.themen, ...ids("thema")]);
   const darstellungen = new Map(bestand.darstellungen.map((d) => [d.id, { levels: d.levels, rollen: d.roles.map((r) => r.id) }]));
+  const bilder = bestand.bilder ? new Set(bestand.bilder) : null;
   for (const e of eintraege.filter((x) => x.art === "darstellung")) {
     darstellungen.set(kennungVon(e), {
       levels: liste(e.daten.ebenen),
@@ -236,7 +239,10 @@ export function warnungen(eintraege: Eintrag[], bestand: Bestand): Meldung[] {
   };
 
   for (const e of eintraege) {
-    if (e.art === "thema") {
+    if (e.art === "darstellung") {
+      const bild = e.daten.bild == null ? "" : String(e.daten.bild).trim();
+      if (bild && bilder && !bilder.has(bild)) melden(e, `bild: ${bild} liegt nicht im Ordner bilder/.`);
+    } else if (e.art === "thema") {
       const eltern = e.daten.eltern == null ? "" : String(e.daten.eltern).trim();
       if (eltern && !themen.has(eltern)) {
         melden(e, `eltern: Die Themenseite ${eltern} gibt es nicht; die Seite steht so lange oben im Kapitel.`);
@@ -246,8 +252,18 @@ export function warnungen(eintraege: Eintrag[], bestand: Bestand): Meldung[] {
       rollenPruefen(e);
       imText(e);
       if (!abschnitt(e.text, "Kurzantwort")) melden(e, "Ohne „## Kurzantwort“.");
-      const fremde = abschnitte(e.text).map((a) => a.titel).filter((t) => t && !(ABSCHNITTE as readonly string[]).includes(t));
+      const fremde = abschnitte(e.text).filter((a) => a.titel && !a.name).map((a) => a.titel);
       if (fremde.length) melden(e, `Abschnitte ausserhalb des Standards: ${fremde.join(", ")}.`);
+      const ohneBeleg = hintergrundOhneBeleg(abschnitt(e.text, "Historischer Hintergrund"));
+      if (ohneBeleg.length) {
+        const anfang = ohneBeleg[0].length > 70 ? `${ohneBeleg[0].slice(0, 70)} …` : ohneBeleg[0];
+        melden(e, `Historischer Hintergrund: ${ohneBeleg.length} ${ohneBeleg.length === 1 ? "Satz" : "Sätze"} ohne Karte und ohne „(Einordnung)“, etwa „${anfang}“.`);
+      }
+      const rahmen = Array.isArray(e.daten.rahmen) ? (e.daten.rahmen as { karten?: unknown; rollen?: unknown }[]) : [];
+      fehlend("Karte", "rahmen.karten", rahmen.flatMap((z) => liste(z?.karten)), karten, e);
+      const dRollen = darstellungen.get(String(e.daten.darstellung ?? ""))?.rollen ?? [];
+      const fremdeRollen = [...new Set(rahmen.flatMap((z) => liste(z?.rollen)))].filter((r) => !dRollen.includes(r));
+      if (fremdeRollen.length) melden(e, `rahmen.rollen: ${fremdeRollen.join(", ")} steht nicht bei den Rollen der Darstellung.`);
 
       const levels = darstellungen.get(String(e.daten.darstellung ?? ""))?.levels ?? [];
       const belege: string[] = [];
@@ -267,6 +283,10 @@ export function warnungen(eintraege: Eintrag[], bestand: Bestand): Meldung[] {
       fehlend("Karte", "baum.belege", belege, karten, e);
     } else if (e.art === "karte") {
       fehlend("Themenseite", "thema", liste(e.daten.thema), themen, e);
+      const kernsatz = String(e.daten.kernsatz ?? "");
+      if (kernsatz.length > KERNSATZ_HINWEIS) {
+        melden(e, `Kernsatz mit ${kernsatz.length} Zeichen – eine Aussage je Karte, Faustregel 120–180.`);
+      }
       rollenPruefen(e);
       imText(e);
     } else if (e.art === "bild") {

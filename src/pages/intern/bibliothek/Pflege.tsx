@@ -113,6 +113,7 @@ export default function BibliothekPflege() {
         tafeln: tafeln.map((t) => t.id),
         themen: themen.map((t) => t.id),
         darstellungen,
+        bilder: zeilen.map((b) => b.path),
       });
       const lesefehler = fehler.length;
       const zaehlen = (art: Art) => eintraege.filter((e) => e.art === art).length;

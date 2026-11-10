@@ -108,16 +108,25 @@ export function Text({ inhalt, className = "" }: { inhalt: string | null | undef
   );
 }
 
-export function StufeAbzeichen({ stufe, gross = false }: { stufe: Stufe | "offen"; gross?: boolean }) {
+export function StufeAbzeichen({ stufe, gross = false, mitText = false }: {
+  stufe: Stufe | "offen";
+  gross?: boolean;
+  mitText?: boolean;
+}) {
   const offen = stufe === "offen";
+  const label = offen ? "nicht belegt" : STUFE[stufe].label;
+  // Zurückhaltend: ein umrandeter Buchstabe in gedeckter Farbe, keine Fläche.
   return (
-    <span
-      title={offen ? "Nicht belegt" : `Belegstufe ${stufe}`}
-      className={`inline-flex shrink-0 items-center justify-center rounded border font-bold ${
-        offen ? "border-dashed bg-muted text-muted-foreground" : STUFE[stufe].farbe
-      } ${gross ? "h-9 min-w-9 px-2 text-lg" : offen ? "h-6 px-1.5 text-[0.6875rem] font-medium" : "h-6 min-w-6 px-1.5 text-xs"}`}
-    >
-      {offen ? "offen" : STUFE[stufe].kurz}
+    <span className="inline-flex shrink-0 items-center gap-1.5" title={offen ? "Nicht belegt" : `${stufe} – ${label}`}>
+      <span
+        aria-label={offen ? "offen – nicht belegt" : `${stufe} – ${label}`}
+        className={`inline-flex items-center justify-center rounded border border-border font-semibold ${
+          offen ? "border-dashed text-muted-foreground" : STUFE[stufe].farbe
+        } ${gross ? "h-8 min-w-8 px-1.5 text-base" : offen ? "h-5 px-1 text-[0.6875rem] font-medium" : "h-5 min-w-5 px-1 text-[0.6875rem]"}`}
+      >
+        {offen ? "offen" : STUFE[stufe].kurz}
+      </span>
+      {mitText && !offen && <span className="text-sm text-muted-foreground">{label}</span>}
     </span>
   );
 }
@@ -277,14 +286,14 @@ export function KartenZeile({
     <li>
       <Link
         to={`/intern/bibliothek/karte/${karte.id}`}
-        className="flex items-start gap-3 rounded-md px-2 py-2.5 hover:bg-muted/60"
+        className="flex items-start gap-3 px-3 py-2.5 hover:bg-muted/60"
       >
-        <StufeAbzeichen stufe={karte.grade} />
+        <span className="mt-0.5"><StufeAbzeichen stufe={karte.grade} /></span>
         <span className="min-w-0 flex-1">
           <span className="block">{karte.statement}</span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-mono">{karte.id}</span>
-            {karte.level && <span>Ebene {karte.level}</span>}
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            {karte.level && <span>{karte.level}</span>}
+            <span className="font-mono opacity-70">{karte.id}</span>
             <StatusAbzeichen status={karte.status} />
           </span>
         </span>

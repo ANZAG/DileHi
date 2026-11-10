@@ -30,15 +30,18 @@ Datiertes Foto fehlt.`;
 
 describe("Abschnitte", () => {
   it("zerlegt den Text an den Überschriften", () => {
-    expect(abschnitte(TEXT).map((a) => a.titel)).toEqual([
-      "Kurzantwort", "Was die Quellen sagen", "Was das für uns heißt", "Offen",
+    expect(abschnitte(TEXT).map((a) => [a.titel, a.name])).toEqual([
+      ["Kurzantwort", "Kurzantwort"], ["Was die Quellen sagen", "Quellen"],
+      ["Was das für uns heißt", "Unsere Darstellung"], ["Offen", "Offen"],
     ]);
     expect(abschnitt(TEXT, "Kurzantwort")).toBe("Stahlhelm in der Stellung (TST-0001), Feldmütze in der Ruhe.");
-    expect(abschnitt(TEXT, "Was sich in der Realität findet")).toBeNull();
+    expect(abschnitt(TEXT, "Befund")).toBeNull();
   });
 
   it("behält Text vor der ersten Überschrift", () => {
-    expect(abschnitte("Vorwort\n\n## Offen\nX")).toEqual([{ titel: "", text: "Vorwort" }, { titel: "Offen", text: "X" }]);
+    expect(abschnitte("Vorwort\n\n## Offen\nX")).toEqual([
+      { titel: "", name: null, text: "Vorwort" }, { titel: "Offen", name: "Offen", text: "X" },
+    ]);
   });
 });
 
@@ -232,5 +235,87 @@ describe("Einlesen von Themenseiten", () => {
       "karten/TST/TST-0001.md: thema: Themenseite TST-weg gibt es nicht.",
       "karten/TST/TST-0001.md: rollen: gefreiter steht nicht bei den Rollen der Darstellung.",
     ].sort());
+  });
+});
+
+describe("Entscheidungen Z0 (10.11.2026)", () => {
+  it("nimmt alte und neue Überschriften als denselben Abschnitt", async () => {
+    const { abschnittName } = await import("@/lib/bibliothek");
+    expect(abschnittName("Was die Quellen sagen")).toBe("Quellen");
+    expect(abschnittName("Quellen")).toBe("Quellen");
+    expect(abschnittName("Was sich in der Realität findet")).toBe("Befund");
+    expect(abschnittName("Befund")).toBe("Befund");
+    expect(abschnittName("Was das für uns heißt")).toBe("Unsere Darstellung");
+    expect(abschnittName("Unsere Darstellung")).toBe("Unsere Darstellung");
+    expect(abschnittName("Offene Fragen")).toBe("Offen");
+    expect(abschnittName("Historischer Hintergrund")).toBe("Historischer Hintergrund");
+    expect(abschnittName("Fazit")).toBeNull();
+  });
+
+  it("findet im Historischen Hintergrund Sätze ohne Karte und ohne Einordnung", async () => {
+    const { hintergrundOhneBeleg } = await import("@/lib/bibliothek");
+    const text = [
+      "Der Stahlhelm ging ab Januar 1916 an die Front (PI21-0055). Ab 29. März 1915 galt das Verdeckband (PI21-0053).",
+      "Die Infanteriedivision wandelte sich zur Dreiergliederung. Das ist eine Lesart der Gruppe (Einordnung)",
+      "Einordnung: Was hier steht, ist Zusammenfassung, z. B. für Einsteiger.",
+    ].join("\n\n");
+    expect(hintergrundOhneBeleg(text)).toEqual(["Die Infanteriedivision wandelte sich zur Dreiergliederung."]);
+    expect(hintergrundOhneBeleg(null)).toEqual([]);
+  });
+
+  it("leitet die Stufe einer Rahmenzeile aus der schwächsten Karte ab, überschreibbar", async () => {
+    const { rahmenStufe } = await import("@/lib/bibliothek");
+    const stufe = (k: string) => ({ "X-0001": "Q", "X-0002": "A", "X-0003": "F" } as Record<string, "Q" | "F" | "A">)[k];
+    expect(rahmenStufe({ gegenstand: "a", status: "bevorzugt", karten: ["X-0001", "X-0003"] }, stufe)).toBe("F");
+    expect(rahmenStufe({ gegenstand: "a", status: "bevorzugt", karten: ["X-0001", "X-0002"] }, stufe)).toBe("A");
+    expect(rahmenStufe({ gegenstand: "a", status: "bevorzugt", karten: ["X-0002"], stufe: "Q" }, stufe)).toBe("Q");
+    expect(rahmenStufe({ gegenstand: "a", status: "offen" }, stufe)).toBeNull();
+  });
+
+  it("zeigt Rahmenzeilen nur den Rollen, für die sie gelten", async () => {
+    const { rahmenFuerRolle } = await import("@/lib/bibliothek");
+    const rahmen = [
+      { gegenstand: "Stahlhelm", status: "bevorzugt" as const },
+      { gegenstand: "Unteroffiziersborte", status: "pflicht" as const, rollen: ["unteroffizier"] },
+    ];
+    expect(rahmenFuerRolle(rahmen, "pionier").map((z) => z.gegenstand)).toEqual(["Stahlhelm"]);
+    expect(rahmenFuerRolle(rahmen, null)).toHaveLength(2);
+  });
+
+  it("meldet Rahmen-Verweise ins Leere, fehlende Bilder und lange Kernsätze", () => {
+    const datei = (path: string, text: string): OrdnerDatei => ({
+      id: path, path, size: 1, etag: null, modified: null, width: null, height: null, text,
+    });
+    const { eintraege } = ordnerLesen([
+      datei("darstellungen/TST.md", "---\nid: TST\nbild: TST/T9.jpg\nrollen:\n  - {id: pionier}\n---\n"),
+      datei("themen/TST/TST-kopf.md", "---\nid: TST-kopf\ndarstellung: TST\nrahmen:\n  - {gegenstand: Helm, status: bevorzugt, karten: [TST-0404], rollen: [major]}\n---\n## Kurzantwort\n\nKurz.\n\n## Befund\n\nX\n"),
+      datei("karten/TST/TST-0001.md", `---\nid: TST-0001\ndarstellung: TST\nkernsatz: "${"Wort ".repeat(60)}"\n---\n`),
+    ]);
+    const m = warnungen(eintraege, { karten: [], tafeln: [], themen: [], darstellungen: [], bilder: ["TST/T1.jpg"] })
+      .map((x) => x.meldung);
+    expect(m).toContain("bild: TST/T9.jpg liegt nicht im Ordner bilder/.");
+    expect(m).toContain("rahmen.karten: Karte TST-0404 gibt es nicht.");
+    expect(m).toContain("rahmen.rollen: major steht nicht bei den Rollen der Darstellung.");
+    expect(m.some((x) => /^Kernsatz mit 300 Zeichen/.test(x))).toBe(true);
+    expect(m.some((x) => x.includes("ausserhalb des Standards"))).toBe(false);
+  });
+});
+
+describe("Gruppen und offene Fragen (Z0, E6/E8)", () => {
+  it("ordnet Seiten nach Gruppe, ohne Gruppe zuerst, sonst in der Reihenfolge des ersten Vorkommens", async () => {
+    const { nachGruppe } = await import("@/lib/bibliothek");
+    const k = (id: string, grp: string | null) => ({ thema: { id, grp } });
+    const g = nachGruppe([k("a", "Uniform"), k("b", null), k("c", "Waffen"), k("d", "Uniform"), k("e", " ")]);
+    expect(g.map((x) => [x.gruppe, x.knoten.map((n) => n.thema.id)])).toEqual([
+      [null, ["b", "e"]],
+      ["Uniform", ["a", "d"]],
+      ["Waffen", ["c"]],
+    ]);
+  });
+
+  it("teilt „Offen“ in Fragen: Absätze und Listenpunkte", async () => {
+    const { offeneFragen } = await import("@/lib/bibliothek");
+    expect(offeneFragen("- Erste Frage?\n- Zweite Frage?\n\nDritte als Absatz.")).toEqual(["Erste Frage?", "Zweite Frage?", "Dritte als Absatz."]);
+    expect(offeneFragen(null)).toEqual([]);
   });
 });

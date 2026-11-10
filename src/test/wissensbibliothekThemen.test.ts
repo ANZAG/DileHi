@@ -221,3 +221,53 @@ describe("Abschnitte", () => {
     expect(z.s).toBe("B\nC");
   });
 });
+
+describe("Darstellungsrahmen, Gruppe, Bild (Entscheidungen Z0, 10.11.2026)", () => {
+  const RAHMEN = [
+    { lage: "Stellung, Arbeit im Graben", gegenstand: "Stahlhelm M1916 ohne Überzug", status: "bevorzugt", karten: ["TST-0001"] },
+    { lage: "Bei Schnee", gegenstand: "Weißer Überzug", status: "variante", text: "Die Gruppe entscheidet.", stufe: "A" },
+    { lage: "Im Lager", gegenstand: "Pickelhaube mit Überzug", status: "nicht-empfohlen", rollen: ["pionier"] },
+  ];
+
+  it("legt rahmen und gruppe ab, in Reihenfolge", async () => {
+    await einspielen("thema", thema({ id: "TST-mantel", gruppe: "Kopf und Oberkörper", rahmen: RAHMEN, suchbegriffe: [] }), TEXT);
+    const [t] = await zeilen<{ grp: string; frame: unknown }>("select grp, frame from public.library_topics where id = 'TST-mantel'");
+    expect(t.grp).toBe("Kopf und Oberkörper");
+    expect(t.frame).toEqual([
+      { lage: "Stellung, Arbeit im Graben", gegenstand: "Stahlhelm M1916 ohne Überzug", status: "bevorzugt", karten: ["TST-0001"], rollen: [] },
+      { lage: "Bei Schnee", gegenstand: "Weißer Überzug", status: "variante", text: "Die Gruppe entscheidet.", karten: [], rollen: [], stufe: "A" },
+      { lage: "Im Lager", gegenstand: "Pickelhaube mit Überzug", status: "nicht-empfohlen", karten: [], rollen: ["pionier"] },
+    ]);
+  });
+
+  it("weist einen unbekannten Status, eine falsche Stufe und eine Zeile ohne Gegenstand ab", async () => {
+    await expect(einspielen("thema", thema({ id: "TST-r1", rahmen: [{ gegenstand: "X", status: "situativ" }] })))
+      .rejects.toThrow(/pflicht, bevorzugt, variante, offen oder nicht-empfohlen/);
+    await expect(einspielen("thema", thema({ id: "TST-r2", rahmen: [{ gegenstand: "X", status: "offen", stufe: "B" }] })))
+      .rejects.toThrow(/stufe im rahmen/);
+    await expect(einspielen("thema", thema({ id: "TST-r3", rahmen: [{ status: "offen" }] })))
+      .rejects.toThrow(/gegenstand/);
+    await expect(einspielen("thema", thema({ id: "TST-r4", rahmen: { gegenstand: "X" } })))
+      .rejects.toThrow(/Liste von Zeilen/);
+  });
+
+  it("übernimmt Kapitelstatus, Kapiteltext und Bild der Darstellung", async () => {
+    await einspielen("darstellung", {
+      id: "TSB", titel: "Mit Bild", bild: "TSB/T1.jpg",
+      kapitel: [{ nr: 3, titel: "Weg", status: "recherche", text: "Wehrpflicht." }, { nr: 8, titel: "Ausrüstung" }],
+    });
+    const [d] = await zeilen<{ image: string; chapters: unknown }>("select image, chapters from public.library_presentations where id = 'TSB'");
+    expect(d).toEqual({
+      image: "TSB/T1.jpg",
+      chapters: [{ nr: 3, titel: "Weg", status: "recherche", text: "Wehrpflicht." }, { nr: 8, titel: "Ausrüstung" }],
+    });
+    await expect(einspielen("darstellung", { id: "TSC", titel: "X", kapitel: [{ nr: 1, status: "fertig" }] }))
+      .rejects.toThrow(/Kapitel-status/);
+  });
+
+  it("übernimmt „Häufig gesucht“ der Startseite", async () => {
+    await einspielen("seite", { id: "start", titel: "Wissensbibliothek", haeufig: ["Stahlhelm", "Gliederung"] });
+    const [s] = await zeilen<{ frequent: string[] }>("select frequent from public.library_pages where slug = 'start'");
+    expect(s.frequent).toEqual(["Stahlhelm", "Gliederung"]);
+  });
+});
