@@ -18,6 +18,7 @@ import {
 } from "@/lib/bibliothekDateien";
 import { themenDerKarte } from "@/lib/bibliothek";
 import { invokeFunction } from "@/lib/functionError";
+import { inStuecken } from "@/lib/alleZeilen";
 
 const ART_LABEL: Record<Art, string> = {
   darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", thema: "Themenseiten",
@@ -149,7 +150,11 @@ export default function BibliothekPflege() {
       }
       const imOrdner = new Set(zeilen.map((z) => z.path));
       const weg = [...bilder.keys()].filter((p) => !imOrdner.has(p));
-      if (weg.length) await db.from("library_images").delete().in("path", weg);
+      // In Stücken: Die Pfade stehen in der Adresse der Anfrage.
+      for (const stueck of inStuecken(weg, 100)) {
+        const { error } = await db.from("library_images").delete().in("path", stueck);
+        if (error) fehler.push({ datei: "bilder/", meldung: `Austragen nicht mehr vorhandener Bilder: ${error.message}` });
+      }
 
       // Ist eine Datei nicht lesbar, kennen wir ihre Kennung nicht – dann
       // sähe ihr Eintrag aus wie gelöscht. Also erst gar nichts anbieten.

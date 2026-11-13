@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { invokeFunction } from "@/lib/functionError";
+import { alleZeilen } from "@/lib/alleZeilen";
 import type { BaumKnoten, KartenStatus, RahmenZeile, Rechte, Stufe } from "@/lib/bibliothek";
 
 /**
@@ -177,35 +178,43 @@ const holen = async <T>(abfrage: PromiseLike<{ data: unknown; error: { message: 
   return data as T;
 };
 
+/**
+ * Ganze Listen immer seitenweise: Supabase liefert je Abfrage höchstens 1000
+ * Zeilen, ohne Fehler. Die Sortierung endet jeweils auf der Kennung, damit
+ * keine Zeile zwischen zwei Seiten verloren geht.
+ */
+const alle = <T>(tabelle: string, spalten: string, sortieren: (q: any) => any) =>
+  alleZeilen<T>((von, bis) => sortieren(db.from(tabelle).select(spalten, { count: "exact" })).range(von, bis));
+
 export const useDarstellungen = () =>
   useQuery({
     queryKey: ["bibliothek", "darstellungen"],
-    queryFn: () => holen<Darstellung[]>(db.from("library_presentations").select("*").order("sort_order").order("id")),
+    queryFn: () => alle<Darstellung>("library_presentations", "*", (q) => q.order("sort_order").order("id")),
   });
 
 export const useSeiten = () =>
   useQuery({
     queryKey: ["bibliothek", "seiten"],
-    queryFn: () => holen<Seite[]>(db.from("library_pages").select("*").order("sort_order").order("title")),
+    queryFn: () => alle<Seite>("library_pages", "*", (q) => q.order("sort_order").order("title").order("slug")),
   });
 
 /** Alle Karten, ohne Text. Für Übersichten und Zählungen; bei einigen Hundert Karten billig. */
 export const useKarten = (darstellung?: string) =>
   useQuery({
     queryKey: ["bibliothek", "karten", darstellung ?? "alle"],
-    queryFn: () => {
-      let q = db.from("library_cards")
-        .select("id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, topics, roles, status, as_of, updated_at");
-      if (darstellung) q = q.eq("presentation_id", darstellung);
-      return holen<Karte[]>(q.order("id"));
-    },
+    queryFn: () =>
+      alle<Karte>(
+        "library_cards",
+        "id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, topics, roles, status, as_of, updated_at",
+        (q) => (darstellung ? q.eq("presentation_id", darstellung) : q).order("id")
+      ),
   });
 
 /** Alle Themenseiten, mit Text: Die Seiten brauchen ihn für „gehört zu", Offen und Prüfliste. */
 export const useThemen = () =>
   useQuery({
     queryKey: ["bibliothek", "themen"],
-    queryFn: () => holen<Thema[]>(db.from("library_topics").select("*").order("chapter").order("sort_order").order("title")),
+    queryFn: () => alle<Thema>("library_topics", "*", (q) => q.order("chapter").order("sort_order").order("title").order("id")),
   });
 
 export const useKarte = (id: string | undefined) =>
@@ -224,13 +233,13 @@ export const useKarte = (id: string | undefined) =>
 export const useQuellen = () =>
   useQuery({
     queryKey: ["bibliothek", "quellen"],
-    queryFn: () => holen<Quelle[]>(db.from("library_sources").select("*").order("title")),
+    queryFn: () => alle<Quelle>("library_sources", "*", (q) => q.order("title").order("id")),
   });
 
 export const useTafeln = () =>
   useQuery({
     queryKey: ["bibliothek", "tafeln"],
-    queryFn: () => holen<Tafel[]>(db.from("library_plates").select("*").order("id")),
+    queryFn: () => alle<Tafel>("library_plates", "*", (q) => q.order("id")),
   });
 
 /** Welche Fundstelle auf welche Quelle oder Tafel verweist – für „zitiert in" und den Filter nach Darstellung. */
@@ -238,8 +247,8 @@ export const useVerweise = () =>
   useQuery({
     queryKey: ["bibliothek", "verweise"],
     queryFn: () =>
-      holen<Pick<Fundstelle, "card_id" | "source_id" | "plate_id" | "page" | "pointer_image" | "page_image">[]>(
-        db.from("library_findings").select("card_id, source_id, plate_id, page, pointer_image, page_image")
+      alle<Pick<Fundstelle, "card_id" | "source_id" | "plate_id" | "page" | "pointer_image" | "page_image">>(
+        "library_findings", "card_id, source_id, plate_id, page, pointer_image, page_image", (q) => q.order("id")
       ),
   });
 
@@ -247,7 +256,7 @@ export const useBilder = () =>
   useQuery({
     queryKey: ["bibliothek", "bilder"],
     queryFn: async () => {
-      const liste = await holen<Bild[]>(db.from("library_images").select("path, width, height"));
+      const liste = await alle<Bild>("library_images", "path, width, height", (q) => q.order("path"));
       return new Map(liste.map((b) => [b.path, b]));
     },
   });
