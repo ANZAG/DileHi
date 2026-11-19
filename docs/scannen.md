@@ -24,7 +24,13 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Titelblatt: Einzelseite). Mit *Rand automatisch* sucht die Seite das Buch
    in der Vorschau selbst, zweimal je Sekunde: die helle, farblose Fläche in
    der Bildmitte (gemessen als kleinster Farbanteil abzüglich der Farbigkeit –
-   angestrahlter Karton ist hell, aber nie farblos). Bei einer Doppelseite
+   angestrahlter Karton ist hell, aber nie farblos). Was an das Papier
+   anschliesst und keine Farbe der Unterlage hat (gelernt am Bildrand, wo
+   kein Buch liegt), gehört auch dazu – Abbildungen und farbige Einbände.
+   Die Ecken sind die Schnittpunkte der vier Kanten, jede robust als Gerade
+   durch den Rand der Fläche gelegt; so springt der Rahmen nicht nach innen,
+   wenn ein Stück der Fläche fehlt. Reicht die Fläche an zwei Bildränder,
+   gilt das als unsicher. Bei einer Doppelseite
    gehört die Fläche jenseits des Bundes dazu; liegt die zweite Seite im
    Schatten, wird gleich gross daneben mit milderer Schwelle nachgesehen.
    Das klappt auf einer dunklen oder farbigen Unterlage
