@@ -117,6 +117,8 @@ export interface FindenOptionen {
   doppel?: boolean;
   /** Zum Nachvollziehen in Tests: warum nichts gefunden wurde. */
   protokoll?: (text: string) => void;
+  /** Zum Nachvollziehen: die Fläche, die als Buch gilt (Raster w × h). */
+  flaeche?: (maske: Uint8Array, w: number, h: number) => void;
 }
 
 /** Das Viereck um das Buch, in Anteilen 0…1 – oder null, wenn nichts Sicheres zu finden ist. */
@@ -141,8 +143,12 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   }
   const n = schritt * schritt;
   const papierhaft = new Uint8Array(w * h);
+  const farbe = new Uint8Array(w * h * 3);
   for (let k = 0; k < w * h; k++) {
     const r = summe[k * 3] / n, g = summe[k * 3 + 1] / n, b = summe[k * 3 + 2] / n;
+    farbe[k * 3] = r;
+    farbe[k * 3 + 1] = g;
+    farbe[k * 3 + 2] = b;
     // Hell und farblos: der kleinste Farbanteil, abzüglich der Farbigkeit –
     // angestrahlter Karton ist hell, aber nie farblos.
     const min = Math.min(r, g, b);
@@ -198,8 +204,62 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   let auswahl = new Uint8Array(w * h);
   for (const nr of gewaehlt) for (const k of liste[nr].punkte) auswahl[k] = 1;
   for (let i = 0; i < 4; i++) auswahl = wachsen(auswahl, w, h);
+  const buch = new Uint8Array(w * h);
+  for (let k = 0; k < auswahl.length; k++) if (auswahl[k] && geschlossen[k]) buch[k] = 1;
+
+  // Abbildungen, farbige Einbände: Sie sind kein Papier, gehören aber zum
+  // Buch. Woran man die Unterlage erkennt, steht am Bildrand – dort liegt
+  // kein Buch. Was an das Papier anschliesst und keine Farbe der Unterlage
+  // hat, kommt dazu (nur in der Nähe der Papierfläche, damit nichts
+  // davonläuft).
+  {
+    const fach = (k: number) => ((farbe[k * 3] >> 4) << 8) | ((farbe[k * 3 + 1] >> 4) << 4) | (farbe[k * 3 + 2] >> 4);
+    const breiteRand = Math.max(2, Math.round(Math.min(w, h) * 0.04));
+    const zaehler = new Uint32Array(4096);
+    let randZahl = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (x >= breiteRand && x < w - breiteRand && y >= breiteRand && y < h - breiteRand) continue;
+      zaehler[fach(y * w + x)]++;
+      randZahl++;
+    }
+    const unterlage = new Uint8Array(4096);
+    const mindest = Math.max(2, randZahl * 0.002);
+    for (let f = 0; f < 4096; f++) {
+      if (zaehler[f] < mindest) continue;
+      // Benachbarte Farbfächer zählen mit: Licht und Schatten verschieben die Farbe etwas.
+      const r = f >> 8, g = (f >> 4) & 15, b = f & 15;
+      for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) {
+        const rr = r + dr, gg = g + dg, bb = b + db;
+        if (rr >= 0 && gg >= 0 && bb >= 0 && rr < 16 && gg < 16 && bb < 16) unterlage[(rr << 8) | (gg << 4) | bb] = 1;
+      }
+    }
+    let bx0 = w, by0 = h, bx1 = 0, by1 = 0;
+    for (let k = 0; k < buch.length; k++) if (buch[k]) {
+      const x = k % w, y = (k - x) / w;
+      if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y;
+    }
+    const rx = Math.round((bx1 - bx0) * 0.05), ry = Math.round((by1 - by0) * 0.05);
+    bx0 -= rx; bx1 += rx; by0 -= ry; by1 += ry;
+    const offen: number[] = [];
+    for (let k = 0; k < buch.length; k++) if (buch[k]) offen.push(k);
+    let dazu = 0;
+    while (offen.length) {
+      const k = offen.pop()!;
+      const x = k % w, y = (k - x) / w;
+      for (const nb of [x > 0 ? k - 1 : -1, x < w - 1 ? k + 1 : -1, y > 0 ? k - w : -1, y < h - 1 ? k + w : -1]) {
+        if (nb < 0 || buch[nb] || unterlage[fach(nb)]) continue;
+        const nx = nb % w, ny = (nb - nx) / w;
+        if (nx < bx0 || nx > bx1 || ny < by0 || ny > by1) continue;
+        buch[nb] = 1;
+        dazu++;
+        offen.push(nb);
+      }
+    }
+    o.protokoll?.(`Unterlage: ${unterlage.reduce((a, b) => a + b, 0)} Farbfächer, dazu ${dazu} Felder`);
+  }
+  o.flaeche?.(buch, w, h);
   const punkte: number[] = [];
-  for (let k = 0; k < auswahl.length; k++) if (auswahl[k] && geschlossen[k]) punkte.push(k);
+  for (let k = 0; k < buch.length; k++) if (buch[k]) punkte.push(k);
 
   // Die zweite Seite liegt im Schatten? Dann ist sie nicht hell genug für
   // die Schwelle oben. Bei einer Doppelseite wird deshalb gleich gross
@@ -234,17 +294,11 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   }
 
   let zahl = 0, sx = 0, sy = 0;
-  let ol = { x: 0, y: 0, v: Infinity }, or = { x: 0, y: 0, v: -Infinity };
-  let ur = { x: 0, y: 0, v: -Infinity }, ul = { x: 0, y: 0, v: -Infinity };
   const raender = new Set<string>();
   {
     for (const k of punkte) {
       const x = k % w, y = (k - x) / w;
       zahl++; sx += x; sy += y;
-      if (x + y < ol.v) ol = { x, y, v: x + y };
-      if (x - y > or.v) or = { x, y, v: x - y };
-      if (x + y > ur.v) ur = { x, y, v: x + y };
-      if (y - x > ul.v) ul = { x, y, v: y - x };
       if (x === 0) raender.add("l");
       if (x === w - 1) raender.add("r");
       if (y === 0) raender.add("o");
@@ -252,30 +306,105 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
     }
   }
   const anteil = zahl / (w * h);
-  // Zu klein: ein Lichtfleck. Zu gross oder an drei Rändern: die Unterlage.
+  // Zu klein: ein Lichtfleck. Zu gross oder an zwei Bildrändern: eher die
+  // Unterlage (oder das Buch ragt aus dem Bild) – dann lieber von Hand.
   p(`gewählt ${[...gewaehlt].map((g) => liste[g].zahl).join("+")} (${zahl}), Anteil ${anteil.toFixed(2)}, Ränder ${[...raender].join("")}`);
-  if (anteil < 0.04 || anteil > 0.9 || raender.size >= 3) return null;
+  if (anteil < 0.04 || anteil > 0.9 || raender.size >= 2) return null;
 
-  // Ein Buch füllt sein Viereck fast ganz; was in die Unterlage ausgelaufen
-  // ist, hat eine zerfranste Form und füllt es nicht.
-  const ecken = [ol, or, ur, ul];
+  // Die Ecken: Schnittpunkte der vier Kanten. Jede Kante ist eine Gerade
+  // durch den Rand der Fläche (links: der linke Rand jeder Zeile …), robust
+  // gefunden – eine Abbildung, die ein Stück der Fläche fehlen lässt, zieht
+  // den Rand dort nach innen, aber die meisten Randpunkte liegen trotzdem
+  // auf der Kante. Die äussersten Punkte der Fläche taugten dafür nicht:
+  // Fehlte eine Ecke, sprang der Rahmen nach innen.
+  const links = new Int32Array(h).fill(w), rechts = new Int32Array(h).fill(-1);
+  const oben = new Int32Array(w).fill(h), unten = new Int32Array(w).fill(-1);
+  for (const k of punkte) {
+    const x = k % w, y = (k - x) / w;
+    if (x < links[y]) links[y] = x;
+    if (x > rechts[y]) rechts[y] = x;
+    if (y < oben[x]) oben[x] = y;
+    if (y > unten[x]) unten[x] = y;
+  }
+  const zeilen = (a: Int32Array, leer: number) => [...a].flatMap((v, i) => (v === leer ? [] : [[i, v] as [number, number]]));
+  const kL = kante(zeilen(links, w));
+  const kR = kante(zeilen(rechts, -1));
+  const kO = kante(zeilen(oben, h));
+  const kU = kante(zeilen(unten, -1));
+  p(`Kanten: ${[kL, kR, kO, kU].map((k) => (k ? k.anteil.toFixed(2) : "–")).join(" ")}`);
+  if (!kL || !kR || !kO || !kU) return null;
+  // links/rechts: x = a·y + b; oben/unten: y = a·x + b
+  const schnitt = (senk: Kante, waag: Kante) => {
+    // x = s.a·y + s.b, y = w.a·x + w.b
+    const y = (waag.a * senk.b + waag.b) / (1 - waag.a * senk.a);
+    return { x: senk.a * y + senk.b, y };
+  };
+  const ecken = [schnitt(kL, kO), schnitt(kR, kO), schnitt(kR, kU), schnitt(kL, kU)];
+
   let doppelteFlaeche = 0;
   for (let i = 0; i < 4; i++) {
     const a = ecken[i], b = ecken[(i + 1) % 4];
     doppelteFlaeche += a.x * b.y - b.x * a.y;
   }
   const viereckFlaeche = Math.abs(doppelteFlaeche) / 2;
+  // Die Fläche muss ihr Viereck gut füllen (eine Abbildung darf fehlen) und
+  // darf kaum darüber hinausragen.
   p(`Füllung ${(zahl / viereckFlaeche).toFixed(2)}`);
-  if (viereckFlaeche <= 0 || zahl / viereckFlaeche < 0.8) return null;
+  if (viereckFlaeche <= 0 || zahl / viereckFlaeche < 0.6 || zahl / viereckFlaeche > 1.15) return null;
+  if (ecken.some((e) => e.x < -w * 0.05 || e.x > w * 1.05 || e.y < -h * 0.05 || e.y > h * 1.05)) return null;
 
   // Etwas Luft nach aussen, damit kein Rand abgeschnitten wird.
-  const mx = sx / zahl, my = sy / zahl;
-  const ecke = (p: { x: number; y: number }) => {
-    const x = mx + (p.x + 0.5 - mx) * 1.05;
-    const y = my + (p.y + 0.5 - my) * 1.05;
+  const mx = (ecken[0].x + ecken[1].x + ecken[2].x + ecken[3].x) / 4;
+  const my = (ecken[0].y + ecken[1].y + ecken[2].y + ecken[3].y) / 4;
+  const ecke = (e: { x: number; y: number }) => {
+    const x = mx + (e.x + 0.5 - mx) * 1.04;
+    const y = my + (e.y + 0.5 - my) * 1.04;
     return { x: Math.max(0, Math.min(1, x / w)), y: Math.max(0, Math.min(1, y / h)) };
   };
-  return [ecke(ol), ecke(or), ecke(ur), ecke(ul)];
+  return [ecke(ecken[0]), ecke(ecken[1]), ecke(ecken[2]), ecke(ecken[3])];
+}
+
+interface Kante {
+  /** Wert = a · Lage + b (links/rechts: x über y; oben/unten: y über x). */
+  a: number;
+  b: number;
+  /** Anteil der Randpunkte auf der Geraden. */
+  anteil: number;
+}
+
+/**
+ * Eine Gerade durch Randpunkte [Lage, Wert], die möglichst viele trifft
+ * (RANSAC, mit festem Zufall – dasselbe Bild gibt dasselbe Ergebnis).
+ * Höchstens 45° schräg; mindestens ein Viertel der Punkte muss passen.
+ */
+function kante(punkte: [number, number][]): Kante | null {
+  if (punkte.length < 6) return null;
+  let zufall = 12345;
+  const naechste = () => (zufall = (zufall * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const toleranz = 1.5;
+  let beste: { a: number; b: number; zahl: number } | null = null;
+  for (let i = 0; i < 250; i++) {
+    const p = punkte[Math.floor(naechste() * punkte.length)];
+    const q = punkte[Math.floor(naechste() * punkte.length)];
+    if (Math.abs(p[0] - q[0]) < punkte.length * 0.2) continue;
+    const a = (q[1] - p[1]) / (q[0] - p[0]);
+    if (Math.abs(a) > 1) continue;
+    const b = p[1] - a * p[0];
+    let zahl = 0;
+    for (const [l, v] of punkte) if (Math.abs(v - (a * l + b)) <= toleranz) zahl++;
+    if (!beste || zahl > beste.zahl) beste = { a, b, zahl };
+  }
+  if (!beste || beste.zahl < punkte.length * 0.25) return null;
+  // Nachrechnen mit allen passenden Punkten (kleinste Quadrate).
+  let n = 0, sl = 0, sv = 0, sll = 0, slv = 0;
+  for (const [l, v] of punkte) {
+    if (Math.abs(v - (beste.a * l + beste.b)) > toleranz) continue;
+    n++; sl += l; sv += v; sll += l * l; slv += l * v;
+  }
+  const nenner = n * sll - sl * sl;
+  const a = nenner ? (n * slv - sl * sv) / nenner : beste.a;
+  const b = (sv - a * sl) / n;
+  return { a, b, anteil: beste.zahl / punkte.length };
 }
 
 /** Wie weit liegen zwei Vierecke auseinander? Grösste Abweichung einer Ecke, in Anteilen. */
