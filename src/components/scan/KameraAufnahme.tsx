@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Camera, Check, Crop, Focus, Maximize2, RotateCw, ScanLine, Settings2, X, Zap, ZapOff } from "lucide-react";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
-import type { Drehung, Viereck } from "@/lib/scan/geometrie";
+import { viereckDrehen, type Drehung, type Viereck } from "@/lib/scan/geometrie";
 import { abstandVierecke, seitenFinden } from "@/lib/scan/seitenFinden";
 import type { Zuschnitt } from "@/lib/scan/verarbeitungKern";
 import { ViereckEditor } from "./ViereckEditor";
@@ -233,9 +233,9 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       const c = vorschau.current;
       if (!c || !c.width) return;
       const daten = c.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, c.width, c.height).data;
-      const v = seitenFinden({ breite: c.width, hoehe: c.height, daten });
-      setRandGefunden(!!v);
       const z = zuschnittRef.current;
+      const v = seitenFinden({ breite: c.width, hoehe: c.height, daten }, { doppel: z.doppelseite });
+      setRandGefunden(!!v);
       if (v && z.randAuto !== false && abstandVierecke(v, z.viereck) > 0.015) onZuschnitt({ ...z, viereck: v });
     }, 500);
     return () => clearInterval(takt);
@@ -321,7 +321,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     }
   };
 
-  const drehen = () => onZuschnitt({ ...zuschnitt, drehung: ((zuschnitt.drehung + 90) % 360) as Drehung });
+  // Der Rahmen dreht mit dem Bild – sonst läge er nach dem Drehen quer über dem Buch.
+  const drehen = () => onZuschnitt({
+    ...zuschnitt,
+    drehung: ((zuschnitt.drehung + 90) % 360) as Drehung,
+    viereck: viereckDrehen(zuschnitt.viereck),
+  });
   const seitenart = (
     <Umschalter
       dunkel={vollbild}
@@ -413,6 +418,11 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
           <>
             <div className="absolute top-2 left-2 right-16 flex flex-wrap gap-2 pointer-events-none">
               {randText && <span className="rounded-full bg-black/60 text-white text-xs px-3 py-1">{randText}</span>}
+              {automatisch && (
+                <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">
+                  Löst nach dem Umblättern selbst aus – Hand aus dem Bild nehmen
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -450,7 +460,7 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
               className="justify-self-center h-[4.5rem] w-[4.5rem] rounded-full border-4 border-white bg-primary disabled:opacity-50 active:scale-95 transition-transform"
             />
             <div className="justify-self-end">
-              {knopf(automatisch, () => setAutomatisch(!automatisch), automatisch ? <><Zap size={16} /> Auto</> : <><ZapOff size={16} /> Auto</>, "Nach dem Umblättern von selbst auslösen")}
+              {knopf(automatisch, () => setAutomatisch(!automatisch), <>{automatisch ? <Zap size={16} /> : <ZapOff size={16} />} Selbst<br className="sm:hidden" /> auslösen</>, "Nach dem Umblättern von selbst auslösen")}
             </div>
           </div>
         </div>

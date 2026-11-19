@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   abbilden, amBundTeilen, bundTeile, entzerren, homographie, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen,
-  zielGroesse, type Gitter, type Pixel, type Viereck,
+  viereckDrehen, zielGroesse, type Gitter, type Pixel, type Viereck,
 } from "@/lib/scan/geometrie";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
 
@@ -165,5 +165,20 @@ describe("Abtasten mit Gitter (Glätten)", () => {
     const klein = seiteAbtasten(vorlage, rahmen, { ausBreite: 31, ausHoehe: 45, farbig: true });
     expect([klein.breite, klein.hoehe]).toEqual([31, 45]);
     expect(grau(klein, 0, 0)).toBe(grau(vorlage, 0, 0));
+  });
+});
+
+describe("Rahmen mitdrehen", () => {
+  const v: Viereck = [{ x: 0.1, y: 0.2 }, { x: 0.6, y: 0.2 }, { x: 0.6, y: 0.9 }, { x: 0.1, y: 0.9 }];
+
+  it("dreht mit dem Bild im Uhrzeigersinn; die erste Ecke bleibt oben links", () => {
+    // Was links unten war, liegt nach 90° im Uhrzeigersinn links oben.
+    const erwartet = [{ x: 0.1, y: 0.1 }, { x: 0.8, y: 0.1 }, { x: 0.8, y: 0.6 }, { x: 0.1, y: 0.6 }];
+    viereckDrehen(v).forEach((p, i) => { expect(p.x).toBeCloseTo(erwartet[i].x); expect(p.y).toBeCloseTo(erwartet[i].y); });
+  });
+
+  it("kommt nach vier Drehungen zurück", () => {
+    const r = viereckDrehen(viereckDrehen(viereckDrehen(viereckDrehen(v))));
+    r.forEach((p, i) => { expect(p.x).toBeCloseTo(v[i].x); expect(p.y).toBeCloseTo(v[i].y); });
   });
 });

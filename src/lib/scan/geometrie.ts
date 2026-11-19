@@ -38,6 +38,16 @@ export const STANDARD_VIERECK: Viereck = [
 
 const abstand = (a: Punkt, b: Punkt) => Math.hypot(a.x - b.x, a.y - b.y);
 
+/**
+ * Ein Viereck (Anteile 0…1) mit dem Bild um 90° im Uhrzeigersinn drehen.
+ * Die Ecken behalten ihre Bedeutung: Was nach dem Drehen oben links liegt,
+ * ist wieder die erste Ecke.
+ */
+export function viereckDrehen(v: Viereck): Viereck {
+  const r = (p: Punkt): Punkt => ({ x: 1 - p.y, y: p.x });
+  return [r(v[3]), r(v[0]), r(v[1]), r(v[2])];
+}
+
 /** Ein Viereck in Anteilen (0…1) in Bildpunkte umrechnen. */
 export function inPixel(v: Viereck, breite: number, hoehe: number): Viereck {
   return v.map((p) => ({ x: p.x * breite, y: p.y * hoehe })) as Viereck;
