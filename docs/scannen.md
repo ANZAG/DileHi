@@ -89,12 +89,23 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Fällen schlechter und wurde verworfen.
 
    *Finger am Rand entfernen* (eingeschaltet): Hautfarbene Flächen, die vom
-   Bildrand in einen Streifen am Seitenrand hereinragen, werden mit der
-   Papierfarbe gefüllt. Haut hat deutlich mehr Rot als Papier, auch
-   vergilbtes (gemessen: Papier Cr 127–133, Daumen 146–149, Grenze 140).
-   Rötliche Abbildungen mitten auf der Seite bleiben unberührt; reicht eine
-   farbige Tafel bis an den Rand, für diese Aufnahme ausschalten
-   (Neu zuschneiden).
+   Bildrand in einen Streifen am Seitenrand hereinragen, werden übermalt.
+   Haut hat deutlich mehr Rot als Papier, auch vergilbtes (gemessen: Papier
+   Cr 127–133, Daumen 146–149, Grenze 140). Gefüllt wird mit dem, was das
+   Papier rings um den Finger zeigt, samt Licht und Schatten (Push-Pull aus
+   den hellen Papierfeldern – Schrift oder eine Buchkante daneben gäben
+   sonst einen grauen Fleck); Nagel und Schatten sind ganz bedeckt, danach
+   läuft die Füllung weich aus. Die erste Fassung setzte eine flache Farbe in
+   groben Kästchen ein, das sah man. Rötliche Abbildungen mitten auf der
+   Seite bleiben unberührt; reicht eine farbige Tafel bis an den Rand, für
+   diese Aufnahme ausschalten (Neu zuschneiden).
+
+   **Bund automatisch:** Bei einer Doppelseite sucht die Seite den Bund im
+   Bild – den steilsten Helligkeitssprung nahe der gesetzten Stelle (± 12 %):
+   Die eine Seite wölbt sich zum Licht und glänzt, die andere liegt im
+   Schatten. Jede Seite bekommt dazu 2 % Überlappung. Ein fest gesetzter
+   Bund schnitt im ersten Buch auf einigen Seiten die ersten Buchstaben
+   jeder Zeile ab („janische Garde" statt „Spanische Garde").
 
 3. **Bilder übernehmen** nimmt fertige Seiten in dieselbe Reihe auf: Fotos
    aus der Kamera-App des Handys (volle Auflösung) oder die Seiten aus der
