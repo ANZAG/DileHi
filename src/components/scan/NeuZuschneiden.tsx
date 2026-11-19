@@ -78,6 +78,10 @@ export function NeuZuschneiden({ roh, zuschnitt, onSchliessen, onUebernehmen }: 
                 <input type="checkbox" checked={z.farbig} onChange={(e) => setZ({ ...z, farbig: e.target.checked })} />
                 Farbig
               </label>
+              <label className="inline-flex items-center gap-2">
+                <input type="checkbox" checked={z.finger !== false} onChange={(e) => setZ({ ...z, finger: e.target.checked })} />
+                Finger entfernen
+              </label>
               <div className="flex-1" />
               <button type="button" onClick={onSchliessen} className="px-3 py-2 rounded-md border hover:bg-muted">Abbrechen</button>
               <button type="button" onClick={() => onUebernehmen(z)} className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">

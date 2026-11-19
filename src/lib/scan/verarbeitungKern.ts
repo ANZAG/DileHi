@@ -1,4 +1,5 @@
-import { amBundTeilen, entzerren, inPixel, kontrastStrecken, type Drehung, type Viereck } from "./geometrie";
+import { amBundTeilen, entzerren, grauMachen, inPixel, kontrastStrecken, type Drehung, type Viereck } from "./geometrie";
+import { fingerEntfernen } from "./finger";
 
 /**
  * Aus einem Kamerabild die fertigen Seiten: drehen, Viereck gerade ziehen,
@@ -17,6 +18,8 @@ export interface Zuschnitt {
   /** Lage des Bundes als Anteil der Breite. */
   bund: number;
   farbig: boolean;
+  /** Finger am Seitenrand entfernen (fehlt das Feld: ja). */
+  finger?: boolean;
 }
 
 export interface FertigeSeite {
@@ -55,8 +58,15 @@ export async function verarbeiten(
   bitmap.close();
   const pixel = ctx.getImageData(0, 0, breite, hoehe);
 
-  const gerade = entzerren({ breite, hoehe, daten: pixel.data }, inPixel(z.viereck, breite, hoehe), z.farbig);
-  if (!z.farbig) kontrastStrecken(gerade);
+  // Finger erkennt man an der Farbe – also erst farbig gerade ziehen, Finger
+  // entfernen, dann grau.
+  const mitFinger = z.finger !== false;
+  const gerade = entzerren({ breite, hoehe, daten: pixel.data }, inPixel(z.viereck, breite, hoehe), z.farbig || mitFinger);
+  if (mitFinger) fingerEntfernen(gerade);
+  if (!z.farbig) {
+    if (mitFinger) grauMachen(gerade);
+    kontrastStrecken(gerade);
+  }
   const teile = z.doppelseite ? amBundTeilen(gerade, z.bund) : [gerade];
 
   const seiten: FertigeSeite[] = [];

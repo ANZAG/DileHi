@@ -155,6 +155,14 @@ export function entzerren(bild: Pixel, viereck: Viereck, farbig = false): Pixel 
   return { breite, hoehe, daten: aus };
 }
 
+/** Ein farbiges Bild in Graustufen, an Ort und Stelle. */
+export function grauMachen(bild: Pixel): void {
+  const d = bild.daten;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = d[i + 1] = d[i + 2] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+  }
+}
+
 /**
  * Kontrast strecken: Das dunkelste Prozent wird schwarz, das hellste weiss.
  * Gegen vergilbtes Papier und ein Bild, das die Kamera zu hell gemacht hat.

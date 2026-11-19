@@ -48,15 +48,21 @@ export interface Sitzung {
 
 const DB = "quellen-scannen";
 const ABLAGEN = ["sitzung", "dateien", "text"] as const;
-type Ablage = (typeof ABLAGEN)[number];
+/**
+ * `merker` bleibt über das Hochladen hinaus: der beobachtete Ordner, damit er
+ * beim nächsten Buch nicht neu ausgesucht werden muss.
+ */
+type Ablage = (typeof ABLAGEN)[number] | "merker";
 
 let offen: Promise<IDBDatabase> | null = null;
 
 function oeffnen(): Promise<IDBDatabase> {
   offen ??= new Promise((ok, fehler) => {
-    const anfrage = indexedDB.open(DB, 1);
+    const anfrage = indexedDB.open(DB, 2);
     anfrage.onupgradeneeded = () => {
-      for (const a of ABLAGEN) if (!anfrage.result.objectStoreNames.contains(a)) anfrage.result.createObjectStore(a);
+      for (const a of [...ABLAGEN, "merker"]) {
+        if (!anfrage.result.objectStoreNames.contains(a)) anfrage.result.createObjectStore(a);
+      }
     };
     anfrage.onsuccess = () => ok(anfrage.result);
     anfrage.onerror = () => fehler(anfrage.error ?? new Error("Der Zwischenspeicher lässt sich nicht öffnen."));
@@ -96,7 +102,13 @@ export const textLaden = (seiteId: string) => lesen<OcrErgebnis>("text", seiteId
 export const textSpeichern = (seiteId: string, t: OcrErgebnis) => auftrag("text", "readwrite", (a) => a.put(t, seiteId));
 export const textLoeschen = (seiteId: string) => auftrag("text", "readwrite", (a) => a.delete(seiteId)).catch(() => undefined);
 
-/** Alles weg – nach dem Hochladen oder wenn man neu anfängt. */
+export const merkerLaden = <T>(schluessel: string) => lesen<T>("merker", schluessel);
+export const merkerSpeichern = (schluessel: string, wert: unknown) =>
+  auftrag("merker", "readwrite", (a) => a.put(wert, schluessel)).catch(() => undefined);
+export const merkerLoeschen = (schluessel: string) =>
+  auftrag("merker", "readwrite", (a) => a.delete(schluessel)).catch(() => undefined);
+
+/** Alles weg – nach dem Hochladen oder wenn man neu anfängt. Der Merker bleibt. */
 export async function allesLoeschen(): Promise<void> {
   for (const a of ABLAGEN) await auftrag(a, "readwrite", (s) => s.clear()).catch(() => undefined);
 }

@@ -289,6 +289,10 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme }: Props) {
           <input type="checkbox" checked={zuschnitt.farbig} onChange={(e) => onZuschnitt({ ...zuschnitt, farbig: e.target.checked })} />
           Farbig (für Bildtafeln)
         </label>
+        <label className="inline-flex items-center gap-2">
+          <input type="checkbox" checked={zuschnitt.finger !== false} onChange={(e) => onZuschnitt({ ...zuschnitt, finger: e.target.checked })} />
+          Finger am Rand entfernen
+        </label>
         {aufloesung && <span className="text-muted-foreground">Kamera liefert {aufloesung}</span>}
       </div>
       {automatisch && (

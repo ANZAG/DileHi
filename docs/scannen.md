@@ -32,10 +32,29 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    gebracht und am Bund in zwei Seiten geteilt. *Farbig* behält die Farben,
    für Bildtafeln.
 
+   *Finger am Rand entfernen* (eingeschaltet): Hautfarbene Flächen, die vom
+   Bildrand in einen Streifen am Seitenrand hereinragen, werden mit der
+   Papierfarbe gefüllt. Haut hat deutlich mehr Rot als Papier, auch
+   vergilbtes (gemessen: Papier Cr 127–133, Daumen 146–149, Grenze 140).
+   Rötliche Abbildungen mitten auf der Seite bleiben unberührt; reicht eine
+   farbige Tafel bis an den Rand, für diese Aufnahme ausschalten
+   (Neu zuschneiden).
+
 3. **Bilder übernehmen** nimmt fertige Seiten in dieselbe Reihe auf: Fotos
    aus der Kamera-App des Handys (volle Auflösung) oder die Seiten aus der
    Software eines Buchscanners (etwa CZUR). Sortiert nach Dateinamen; geteilt
    wird nur, wenn *Doppelseite* eingeschaltet ist.
+
+   **Ordner beobachten** (Chrome und Edge am Rechner) macht das von selbst:
+   Einmal den Ordner wählen, in den die Scanner-Software ihre Seiten legt –
+   jede neue Seite kommt dann ohne Zutun in die Reihe. Übernommen wird eine
+   Datei erst, wenn sie bei zwei Blicken im Abstand von zwei Sekunden gleich
+   gross ist; eine halb geschriebene Seite kommt also nicht mit. Was beim
+   Start schon im Ordner liegt, bleibt liegen (ausser man hakt es an). Den
+   Ordner merkt sich der Browser; nach dem Neuladen genügt ein Klick auf
+   „… wieder beobachten". Die Software muss JPG oder PNG schreiben – TIFF
+   kann der Browser nicht lesen. Liefert sie schon einzelne Seiten,
+   *Doppelseite* ausschalten.
 
 4. **Prüfen.** Unter der Kamera stehen die Seiten in ihrer Reihenfolge, mit
    der Sicherheit der Texterkennung. Aufnahmen lassen sich verschieben, neu
@@ -118,7 +137,8 @@ Büchern lieber in Bänden scannen.
 `src/pages/intern/Scannen.tsx`, `src/components/scan/`, `src/lib/scan/`
 (Geometrie, Auslöser, Texterkennung, PDF, Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
-`src/test/quelltext.test.ts`.
+`src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
+`src/test/scanFinger.test.ts`.
 
 ## Später
 
@@ -127,4 +147,7 @@ Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 - Vorhandene PDFs nachträglich durchsuchbar machen: Text aus PDFs lesen, die
   schon eine Textebene haben, und Scans ohne Text im Browser erkennen lassen.
 - Gewölbte Seiten am Bund flach rechnen (bis dahin: Glasplatte, oder einen
-  Buchscanner und *Bilder übernehmen*).
+  Buchscanner und *Ordner beobachten*). Verglichen an zwei Probefotos: das
+  neuronale Netz UVDoc (MIT, ETH Zürich) zieht gewölbte Seiten sichtbar flach
+  und hebt die Sicherheit der Texterkennung dort um 5–8 Punkte; ein
+  Glätten entlang der erkannten Textzeilen machte es schlechter.

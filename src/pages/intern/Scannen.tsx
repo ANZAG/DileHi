@@ -7,12 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { SEITE } from "@/lib/layout";
 import { KameraAufnahme } from "@/components/scan/KameraAufnahme";
 import { NeuZuschneiden } from "@/components/scan/NeuZuschneiden";
+import { OrdnerBeobachten } from "@/components/scan/OrdnerBeobachten";
 import { Seitenliste } from "@/components/scan/Seitenliste";
 import { WeicheWahl } from "@/components/scan/WeicheWahl";
 import { useTexterkennung } from "@/components/scan/useTexterkennung";
 import { abschliessen, seitenInReihenfolge, type Schritt } from "@/lib/scan/abschluss";
 import { STANDARD_VIERECK, type Viereck } from "@/lib/scan/geometrie";
 import { ocrBeenden, SCHRIFT_NAME, type SchriftWahl } from "@/lib/scan/ocr";
+import { nachName } from "@/lib/scan/ordner";
 import {
   allesLoeschen, dateiLaden, dateiLoeschen, dateiSpeichern, neueKennung, sitzungLaden, sitzungSpeichern, textLoeschen,
   type Aufnahme, type Sitzung, type Weiche,
@@ -193,13 +195,17 @@ const Scannen = () => {
    * „Doppelseite" eingeschaltet ist. Nach Dateinamen sortiert, so wie
    * Scanner und Kameras sie durchzählen.
    */
+  const bildVonAussen = (d: File) => {
+    const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
+    aufnahmeHinzufuegen(d, { ...z, drehung: 0, viereck: GANZES_BILD });
+  };
+
   const bilderUebernehmen = (dateien: FileList | null) => {
-    if (!dateien?.length || !sitzung) return;
-    const z: Zuschnitt = { ...sitzung.zuschnitt, drehung: 0, viereck: GANZES_BILD };
+    if (!dateien?.length) return;
     [...dateien]
       .filter((d) => d.type.startsWith("image/"))
-      .sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }))
-      .forEach((d) => aufnahmeHinzufuegen(d, z));
+      .sort((a, b) => nachName(a.name, b.name))
+      .forEach(bildVonAussen);
   };
 
   const aufnahmeEntfernen = async (a: Aufnahme) => {
@@ -406,6 +412,8 @@ const Scannen = () => {
           <p className="text-xs text-muted-foreground -mt-4">
             „Bilder übernehmen" nimmt fertige Seiten – etwa aus der Software eines Buchscanners oder Fotos vom Handy – in diese Reihe auf.
           </p>
+
+          <OrdnerBeobachten onBild={bildVonAussen} />
 
           {inArbeit > 0 && (
             <p className="text-sm text-muted-foreground"><Loader2 className="inline animate-spin mr-2" size={14} />{inArbeit} {inArbeit === 1 ? "Aufnahme wird" : "Aufnahmen werden"} verarbeitet …</p>
