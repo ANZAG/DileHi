@@ -48,6 +48,38 @@ export function viereckDrehen(v: Viereck): Viereck {
   return [r(v[3]), r(v[0]), r(v[1]), r(v[2])];
 }
 
+/** Ein Punkt (Anteile 0…1) mit dem Bild um `grad` im Uhrzeigersinn gedreht. */
+export function punktDrehen(p: Punkt, grad: Drehung): Punkt {
+  switch (grad) {
+    case 90: return { x: 1 - p.y, y: p.x };
+    case 180: return { x: 1 - p.x, y: 1 - p.y };
+    case 270: return { x: p.y, y: 1 - p.x };
+    default: return p;
+  }
+}
+
+/** Mit dem Bild um `grad` drehen; die erste Ecke ist danach wieder oben links. */
+export function viereckDrehenUm(v: Viereck, grad: Drehung): Viereck {
+  let r = v;
+  for (let i = 0; i < grad / 90; i++) r = viereckDrehen(r);
+  return r;
+}
+
+/**
+ * Für die Vorschau am Handy, die das Kamerabild ungedreht zeigt (wie die
+ * Kamera des iPhones): Das Viereck gehört zum gedrehten Foto und wird zum
+ * Anzeigen zurückgedreht. Die Reihenfolge der Ecken bleibt die des Fotos –
+ * so liegt auch der Bund richtig, wenn das Foto quer zur Vorschau steht.
+ */
+export function viereckZurAnzeige(v: Viereck, grad: Drehung): Viereck {
+  const zurueck = ((360 - grad) % 360) as Drehung;
+  return v.map((p) => punktDrehen(p, zurueck)) as Viereck;
+}
+
+export function viereckAusAnzeige(v: Viereck, grad: Drehung): Viereck {
+  return v.map((p) => punktDrehen(p, grad)) as Viereck;
+}
+
 /** Ein Viereck in Anteilen (0…1) in Bildpunkte umrechnen. */
 export function inPixel(v: Viereck, breite: number, hoehe: number): Viereck {
   return v.map((p) => ({ x: p.x * breite, y: p.y * hoehe })) as Viereck;

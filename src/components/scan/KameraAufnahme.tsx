@@ -1,24 +1,28 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Camera, Check, Crop, Focus, Maximize2, RotateCw, ScanLine, Settings2, X, Zap, ZapOff } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Camera, Check, Crop, Focus, Maximize2, MoreHorizontal, RotateCw, ScanLine, Smartphone, X, Zap, ZapOff } from "lucide-react";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
-import { viereckDrehen, type Drehung, type Viereck } from "@/lib/scan/geometrie";
+import { viereckAusAnzeige, viereckDrehenUm, viereckZurAnzeige, type Drehung, type Viereck } from "@/lib/scan/geometrie";
+import { fotoDrehung, lageAus, lageBrauchtErlaubnis, lageErlauben, oberflaechenDrehung } from "@/lib/scan/lage";
 import { abstandVierecke, seitenFinden } from "@/lib/scan/seitenFinden";
-import type { Zuschnitt } from "@/lib/scan/verarbeitungKern";
+import { zuschnittDrehen, type Zuschnitt } from "@/lib/scan/verarbeitungKern";
 import { ViereckEditor } from "./ViereckEditor";
 
 /**
  * Kamera, Vorschau und Auslöser.
  *
- * Verlangt wird 4K; was die Kamera wirklich liefert, steht in den
- * Einstellungen. Die Vorschau wird so gedreht, wie die Seiten am Ende stehen
- * sollen – darüber liegt das Viereck, das für alle Seiten gilt. Mit „Rand
- * automatisch" sucht die Seite das Buch selbst (lib/scan/seitenFinden.ts);
- * wer das Viereck von Hand zieht, schaltet das ab.
+ * Am Rechner: Vorschau in der Seite, so gedreht, wie die Seiten am Ende
+ * stehen sollen; darüber das Viereck, das für alle Seiten gilt.
  *
- * Am Handy läuft die Kamera im Vollbild, die Knöpfe liegen über dem Bild –
- * sonst verdeckt das Kamerabild alles andere. Liegt das Handy flach über dem
- * Buch, dreht iOS die Ansicht nicht mit; wer quer fotografiert, dreht die
- * Vorschau einmal mit „Drehen".
+ * Am Handy wie die Kamera des iPhones: Das Kamerabild füllt den ganzen
+ * Bildschirm und wird nicht gedreht. Wie man das Handy hält, sagt der
+ * Lagesensor (lib/scan/lage.ts) – das Foto wird entsprechend gedreht, und
+ * die Symbole drehen sich an ihrem Platz mit. Liegt das Handy flach über dem
+ * Buch, gilt die letzte sichere Lage. Bedienung: oben kleine Symbole (Rand,
+ * Selbst auslösen, Einstellungen), unten „Einzelseite · Doppelseite" über
+ * dem Auslöser, links die letzte Seite mit Zähler.
+ *
+ * „Rand automatisch" sucht das Buch selbst (lib/scan/seitenFinden.ts); wer
+ * das Viereck von Hand zieht, schaltet das ab.
  *
  * Ausgelöst wird mit dem Knopf, mit der Leertaste (auch ein USB-Fusstaster
  * schickt meist eine Taste) oder von selbst nach dem Umblättern. Jede
@@ -36,6 +40,8 @@ interface Props {
   letzteSeite?: string;
   vollbild: boolean;
   onVollbild: (an: boolean) => void;
+  /** Am Handy: Vorschau ungedreht und bildschirmfüllend, Drehung aus dem Lagesensor. */
+  handy?: boolean;
 }
 
 /** Was Chrome und Edge bei vielen Webcams zusätzlich können; nicht in lib.dom. */
@@ -67,21 +73,20 @@ function bestaetigen() {
   try { navigator.vibrate?.(60); } catch { /* ohne Vibration */ }
 }
 
-/** Das grösste Rechteck mit Seitenverhältnis b:h, das in w × h' passt. */
-function einpassen(b: number, h: number, w: number, hh: number) {
+/** Seitenverhältnis b:h in w × h einpassen – ganz sichtbar (contain) oder füllend (cover). */
+function einpassen(b: number, h: number, w: number, hh: number, fuellen: boolean) {
   if (!b || !h || !w || !hh) return null;
-  const s = Math.min(w / b, hh / h);
+  const s = fuellen ? Math.max(w / b, hh / h) : Math.min(w / b, hh / h);
   return { w: Math.floor(b * s), h: Math.floor(h * s) };
 }
 
-function Umschalter<T extends string>({ wert, optionen, onWahl, dunkel }: {
+function Umschalter<T extends string>({ wert, optionen, onWahl }: {
   wert: T;
   optionen: [T, string][];
   onWahl: (w: T) => void;
-  dunkel?: boolean;
 }) {
   return (
-    <div role="radiogroup" className={`inline-flex rounded-md border p-0.5 ${dunkel ? "border-white/30 bg-black/40" : "bg-muted/40"}`}>
+    <div role="radiogroup" className="inline-flex rounded-md border p-0.5 bg-muted/40">
       {optionen.map(([w, text]) => (
         <button
           key={w}
@@ -89,9 +94,7 @@ function Umschalter<T extends string>({ wert, optionen, onWahl, dunkel }: {
           role="radio"
           aria-checked={wert === w}
           onClick={() => onWahl(w)}
-          className={`px-3 py-1.5 text-sm rounded ${wert === w
-            ? "bg-primary text-primary-foreground"
-            : dunkel ? "text-white/90" : "text-foreground hover:bg-muted"}`}
+          className={`px-3 py-1.5 text-sm rounded ${wert === w ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"}`}
         >
           {text}
         </button>
@@ -100,7 +103,7 @@ function Umschalter<T extends string>({ wert, optionen, onWahl, dunkel }: {
   );
 }
 
-export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild }: Props) {
+export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild, handy = false }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const vorschau = useRef<HTMLCanvasElement>(null);
   const buehne = useRef<HTMLDivElement>(null);
@@ -117,10 +120,21 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   const [einstellungen, setEinstellungen] = useState(false);
   const [vorschauGroesse, setVorschauGroesse] = useState({ b: 0, h: 0 });
   const [platz, setPlatz] = useState({ b: 0, h: 0 });
+  const [lage, setLage] = useState<Drehung>(0);
+  const [lageBereit, setLageBereit] = useState(() => !lageBrauchtErlaubnis());
   const ausloeser = useRef(new Ausloeser());
   const zuschnittRef = useRef(zuschnitt);
   zuschnittRef.current = zuschnitt;
   const randAuto = zuschnitt.randAuto !== false;
+
+  /** Am Handy im Vollbild: Kamerabild ungedreht, Drehung aus der Lage. */
+  const roh = vollbild && handy;
+  const lageAuto = roh && zuschnitt.drehungAuto !== false;
+  /** Wie die Vorschau gedreht gezeichnet wird – und was ihr zum Foto noch fehlt. */
+  const vorschauDrehung: Drehung = roh ? 0 : zuschnitt.drehung;
+  const anzeigeDrehung = (((zuschnitt.drehung - vorschauDrehung) % 360) + 360) % 360 as Drehung;
+  /** So weit drehen sich die Symbole, damit sie für den, der das Handy hält, aufrecht stehen. */
+  const symbolDrehung = roh ? fotoDrehung(lage, oberflaechenDrehung()) : 0;
 
   // Kamera öffnen, bei jedem Wechsel des Geräts neu.
   useEffect(() => {
@@ -177,14 +191,14 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     };
   }, [strom]);
 
-  // Vorschau zeichnen, gedreht.
+  // Vorschau zeichnen – am Rechner gedreht wie das Foto, am Handy ungedreht.
   useEffect(() => {
     let lauf = 0;
     const zeichnen = () => {
       const v = video.current;
       const c = vorschau.current;
       if (v && c && v.videoWidth) {
-        const quer = zuschnitt.drehung === 90 || zuschnitt.drehung === 270;
+        const quer = vorschauDrehung === 90 || vorschauDrehung === 270;
         const bw = quer ? v.videoHeight : v.videoWidth;
         const bh = quer ? v.videoWidth : v.videoHeight;
         const massstab = Math.min(1, 1280 / Math.max(bw, bh));
@@ -198,14 +212,14 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         const ctx = c.getContext("2d", { willReadFrequently: true })!;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.translate(w / 2, h / 2);
-        ctx.rotate((zuschnitt.drehung * Math.PI) / 180);
+        ctx.rotate((vorschauDrehung * Math.PI) / 180);
         ctx.drawImage(v, (-v.videoWidth * massstab) / 2, (-v.videoHeight * massstab) / 2, v.videoWidth * massstab, v.videoHeight * massstab);
       }
       lauf = requestAnimationFrame(zeichnen);
     };
     lauf = requestAnimationFrame(zeichnen);
     return () => cancelAnimationFrame(lauf);
-  }, [zuschnitt.drehung]);
+  }, [vorschauDrehung]);
 
   // Platz für die Vorschau im Vollbild messen.
   useLayoutEffect(() => {
@@ -226,6 +240,27 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     return () => { document.body.style.overflow = vorher; };
   }, [vollbild]);
 
+  // Lage des Handys verfolgen.
+  useEffect(() => {
+    if (!roh || !lageBereit) return;
+    const neu = (e: DeviceOrientationEvent) => {
+      if (e.beta === null || e.gamma === null) return;
+      setLage((bisher) => lageAus(e.beta!, e.gamma!, bisher));
+    };
+    window.addEventListener("deviceorientation", neu);
+    return () => window.removeEventListener("deviceorientation", neu);
+  }, [roh, lageBereit]);
+
+  // Das Foto folgt der Lage (plus dem, was von Hand oder von der
+  // Texterkennung dazugedreht wurde).
+  useEffect(() => {
+    if (!lageAuto) return;
+    const z = zuschnittRef.current;
+    const soll = ((fotoDrehung(lage, oberflaechenDrehung()) + (z.drehungVersatz ?? 0)) % 360) as Drehung;
+    const fehlt = (((soll - z.drehung) % 360) + 360) % 360;
+    if (fehlt) onZuschnitt(zuschnittDrehen(z, fehlt as 90 | 180 | 270));
+  }, [lage, lageAuto, onZuschnitt]);
+
   // Rand automatisch: zweimal je Sekunde das Buch in der Vorschau suchen.
   useEffect(() => {
     if (!randAuto || !strom) { setRandGefunden(null); return; }
@@ -234,12 +269,21 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       if (!c || !c.width) return;
       const daten = c.getContext("2d", { willReadFrequently: true })!.getImageData(0, 0, c.width, c.height).data;
       const z = zuschnittRef.current;
-      const v = seitenFinden({ breite: c.width, hoehe: c.height, daten }, { doppel: z.doppelseite });
-      setRandGefunden(!!v);
-      if (v && z.randAuto !== false && abstandVierecke(v, z.viereck) > 0.015) onZuschnitt({ ...z, viereck: v });
+      // In der Vorschau gefunden; ins Foto umgerechnet, das um den Rest gedreht ist.
+      const gefunden = seitenFinden({ breite: c.width, hoehe: c.height, daten }, { doppel: z.doppelseite });
+      setRandGefunden(!!gefunden);
+      if (!gefunden || z.randAuto === false) return;
+      const rest = (((z.drehung - (roh ? 0 : z.drehung)) % 360) + 360) % 360 as Drehung;
+      const v = viereckDrehenUm(gefunden, rest);
+      if (abstandVierecke(v, z.viereck) > 0.015) onZuschnitt({ ...z, viereck: v });
     }, 500);
     return () => clearInterval(takt);
-  }, [randAuto, strom, onZuschnitt]);
+  }, [randAuto, strom, onZuschnitt, roh]);
+
+  const lageAnfragen = useCallback(async () => {
+    if (lageBereit) return;
+    if (await lageErlauben()) setLageBereit(true);
+  }, [lageBereit]);
 
   const ausloesen = useCallback(async () => {
     const v = video.current;
@@ -321,39 +365,28 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     }
   };
 
-  // Der Rahmen dreht mit dem Bild – sonst läge er nach dem Drehen quer über dem Buch.
-  const drehen = () => onZuschnitt({
-    ...zuschnitt,
-    drehung: ((zuschnitt.drehung + 90) % 360) as Drehung,
-    viereck: viereckDrehen(zuschnitt.viereck),
-  });
-  const seitenart = (
-    <Umschalter
-      dunkel={vollbild}
-      wert={zuschnitt.doppelseite ? "doppel" : "einzel"}
-      optionen={[["einzel", "Einzelseite"], ["doppel", "Doppelseite"]]}
-      onWahl={(w) => onZuschnitt({ ...zuschnitt, doppelseite: w === "doppel" })}
+  // Von Hand drehen: Der Rahmen dreht mit; bei der Lage-Automatik bleibt der
+  // Zusatz erhalten, wenn man das Handy danach anders hält.
+  const drehen = () => {
+    const z = zuschnittDrehen(zuschnitt, 90);
+    onZuschnitt(lageAuto ? { ...z, drehungVersatz: ((zuschnitt.drehungVersatz ?? 0) + 90) % 360 } : z);
+  };
+
+  const randText = !randAuto ? null : randGefunden === null ? "Suche Buch …" : randGefunden ? "Buch gefunden" : "Kein Buch erkannt – Rahmen von Hand ziehen";
+  const passend = vollbild ? einpassen(vorschauGroesse.b, vorschauGroesse.h, platz.b, platz.h, roh) : null;
+  const gedreht: CSSProperties = { transform: `rotate(${symbolDrehung}deg)`, transition: "transform 0.3s" };
+
+  const editor = strom && (
+    <ViereckEditor
+      viereck={viereckZurAnzeige(zuschnitt.viereck, anzeigeDrehung)}
+      onViereck={(v: Viereck) => onZuschnitt({ ...zuschnitt, viereck: viereckAusAnzeige(v, anzeigeDrehung), randAuto: false })}
+      bund={zuschnitt.doppelseite ? zuschnitt.bund : null}
+      onBund={(bund) => onZuschnitt({ ...zuschnitt, bund })}
     />
   );
-  const knopf = (an: boolean | undefined, onClick: () => void, inhalt: ReactNode, titel?: string) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={titel}
-      aria-pressed={an}
-      className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border ${an
-        ? "bg-primary/15 border-primary text-primary"
-        : vollbild ? "border-white/30 bg-black/40 text-white" : "hover:bg-muted"}`}
-    >
-      {inhalt}
-    </button>
-  );
 
-  const passend = vollbild ? einpassen(vorschauGroesse.b, vorschauGroesse.h, platz.b, platz.h) : null;
-  const randText = !randAuto ? null : randGefunden === null ? "Suche Buch …" : randGefunden ? "Buch gefunden" : "Kein Buch erkannt – Rahmen von Hand ziehen";
-
-  const einstellungsListe = (
-    <div className={`text-sm ${vollbild ? "flex flex-col gap-2 text-white" : "flex flex-wrap items-center gap-x-4 gap-y-2"}`}>
+  const einstellungsListe = (dunkel: boolean) => (
+    <div className={`text-sm ${dunkel ? "flex flex-col gap-2.5 text-white" : "flex flex-wrap items-center gap-x-4 gap-y-2"}`}>
       <label className="inline-flex items-center gap-2">
         <input type="checkbox" checked={zuschnitt.farbig} onChange={(e) => onZuschnitt({ ...zuschnitt, farbig: e.target.checked })} />
         Farbig (für Bildtafeln)
@@ -366,6 +399,24 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         <input type="checkbox" checked={zuschnitt.glaetten === true} onChange={(e) => onZuschnitt({ ...zuschnitt, glaetten: e.target.checked })} />
         Gewölbte Seiten glätten
       </label>
+      {roh && (
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={lageAuto}
+            onChange={(e) => {
+              if (e.target.checked) void lageAnfragen();
+              onZuschnitt({ ...zuschnitt, drehungAuto: e.target.checked, drehungVersatz: 0 });
+            }}
+          />
+          Drehung aus der Lage des Handys
+        </label>
+      )}
+      {roh && (
+        <button type="button" onClick={drehen} className="self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/30">
+          <RotateCw size={16} /> Foto um 90° drehen
+        </button>
+      )}
       {geraete.length > 1 && (
         <label className="inline-flex items-center gap-2">
           Kamera
@@ -380,29 +431,149 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         </label>
       )}
       {festhalten !== "geht_nicht" && (
-        <div>{knopf(festhalten === "an", () => void schaerfeFesthalten(), <><Focus size={16} /> Schärfe festhalten</>)}</div>
+        <button
+          type="button"
+          onClick={() => void schaerfeFesthalten()}
+          aria-pressed={festhalten === "an"}
+          className={`self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-md border ${festhalten === "an" ? "bg-primary/15 border-primary text-primary" : dunkel ? "border-white/30" : "hover:bg-muted"}`}
+        >
+          <Focus size={16} /> Schärfe festhalten
+        </button>
       )}
-      {aufloesung && <span className={vollbild ? "text-white/70" : "text-muted-foreground"}>Kamera liefert {aufloesung}</span>}
+      {aufloesung && <span className={dunkel ? "text-white/60" : "text-muted-foreground"}>Kamera liefert {aufloesung}</span>}
     </div>
   );
 
-  return (
-    <div className={vollbild ? "fixed inset-0 z-[100] flex flex-col bg-black" : "space-y-3"} style={vollbild ? { height: "100dvh", margin: 0 } : undefined}>
-      <div
-        ref={buehne}
-        className={vollbild ? "relative flex-1 min-h-0 flex items-center justify-center" : "relative rounded-lg overflow-hidden border bg-black"}
+  // ── Vollbild (Handy, oder am Rechner auf Wunsch) ──────────────────────────
+  if (vollbild) {
+    const symbol = (an: boolean | undefined, onClick: () => void, inhalt: ReactNode, titel: string) => (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={titel}
+        title={titel}
+        aria-pressed={an}
+        className={`h-10 w-10 inline-flex items-center justify-center rounded-full ${an ? "bg-primary/90 text-primary-foreground" : "bg-black/40 text-white"}`}
       >
+        <span style={gedreht} className="inline-flex">{inhalt}</span>
+      </button>
+    );
+    return (
+      <div className="fixed inset-0 z-[100] bg-black text-white" style={{ height: "100dvh", margin: 0 }}>
         <video ref={video} playsInline muted className="hidden" />
-        <div className="relative" style={passend ? { width: passend.w, height: passend.h } : undefined}>
-          <canvas ref={vorschau} className={passend ? "block w-full h-full" : "block w-full h-auto"} />
-          {strom && (
-            <ViereckEditor
-              viereck={zuschnitt.viereck}
-              onViereck={(viereck: Viereck) => onZuschnitt({ ...zuschnitt, viereck, randAuto: false })}
-              bund={zuschnitt.doppelseite ? zuschnitt.bund : null}
-              onBund={(bund) => onZuschnitt({ ...zuschnitt, bund })}
-            />
+        <div ref={buehne} className="absolute inset-0 overflow-hidden flex items-center justify-center" onClick={() => void lageAnfragen()}>
+          <div className="relative shrink-0" style={passend ? { width: passend.w, height: passend.h } : undefined}>
+            <canvas ref={vorschau} className="block w-full h-full" />
+            {editor}
+            {blitz && <div className="absolute inset-0 bg-white/85 pointer-events-none" />}
+          </div>
+          {!strom && !fehler && <p className="absolute p-8 text-center text-sm text-white/80">Kamera wird geöffnet …</p>}
+          {fehler && <p className="absolute p-8 text-center text-sm">{fehler}</p>}
+        </div>
+
+        {/* Oben: schliessen, Symbole, Einstellungen – wie beim iPhone. */}
+        <div className="absolute top-0 inset-x-0 bg-black/45 px-3 pb-2 flex items-center justify-between" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+          {symbol(undefined, () => onVollbild(false), <X size={20} />, "Kamera schliessen")}
+          <div className="flex items-center gap-3">
+            {symbol(randAuto, () => onZuschnitt({ ...zuschnitt, randAuto: !randAuto }), <ScanLine size={18} />, "Rand automatisch")}
+            {symbol(automatisch, () => setAutomatisch(!automatisch), automatisch ? <Zap size={18} /> : <ZapOff size={18} />, "Selbst auslösen")}
+            {roh && symbol(lageAuto, () => {
+              void lageAnfragen();
+              onZuschnitt({ ...zuschnitt, drehungAuto: !lageAuto, drehungVersatz: 0 });
+            }, <Smartphone size={18} />, "Drehung aus der Lage des Handys")}
+          </div>
+          {symbol(einstellungen, () => setEinstellungen(!einstellungen), <MoreHorizontal size={20} />, "Weitere Einstellungen")}
+        </div>
+
+        {/* Hinweise unter der oberen Leiste */}
+        <div className="absolute inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none" style={{ top: "calc(max(0.5rem, env(safe-area-inset-top)) + 3.25rem)" }}>
+          {randText && <span className="rounded-full bg-black/55 text-xs px-3 py-1">{randText}</span>}
+          {automatisch && <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">Löst nach dem Umblättern selbst aus – Hand aus dem Bild</span>}
+          {roh && lageAuto && !lageBereit && (
+            <button type="button" onClick={() => void lageAnfragen()} className="pointer-events-auto rounded-full bg-white/90 text-black text-xs px-3 py-1">
+              Antippen: Drehung des Handys erkennen
+            </button>
           )}
+        </div>
+
+        {haken > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div style={gedreht} className="flex items-center gap-2 rounded-full bg-green-600/90 px-5 py-3 text-lg font-medium shadow-lg">
+              <Check size={26} /> Aufgenommen
+            </div>
+          </div>
+        )}
+
+        {einstellungen && (
+          <div className="absolute inset-x-3 rounded-xl bg-black/85 border border-white/15 p-4" style={{ bottom: "calc(max(0.75rem, env(safe-area-inset-bottom)) + 9.5rem)" }}>
+            {einstellungsListe(true)}
+          </div>
+        )}
+
+        {/* Unten: Einzel-/Doppelseite wie „Video · Foto", darunter Auslöser */}
+        <div className="absolute bottom-0 inset-x-0 bg-black/55 px-4 pt-3 space-y-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+          <div role="radiogroup" className="flex justify-center gap-6 text-sm font-medium tracking-wide">
+            {([["einzel", "EINZELSEITE"], ["doppel", "DOPPELSEITE"]] as const).map(([w, text]) => {
+              const an = zuschnitt.doppelseite === (w === "doppel");
+              return (
+                <button
+                  key={w}
+                  type="button"
+                  role="radio"
+                  aria-checked={an}
+                  onClick={() => onZuschnitt({ ...zuschnitt, doppelseite: w === "doppel" })}
+                  className={`px-3 py-1 rounded-full ${an ? "text-primary bg-white/10" : "text-white/80"}`}
+                >
+                  {text}
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 items-center">
+            <button type="button" onClick={() => onVollbild(false)} className="justify-self-start relative" aria-label={`Zur Seitenliste, ${seitenZahl} Seiten`}>
+              <span style={gedreht} className="block h-14 w-14 rounded-lg border-2 border-white/60 bg-white/10 overflow-hidden">
+                {letzteSeite && <img src={letzteSeite} alt="" className="h-full w-full object-cover" />}
+              </span>
+              <span className="absolute -top-2 -right-2 min-w-6 h-6 px-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center">
+                {seitenZahl}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { void lageAnfragen(); void ausloesen(); }}
+              disabled={!strom}
+              aria-label="Aufnehmen"
+              className="justify-self-center h-[4.75rem] w-[4.75rem] rounded-full border-[5px] border-white/90 bg-white disabled:opacity-50 active:scale-95 transition-transform"
+            />
+            <div className="justify-self-end">
+              {symbol(undefined, drehen, <RotateCw size={20} />, "Foto um 90° drehen")}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── In der Seite (Rechner) ────────────────────────────────────────────────
+  const knopf = (an: boolean | undefined, onClick: () => void, inhalt: ReactNode, titel?: string) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={titel}
+      aria-pressed={an}
+      className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-md border ${an ? "bg-primary/15 border-primary text-primary" : "hover:bg-muted"}`}
+    >
+      {inhalt}
+    </button>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div ref={buehne} className="relative rounded-lg overflow-hidden border bg-black">
+        <video ref={video} playsInline muted className="hidden" />
+        <div className="relative">
+          <canvas ref={vorschau} className="block w-full h-auto" />
+          {editor}
           {blitz && <div className="absolute inset-0 bg-white/85 pointer-events-none" />}
           {haken > 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -412,83 +583,35 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
             </div>
           )}
         </div>
-        {!strom && !fehler && <p className="absolute p-8 text-center text-sm text-white/80">Kamera wird geöffnet …</p>}
-        {fehler && <p className="absolute p-8 text-center text-sm text-white">{fehler}</p>}
-        {vollbild && (
-          <>
-            <div className="absolute top-2 left-2 right-16 flex flex-wrap gap-2 pointer-events-none">
-              {randText && <span className="rounded-full bg-black/60 text-white text-xs px-3 py-1">{randText}</span>}
-              {automatisch && (
-                <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">
-                  Löst nach dem Umblättern selbst aus – Hand aus dem Bild nehmen
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => onVollbild(false)}
-              aria-label="Kamera schliessen"
-              className="absolute top-2 right-2 h-10 w-10 inline-flex items-center justify-center rounded-full bg-black/60 text-white"
-            >
-              <X size={20} />
-            </button>
-          </>
-        )}
+        {!strom && !fehler && <p className="p-8 text-center text-sm text-white/80">Kamera wird geöffnet …</p>}
+        {fehler && <p className="p-8 text-center text-sm text-white">{fehler}</p>}
       </div>
 
-      {vollbild ? (
-        <div className="shrink-0 bg-black/90 text-white px-3 pt-2 space-y-2" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {seitenart}
-            {knopf(randAuto, () => onZuschnitt({ ...zuschnitt, randAuto: !randAuto }), <><ScanLine size={16} /> Rand</>, "Rand des Buches automatisch finden")}
-            {knopf(undefined, drehen, <><RotateCw size={16} /> Drehen</>)}
-            {knopf(einstellungen, () => setEinstellungen(!einstellungen), <Settings2 size={16} />, "Weitere Einstellungen")}
-          </div>
-          {einstellungen && <div className="rounded-md border border-white/20 p-3">{einstellungsListe}</div>}
-          <div className="grid grid-cols-3 items-center">
-            <button type="button" onClick={() => onVollbild(false)} className="justify-self-start flex items-center gap-2" aria-label="Zur Seitenliste">
-              <span className="h-12 w-9 rounded border border-white/40 bg-white/10 overflow-hidden">
-                {letzteSeite && <img src={letzteSeite} alt="" className="h-full w-full object-cover" />}
-              </span>
-              <span className="text-sm">{seitenZahl} {seitenZahl === 1 ? "Seite" : "Seiten"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void ausloesen()}
-              disabled={!strom}
-              aria-label="Aufnehmen"
-              className="justify-self-center h-[4.5rem] w-[4.5rem] rounded-full border-4 border-white bg-primary disabled:opacity-50 active:scale-95 transition-transform"
-            />
-            <div className="justify-self-end">
-              {knopf(automatisch, () => setAutomatisch(!automatisch), <>{automatisch ? <Zap size={16} /> : <ZapOff size={16} />} Selbst<br className="sm:hidden" /> auslösen</>, "Nach dem Umblättern von selbst auslösen")}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void ausloesen()}
-              disabled={!strom}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Camera size={16} /> Aufnehmen <span className="hidden sm:inline text-xs opacity-80">(Leertaste)</span>
-            </button>
-            {seitenart}
-            {knopf(automatisch, () => setAutomatisch(!automatisch), <>{automatisch ? <Zap size={16} /> : <ZapOff size={16} />} Nach dem Umblättern von selbst</>)}
-            {knopf(randAuto, () => onZuschnitt({ ...zuschnitt, randAuto: !randAuto }), <><Crop size={16} /> Rand automatisch</>)}
-            {knopf(undefined, drehen, <><RotateCw size={16} /> Drehen</>)}
-            {knopf(undefined, () => onVollbild(true), <><Maximize2 size={16} /> Vollbild</>)}
-          </div>
-          {randText && <p className="text-xs text-muted-foreground">{randText}</p>}
-          {einstellungsListe}
-          {automatisch && (
-            <p className="text-xs text-muted-foreground">
-              Blättere um und nimm die Hand aus dem Bild. Steht das Bild einen Moment still, wird aufgenommen – mit Blitz, Haken und Ton.
-            </p>
-          )}
-        </>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void ausloesen()}
+          disabled={!strom}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Camera size={16} /> Aufnehmen <span className="hidden sm:inline text-xs opacity-80">(Leertaste)</span>
+        </button>
+        <Umschalter
+          wert={zuschnitt.doppelseite ? "doppel" : "einzel"}
+          optionen={[["einzel", "Einzelseite"], ["doppel", "Doppelseite"]]}
+          onWahl={(w) => onZuschnitt({ ...zuschnitt, doppelseite: w === "doppel" })}
+        />
+        {knopf(automatisch, () => setAutomatisch(!automatisch), <>{automatisch ? <Zap size={16} /> : <ZapOff size={16} />} Nach dem Umblättern von selbst</>)}
+        {knopf(randAuto, () => onZuschnitt({ ...zuschnitt, randAuto: !randAuto }), <><Crop size={16} /> Rand automatisch</>)}
+        {knopf(undefined, drehen, <><RotateCw size={16} /> Drehen</>)}
+        {knopf(undefined, () => onVollbild(true), <><Maximize2 size={16} /> Vollbild</>)}
+      </div>
+      {randText && <p className="text-xs text-muted-foreground">{randText}</p>}
+      {einstellungsListe(false)}
+      {automatisch && (
+        <p className="text-xs text-muted-foreground">
+          Blättere um und nimm die Hand aus dem Bild. Steht das Bild einen Moment still, wird aufgenommen – mit Blitz, Haken und Ton.
+        </p>
       )}
     </div>
   );

@@ -29,6 +29,10 @@ export interface Zuschnitt {
   glaetten?: boolean;
   /** Das Viereck folgt dem Buch in der Vorschau (lib/scan/seitenFinden.ts; fehlt das Feld: ja). */
   randAuto?: boolean;
+  /** Am Handy: Drehung aus der Lage des Handys (lib/scan/lage.ts; fehlt das Feld: ja). */
+  drehungAuto?: boolean;
+  /** Was zur Lage hinzu gedreht wurde – von Hand oder weil die Seiten auf dem Kopf standen. */
+  drehungVersatz?: number;
 }
 
 /**

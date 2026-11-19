@@ -317,7 +317,7 @@ const Scannen = () => {
     aendern((x) => ({ ...x, aufnahmen: x.aufnahmen.map((y) => (y.id === aufnahmeId ? { ...y, ausgerichtet: true } : y)) }));
     aufnahmeNeu(aufnahmeId, zuschnittDrehen(a.zuschnitt, grad), { ausgerichtet: true });
     if (s.zuschnitt.drehung === a.zuschnitt.drehung) {
-      zuschnittSetzen(zuschnittDrehen(s.zuschnitt, grad));
+      zuschnittSetzen({ ...zuschnittDrehen(s.zuschnitt, grad), drehungVersatz: ((s.zuschnitt.drehungVersatz ?? 0) + grad) % 360 });
       toast({
         title: grad === 180 ? "Die Seiten standen auf dem Kopf" : "Die Seiten lagen quer",
         description: "Gedreht – auch für die nächsten Aufnahmen. Mit „Drehen“ lässt es sich ändern.",
@@ -329,7 +329,54 @@ const Scannen = () => {
     const s = sitzungRef.current;
     if (!s) return;
     for (const a of s.aufnahmen) aufnahmeNeu(a.id, zuschnittDrehen(a.zuschnitt, 180), { ausgerichtet: true });
-    zuschnittSetzen(zuschnittDrehen(s.zuschnitt, 180));
+    zuschnittSetzen({ ...zuschnittDrehen(s.zuschnitt, 180), drehungVersatz: ((s.zuschnitt.drehungVersatz ?? 0) + 180) % 360 });
+  };
+
+  /**
+   * Eine einzelne Seite um 90° drehen – etwa eine Tafel, die quer im Buch
+   * steht. Gedreht wird das fertige Seitenbild; der Text wird neu gelesen.
+   * Die Aufnahme gilt danach als ausgerichtet und wird nicht mehr von selbst
+   * gedreht.
+   */
+  const seiteDrehen = (aufnahmeId: string, seiteId: string) => {
+    setInArbeit((n) => n + 1);
+    kette.current = kette.current.then(async () => {
+      try {
+        const a = sitzungRef.current?.aufnahmen.find((x) => x.id === aufnahmeId);
+        const seite = a?.seiten.find((x) => x.id === seiteId);
+        if (!a || !seite) return;
+        const bild = await dateiLaden(seite.bildId);
+        if (!bild) throw new Error("Das Bild der Seite fehlt im Zwischenspeicher.");
+        const bmp = await createImageBitmap(bild);
+        const c = document.createElement("canvas");
+        c.width = bmp.height;
+        c.height = bmp.width;
+        const ctx = c.getContext("2d")!;
+        ctx.translate(c.width / 2, c.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+        bmp.close();
+        const neu = await new Promise<Blob>((ok, fehler) => c.toBlob((b) => (b ? ok(b) : fehler(new Error("Drehen fehlgeschlagen."))), "image/jpeg", 0.85));
+        const bildId = neueKennung();
+        await dateiSpeichern(bildId, neu);
+        bilderMerken([[bildId, neu]]);
+        aendern((s) => ({
+          ...s,
+          aufnahmen: s.aufnahmen.map((x) => (x.id !== aufnahmeId ? x : {
+            ...x,
+            ausgerichtet: true,
+            seiten: x.seiten.map((y) => (y.id === seiteId ? { ...y, bildId, breite: y.hoehe, hoehe: y.breite } : y)),
+          })),
+        }));
+        await dateiLoeschen(seite.bildId);
+        bilderVergessen([seite.bildId]);
+        await ocr.seiteNeu(seiteId);
+      } catch (err) {
+        setFehler(`Drehen ging nicht: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        setInArbeit((n) => n - 1);
+      }
+    });
   };
 
   const schriftWaehlen = (wahl: SchriftWahl) => {
@@ -457,6 +504,7 @@ const Scannen = () => {
             letzteSeite={letzteSeite}
             vollbild={vollbild}
             onVollbild={setVollbild}
+            handy={istHandy}
           />
           )}
 
@@ -516,6 +564,7 @@ const Scannen = () => {
               onAufnahmeLoeschen={aufnahmeLoeschen}
               onSeiteLoeschen={seiteLoeschen}
               onZuschneiden={(id) => void zuschneidenOeffnen(id)}
+              onSeiteDrehen={seiteDrehen}
               onNeuLesen={(id) => void ocr.seiteNeu(id)}
             />
           )}

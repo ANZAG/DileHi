@@ -40,14 +40,22 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Das Viereck gilt für alle Seiten, solange Kamera und Buch stehen bleiben;
    den Bund setzt man bei einer Doppelseite einmal.
 
-   **Am Handy** öffnet sich die Kamera im Vollbild, die Knöpfe liegen über
-   dem Bild: Einzel-/Doppelseite, Rand, Drehen, weitere Einstellungen
-   (Zahnrad), der grosse Auslöser, „Selbst auslösen" und links die Zahl der Seiten mit
-   der letzten Seite – ein Tipp darauf führt zur Seitenliste. Liegt das Handy
-   flach über dem Buch, dreht iOS die Ansicht nicht mit, auch wenn man es
-   quer hält. Für eine Doppelseite lohnt es trotzdem, das Handy quer zu
-   halten (das Buch füllt dann mehr vom Bild) und einmal auf *Drehen* zu
-   tippen. Der Rahmen dreht dabei mit.
+   **Am Handy** wie die Kamera des iPhones: Das Kamerabild füllt den ganzen
+   Bildschirm und wird nicht gedreht. Oben liegen kleine Symbole (schliessen,
+   Rand automatisch, Selbst auslösen, Drehung aus der Lage, Einstellungen),
+   unten „EINZELSEITE · DOPPELSEITE" über dem Auslöser, links die letzte
+   Seite mit der Zahl der Seiten – ein Tipp darauf führt zur Seitenliste –,
+   rechts „um 90° drehen".
+
+   Wie man das Handy hält, sagt der Lagesensor: Hochkant oder quer, das Foto
+   wird richtig herum gespeichert, und die Symbole drehen sich an ihrem
+   Platz. Liegt das Handy flach über dem Buch, ist die Lage nicht zu
+   erkennen; dann gilt, wie beim iPhone, die letzte sichere Lage – also das
+   Handy quer anheben und dann über das Buch senken. Das iPhone fragt beim
+   ersten Mal um Erlaubnis („Antippen: Drehung des Handys erkennen"). Was von
+   Hand dazugedreht wurde oder von der Texterkennung (kopfstehende Seiten),
+   bleibt erhalten, auch wenn man das Handy danach anders hält. Ausschalten
+   lässt sich die Automatik in den Einstellungen.
 
    *Selbst auslösen* nimmt nach dem Umblättern von selbst auf, sobald das
    Bild einen Moment still steht; solange es an ist, steht oben ein Hinweis.
@@ -118,7 +126,9 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    noch so, auch der Zuschnitt für die nächsten Seiten; eine kurze Meldung
    sagt es. Je Aufnahme geschieht das nur einmal. Bildtafeln lesen sich in
    jeder Richtung schlecht und bleiben, wie sie sind. Von Hand: *Alle Seiten
-   um 180° drehen* über der Seitenliste, oder *Neu zuschneiden* je Aufnahme. Aufnahmen lassen sich verschieben, neu
+   um 180° drehen* über der Seitenliste, der Drehknopf oben links an jeder
+   Seite (um 90°, etwa für eine quer gedruckte Tafel; der Text wird neu
+   gelesen), oder *Neu zuschneiden* je Aufnahme. Aufnahmen lassen sich verschieben, neu
    zuschneiden und löschen, einzelne Seiten (eine leere Rückseite) entfernen.
 
 5. **PDF bauen und hochladen.** Das PDF zeigt die Seitenbilder, darüber
@@ -204,7 +214,7 @@ Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
 `src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`,
-`src/test/scanDrehen.test.ts`.
+`src/test/scanDrehen.test.ts`, `src/test/scanLage.test.ts`.
 
 ## Später
 

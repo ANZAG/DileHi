@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Crop, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Crop, Loader2, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 import type { Aufnahme } from "@/lib/scan/speicher";
 import { SCHRIFT_NAME } from "@/lib/scan/ocr";
 import type { OcrZustand } from "./useTexterkennung";
@@ -18,6 +18,7 @@ interface Props {
   onAufnahmeLoeschen: (aufnahmeId: string) => void;
   onSeiteLoeschen: (aufnahmeId: string, seiteId: string) => void;
   onZuschneiden: (aufnahmeId: string) => void;
+  onSeiteDrehen: (aufnahmeId: string, seiteId: string) => void;
   onNeuLesen: (seiteId: string) => void;
 }
 
@@ -39,7 +40,7 @@ function Lesestand({ z, onNeu }: { z: OcrZustand | undefined; onNeu: () => void 
   );
 }
 
-export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeLoeschen, onSeiteLoeschen, onZuschneiden, onNeuLesen }: Props) {
+export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeLoeschen, onSeiteLoeschen, onZuschneiden, onSeiteDrehen, onNeuLesen }: Props) {
   let nummer = 0;
   return (
     <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -53,6 +54,15 @@ export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeL
                 <div key={s.id} className="flex-1 min-w-0 space-y-1">
                   <div className="relative aspect-[3/4] bg-muted rounded overflow-hidden">
                     {url && <img src={url} alt={`Seite ${nummer}`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" />}
+                    <button
+                      type="button"
+                      onClick={() => onSeiteDrehen(a.id, s.id)}
+                      aria-label={`Seite ${nummer} um 90° drehen`}
+                      title="Diese Seite um 90° drehen"
+                      className="absolute top-1 left-1 h-6 w-6 inline-flex items-center justify-center rounded bg-background/80 hover:bg-background"
+                    >
+                      <RotateCw size={12} />
+                    </button>
                     {a.seiten.length > 1 && (
                       <button
                         type="button"

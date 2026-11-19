@@ -35,12 +35,14 @@ export function ViereckEditor({ viereck, onViereck, bund, onBund }: Props) {
     if (greift === null) return;
     const p = anteil(e);
     if (greift === "bund") {
-      // Den Bund auf die Mittellinie des Vierecks projizieren: wie weit
-      // zwischen linker und rechter Kante liegt der Finger?
-      const links = lerp(viereck[0], viereck[3], p.y);
-      const rechts = lerp(viereck[1], viereck[2], p.y);
-      const breite = rechts.x - links.x;
-      if (Math.abs(breite) > 0.01) onBund?.(Math.max(0.2, Math.min(0.8, (p.x - links.x) / breite)));
+      // Den Finger auf die Linie zwischen der Mitte der linken und der
+      // rechten Kante projizieren – das geht auch, wenn das Foto in der
+      // Vorschau quer liegt (Handy quer gehalten).
+      const links = lerp(viereck[0], viereck[3], 0.5);
+      const rechts = lerp(viereck[1], viereck[2], 0.5);
+      const dx = rechts.x - links.x, dy = rechts.y - links.y;
+      const laenge = dx * dx + dy * dy;
+      if (laenge > 0.0001) onBund?.(Math.max(0.2, Math.min(0.8, ((p.x - links.x) * dx + (p.y - links.y) * dy) / laenge)));
       return;
     }
     const neu = [...viereck] as Viereck;
