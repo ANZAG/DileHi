@@ -20,8 +20,28 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Alle drei Wege enden in der Quellensammlung. Ausschnitte für die
    Wissensbibliothek entstehen erst danach, an einer Karte.
 
-2. **Aufnehmen.** Einmal das Viereck um die Doppelseite ziehen und den Bund
-   setzen; das gilt für alle Seiten, solange Kamera und Buch stehen bleiben.
+2. **Aufnehmen.** *Einzelseite* oder *Doppelseite* wählen (Einband,
+   Titelblatt: Einzelseite). Mit *Rand automatisch* sucht die Seite das Buch
+   in der Vorschau selbst, zweimal je Sekunde: die helle, farblose Fläche in
+   der Bildmitte. Das klappt auf einer dunklen oder farbigen Unterlage
+   (Karton, Holz, Tuch); auf einem weissen Tisch verschwimmt das Papier mit
+   dem Tisch – dann steht „Kein Buch erkannt", und das Viereck wird von Hand
+   gezogen. Wer das Viereck von Hand verschiebt, schaltet die Automatik ab.
+   Das Viereck gilt für alle Seiten, solange Kamera und Buch stehen bleiben;
+   den Bund setzt man bei einer Doppelseite einmal.
+
+   **Am Handy** öffnet sich die Kamera im Vollbild, die Knöpfe liegen über
+   dem Bild: Einzel-/Doppelseite, Rand, Drehen, weitere Einstellungen
+   (Zahnrad), der grosse Auslöser, „Auto" und links die Zahl der Seiten mit
+   der letzten Seite – ein Tipp darauf führt zur Seitenliste. Liegt das Handy
+   flach über dem Buch, dreht iOS die Ansicht nicht mit, auch wenn man es
+   quer hält. Für eine Doppelseite lohnt es trotzdem, das Handy quer zu
+   halten (das Buch füllt dann mehr vom Bild) und einmal auf *Drehen* zu
+   tippen.
+
+   Jede Aufnahme bestätigen ein heller Blitz über der Vorschau, ein grosses
+   „Aufgenommen", ein Ton und – wo das Gerät es kann (Android) – ein kurzes
+   Vibrieren. Den Ton schluckt am iPhone der Stummschalter.
    Ausgelöst wird
    - mit dem Knopf oder der **Leertaste** (ein USB-Fusstaster schickt meist
      eine Taste),
@@ -157,11 +177,11 @@ Büchern lieber in Bänden scannen.
 ## Code
 
 `src/pages/intern/Scannen.tsx`, `src/components/scan/`, `src/lib/scan/`
-(Geometrie, Glätten, Finger, Ordner, Auslöser, Texterkennung, PDF,
+(Geometrie, Rand finden, Glätten, Finger, Ordner, Auslöser, Texterkennung, PDF,
 Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
-`src/test/scanFinger.test.ts`.
+`src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`.
 
 ## Später
 

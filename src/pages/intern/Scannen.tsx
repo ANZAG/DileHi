@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, FileUp, ImagePlus, Loader2, Pencil, RotateCcw, Smartphone } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, FileUp, ImagePlus, Loader2, Pencil, RotateCcw, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { SEITE } from "@/lib/layout";
@@ -28,7 +28,7 @@ import { seitenAusAufnahme, type Zuschnitt } from "@/lib/scan/verarbeitung";
  */
 
 const STANDARD_ZUSCHNITT: Zuschnitt = {
-  drehung: 0, viereck: STANDARD_VIERECK, doppelseite: true, bund: 0.5, farbig: false, finger: true, glaetten: true,
+  drehung: 0, viereck: STANDARD_VIERECK, doppelseite: true, bund: 0.5, farbig: false, finger: true, glaetten: true, randAuto: true,
 };
 const GANZES_BILD: Viereck = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const ZUSCHNITT_MERKER = "scan-zuschnitt";
@@ -69,6 +69,13 @@ const Scannen = () => {
   const [bilder, setBilder] = useState<Map<string, string>>(new Map());
   const [inArbeit, setInArbeit] = useState(0);
   const [weicheZeigen, setWeicheZeigen] = useState(false);
+  // Am Handy läuft die Kamera im Vollbild: Dort verdeckt das Kamerabild sonst
+  // alle Knöpfe. Ausserhalb steht statt der Vorschau nur ein Knopf, damit die
+  // Seitenliste zu sehen ist.
+  const [istHandy] = useState(() => {
+    try { return window.matchMedia("(pointer: coarse) and (max-width: 900px)").matches; } catch { return false; }
+  });
+  const [vollbild, setVollbild] = useState(istHandy);
   const [zuschneiden, setZuschneiden] = useState<{ aufnahmeId: string; roh: Blob; zuschnitt: Zuschnitt } | null>(null);
   const [lauf, setLauf] = useState<{ schritt: Schritt; anteil: number } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -133,10 +140,10 @@ const Scannen = () => {
 
   const ocr = useTexterkennung(sitzung, (schrift) => aendern((s) => ({ ...s, schrift })));
 
-  const zuschnittSetzen = (z: Zuschnitt) => {
+  const zuschnittSetzen = useCallback((z: Zuschnitt) => {
     aendern((s) => ({ ...s, zuschnitt: z }));
     try { localStorage.setItem(ZUSCHNITT_MERKER, JSON.stringify(z)); } catch { /* ohne Merker */ }
-  };
+  }, [aendern]);
 
   const bilderMerken = (paare: [string, Blob][]) =>
     setBilder((alt) => {
@@ -325,7 +332,9 @@ const Scannen = () => {
     }
   };
 
-  const seitenZahl = sitzung ? seitenInReihenfolge(sitzung).length : 0;
+  const alleSeiten = sitzung ? seitenInReihenfolge(sitzung) : [];
+  const seitenZahl = alleSeiten.length;
+  const letzteSeite = alleSeiten.length ? bilder.get(alleSeiten[alleSeiten.length - 1].bildId) : undefined;
 
   return (
     <div className={SEITE}>
@@ -394,7 +403,25 @@ const Scannen = () => {
             </span>
           </div>
 
-          <KameraAufnahme zuschnitt={sitzung.zuschnitt} onZuschnitt={zuschnittSetzen} onAufnahme={vonKamera} />
+          {istHandy && !vollbild ? (
+            <button
+              type="button"
+              onClick={() => setVollbild(true)}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-lg bg-primary text-primary-foreground text-base font-medium"
+            >
+              <Camera size={20} /> Kamera öffnen
+            </button>
+          ) : (
+          <KameraAufnahme
+            zuschnitt={sitzung.zuschnitt}
+            onZuschnitt={zuschnittSetzen}
+            onAufnahme={vonKamera}
+            seitenZahl={seitenZahl}
+            letzteSeite={letzteSeite}
+            vollbild={vollbild}
+            onVollbild={setVollbild}
+          />
+          )}
 
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border hover:bg-muted cursor-pointer">

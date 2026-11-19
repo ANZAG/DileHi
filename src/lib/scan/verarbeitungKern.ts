@@ -26,6 +26,8 @@ export interface Zuschnitt {
   finger?: boolean;
   /** Gewölbte Seiten glätten (lib/scan/glaetten.ts; fehlt das Feld: nein). */
   glaetten?: boolean;
+  /** Das Viereck folgt dem Buch in der Vorschau (lib/scan/seitenFinden.ts; fehlt das Feld: ja). */
+  randAuto?: boolean;
 }
 
 export interface Verarbeitet {
