@@ -34,3 +34,6 @@ supabase/.temp
 # Python-Reste (ein .pyc lag versehentlich im Verzeichnis)
 __pycache__/
 *.pyc
+
+# Texterkennung, wird vor dev und build aus node_modules gefuellt (scripts/ocr-dateien.mjs)
+public/ocr/

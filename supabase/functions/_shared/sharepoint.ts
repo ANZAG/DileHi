@@ -308,10 +308,14 @@ export function safeSegment(value: string): string {
 export async function createUploadSession(
   target: SharePointTarget,
   subfolder: string,
-  fileName: string
+  fileName: string,
+  /** In den Posteingang statt in die Quellensammlung – für Scans ohne Quelle. */
+  inbox = false
 ): Promise<string> {
-  const path = [FOLDER, safeSegment(subfolder), `${Date.now()}_${safeFileName(fileName)}`]
-    .map(encodeURIComponent).join("/");
+  const teile = inbox
+    ? [INBOX, `${Date.now()}_${safeFileName(fileName)}`]
+    : [FOLDER, safeSegment(subfolder), `${Date.now()}_${safeFileName(fileName)}`];
+  const path = teile.map(encodeURIComponent).join("/");
   const session = await graphJson<{ uploadUrl: string }>(
     `/drives/${target.driveId}/root:/${path}:/createUploadSession`,
     { method: "POST", body: JSON.stringify({ item: { "@microsoft.graph.conflictBehavior": "rename" } }) }

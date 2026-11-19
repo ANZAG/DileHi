@@ -160,6 +160,10 @@ Sehr grosse Scans über die Website hochzuladen ist mühsam. Schneller geht es
    als neue Quelle in einer Epoche. Dann einmal **Dateien zuordnen** für alle.
    Die Dateien wandern dabei nach `Quellensammlung/<Epoche>/`.
 
+Auch Scans aus **Quellensammlung → Scannen** mit „Weiß ich noch nicht" landen
+im Posteingang; ihr erkannter Text liegt schon bereit und gehört nach dem
+Zuordnen zur Quelle ([scannen.md](scannen.md)).
+
 Der Ordner der **Wissensbibliothek** erscheint nicht im Eingangskorb, wenn er
 auf derselben Website liegt (oder für die Bibliothek noch keine eigene Website
 eingetragen ist). Seine Dateien liest die Bibliothek selbst ein; zuordnen

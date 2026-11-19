@@ -78,6 +78,7 @@ const ForumCategory        = lazyPage(() => import("./pages/intern/ForumCategory
 const ForumThread          = lazyPage(() => import("./pages/intern/ForumThread"));
 const Profile              = lazyPage(() => import("./pages/intern/Profile"));
 const Sources              = lazyPage(() => import("./pages/intern/Sources"));
+const Scannen              = lazyPage(() => import("./pages/intern/Scannen"));
 const Announcements        = lazyPage(() => import("./pages/intern/Announcements"));
 const Elections            = lazyPage(() => import("./pages/intern/Elections"));
 const EventsPage           = lazyPage(() => import("./pages/intern/Events"));
@@ -195,6 +196,7 @@ const App = () => (
                 <Route path="/intern" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/intern/profil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/intern/quellen" element={<ModuleRoute k="sources"><ProtectedRoute><Sources /></ProtectedRoute></ModuleRoute>} />
+                <Route path="/intern/quellen/scannen" element={<ModuleRoute k="sources"><ProtectedRoute><Scannen /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/forum" element={<ModuleRoute k="forum"><ProtectedRoute><Forum /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/forum/thema/:threadId" element={<ModuleRoute k="forum"><ProtectedRoute><ForumThread /></ProtectedRoute></ModuleRoute>} />
                 <Route path="/intern/forum/:slug" element={<ModuleRoute k="forum"><ProtectedRoute><ForumCategory /></ProtectedRoute></ModuleRoute>} />

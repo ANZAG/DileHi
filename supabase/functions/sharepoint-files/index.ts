@@ -24,7 +24,8 @@ import {
  * Aktionen (POST, JSON mit `action`):
  *   status          Ist SharePoint erreichbar? Für die Verwaltung.
  *   settings        Ablage umschalten und Website eintragen.
- *   upload-session  Hochladeadresse für eine neue Datei.
+ *   upload-session  Hochladeadresse für eine neue Datei (mit `inbox: true` in
+ *                   den Posteingang, sonst in die Quellensammlung).
  *   register        Die hochgeladene Datei als Quelle anlegen.
  *   attach          Eine hochgeladene Datei an eine bestehende Quelle hängen.
  *   download-url    Adresse zum Ansehen oder Herunterladen.
@@ -140,8 +141,11 @@ Deno.serve(async (req) => {
         const fileName = String(body.fileName ?? "").trim();
         if (!fileName) throw new Refusal("Dateiname fehlt.", 400);
         const t = await target();
-        await ensureFolder(t);
-        const uploadUrl = await createUploadSession(t, String(body.epoch ?? ""), fileName);
+        // Ein Scan, der noch keiner Quelle zugeordnet werden kann, geht in
+        // den Posteingang; dort ordnet ihn der Eingangskorb später zu.
+        const inbox = body.inbox === true;
+        await ensureFolder(t, inbox ? INBOX : FOLDER);
+        const uploadUrl = await createUploadSession(t, String(body.epoch ?? ""), fileName, inbox);
         return json(200, { uploadUrl });
       }
 

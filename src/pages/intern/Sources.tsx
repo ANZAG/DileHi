@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput, AlertTriangle, ScanLine } from "lucide-react";
 import {
   attachFile, deleteSourceWithFile, downloadUrl, previewUrl as sharePointPreview, registerSource, uploadToSharePoint,
 } from "@/lib/sharePointFiles";
@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useKategorien } from "@/hooks/useKategorien";
 import { SEITE } from "@/lib/layout";
+import { TextTrefferListe } from "@/components/scan/TextTrefferListe";
 
 const sanitizeFileName = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -470,6 +471,21 @@ const Sources = () => {
     }
   };
 
+  /**
+   * Eine Fundstelle aus der Textsuche ansehen. Die Vorschau von SharePoint
+   * springt nicht auf eine Seite; deshalb steht die Seite im Titel.
+   */
+  const fundstelleOeffnen = async (sourceId: string, seite: number) => {
+    const { data, error } = await supabase.from("sources")
+      .select("id, title, content, url, file_path, drive_item_id, file_name, file_missing, folder_id, created_by")
+      .eq("id", sourceId).maybeSingle();
+    if (error || !data) {
+      toast({ title: "Quelle nicht gefunden", variant: "destructive" });
+      return;
+    }
+    await previewSourceFile({ ...(data as SourceRow), title: `${data.title} – PDF-Seite ${seite}` });
+  };
+
   const searchResults = search
     ? sources.filter(
         (s) => s.title.toLowerCase().includes(search.toLowerCase()) || s.content?.toLowerCase().includes(search.toLowerCase())
@@ -491,6 +507,14 @@ const Sources = () => {
             <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus size={16} /> Quelle
             </button>
+            {fileStorage === "sharepoint" && (
+              <Link
+                to={`/intern/quellen/scannen?epoche=${encodeURIComponent(activeEpoch)}${currentFolderId ? `&ordner=${currentFolderId}` : ""}`}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted"
+              >
+                <ScanLine size={16} /> Scannen
+              </Link>
+            )}
             <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border hover:bg-muted cursor-pointer">
               <Upload size={16} /> Dateien
               <input type="file" className="hidden" multiple onChange={(e) => { if (e.target.files?.length) handleFilesSelected(e.target.files); e.target.value = ""; }} />
@@ -562,6 +586,11 @@ const Sources = () => {
             {searchResults.map((s: SourceRow) => (
               <SourceItem key={s.id} source={s} user={user} onDelete={(id) => deleteSource.mutate(id)} onDownload={downloadSourceFile} onPreview={previewSourceFile} onAttach={fileStorage === "sharepoint" && (s.created_by === user?.id || canManageStorage) ? attachToSource : undefined} onEdit={(id, title) => { setEditingSource(id); setEditTitle(title); }} editingId={editingSource} editTitle={editTitle} onEditTitleChange={setEditTitle} onEditSave={(id) => updateSourceTitle.mutate({ id, title: editTitle })} onEditCancel={() => setEditingSource(null)} folders={folders} onMove={(id, folderId) => moveSource.mutate({ id, folder_id: folderId })} />
             ))}
+            <TextTrefferListe
+              suche={search}
+              epochName={(wert) => kategorien.find((k) => k.value === wert)?.label ?? wert}
+              onOeffnen={(id, seite) => void fundstelleOeffnen(id, seite)}
+            />
           </div>
         ) : (
           <>

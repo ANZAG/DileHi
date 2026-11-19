@@ -41,10 +41,12 @@ export async function uploadToSharePoint(
   file: File,
   epoch: string,
   onProgress: (fraction: number) => void,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  /** In den Posteingang statt nach Quellensammlung/<Epoche>. */
+  inbox = false
 ): Promise<DriveItem> {
   const { uploadUrl } = await invokeFunction<{ uploadUrl: string }>("sharepoint-files", {
-    body: { action: "upload-session", fileName: file.name, epoch },
+    body: { action: "upload-session", fileName: file.name, epoch, inbox },
   });
 
   const ranges = chunkRanges(file.size);

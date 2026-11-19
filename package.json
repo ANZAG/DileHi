@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && node scripts/vorabzug.mjs",
-    "build:dev": "vite build --mode development",
+    "dev": "node scripts/ocr-dateien.mjs && vite",
+    "build": "node scripts/ocr-dateien.mjs && vite build && node scripts/vorabzug.mjs",
+    "build:dev": "node scripts/ocr-dateien.mjs && vite build --mode development",
     "lint": "eslint .",
     "seo:check": "node scripts/seo-check.mjs",
     "ci": "npm run lint && npm run seo:check && npx tsc --noEmit -p tsconfig.app.json && npm run functions:check && npm test && npm run build",
@@ -47,6 +47,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.83.0",
+    "@tesseract.js-data/deu": "^1.0.0",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-blockquote": "^3.31.3",
     "@tiptap/extension-image": "^3.31.3",
@@ -72,6 +73,7 @@
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -84,6 +86,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
