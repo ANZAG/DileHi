@@ -1,5 +1,6 @@
 import {
-  bundTeile, grauMachen, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen, type Drehung, type Gitter, type Viereck,
+  bundTeile, grauMachen, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen, viereckDrehen, type Drehung, type Gitter,
+  type Viereck,
 } from "./geometrie";
 import { fingerEntfernen } from "./finger";
 import { gitterBerechnen, MODELL_BREITE, MODELL_HOEHE } from "./glaetten";
@@ -28,6 +29,21 @@ export interface Zuschnitt {
   glaetten?: boolean;
   /** Das Viereck folgt dem Buch in der Vorschau (lib/scan/seitenFinden.ts; fehlt das Feld: ja). */
   randAuto?: boolean;
+}
+
+/**
+ * Einen Zuschnitt mit dem Bild weiterdrehen (im Uhrzeigersinn). Das Viereck
+ * dreht mit; bei 180° liegt der Bund danach von der anderen Seite gemessen.
+ */
+export function zuschnittDrehen(z: Zuschnitt, grad: 90 | 180 | 270): Zuschnitt {
+  let viereck = z.viereck;
+  for (let i = 0; i < grad / 90; i++) viereck = viereckDrehen(viereck);
+  return {
+    ...z,
+    drehung: ((z.drehung + grad) % 360) as Drehung,
+    viereck,
+    bund: grad === 180 ? 1 - z.bund : z.bund,
+  };
 }
 
 export interface Verarbeitet {

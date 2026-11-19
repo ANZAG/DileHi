@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { erkennen, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
+import { ausrichtungFinden, erkennen, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
 import { dateiLaden, textLaden, textLoeschen, textSpeichern, type Sitzung } from "@/lib/scan/speicher";
 import { seitenInReihenfolge } from "@/lib/scan/abschluss";
 
@@ -17,7 +17,16 @@ export type OcrZustand =
   | { zustand: "fertig"; sicherheit: number; schrift: Schrift }
   | { zustand: "fehler"; fehler: string };
 
-export function useTexterkennung(sitzung: Sitzung | null, onSchrift: (s: Schrift) => void) {
+/**
+ * `onKopfstand`: Eine Seite steht auf dem Kopf (oder quer) – die Aufnahme
+ * soll um `grad` gedreht neu verarbeitet werden. Gefragt wird je Aufnahme
+ * nur einmal (Aufnahme.ausgerichtet).
+ */
+export function useTexterkennung(
+  sitzung: Sitzung | null,
+  onSchrift: (s: Schrift) => void,
+  onKopfstand?: (aufnahmeId: string, grad: 90 | 180 | 270) => void
+) {
   const [stand, setStand] = useState<Record<string, OcrZustand>>({});
   const laeuft = useRef(false);
   const [runde, setRunde] = useState(0);
@@ -48,6 +57,11 @@ export function useTexterkennung(sitzung: Sitzung | null, onSchrift: (s: Schrift
         if (!schrift) onSchrift(ergebnis.schrift);
         await textSpeichern(naechste.id, ergebnis);
         setze({ zustand: "fertig", sicherheit: ergebnis.sicherheit, schrift: ergebnis.schrift });
+        const aufnahme = sitzung.aufnahmen.find((a) => a.seiten.some((x) => x.id === naechste.id));
+        if (onKopfstand && aufnahme && !aufnahme.ausgerichtet) {
+          const grad = await ausrichtungFinden(bild, naechste.breite, naechste.hoehe, ergebnis);
+          if (grad) onKopfstand(aufnahme.id, grad);
+        }
       } catch (err) {
         setze({ zustand: "fehler", fehler: err instanceof Error ? err.message : String(err) });
       } finally {

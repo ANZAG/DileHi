@@ -32,6 +32,8 @@ export interface Aufnahme {
   rohId: string;
   zuschnitt: Zuschnitt;
   seiten: ScanSeite[];
+  /** Schon einmal von selbst gedreht (stand auf dem Kopf) – nicht noch einmal prüfen. */
+  ausgerichtet?: boolean;
 }
 
 export interface Sitzung {

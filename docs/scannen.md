@@ -103,7 +103,16 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    *Doppelseite* ausschalten.
 
 4. **Prüfen.** Unter der Kamera stehen die Seiten in ihrer Reihenfolge, mit
-   der Sicherheit der Texterkennung. Aufnahmen lassen sich verschieben, neu
+   der Sicherheit der Texterkennung.
+
+   **Kopfstehende Seiten** richtet die Seite selbst: Liest die Erkennung eine
+   Seite mit Text schlecht (unter 45 %), liest sie sie auch auf dem Kopf und
+   notfalls quer. Ist eine Richtung deutlich besser (mindestens 15 Punkte und
+   50 %), wird die Aufnahme gedreht neu verarbeitet – und steht die Kamera
+   noch so, auch der Zuschnitt für die nächsten Seiten; eine kurze Meldung
+   sagt es. Je Aufnahme geschieht das nur einmal. Bildtafeln lesen sich in
+   jeder Richtung schlecht und bleiben, wie sie sind. Von Hand: *Alle Seiten
+   um 180° drehen* über der Seitenliste, oder *Neu zuschneiden* je Aufnahme. Aufnahmen lassen sich verschieben, neu
    zuschneiden und löschen, einzelne Seiten (eine leere Rückseite) entfernen.
 
 5. **PDF bauen und hochladen.** Das PDF zeigt die Seitenbilder, darüber
@@ -188,7 +197,8 @@ Büchern lieber in Bänden scannen.
 Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
-`src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`.
+`src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`,
+`src/test/scanDrehen.test.ts`.
 
 ## Später
 

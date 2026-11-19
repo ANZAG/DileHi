@@ -119,3 +119,47 @@ export async function ocrBeenden(): Promise<void> {
   arbeiter.clear();
   await Promise.all(alle.map((w) => w.then((x) => x.terminate()).catch(() => undefined)));
 }
+
+/** Ein Bild drehen (im Uhrzeigersinn), als PNG. */
+async function bildDrehen(bild: Blob, grad: 90 | 180 | 270): Promise<Blob> {
+  const bmp = await createImageBitmap(bild);
+  const quer = grad !== 180;
+  const c = document.createElement("canvas");
+  c.width = quer ? bmp.height : bmp.width;
+  c.height = quer ? bmp.width : bmp.height;
+  const ctx = c.getContext("2d")!;
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate((grad * Math.PI) / 180);
+  ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+  bmp.close();
+  return await new Promise((ok, fehler) => c.toBlob((b) => (b ? ok(b) : fehler(new Error("Drehen fehlgeschlagen."))), "image/png"));
+}
+
+/**
+ * Steht die Seite auf dem Kopf (oder quer)? Nur gefragt, wenn eine Seite mit
+ * Text schlecht gelesen wurde: Dann liest die Erkennung sie auch gedreht.
+ * Eine Richtung gilt nur, wenn sie deutlich besser ist – eine Bildtafel
+ * liest sich in jeder Richtung schlecht und bleibt, wie sie ist.
+ *
+ * Ergebnis: um wie viel Grad (im Uhrzeigersinn) zu drehen ist; 0 heisst, so
+ * lassen.
+ */
+export async function ausrichtungFinden(
+  bild: Blob,
+  breite: number,
+  hoehe: number,
+  ergebnis: OcrErgebnis
+): Promise<0 | 90 | 180 | 270> {
+  if (ergebnis.sicherheit >= 45 || ergebnis.text.length < 80) return 0;
+  let beste: { grad: 0 | 90 | 180 | 270; sicherheit: number } = { grad: 0, sicherheit: ergebnis.sicherheit };
+  const versuch = async (grad: 90 | 180 | 270) => {
+    const r = await erkennen(await bildDrehen(bild, grad), grad === 180 ? breite : hoehe, ergebnis.schrift);
+    if (r.sicherheit > beste.sicherheit) beste = { grad, sicherheit: r.sicherheit };
+  };
+  await versuch(180);
+  if (beste.sicherheit < 30) {
+    await versuch(90);
+    await versuch(270);
+  }
+  return beste.grad !== 0 && beste.sicherheit >= 50 && beste.sicherheit >= ergebnis.sicherheit + 15 ? beste.grad : 0;
+}

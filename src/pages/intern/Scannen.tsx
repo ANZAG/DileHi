@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Camera, CheckCircle2, FileUp, ImagePlus, Loader2, Pencil, RotateCcw, Smartphone } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, FileUp, ImagePlus, Loader2, Pencil, RotateCcw, RotateCw, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { SEITE } from "@/lib/layout";
@@ -20,6 +20,8 @@ import {
   type Aufnahme, type Sitzung, type Weiche,
 } from "@/lib/scan/speicher";
 import { seitenAusAufnahme, type Zuschnitt } from "@/lib/scan/verarbeitung";
+import { zuschnittDrehen } from "@/lib/scan/verarbeitungKern";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Quellensammlung → Scannen: ein Buch mit Webcam oder Handy aufnehmen,
@@ -63,6 +65,7 @@ function zielText(w: Weiche): string {
 const Scannen = () => {
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [sitzung, setSitzung] = useState<Sitzung | null>(null);
   const sitzungRef = useRef<Sitzung | null>(null);
   sitzungRef.current = sitzung;
@@ -138,7 +141,7 @@ const Scannen = () => {
     return () => window.removeEventListener("beforeunload", warnen);
   }, [inArbeit, lauf]);
 
-  const ocr = useTexterkennung(sitzung, (schrift) => aendern((s) => ({ ...s, schrift })));
+  const ocr = useTexterkennung(sitzung, (schrift) => aendern((s) => ({ ...s, schrift })), (id, grad) => kopfstand(id, grad));
 
   const zuschnittSetzen = useCallback((z: Zuschnitt) => {
     aendern((s) => ({ ...s, zuschnitt: z }));
@@ -271,28 +274,62 @@ const Scannen = () => {
     setZuschneiden({ aufnahmeId: id, roh, zuschnitt: a.zuschnitt });
   };
 
-  const zuschneidenUebernehmen = (z: Zuschnitt) => {
-    const auftrag = zuschneiden;
-    setZuschneiden(null);
-    if (!auftrag) return;
+  /** Eine Aufnahme mit anderem Zuschnitt neu verarbeiten; die alten Seiten gehen. */
+  const aufnahmeNeu = (aufnahmeId: string, z: Zuschnitt, extra: Partial<Aufnahme> = {}) => {
     setInArbeit((n) => n + 1);
     kette.current = kette.current.then(async () => {
       try {
-        const alt = sitzungRef.current?.aufnahmen.find((a) => a.id === auftrag.aufnahmeId);
+        const alt = sitzungRef.current?.aufnahmen.find((a) => a.id === aufnahmeId);
         if (!alt) return;
-        const seiten = await seitenMachen(auftrag.roh, z);
+        const roh = await dateiLaden(alt.rohId);
+        if (!roh) throw new Error("Das ursprüngliche Bild fehlt im Zwischenspeicher.");
+        const seiten = await seitenMachen(roh, z);
         aendern((s) => ({
           ...s,
-          aufnahmen: s.aufnahmen.map((a) => (a.id === auftrag.aufnahmeId ? { ...a, zuschnitt: z, seiten } : a)),
+          aufnahmen: s.aufnahmen.map((a) => (a.id === aufnahmeId ? { ...a, ...extra, zuschnitt: z, seiten } : a)),
         }));
         for (const s of alt.seiten) { await dateiLoeschen(s.bildId); await textLoeschen(s.id); }
         bilderVergessen(alt.seiten.map((s) => s.bildId));
       } catch (err) {
-        setFehler(`Neu zuschneiden ging nicht: ${err instanceof Error ? err.message : String(err)}`);
+        setFehler(`Neu verarbeiten ging nicht: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setInArbeit((n) => n - 1);
       }
     });
+  };
+
+  const zuschneidenUebernehmen = (z: Zuschnitt) => {
+    const auftrag = zuschneiden;
+    setZuschneiden(null);
+    if (auftrag) aufnahmeNeu(auftrag.aufnahmeId, z);
+  };
+
+  /**
+   * Die Texterkennung meldet: Diese Aufnahme steht auf dem Kopf (oder quer).
+   * Sie wird gedreht neu verarbeitet – und wenn die Kamera noch so steht wie
+   * bei dieser Aufnahme, dreht auch der Zuschnitt für die nächsten Seiten mit.
+   * Je Aufnahme nur einmal, auch wenn beide Hälften einer Doppelseite melden.
+   */
+  const kopfstand = useCallback((aufnahmeId: string, grad: 90 | 180 | 270) => {
+    const s = sitzungRef.current;
+    const a = s?.aufnahmen.find((x) => x.id === aufnahmeId);
+    if (!s || !a || a.ausgerichtet) return;
+    aendern((x) => ({ ...x, aufnahmen: x.aufnahmen.map((y) => (y.id === aufnahmeId ? { ...y, ausgerichtet: true } : y)) }));
+    aufnahmeNeu(aufnahmeId, zuschnittDrehen(a.zuschnitt, grad), { ausgerichtet: true });
+    if (s.zuschnitt.drehung === a.zuschnitt.drehung) {
+      zuschnittSetzen(zuschnittDrehen(s.zuschnitt, grad));
+      toast({
+        title: grad === 180 ? "Die Seiten standen auf dem Kopf" : "Die Seiten lagen quer",
+        description: "Gedreht – auch für die nächsten Aufnahmen. Mit „Drehen“ lässt es sich ändern.",
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const alleDrehen = () => {
+    const s = sitzungRef.current;
+    if (!s) return;
+    for (const a of s.aufnahmen) aufnahmeNeu(a.id, zuschnittDrehen(a.zuschnitt, 180), { ausgerichtet: true });
+    zuschnittSetzen(zuschnittDrehen(s.zuschnitt, 180));
   };
 
   const schriftWaehlen = (wahl: SchriftWahl) => {
@@ -455,6 +492,19 @@ const Scannen = () => {
 
           {inArbeit > 0 && (
             <p className="text-sm text-muted-foreground"><Loader2 className="inline animate-spin mr-2" size={14} />{inArbeit} {inArbeit === 1 ? "Aufnahme wird" : "Aufnahmen werden"} verarbeitet …</p>
+          )}
+
+          {sitzung.aufnahmen.length > 1 && (
+            <div className="flex justify-end -mb-3">
+              <button
+                type="button"
+                onClick={alleDrehen}
+                disabled={inArbeit > 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border hover:bg-muted disabled:opacity-50"
+              >
+                <RotateCw size={14} /> Alle Seiten um 180° drehen
+              </button>
+            </div>
           )}
 
           {sitzung.aufnahmen.length > 0 && (
