@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
-  abbilden, amBundTeilen, entzerren, homographie, inPixel, kontrastStrecken, zielGroesse, type Pixel, type Viereck,
+  abbilden, amBundTeilen, bundTeile, entzerren, homographie, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen,
+  zielGroesse, type Gitter, type Pixel, type Viereck,
 } from "@/lib/scan/geometrie";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
 
@@ -116,5 +117,53 @@ describe("Auslöser", () => {
   it("misst die Abweichung zweier Bilder", () => {
     expect(unterschied(new Uint8ClampedArray([10, 10]), new Uint8ClampedArray([20, 0]))).toBe(10);
     expect(unterschied(new Uint8ClampedArray(2), new Uint8ClampedArray(3))).toBe(255);
+  });
+});
+
+describe("Abtasten mit Gitter (Glätten)", () => {
+  const vorlage = bild(120, 80, (x, y) => (x * 2 + y) % 256);
+  const rahmen = seitenrahmen([{ x: 0, y: 0 }, { x: 119, y: 0 }, { x: 119, y: 79 }, { x: 0, y: 79 }]);
+
+  /** Ein Gitter, das jeden Punkt auf sich selbst abbildet. */
+  function gitter(spalten: number, zeilen: number, verschieben = 0): Gitter {
+    const daten = new Float32Array(2 * spalten * zeilen);
+    for (let z = 0; z < zeilen; z++) {
+      for (let s = 0; s < spalten; s++) {
+        daten[z * spalten + s] = (s / (spalten - 1)) * 2 - 1 + verschieben;
+        daten[spalten * zeilen + z * spalten + s] = (z / (zeilen - 1)) * 2 - 1;
+      }
+    }
+    return { spalten, zeilen, daten };
+  }
+
+  it("ändert mit einem Gitter, das nichts verschiebt, nichts", () => {
+    const ohne = seiteAbtasten(vorlage, rahmen);
+    const mit = seiteAbtasten(vorlage, rahmen, { gitter: gitter(31, 45) });
+    let abweichung = 0;
+    for (let i = 0; i < ohne.daten.length; i++) abweichung = Math.max(abweichung, Math.abs(ohne.daten[i] - mit.daten[i]));
+    expect(abweichung).toBeLessThanOrEqual(1);
+  });
+
+  it("folgt dem Gitter: nach rechts verschoben heisst, weiter rechts abgetastet", () => {
+    const mit = seiteAbtasten(vorlage, rahmen, { gitter: gitter(31, 45, 0.5) }); // ein Viertel der Breite
+    expect(Math.abs(grau(mit, 10, 20) - grau(vorlage, 40, 20))).toBeLessThanOrEqual(2);
+  });
+
+  it("nimmt bei einer Doppelseite nur die Hälfte, ohne sie zu spiegeln", () => {
+    const [[x0, b0], [x1, b1]] = bundTeile(rahmen.breite, 0.5);
+    // Die Seite ist 119 Punkte breit (Abstand der Ecken), also 60 + 59.
+    expect([x0, b0, x1, b1]).toEqual([0, 60, 60, 59]);
+    const rechts = seiteAbtasten(vorlage, rahmen, { x0: x1, breite: b1 });
+    expect(rechts.breite).toBe(59);
+    // Grauwert steigt um 2 je Punkt nach rechts: Links in der rechten Hälfte
+    // steht, was in der Mitte der Vorlage stand, rechts deren rechter Rand.
+    expect(Math.abs(grau(rechts, 0, 10) - grau(vorlage, 60, 10))).toBeLessThanOrEqual(3);
+    expect(Math.abs(grau(rechts, 58, 10) - grau(vorlage, 119, 10))).toBeLessThanOrEqual(3);
+  });
+
+  it("verkleinert für das Netz auf eine feste Grösse", () => {
+    const klein = seiteAbtasten(vorlage, rahmen, { ausBreite: 31, ausHoehe: 45, farbig: true });
+    expect([klein.breite, klein.hoehe]).toEqual([31, 45]);
+    expect(grau(klein, 0, 0)).toBe(grau(vorlage, 0, 0));
   });
 });

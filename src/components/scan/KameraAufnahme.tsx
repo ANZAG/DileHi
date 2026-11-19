@@ -293,6 +293,10 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme }: Props) {
           <input type="checkbox" checked={zuschnitt.finger !== false} onChange={(e) => onZuschnitt({ ...zuschnitt, finger: e.target.checked })} />
           Finger am Rand entfernen
         </label>
+        <label className="inline-flex items-center gap-2" title="Lädt beim ersten Mal 32 MB und rechnet dann gut eine Sekunde je Seite.">
+          <input type="checkbox" checked={zuschnitt.glaetten === true} onChange={(e) => onZuschnitt({ ...zuschnitt, glaetten: e.target.checked })} />
+          Gewölbte Seiten glätten
+        </label>
         {aufloesung && <span className="text-muted-foreground">Kamera liefert {aufloesung}</span>}
       </div>
       {automatisch && (

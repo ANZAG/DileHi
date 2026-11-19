@@ -32,6 +32,21 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    gebracht und am Bund in zwei Seiten geteilt. *Farbig* behält die Farben,
    für Bildtafeln.
 
+   *Gewölbte Seiten glätten* (bei der Kamera eingeschaltet): Ein neuronales
+   Netz (UVDoc, ETH Zürich, MIT-Lizenz) erkennt die Wölbung zum Bund hin und
+   rechnet die Seite flach. Gerade ziehen, am Bund teilen und glätten
+   geschehen in einem Zug, das Bild wird nur einmal neu berechnet. Beim
+   ersten Mal lädt der Browser das Modell (32 MB) und legt es ab; danach
+   kostet es gut eine Sekunde je Seite am Rechner, am Handy mehr. Geht es
+   nicht (zu wenig Speicher, sehr alter Browser), werden die Seiten
+   ungeglättet aufgenommen und ein Hinweis erscheint.
+
+   Gemessen an zwei Probefotos (Sicherheit der Texterkennung, ohne → mit):
+   Fraktur, gewölbte Seite 57 → 75 %, flache Seite 77 → 79 %; Antiqua,
+   gewölbte Seite 84 → 88 %, flache Seite 90 → 88 % bei 21 erkannten Wörtern
+   mehr. Ein Glätten entlang der erkannten Textzeilen machte es in allen
+   Fällen schlechter und wurde verworfen.
+
    *Finger am Rand entfernen* (eingeschaltet): Hautfarbene Flächen, die vom
    Bildrand in einen Streifen am Seitenrand hereinragen, werden mit der
    Papierfarbe gefüllt. Haut hat deutlich mehr Rot als Papier, auch
@@ -44,6 +59,10 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    aus der Kamera-App des Handys (volle Auflösung) oder die Seiten aus der
    Software eines Buchscanners (etwa CZUR). Sortiert nach Dateinamen; geteilt
    wird nur, wenn *Doppelseite* eingeschaltet ist.
+
+   Bei *Bilder übernehmen* gilt die Einstellung *Glätten* (Fotos aus der
+   Kamera-App sind ja gewölbt); beim Beobachten eines Ordners wird nicht
+   geglättet – die Software eines Buchscanners hat das schon getan.
 
    **Ordner beobachten** (Chrome und Edge am Rechner) macht das von selbst:
    Einmal den Ordner wählen, in den die Scanner-Software ihre Seiten legt –
@@ -73,6 +92,9 @@ Tesseract im Browser, zwei Modelle:
 | --- | --- | --- |
 | Antiqua | `deu` | npm-Paket `@tesseract.js-data/deu` |
 | Fraktur | `frak2021` | UB Mannheim, liegt in `ocr-modelle/` |
+
+Fürs Glätten kommen `uvdoc.onnx` (aus `ocr-modelle/`) und der Rechenkern von
+onnxruntime-web dazu; Herkunft und Lizenzen in `ocr-modelle/README.md`.
 
 *Schrift: Automatisch* lässt beide Modelle die erste Seite lesen und nimmt
 das sicherere für das ganze Buch. Wer umstellt, lässt alle Seiten neu lesen.
@@ -135,7 +157,8 @@ Büchern lieber in Bänden scannen.
 ## Code
 
 `src/pages/intern/Scannen.tsx`, `src/components/scan/`, `src/lib/scan/`
-(Geometrie, Auslöser, Texterkennung, PDF, Zwischenspeicher, Abschluss),
+(Geometrie, Glätten, Finger, Ordner, Auslöser, Texterkennung, PDF,
+Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
 `src/test/scanFinger.test.ts`.
@@ -146,8 +169,3 @@ Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
   (`bilder/<quellen-id>/sNNN_aN.jpg`).
 - Vorhandene PDFs nachträglich durchsuchbar machen: Text aus PDFs lesen, die
   schon eine Textebene haben, und Scans ohne Text im Browser erkennen lassen.
-- Gewölbte Seiten am Bund flach rechnen (bis dahin: Glasplatte, oder einen
-  Buchscanner und *Ordner beobachten*). Verglichen an zwei Probefotos: das
-  neuronale Netz UVDoc (MIT, ETH Zürich) zieht gewölbte Seiten sichtbar flach
-  und hebt die Sicherheit der Texterkennung dort um 5–8 Punkte; ein
-  Glätten entlang der erkannten Textzeilen machte es schlechter.

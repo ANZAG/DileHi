@@ -1,9 +1,13 @@
-import { amBundTeilen, entzerren, grauMachen, inPixel, kontrastStrecken, type Drehung, type Viereck } from "./geometrie";
+import {
+  bundTeile, grauMachen, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen, type Drehung, type Gitter, type Viereck,
+} from "./geometrie";
 import { fingerEntfernen } from "./finger";
+import { gitterBerechnen, MODELL_BREITE, MODELL_HOEHE } from "./glaetten";
 
 /**
  * Aus einem Kamerabild die fertigen Seiten: drehen, Viereck gerade ziehen,
- * Kontrast, bei einer Doppelseite am Bund teilen, als JPEG.
+ * bei einer Doppelseite am Bund teilen, Wölbung glätten, Finger entfernen,
+ * Kontrast, als JPEG.
  *
  * Läuft in einem Web Worker (verarbeitung.worker.ts), damit die Vorschau
  * der Kamera nicht stockt – bei einem 4K-Bild sind das einige hundert
@@ -20,6 +24,14 @@ export interface Zuschnitt {
   farbig: boolean;
   /** Finger am Seitenrand entfernen (fehlt das Feld: ja). */
   finger?: boolean;
+  /** Gewölbte Seiten glätten (lib/scan/glaetten.ts; fehlt das Feld: nein). */
+  glaetten?: boolean;
+}
+
+export interface Verarbeitet {
+  seiten: FertigeSeite[];
+  /** Etwas ging nicht, die Seiten sind trotzdem da – etwa ohne Glätten. */
+  hinweis?: string;
 }
 
 export interface FertigeSeite {
@@ -45,7 +57,7 @@ export async function verarbeiten(
   z: Zuschnitt,
   leinwand: LeinwandMacher,
   jpeg: JpegMacher
-): Promise<FertigeSeite[]> {
+): Promise<Verarbeitet> {
   const bitmap = await createImageBitmap(roh);
   const quer = z.drehung === 90 || z.drehung === 270;
   const breite = quer ? bitmap.height : bitmap.width;
@@ -56,25 +68,36 @@ export async function verarbeiten(
   ctx.rotate((z.drehung * Math.PI) / 180);
   ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
   bitmap.close();
-  const pixel = ctx.getImageData(0, 0, breite, hoehe);
+  const kamera = { breite, hoehe, daten: ctx.getImageData(0, 0, breite, hoehe).data };
 
-  // Finger erkennt man an der Farbe – also erst farbig gerade ziehen, Finger
+  const rahmen = seitenrahmen(inPixel(z.viereck, breite, hoehe));
+  const teile = z.doppelseite ? bundTeile(rahmen.breite, z.bund) : [[0, rahmen.breite] as [number, number]];
+  // Finger erkennt man an der Farbe – also farbig abtasten, Finger
   // entfernen, dann grau.
   const mitFinger = z.finger !== false;
-  const gerade = entzerren({ breite, hoehe, daten: pixel.data }, inPixel(z.viereck, breite, hoehe), z.farbig || mitFinger);
-  if (mitFinger) fingerEntfernen(gerade);
-  if (!z.farbig) {
-    if (mitFinger) grauMachen(gerade);
-    kontrastStrecken(gerade);
-  }
-  const teile = z.doppelseite ? amBundTeilen(gerade, z.bund) : [gerade];
+  let hinweis: string | undefined;
 
   const seiten: FertigeSeite[] = [];
-  for (const teil of teile) {
-    const l = leinwand(teil.breite, teil.hoehe);
-    const c = l.getContext("2d")!;
-    c.putImageData(new ImageData(teil.daten, teil.breite, teil.hoehe), 0, 0);
-    seiten.push({ bild: await jpeg(l, QUALITAET), breite: teil.breite, hoehe: teil.hoehe });
+  for (const [x0, teilBreite] of teile) {
+    let gitter: Gitter | null = null;
+    if (z.glaetten === true && !hinweis) {
+      try {
+        const klein = seiteAbtasten(kamera, rahmen, { x0, breite: teilBreite, ausBreite: MODELL_BREITE, ausHoehe: MODELL_HOEHE, farbig: true });
+        gitter = await gitterBerechnen(klein);
+      } catch (err) {
+        hinweis = `Glätten ging nicht (${err instanceof Error ? err.message : String(err)}); die Seiten sind ungeglättet aufgenommen.`;
+      }
+    }
+    // Viereck, Bund und Glätten in einer Abtastung.
+    const seite = seiteAbtasten(kamera, rahmen, { x0, breite: teilBreite, gitter, farbig: z.farbig || mitFinger });
+    if (mitFinger) fingerEntfernen(seite);
+    if (!z.farbig) {
+      if (mitFinger) grauMachen(seite);
+      kontrastStrecken(seite);
+    }
+    const l = leinwand(seite.breite, seite.hoehe);
+    l.getContext("2d")!.putImageData(new ImageData(seite.daten, seite.breite, seite.hoehe), 0, 0);
+    seiten.push({ bild: await jpeg(l, QUALITAET), breite: seite.breite, hoehe: seite.hoehe });
   }
-  return seiten;
+  return { seiten, hinweis };
 }

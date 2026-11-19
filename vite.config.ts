@@ -111,6 +111,12 @@ export default defineConfig(({ mode }) => {
       __MIGRATIONEN__: JSON.stringify(migrationsVersionen()),
     },
     plugins: [react(), installationAddresses(env.VITE_SUPABASE_URL), schriftenVorladen()],
+    // Der Worker des Scanners (src/lib/scan/verarbeitung.worker.ts) lädt das
+    // Glätten erst bei Bedarf nach. Das geht nur mit Modulen; gestartet wird
+    // er ohnehin als Modul ({ type: "module" }).
+    worker: {
+      format: "es",
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

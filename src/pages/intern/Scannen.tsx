@@ -27,7 +27,9 @@ import { seitenAusAufnahme, type Zuschnitt } from "@/lib/scan/verarbeitung";
  * legen. Ablauf und Gründe: docs/scannen.md.
  */
 
-const STANDARD_ZUSCHNITT: Zuschnitt = { drehung: 0, viereck: STANDARD_VIERECK, doppelseite: true, bund: 0.5, farbig: false };
+const STANDARD_ZUSCHNITT: Zuschnitt = {
+  drehung: 0, viereck: STANDARD_VIERECK, doppelseite: true, bund: 0.5, farbig: false, finger: true, glaetten: true,
+};
 const GANZES_BILD: Viereck = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
 const ZUSCHNITT_MERKER = "scan-zuschnitt";
 
@@ -73,6 +75,7 @@ const Scannen = () => {
   const [fertig, setFertig] = useState<{ name: string; eingang: boolean } | null>(null);
   const kette = useRef<Promise<void>>(Promise.resolve());
   const speicherFehler = useRef(false);
+  const glaettHinweis = useRef(false);
 
   const { data: fileStorage, isLoading: ablageLaedt } = useQuery({
     queryKey: ["file-storage"],
@@ -155,7 +158,11 @@ const Scannen = () => {
 
   /** Aus einem Bild die Seiten machen. Der Reihe nach, damit die Reihenfolge stimmt. */
   const seitenMachen = async (roh: Blob, zuschnitt: Zuschnitt) => {
-    const fertige = await seitenAusAufnahme(roh, zuschnitt);
+    const { seiten: fertige, hinweis } = await seitenAusAufnahme(roh, zuschnitt);
+    if (hinweis && !glaettHinweis.current) {
+      glaettHinweis.current = true;
+      setFehler(hinweis);
+    }
     const seiten = [];
     const paare: [string, Blob][] = [];
     for (const f of fertige) {
@@ -195,9 +202,13 @@ const Scannen = () => {
    * „Doppelseite" eingeschaltet ist. Nach Dateinamen sortiert, so wie
    * Scanner und Kameras sie durchzählen.
    */
-  const bildVonAussen = (d: File) => {
+  /**
+   * `glaetten`: Fotos aus der Kamera-App ja (wie eingestellt), Seiten aus
+   * der Software eines Buchscanners nein – die hat schon geglättet.
+   */
+  const bildVonAussen = (d: File, glaetten?: boolean) => {
     const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
-    aufnahmeHinzufuegen(d, { ...z, drehung: 0, viereck: GANZES_BILD });
+    aufnahmeHinzufuegen(d, { ...z, drehung: 0, viereck: GANZES_BILD, glaetten: glaetten ?? z.glaetten });
   };
 
   const bilderUebernehmen = (dateien: FileList | null) => {
@@ -205,7 +216,7 @@ const Scannen = () => {
     [...dateien]
       .filter((d) => d.type.startsWith("image/"))
       .sort((a, b) => nachName(a.name, b.name))
-      .forEach(bildVonAussen);
+      .forEach((d) => bildVonAussen(d));
   };
 
   const aufnahmeEntfernen = async (a: Aufnahme) => {
@@ -413,7 +424,7 @@ const Scannen = () => {
             „Bilder übernehmen" nimmt fertige Seiten – etwa aus der Software eines Buchscanners oder Fotos vom Handy – in diese Reihe auf.
           </p>
 
-          <OrdnerBeobachten onBild={bildVonAussen} />
+          <OrdnerBeobachten onBild={(d) => bildVonAussen(d, false)} />
 
           {inArbeit > 0 && (
             <p className="text-sm text-muted-foreground"><Loader2 className="inline animate-spin mr-2" size={14} />{inArbeit} {inArbeit === 1 ? "Aufnahme wird" : "Aufnahmen werden"} verarbeitet …</p>

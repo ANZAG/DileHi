@@ -102,57 +102,149 @@ function grauwerte(bild: Pixel): Uint8ClampedArray {
   return grau;
 }
 
+/** Das Rechteck, auf das ein Viereck gezogen wird. */
+const rechteckVon = (breite: number, hoehe: number): Viereck => [
+  { x: 0, y: 0 },
+  { x: breite - 1, y: 0 },
+  { x: breite - 1, y: hoehe - 1 },
+  { x: 0, y: hoehe - 1 },
+];
+
 /**
- * Das Viereck (in Bildpunkten) aus `bild` herausziehen und gerade rücken.
- * `farbig` behält die Farben, sonst Graustufen. Ergebnis ist RGBA.
+ * Eine gerade gezogene Seite: die Projektion vom Seitenrechteck ins
+ * Kamerabild, dazu die Grösse des Rechtecks.
  */
-export function entzerren(bild: Pixel, viereck: Viereck, farbig = false): Pixel {
+export interface Seitenrahmen {
+  /** Homographie Seite → Kamerabild (9 Zahlen). */
+  h: number[];
+  breite: number;
+  hoehe: number;
+}
+
+export function seitenrahmen(viereck: Viereck): Seitenrahmen {
   const { breite, hoehe } = zielGroesse(viereck);
-  const rechteck: Viereck = [
-    { x: 0, y: 0 },
-    { x: breite - 1, y: 0 },
-    { x: breite - 1, y: hoehe - 1 },
-    { x: 0, y: hoehe - 1 },
-  ];
-  // Für jeden Zielpunkt: woher im Original? Rückwärts gerechnet, damit kein
-  // Zielpunkt leer bleibt.
-  const h = homographie(rechteck, viereck);
+  return { h: homographie(rechteckVon(breite, hoehe), viereck), breite, hoehe };
+}
+
+/**
+ * Das Gitter des Glättens (UVDoc): für jeden Gitterpunkt der geglätteten
+ * Seite, wo er in der gewölbten Seite liegt, in −1…1. Zeilenweise, erst alle
+ * x, dann alle y – so wie das Modell es ausgibt (2 × zeilen × spalten).
+ */
+export interface Gitter {
+  spalten: number;
+  zeilen: number;
+  daten: Float32Array;
+}
+
+export interface Abtastung {
+  /** Linker Rand des Ausschnitts in der Seite (Bund einer Doppelseite), in Punkten. */
+  x0?: number;
+  /** Breite des Ausschnitts in der Seite; ohne Angabe die ganze Seite ab x0. */
+  breite?: number;
+  /** Grösse des Ergebnisses; ohne Angabe so gross wie der Ausschnitt. */
+  ausBreite?: number;
+  ausHoehe?: number;
+  gitter?: Gitter | null;
+  farbig?: boolean;
+}
+
+/**
+ * Eine Seite aus dem Kamerabild holen, in einem Zug: Ausschnitt der gerade
+ * gezogenen Seite (etwa die linke Hälfte einer Doppelseite), mit Gitter
+ * zusätzlich geglättet. Jeder Zielpunkt wird rückwärts bis ins Kamerabild
+ * verfolgt und dort einmal abgetastet – so wird nichts zweimal
+ * weichgezeichnet. Ergebnis ist RGBA, ohne `farbig` in Graustufen.
+ */
+export function seiteAbtasten(bild: Pixel, rahmen: Seitenrahmen, a: Abtastung = {}): Pixel {
+  const x0 = a.x0 ?? 0;
+  const tb = a.breite ?? rahmen.breite - x0;
+  const th = rahmen.hoehe;
+  const breite = a.ausBreite ?? tb;
+  const hoehe = a.ausHoehe ?? th;
+  const farbig = a.farbig ?? false;
+  const g = a.gitter ?? null;
+  const h = rahmen.h;
   const aus = new Uint8ClampedArray(breite * hoehe * 4);
   const grau = farbig ? null : grauwerte(bild);
   const bw = bild.breite;
   const bh = bild.hoehe;
   const d = bild.daten;
+  const fx = breite > 1 ? (tb - 1) / (breite - 1) : 0;
+  const fy = hoehe > 1 ? (th - 1) / (hoehe - 1) : 0;
+  const gs = g ? (g.spalten - 1) / Math.max(1, breite - 1) : 0;
+  const gz = g ? (g.zeilen - 1) / Math.max(1, hoehe - 1) : 0;
+  const ebene = g ? g.spalten * g.zeilen : 0;
 
   let o = 0;
   for (let y = 0; y < hoehe; y++) {
     for (let x = 0; x < breite; x++, o += 4) {
-      const w = h[6] * x + h[7] * y + h[8];
-      let sx = (h[0] * x + h[1] * y + h[2]) / w;
-      let sy = (h[3] * x + h[4] * y + h[5]) / w;
+      // Wo liegt der Punkt in der (gewölbten) Seite?
+      let px: number;
+      let py: number;
+      if (g) {
+        const u = x * gs;
+        const v = y * gz;
+        const u0 = Math.min(g.spalten - 2, u | 0);
+        const v0 = Math.min(g.zeilen - 2, v | 0);
+        const du = u - u0;
+        const dv = v - v0;
+        const i = v0 * g.spalten + u0;
+        const gd = g.daten;
+        const gx = (gd[i] * (1 - du) + gd[i + 1] * du) * (1 - dv) + (gd[i + g.spalten] * (1 - du) + gd[i + g.spalten + 1] * du) * dv;
+        const gy = (gd[ebene + i] * (1 - du) + gd[ebene + i + 1] * du) * (1 - dv)
+          + (gd[ebene + i + g.spalten] * (1 - du) + gd[ebene + i + g.spalten + 1] * du) * dv;
+        px = ((gx + 1) / 2) * (tb - 1);
+        py = ((gy + 1) / 2) * (th - 1);
+      } else {
+        px = x * fx;
+        py = y * fy;
+      }
+      px += x0;
+      // … und wo im Kamerabild?
+      const w = h[6] * px + h[7] * py + h[8];
+      let sx = (h[0] * px + h[1] * py + h[2]) / w;
+      let sy = (h[3] * px + h[4] * py + h[5]) / w;
       if (sx < 0) sx = 0; else if (sx > bw - 1) sx = bw - 1;
       if (sy < 0) sy = 0; else if (sy > bh - 1) sy = bh - 1;
-      const x0 = sx | 0;
-      const y0 = sy | 0;
-      const x1 = x0 < bw - 1 ? x0 + 1 : x0;
-      const y1 = y0 < bh - 1 ? y0 + 1 : y0;
-      const fx = sx - x0;
-      const fy = sy - y0;
+      const ix = sx | 0;
+      const iy = sy | 0;
+      const jx = ix < bw - 1 ? ix + 1 : ix;
+      const jy = iy < bh - 1 ? iy + 1 : iy;
+      const ax = sx - ix;
+      const ay = sy - iy;
       if (grau) {
-        const a = grau[y0 * bw + x0], b = grau[y0 * bw + x1];
-        const c = grau[y1 * bw + x0], e = grau[y1 * bw + x1];
-        const v = (a + (b - a) * fx) * (1 - fy) + (c + (e - c) * fx) * fy;
-        aus[o] = aus[o + 1] = aus[o + 2] = v;
+        const p = grau[iy * bw + ix], q = grau[iy * bw + jx];
+        const r = grau[jy * bw + ix], t = grau[jy * bw + jx];
+        aus[o] = aus[o + 1] = aus[o + 2] = (p + (q - p) * ax) * (1 - ay) + (r + (t - r) * ax) * ay;
       } else {
         for (let k = 0; k < 3; k++) {
-          const a = d[(y0 * bw + x0) * 4 + k], b = d[(y0 * bw + x1) * 4 + k];
-          const c = d[(y1 * bw + x0) * 4 + k], e = d[(y1 * bw + x1) * 4 + k];
-          aus[o + k] = (a + (b - a) * fx) * (1 - fy) + (c + (e - c) * fx) * fy;
+          const p = d[(iy * bw + ix) * 4 + k], q = d[(iy * bw + jx) * 4 + k];
+          const r = d[(jy * bw + ix) * 4 + k], t = d[(jy * bw + jx) * 4 + k];
+          aus[o + k] = (p + (q - p) * ax) * (1 - ay) + (r + (t - r) * ax) * ay;
         }
       }
       aus[o + 3] = 255;
     }
   }
   return { breite, hoehe, daten: aus };
+}
+
+/**
+ * Das Viereck (in Bildpunkten) aus `bild` herausziehen und gerade rücken.
+ * `farbig` behält die Farben, sonst Graustufen. Ergebnis ist RGBA.
+ */
+export function entzerren(bild: Pixel, viereck: Viereck, farbig = false): Pixel {
+  return seiteAbtasten(bild, seitenrahmen(viereck), { farbig });
+}
+
+/**
+ * Wo eine Doppelseite geteilt wird: Bund als Anteil der Breite, nie ganz am
+ * Rand. Ergebnis: [linker Rand, Breite] je Seite.
+ */
+export function bundTeile(breite: number, bund = 0.5): [number, number][] {
+  const x = Math.round(Math.max(0.1, Math.min(0.9, bund)) * breite);
+  return [[0, x], [x, breite - x]];
 }
 
 /** Ein farbiges Bild in Graustufen, an Ort und Stelle. */
