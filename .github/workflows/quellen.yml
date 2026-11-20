@@ -9,6 +9,14 @@ name: Quellen nachbearbeiten
 #            übernehmen, wo es selbst welchen hat (am Rechner erstellt);
 #            Scan-Seiten aufbereiten und lesen. Die Datei bleibt, wie sie
 #            ist – nur der Text kommt in die Suche.
+#   probe    Stufe 2 zum Ansehen: für reine Scans (jede Seite ein grosses
+#            Bild) ein neues PDF bauen – aufbereitete Seiten, Textebene je
+#            Zeile, eine Seitengrösse, nicht feiner als das Original – und
+#            nur als Artefakt `quellen-neu` ablegen. Nichts wird ersetzt.
+#   verbessern  Stufe 2: dasselbe, und ist das neue PDF besser (mindestens
+#            so viel echter Text, nicht grösser), ersetzt es die Datei in
+#            SharePoint. Die alte Fassung bleibt im Versionsverlauf der
+#            Datei (in SharePoint: Datei → Versionsverlauf → Wiederherstellen).
 #
 # Quellen, die schon Text in der Suche haben, werden übersprungen (ausser
 # mit „neu“). Bricht ein Lauf ab (Zeitlimit), macht der nächste dort weiter.
@@ -29,9 +37,9 @@ on:
   workflow_dispatch:
     inputs:
       modus:
-        description: "pruefen = nur nachsehen, text = durchsuchbar machen"
+        description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text]
+        options: [pruefen, text, probe, verbessern]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
@@ -99,4 +107,13 @@ jobs:
         with:
           name: quellen-bericht
           path: bericht.json
+          if-no-files-found: ignore
+
+      - name: Neue PDFs ablegen (probe)
+        if: always() && inputs.modus == 'probe'
+        uses: actions/upload-artifact@v5
+        with:
+          name: quellen-neu
+          path: neu/
+          retention-days: 14
           if-no-files-found: ignore

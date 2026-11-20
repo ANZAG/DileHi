@@ -55,6 +55,8 @@ export interface PdfAngaben {
   schrift?: Uint8Array;
   /** Seitenzählung wie im Buch: PDF-Seite `pdfSeite` (ab 1) ist Buchseite `buchSeite`. */
   zaehlung?: { pdfSeite: number; buchSeite: number };
+  /** Bildpunkte je Zoll der Seitenbilder, wenn bekannt (aus einem PDF gerendert); sonst 200. */
+  dpi?: number;
 }
 
 /** Angenommene Auflösung, aus der sich die Seitengrösse ergibt. */
@@ -145,10 +147,10 @@ function textEbene(font: PDFFont, schluessel: PDFName, zeichen: Set<number> | nu
 }
 
 /** Eine einheitliche Seitengrösse: Median der hochkanten Seiten. */
-export function seitenFormat(seiten: { breite: number; hoehe: number }[]): { breite: number; hoehe: number } {
+export function seitenFormat(seiten: { breite: number; hoehe: number }[], dpi = DPI): { breite: number; hoehe: number } {
   const hoch = seiten.filter((s) => s.hoehe >= s.breite);
   const basis = hoch.length ? hoch : seiten;
-  const breite = (median(basis.map((s) => s.breite)) * 72) / DPI;
+  const breite = (median(basis.map((s) => s.breite)) * 72) / dpi;
   const verhaeltnis = median(basis.map((s) => s.hoehe / s.breite)) || Math.SQRT2;
   return { breite, hoehe: breite * verhaeltnis };
 }
@@ -185,7 +187,7 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
     zeichen = new Set(font.getCharacterSet());
   }
 
-  const format = seitenFormat(seiten);
+  const format = seitenFormat(seiten, a.dpi);
   for (const s of seiten) {
     const quer = s.breite > s.hoehe * 1.05;
     // Querformat: gleiche Höhe, Breite nach dem Bild.

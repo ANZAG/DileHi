@@ -307,6 +307,19 @@ nachbearbeiten → Run workflow.
   Textebene mit mehr echten Wörtern, bleibt diese. Der Text kommt in die
   Suche (`source_pages`).
 
+- **probe (Stufe 2 zum Ansehen):** Für reine Scans (jede Seite ein grosses
+  Bild – gemischte PDFs bleiben, sonst würden am Rechner gesetzte Seiten zu
+  Bildern) ein neues PDF bauen: aufbereitete Seiten, Textebene je Zeile,
+  eine Seitengrösse, nicht feiner als das Bild im Original. Nur als
+  Artefakt `quellen-neu` (14 Tage), nichts wird ersetzt.
+- **verbessern (Stufe 2):** dasselbe, und ist das neue PDF besser
+  (mindestens so viel echter Text, höchstens 5 % grösser), ersetzt es die
+  Datei in SharePoint – dieselbe Datei, neue Fassung; die alte bleibt im
+  Versionsverlauf (SharePoint: Datei → Versionsverlauf → Wiederherstellen).
+  Der Text in der Suche wird mit ersetzt.
+
+Am Stein-Auszug: 7,5 MB → 3,5 MB, echte Wörter im PDF 1506 → 2677.
+
 Quellen mit Text in der Suche werden übersprungen (ausser mit *neu*); ein
 abgebrochener Lauf macht beim nächsten Mal dort weiter. *grenze* begrenzt
 die Zahl der Quellen je Lauf, *quellen* wählt einzelne aus. Der Bericht
