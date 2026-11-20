@@ -9,6 +9,7 @@ import { KameraAufnahme } from "@/components/scan/KameraAufnahme";
 import { NeuZuschneiden } from "@/components/scan/NeuZuschneiden";
 import { OrdnerBeobachten } from "@/components/scan/OrdnerBeobachten";
 import { Seitenliste } from "@/components/scan/Seitenliste";
+import { pruefungFuer, pruefungZaehlen, seitePruefen } from "@/lib/scan/pruefung";
 import { WeicheWahl } from "@/components/scan/WeicheWahl";
 import { useTexterkennung } from "@/components/scan/useTexterkennung";
 import { abschliessen, seitenInReihenfolge, type Schritt } from "@/lib/scan/abschluss";
@@ -90,6 +91,8 @@ const Scannen = () => {
   ersetzenRef.current = ersetzen;
   /** Kurz hervorgehoben (und ins Bild gerollt): die gerade ersetzte Aufnahme. */
   const [markiert, setMarkiert] = useState<string | null>(null);
+  /** Die letzte Aufnahme ist unscharf: in der Kamera gleich anbieten, sie zu ersetzen. */
+  const [warnung, setWarnung] = useState<{ aufnahmeId: string; text: string } | null>(null);
   const kette = useRef<Promise<void>>(Promise.resolve());
   const speicherFehler = useRef(false);
   const glaettHinweis = useRef(false);
@@ -186,7 +189,7 @@ const Scannen = () => {
       const bildId = neueKennung();
       await dateiSpeichern(bildId, f.bild);
       paare.push([bildId, f.bild]);
-      seiten.push({ id: neueKennung(), bildId, breite: f.breite, hoehe: f.hoehe });
+      seiten.push({ id: neueKennung(), bildId, breite: f.breite, hoehe: f.hoehe, befund: f.befund });
     }
     bilderMerken(paare);
     return seiten;
@@ -199,7 +202,11 @@ const Scannen = () => {
         const rohId = neueKennung();
         await dateiSpeichern(rohId, roh);
         const seiten = await seitenMachen(roh, zuschnitt);
-        aendern((s) => ({ ...s, aufnahmen: [...s.aufnahmen, { id: neueKennung(), rohId, zuschnitt, seiten }] }));
+        const id = neueKennung();
+        aendern((s) => ({ ...s, aufnahmen: [...s.aufnahmen, { id, rohId, zuschnitt, seiten }] }));
+        if (seiten.some((x) => seitePruefen(x.befund, undefined).gruende.includes("unscharf"))) {
+          setWarnung({ aufnahmeId: id, text: seiten.length > 1 ? "Letzte Aufnahme unscharf" : "Letzte Seite unscharf" });
+        }
       } catch (err) {
         setFehler(`Eine Aufnahme liess sich nicht verarbeiten: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
@@ -258,6 +265,7 @@ const Scannen = () => {
   };
 
   const vonKamera = useCallback((roh: Blob) => {
+    setWarnung(null);
     const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
     const e = ersetzenRef.current;
     if (e) {
@@ -269,6 +277,13 @@ const Scannen = () => {
     }
     aufnahmeHinzufuegen(roh, z);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Die Warnung verschwindet nach einer Weile von selbst.
+  useEffect(() => {
+    if (!warnung) return;
+    const t = setTimeout(() => setWarnung(null), 12000);
+    return () => clearTimeout(t);
+  }, [warnung]);
 
   // Die ersetzte Aufnahme ins Bild rollen und kurz hervorheben.
   useEffect(() => {
@@ -396,7 +411,10 @@ const Scannen = () => {
     if (!s || !a || a.ausgerichtet) return;
     aendern((x) => ({ ...x, aufnahmen: x.aufnahmen.map((y) => (y.id === aufnahmeId ? { ...y, ausgerichtet: true } : y)) }));
     aufnahmeNeu(aufnahmeId, zuschnittDrehen(a.zuschnitt, grad), { ausgerichtet: true });
-    if (s.zuschnitt.drehung === a.zuschnitt.drehung) {
+    // Lag nur der Text dieser Seite quer (von der Aufbereitung gedreht), gilt
+    // das nicht für die Kamera.
+    const nurDieSeite = a.seiten.some((x) => x.befund?.quer);
+    if (!nurDieSeite && s.zuschnitt.drehung === a.zuschnitt.drehung) {
       zuschnittSetzen({ ...zuschnittDrehen(s.zuschnitt, grad), drehungVersatz: ((s.zuschnitt.drehungVersatz ?? 0) + grad) % 360 });
       toast({
         title: grad === 180 ? "Die Seiten standen auf dem Kopf" : "Die Seiten lagen quer",
@@ -497,6 +515,13 @@ const Scannen = () => {
   };
 
   const alleSeiten = sitzung ? seitenInReihenfolge(sitzung) : [];
+  // Qualitätsprüfung über alle gelesenen Seiten, mit Seitenzahl und Aufnahme.
+  const geprueft = sitzung
+    ? sitzung.aufnahmen.flatMap((a) => a.seiten.map((x) => ({ aufnahmeId: a.id, pruefung: pruefungFuer(x.befund, ocr.stand[x.id]) })))
+      .map((x, i) => ({ ...x, nummer: i + 1 }))
+    : [];
+  const zaehlung = pruefungZaehlen(geprueft.flatMap((x) => (x.pruefung ? [x.pruefung] : [])));
+  const zuPruefen = geprueft.filter((x) => x.pruefung?.art === "pruefen");
   const seitenZahl = alleSeiten.length;
   const letzteSeite = alleSeiten.length ? bilder.get(alleSeiten[alleSeiten.length - 1].bildId) : undefined;
 
@@ -589,6 +614,11 @@ const Scannen = () => {
             seitenZahl={seitenZahl}
             letzteSeite={letzteSeite}
             auftrag={ersetzen ? { text: `Nächste Aufnahme ersetzt ${ersetzen.text}`, onAbbrechen: ersetzenBeenden } : undefined}
+            warnung={warnung && !ersetzen ? {
+              text: warnung.text,
+              onErsetzen: () => { const w = warnung; setWarnung(null); ersetzenStarten(w.aufnahmeId); },
+              onSchliessen: () => setWarnung(null),
+            } : undefined}
             vollbild={vollbild}
             onVollbild={setVollbild}
             handy={istHandy}
@@ -669,6 +699,29 @@ const Scannen = () => {
                 </div>
               ) : (
                 <>
+                  {zaehlung.gut + zaehlung.leer + zaehlung.pruefen > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm">
+                        <span className="font-medium text-green-700 dark:text-green-400">{zaehlung.gut} {zaehlung.gut === 1 ? "Seite" : "Seiten"} gut</span>
+                        {zaehlung.pruefen > 0 && <>, <span className="font-medium text-amber-700 dark:text-amber-400">{zaehlung.pruefen} prüfen</span></>}
+                        {zaehlung.leer > 0 && <>, {zaehlung.leer} leer</>}
+                      </p>
+                      {zuPruefen.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {zuPruefen.map((x) => (
+                            <button
+                              key={x.nummer}
+                              type="button"
+                              onClick={() => setMarkiert(x.aufnahmeId)}
+                              className="px-2 py-1 rounded border border-amber-500/60 bg-amber-500/10 text-xs hover:bg-amber-500/20"
+                            >
+                              S. {x.nummer}: {x.pruefung!.gruende.join(", ")}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground">
                     {ocr.offen > 0
                       ? `Die Texterkennung liest noch ${ocr.offen} ${ocr.offen === 1 ? "Seite" : "Seiten"}. Wer jetzt hochlädt, bekommt für diese Seiten keinen Text.`

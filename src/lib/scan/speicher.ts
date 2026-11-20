@@ -1,3 +1,4 @@
+import type { Befund } from "./aufbereitung";
 import type { OcrErgebnis, Schrift, SchriftWahl } from "./ocr";
 import type { Zuschnitt } from "./verarbeitungKern";
 import type { AbschlussStand } from "./abschluss";
@@ -25,6 +26,8 @@ export interface ScanSeite {
   bildId: string;
   breite: number;
   hoehe: number;
+  /** Befund der Aufbereitung (fehlt bei älteren Aufnahmen). */
+  befund?: Befund;
 }
 
 export interface Aufnahme {
@@ -100,8 +103,10 @@ export const dateiLaden = (id: string) => lesen<Blob>("dateien", id);
 export const dateiSpeichern = (id: string, b: Blob) => auftrag("dateien", "readwrite", (a) => a.put(b, id));
 export const dateiLoeschen = (id: string) => auftrag("dateien", "readwrite", (a) => a.delete(id)).catch(() => undefined);
 
-export const textLaden = (seiteId: string) => lesen<OcrErgebnis>("text", seiteId);
-export const textSpeichern = (seiteId: string, t: OcrErgebnis) => auftrag("text", "readwrite", (a) => a.put(t, seiteId));
+/** Gelesener Text einer Seite; `bildId` sagt, zu welchem Bild er gehört (fehlt bei älteren Einträgen). */
+export type GespeicherterText = OcrErgebnis & { bildId?: string };
+export const textLaden = (seiteId: string) => lesen<GespeicherterText>("text", seiteId);
+export const textSpeichern = (seiteId: string, t: GespeicherterText) => auftrag("text", "readwrite", (a) => a.put(t, seiteId));
 export const textLoeschen = (seiteId: string) => auftrag("text", "readwrite", (a) => a.delete(seiteId)).catch(() => undefined);
 
 export const merkerLaden = <T>(schluessel: string) => lesen<T>("merker", schluessel);

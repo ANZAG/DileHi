@@ -89,7 +89,7 @@ function weich(m: Uint8Array, w: number, h: number, r: number): Float32Array {
  * kommt es von der gröberen. Ergebnis ist glatt und folgt dem Verlauf der
  * Umgebung. `farbe` hat 3 Werte je Feld, `gewicht` ist 1 (bekannt) oder 0.
  */
-function luekenFuellen(farbe: Float32Array, gewicht: Float32Array, w: number, h: number): void {
+export function luekenFuellen(farbe: Float32Array, gewicht: Float32Array, w: number, h: number): void {
   if (w <= 1 && h <= 1) return;
   const w2 = Math.ceil(w / 2), h2 = Math.ceil(h / 2);
   const f2 = new Float32Array(w2 * h2 * 3);

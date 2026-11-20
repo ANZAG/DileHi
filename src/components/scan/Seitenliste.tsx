@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Camera, Crop, Loader2, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 import type { Aufnahme } from "@/lib/scan/speicher";
 import { SCHRIFT_NAME } from "@/lib/scan/ocr";
+import { pruefungFuer, type Pruefung } from "@/lib/scan/pruefung";
 import type { OcrZustand } from "./useTexterkennung";
 
 /**
@@ -29,7 +30,7 @@ interface Props {
   markiert?: string | null;
 }
 
-function Lesestand({ z, onNeu }: { z: OcrZustand | undefined; onNeu: () => void }) {
+function Lesestand({ z, pruefung, onNeu }: { z: OcrZustand | undefined; pruefung: Pruefung | null; onNeu: () => void }) {
   if (!z || z.zustand === "wartet") return <span className="text-muted-foreground">Text: wartet</span>;
   if (z.zustand === "liest") return <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 size={10} className="animate-spin" /> liest</span>;
   if (z.zustand === "fehler") {
@@ -39,7 +40,11 @@ function Lesestand({ z, onNeu }: { z: OcrZustand | undefined; onNeu: () => void 
       </button>
     );
   }
-  const farbe = z.sicherheit >= 75 ? "text-green-700 dark:text-green-400" : z.sicherheit >= 55 ? "text-amber-700 dark:text-amber-400" : "text-destructive";
+  if (pruefung?.art === "leer") return <span className="text-muted-foreground" title="Kaum Tinte – eine leere Seite. Sie bleibt, damit die Zählung zum Buch stimmt.">leer</span>;
+  const farbe = pruefung?.art === "pruefen"
+    ? "text-amber-700 dark:text-amber-400"
+    : pruefung && !pruefung.textseite ? "text-muted-foreground"
+    : z.sicherheit >= 75 ? "text-green-700 dark:text-green-400" : z.sicherheit >= 55 ? "text-amber-700 dark:text-amber-400" : "text-destructive";
   return (
     <span className={farbe} title={`${SCHRIFT_NAME[z.schrift]}, Sicherheit der Erkennung`}>
       Text {Math.round(z.sicherheit)} %
@@ -62,9 +67,10 @@ export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeL
               nummer += 1;
               const url = bilder.get(s.bildId);
               const wartet = ersetztWird === a.id && (!ersetztSeite || ersetztSeite === s.id);
+              const pruefung = pruefungFuer(s.befund, ocr[s.id]);
               return (
                 <div key={s.id} className="flex-1 min-w-0 space-y-1">
-                  <div className={`relative aspect-[3/4] bg-muted rounded overflow-hidden ${wartet ? "ring-2 ring-primary" : ""}`}>
+                  <div className={`relative aspect-[3/4] bg-muted rounded overflow-hidden ${wartet ? "ring-2 ring-primary" : pruefung?.art === "pruefen" ? "ring-2 ring-amber-500" : ""}`}>
                     {url && <img src={url} alt={`Seite ${nummer}`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" />}
                     <button
                       type="button"
@@ -97,8 +103,18 @@ export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeL
                   </div>
                   <div className="flex justify-between gap-1 text-[11px]">
                     <span className="font-medium">S. {nummer}</span>
-                    <Lesestand z={ocr[s.id]} onNeu={() => onNeuLesen(s.id)} />
+                    <Lesestand z={ocr[s.id]} pruefung={pruefung} onNeu={() => onNeuLesen(s.id)} />
                   </div>
+                  {pruefung?.art === "pruefen" && (
+                    <button
+                      type="button"
+                      onClick={() => onErsetzen(a.id, s.id)}
+                      className="w-full text-left text-[11px] leading-tight text-amber-800 dark:text-amber-300 hover:underline"
+                      title="Diese Seite neu aufnehmen"
+                    >
+                      ⚠ {pruefung.gruende.join(" · ")} – neu aufnehmen?
+                    </button>
+                  )}
                 </div>
               );
             })}

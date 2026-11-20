@@ -44,6 +44,8 @@ interface Props {
   handy?: boolean;
   /** Wartet eine Seite auf Ersatz? Dann steht das gut sichtbar über dem Bild. */
   auftrag?: { text: string; onAbbrechen: () => void };
+  /** Die letzte Aufnahme ist unscharf: anbieten, sie gleich zu ersetzen. */
+  warnung?: { text: string; onErsetzen: () => void; onSchliessen: () => void };
 }
 
 /** Was Chrome und Edge bei vielen Webcams zusätzlich können; nicht in lib.dom. */
@@ -126,7 +128,7 @@ function Umschalter<T extends string>({ wert, optionen, onWahl }: {
   );
 }
 
-export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild, handy = false, auftrag }: Props) {
+export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild, handy = false, auftrag, warnung }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const vorschau = useRef<HTMLCanvasElement>(null);
   const buehne = useRef<HTMLDivElement>(null);
@@ -553,6 +555,13 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
               <button type="button" onClick={auftrag.onAbbrechen} className="rounded-full bg-black/25 px-2 py-0.5 text-xs">Abbrechen</button>
             </span>
           )}
+          {warnung && (
+            <span className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-amber-500 text-black text-sm font-medium pl-3 pr-1 py-1 shadow">
+              ⚠ {warnung.text}
+              <button type="button" onClick={warnung.onErsetzen} className="rounded-full bg-black/80 text-white px-2 py-0.5 text-xs">Neu aufnehmen</button>
+              <button type="button" onClick={warnung.onSchliessen} aria-label="Hinweis schliessen" className="rounded-full px-1.5 text-xs">✕</button>
+            </span>
+          )}
           {randText && <span className="rounded-full bg-black/55 text-xs px-3 py-1">{randText}</span>}
           {automatisch && <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">Löst nach dem Umblättern selbst aus – Hand aus dem Bild</span>}
           {roh && lageAuto && !lageBereit && (
@@ -653,6 +662,13 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
 
   return (
     <div className="space-y-3">
+      {warnung && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500 bg-amber-500/10 px-3 py-2 text-sm">
+          <span className="font-medium">⚠ {warnung.text}</span>
+          <button type="button" onClick={warnung.onErsetzen} className="ml-auto underline">Neu aufnehmen</button>
+          <button type="button" onClick={warnung.onSchliessen} className="text-muted-foreground underline">Ausblenden</button>
+        </div>
+      )}
       {auftrag && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary bg-primary/10 px-3 py-2 text-sm">
           <Camera size={16} className="text-primary" /> <span className="font-medium">{auftrag.text}</span>

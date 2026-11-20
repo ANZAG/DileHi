@@ -14,7 +14,7 @@ import { seitenInReihenfolge } from "@/lib/scan/abschluss";
 export type OcrZustand =
   | { zustand: "wartet" }
   | { zustand: "liest" }
-  | { zustand: "fertig"; sicherheit: number; schrift: Schrift }
+  | { zustand: "fertig"; sicherheit: number; schrift: Schrift; woerter: number }
   | { zustand: "fehler"; fehler: string };
 
 /**
@@ -29,6 +29,8 @@ export function useTexterkennung(
 ) {
   const [stand, setStand] = useState<Record<string, OcrZustand>>({});
   const laeuft = useRef(false);
+  const aktuell = useRef(sitzung);
+  aktuell.current = sitzung;
   const [runde, setRunde] = useState(0);
 
   const seiten = sitzung ? seitenInReihenfolge(sitzung) : [];
@@ -44,8 +46,8 @@ export function useTexterkennung(
     (async () => {
       try {
         const schon = await textLaden(naechste.id);
-        if (schon && (!schrift || schon.schrift === schrift)) {
-          setze({ zustand: "fertig", sicherheit: schon.sicherheit, schrift: schon.schrift });
+        if (schon && (!schrift || schon.schrift === schrift) && (!schon.bildId || schon.bildId === naechste.bildId)) {
+          setze({ zustand: "fertig", sicherheit: schon.sicherheit, schrift: schon.schrift, woerter: schon.woerter?.length ?? 0 });
           return;
         }
         setze({ zustand: "liest" });
@@ -54,9 +56,16 @@ export function useTexterkennung(
         const ergebnis = schrift
           ? await erkennen(bild, naechste.breite, schrift)
           : await schriftErkennen(bild, naechste.breite);
+        // Wurde die Seite unterdessen gedreht oder ersetzt, gehört das
+        // Ergebnis zum alten Bild – dann verwerfen und neu lesen.
+        const jetzt = aktuell.current ? seitenInReihenfolge(aktuell.current).find((x) => x.id === naechste.id) : undefined;
+        if (!jetzt || jetzt.bildId !== naechste.bildId) {
+          setze({ zustand: "wartet" });
+          return;
+        }
         if (!schrift) onSchrift(ergebnis.schrift);
-        await textSpeichern(naechste.id, ergebnis);
-        setze({ zustand: "fertig", sicherheit: ergebnis.sicherheit, schrift: ergebnis.schrift });
+        await textSpeichern(naechste.id, { ...ergebnis, bildId: naechste.bildId });
+        setze({ zustand: "fertig", sicherheit: ergebnis.sicherheit, schrift: ergebnis.schrift, woerter: ergebnis.woerter.length });
         const aufnahme = sitzung.aufnahmen.find((a) => a.seiten.some((x) => x.id === naechste.id));
         if (onKopfstand && aufnahme && !aufnahme.ausgerichtet) {
           const grad = await ausrichtungFinden(bild, naechste.breite, naechste.hoehe, ergebnis);

@@ -1,8 +1,9 @@
 import {
-  bundTeile, grauMachen, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen, viereckDrehen, type Drehung, type Gitter,
+  bundTeile, inPixel, kontrastStrecken, seiteAbtasten, seitenrahmen, viereckDrehen, type Drehung, type Gitter,
   type Viereck,
 } from "./geometrie";
 import { fingerEntfernen } from "./finger";
+import { seiteAufbereiten, type Befund } from "./aufbereitung";
 import { gitterBerechnen, MODELL_BREITE, MODELL_HOEHE } from "./glaetten";
 
 /**
@@ -98,6 +99,8 @@ export interface FertigeSeite {
   bild: Blob;
   breite: number;
   hoehe: number;
+  /** Was die Aufbereitung über die Seite weiss: leer, dunkel, Schärfe, Lage. */
+  befund?: Befund;
 }
 
 /** Eine Leinwand, wie sie Worker (OffscreenCanvas) und Seite (canvas) haben. */
@@ -165,16 +168,17 @@ export async function verarbeiten(
         hinweis = `Glätten ging nicht (${err instanceof Error ? err.message : String(err)}); die Seiten sind ungeglättet aufgenommen.`;
       }
     }
-    // Viereck, Bund und Glätten in einer Abtastung.
-    const seite = seiteAbtasten(kamera, rahmen, { x0, breite: teilBreite, gitter, farbig: z.farbig || mitFinger });
-    if (mitFinger) fingerEntfernen(seite);
-    if (!z.farbig) {
-      if (mitFinger) grauMachen(seite);
-      kontrastStrecken(seite);
-    }
+    // Viereck, Bund und Glätten in einer Abtastung – farbig, denn Finger
+    // und Abbildungen erkennt man an der Farbe.
+    const roh = seiteAbtasten(kamera, rahmen, { x0, breite: teilBreite, gitter, farbig: true });
+    if (mitFinger) fingerEntfernen(roh);
+    // Lage, Schräglage, Beleuchtung (lib/scan/aufbereitung.ts).
+    const { bild: seite, befund } = seiteAufbereiten(roh, { farbig: z.farbig });
+    // Einband: nicht aufhellen, nur den Kontrast strecken (farbig).
+    if (befund.dunkel) kontrastStrecken(seite);
     const l = leinwand(seite.breite, seite.hoehe);
     l.getContext("2d")!.putImageData(new ImageData(seite.daten, seite.breite, seite.hoehe), 0, 0);
-    seiten.push({ bild: await jpeg(l, QUALITAET), breite: seite.breite, hoehe: seite.hoehe });
+    seiten.push({ bild: await jpeg(l, QUALITAET), breite: seite.breite, hoehe: seite.hoehe, befund });
   }
   return { seiten, hinweis };
 }
