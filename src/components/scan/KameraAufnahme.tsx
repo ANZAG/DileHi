@@ -412,7 +412,14 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   };
 
   const randText = !randAuto ? null : randGefunden === null ? "Suche Buch …" : randGefunden ? "Buch gefunden" : "Kein Buch erkannt – Rahmen von Hand ziehen";
-  const passend = vollbild ? einpassen(vorschauGroesse.b, vorschauGroesse.h, platz.b, platz.h, roh) : null;
+  /** Bildschirm breiter als hoch (Handy quer, Drehsperre aus): Bedienung an die Seiten. */
+  const quer = vollbild && (sicht ? sicht.breite > sicht.hoehe * 1.1 : typeof window !== "undefined" && window.innerWidth > window.innerHeight * 1.1);
+  /**
+   * Hochkant füllt das Kamerabild den Bildschirm wie beim iPhone. Quer wäre
+   * dann oben und unten ein Stück vom Buch abgeschnitten (mit den Ecken des
+   * Rahmens) – dort steht es deshalb ganz zwischen den beiden Spalten.
+   */
+  const passend = vollbild ? einpassen(vorschauGroesse.b, vorschauGroesse.h, platz.b, platz.h, roh && !quer) : null;
   const gedreht: CSSProperties = { transform: `rotate(${symbolDrehung}deg)`, transition: "transform 0.3s" };
 
   const editor = strom && (
@@ -505,7 +512,7 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
           : { inset: 0, height: "100dvh", margin: 0 }}
       >
         <video ref={video} playsInline muted className="hidden" />
-        <div ref={buehne} className="absolute inset-0 overflow-hidden flex items-center justify-center" onClick={() => void lageAnfragen()}>
+        <div ref={buehne} className={`absolute overflow-hidden flex items-center justify-center ${quer ? "inset-y-0 left-16 right-32" : "inset-0"}`} onClick={() => void lageAnfragen()}>
           <div className="relative shrink-0" style={passend ? { width: passend.w, height: passend.h } : undefined}>
             <canvas ref={vorschau} className="block w-full h-full" />
             {editor}
@@ -515,10 +522,14 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
           {fehler && <p className="absolute p-8 text-center text-sm">{fehler}</p>}
         </div>
 
-        {/* Oben: schliessen, Symbole, Einstellungen – wie beim iPhone. */}
-        <div className="absolute top-0 inset-x-0 bg-black/45 px-3 pb-2 flex items-center justify-between" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+        {/* Schliessen, Symbole, Einstellungen – wie beim iPhone: hochkant
+            oben in einer Leiste, quer in einer Spalte links. */}
+        <div
+          className={`absolute bg-black/45 flex items-center justify-between ${quer ? "left-0 inset-y-0 w-16 flex-col py-3" : "top-0 inset-x-0 px-3 pb-2"}`}
+          style={quer ? { paddingLeft: "env(safe-area-inset-left)" } : { paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+        >
           {symbol(undefined, () => onVollbild(false), <X size={20} />, "Kamera schliessen")}
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${quer ? "flex-col" : ""}`}>
             {symbol(randAuto, () => onZuschnitt({ ...zuschnitt, randAuto: !randAuto }), <ScanLine size={18} />, "Rand automatisch")}
             {symbol(automatisch, () => setAutomatisch(!automatisch), automatisch ? <Zap size={18} /> : <ZapOff size={18} />, "Selbst auslösen")}
             {roh && symbol(lageAuto, () => {
@@ -529,8 +540,11 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
           {symbol(einstellungen, () => setEinstellungen(!einstellungen), <MoreHorizontal size={20} />, "Weitere Einstellungen")}
         </div>
 
-        {/* Hinweise unter der oberen Leiste */}
-        <div className="absolute inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none" style={{ top: "calc(max(0.5rem, env(safe-area-inset-top)) + 3.25rem)" }}>
+        {/* Hinweise oben in der Mitte */}
+        <div
+          className="absolute inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none"
+          style={{ top: quer ? "max(0.5rem, env(safe-area-inset-top))" : "calc(max(0.5rem, env(safe-area-inset-top)) + 3.25rem)" }}
+        >
           {randText && <span className="rounded-full bg-black/55 text-xs px-3 py-1">{randText}</span>}
           {automatisch && <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">Löst nach dem Umblättern selbst aus – Hand aus dem Bild</span>}
           {roh && lageAuto && !lageBereit && (
@@ -549,14 +563,22 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         )}
 
         {einstellungen && (
-          <div className="absolute inset-x-3 rounded-xl bg-black/85 border border-white/15 p-4" style={{ bottom: "calc(max(0.75rem, env(safe-area-inset-bottom)) + 9.5rem)" }}>
+          <div
+            className={`absolute rounded-xl bg-black/85 border border-white/15 p-4 overflow-y-auto ${quer ? "left-20 top-3 bottom-3 w-72" : "inset-x-3"}`}
+            style={quer ? undefined : { bottom: "calc(max(0.75rem, env(safe-area-inset-bottom)) + 9.5rem)" }}
+          >
             {einstellungsListe(true)}
           </div>
         )}
 
-        {/* Unten: Einzel-/Doppelseite wie „Video · Foto", darunter Auslöser */}
-        <div className="absolute bottom-0 inset-x-0 bg-black/55 px-4 pt-3 space-y-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-          <div role="radiogroup" className="flex justify-center gap-6 text-sm font-medium tracking-wide">
+        {/* Einzel-/Doppelseite wie „Video · Foto" und der Auslöser: hochkant
+            unten, quer in einer Spalte rechts. */}
+        <div
+          className={`absolute bg-black/55 ${quer ? "right-0 inset-y-0 w-32 flex flex-col items-center justify-between py-3" : "bottom-0 inset-x-0 px-4 pt-3 space-y-3"}`}
+          style={quer ? { paddingRight: "env(safe-area-inset-right)" } : { paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          {quer && symbol(undefined, drehen, <RotateCw size={20} />, "Foto um 90° drehen")}
+          <div role="radiogroup" className={`flex justify-center font-medium tracking-wide ${quer ? "flex-col items-center gap-1 text-[11px]" : "gap-6 text-sm"}`}>
             {([["einzel", "EINZELSEITE"], ["doppel", "DOPPELSEITE"]] as const).map(([w, text]) => {
               const an = zuschnitt.doppelseite === (w === "doppel");
               return (
@@ -573,26 +595,36 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
               );
             })}
           </div>
-          <div className="grid grid-cols-3 items-center">
-            <button type="button" onClick={() => onVollbild(false)} className="justify-self-start relative" aria-label={`Zur Seitenliste, ${seitenZahl} Seiten`}>
-              <span style={gedreht} className="block h-14 w-14 rounded-lg border-2 border-white/60 bg-white/10 overflow-hidden">
-                {letzteSeite && <img src={letzteSeite} alt="" className="h-full w-full object-cover" />}
-              </span>
-              <span className="absolute -top-2 -right-2 min-w-6 h-6 px-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center">
-                {seitenZahl}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { void lageAnfragen(); void ausloesen(); }}
-              disabled={!strom}
-              aria-label="Aufnehmen"
-              className="justify-self-center h-[4.75rem] w-[4.75rem] rounded-full border-[5px] border-white/90 bg-white disabled:opacity-50 active:scale-95 transition-transform"
-            />
-            <div className="justify-self-end">
-              {symbol(undefined, drehen, <RotateCw size={20} />, "Foto um 90° drehen")}
-            </div>
-          </div>
+          {(() => {
+            const vorschauBild = (
+              <button type="button" onClick={() => onVollbild(false)} className={`${quer ? "" : "justify-self-start"} relative`} aria-label={`Zur Seitenliste, ${seitenZahl} Seiten`}>
+                <span style={gedreht} className={`block rounded-lg border-2 border-white/60 bg-white/10 overflow-hidden ${quer ? "h-12 w-12" : "h-14 w-14"}`}>
+                  {letzteSeite && <img src={letzteSeite} alt="" className="h-full w-full object-cover" />}
+                </span>
+                <span className="absolute -top-2 -right-2 min-w-6 h-6 px-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center">
+                  {seitenZahl}
+                </span>
+              </button>
+            );
+            const ausloeserKnopf = (
+              <button
+                type="button"
+                onClick={() => { void lageAnfragen(); void ausloesen(); }}
+                disabled={!strom}
+                aria-label="Aufnehmen"
+                className={`${quer ? "h-[4.25rem] w-[4.25rem]" : "justify-self-center h-[4.75rem] w-[4.75rem]"} rounded-full border-[5px] border-white/90 bg-white disabled:opacity-50 active:scale-95 transition-transform`}
+              />
+            );
+            return quer ? <>{ausloeserKnopf}{vorschauBild}</> : (
+              <div className="grid grid-cols-3 items-center">
+                {vorschauBild}
+                {ausloeserKnopf}
+                <div className="justify-self-end">
+                  {symbol(undefined, drehen, <RotateCw size={20} />, "Foto um 90° drehen")}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     );

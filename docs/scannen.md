@@ -45,7 +45,11 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Rand automatisch, Selbst auslösen, Drehung aus der Lage, Einstellungen),
    unten „EINZELSEITE · DOPPELSEITE" über dem Auslöser, links die letzte
    Seite mit der Zahl der Seiten – ein Tipp darauf führt zur Seitenliste –,
-   rechts „um 90° drehen".
+   rechts „um 90° drehen". Hält man das Handy quer und dreht sich der
+   Bildschirm mit (Drehsperre aus), wandert die Bedienung wie beim iPhone an
+   die Seiten: links die Symbole, rechts Auslöser, Einzel-/Doppelseite und
+   letzte Seite. Das Kamerabild steht dann ganz dazwischen, damit oben und
+   unten nichts vom Buch (und von den Ecken des Rahmens) abgeschnitten ist.
 
    Wie man das Handy hält, sagt der Lagesensor: Hochkant oder quer, das Foto
    wird richtig herum gespeichert, und die Symbole drehen sich an ihrem
