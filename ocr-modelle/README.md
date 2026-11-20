@@ -34,3 +34,12 @@ SHA-256 von `uvdoc.onnx`: siehe `sha256sum ocr-modelle/uvdoc.onnx`, beginnt mit
 Gerechnet wird mit onnxruntime-web (MIT); dessen Rechenkern
 (`ort-wasm-simd-threaded.wasm` und `.mjs`) kommt aus `node_modules` und wird
 mit nach `public/ocr/` gelegt.
+
+## Schrift der Textebene: `NotoSans-Regular.ttf`
+
+Noto Sans Regular (Google), SIL Open Font License 1.1:
+https://fonts.google.com/noto/specimen/Noto+Sans – die Datei stammt aus dem
+npm-Paket `@expo-google-fonts/noto-sans` 0.4.2 (`400Regular/NotoSans_400Regular.ttf`),
+unverändert. Ins PDF kommen nur die Zeichen, die auf den Seiten vorkommen
+(Teilmenge), unsichtbar über dem Seitenbild – damit Suchen und Kopieren
+auch mit Zeichen ausserhalb von Windows-1252 gehen.

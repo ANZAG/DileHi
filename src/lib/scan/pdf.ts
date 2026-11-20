@@ -1,18 +1,32 @@
-import { PDFDocument, StandardFonts, TextRenderingMode, beginText, endText, popGraphicsState, pushGraphicsState,
-  setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode, showText, type PDFFont, type PDFName } from "pdf-lib";
+import {
+  PDFDocument, PDFName, PDFNumber, StandardFonts, TextRenderingMode, beginText, endText,
+  popGraphicsState, pushGraphicsState, setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode,
+  showText, type PDFFont,
+} from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { fuerSuche } from "./text";
 
 /**
  * Ein durchsuchbares PDF aus Seitenbildern.
  *
- * Jede Seite ist das Foto, darüber liegt unsichtbar der erkannte Text, Wort
- * für Wort an seiner Stelle. Wer im PDF sucht oder markiert, trifft die
- * richtige Zeile – so wie bei einem PDF aus dem Kopierer mit Texterkennung.
+ * Jede Seite ist das Foto, darüber liegt unsichtbar der erkannte Text –
+ * Zeile für Zeile in der Reihenfolge, in der Tesseract liest (Blöcke,
+ * Absätze, Zeilen). Jede Zeile ist ein Stück Text mit echten Leerzeichen,
+ * auf einer Grundlinie, so breit gezogen wie die Zeile im Bild. So findet
+ * die Suche Wortfolgen, Markieren trifft die richtige Zeile, und wer den
+ * Text herauskopiert oder mit `pdftotext` liest, bekommt ganze Zeilen in der
+ * richtigen Reihenfolge – nicht Wortfetzen. Trennungen bleiben, wie sie
+ * gedruckt sind („wur-“), damit der Text zum Bild passt.
  *
- * Die unsichtbare Schrift ist Helvetica aus dem PDF-Standard: Sie muss nicht
- * eingebettet werden, kann aber nur westeuropäische Zeichen. Das lange ſ
- * wird deshalb zum runden s – im PDF dient der Text nur dem Suchen. Den
- * Wortlaut mit ſ hält die Datenbank (source_pages).
+ * Die Schrift ist Noto Sans, eingebettet als Teilmenge: Auch Zeichen
+ * ausserhalb von Windows-1252 lassen sich suchen und kopieren. Fehlt sie,
+ * gilt Helvetica (nur westeuropäische Zeichen). Das lange ſ wird zum runden
+ * s, damit die Suche „Haus“ auch „Hauſ“ findet; den Wortlaut mit ſ hält die
+ * Datenbank (source_pages).
+ *
+ * Alle Seiten bekommen dieselbe Grösse (Median der Seitenverhältnisse);
+ * jedes Bild steht mittig darauf. Querformatige Seiten (ausklappbare Karten)
+ * bleiben quer, in gleicher Höhe.
  */
 
 export interface Wort {
@@ -32,36 +46,97 @@ export interface PdfSeite {
   woerter?: Wort[];
 }
 
+export interface PdfAngaben {
+  titel: string;
+  autor?: string;
+  thema?: string;
+  stichwoerter?: string[];
+  /** Noto Sans (TTF); ohne: Helvetica. */
+  schrift?: Uint8Array;
+  /** Seitenzählung wie im Buch: PDF-Seite `pdfSeite` (ab 1) ist Buchseite `buchSeite`. */
+  zaehlung?: { pdfSeite: number; buchSeite: number };
+}
+
 /** Angenommene Auflösung, aus der sich die Seitengrösse ergibt. */
 const DPI = 200;
 
-/** Nur Zeichen, die die Schrift kennt; der Rest fällt weg. */
-function darstellbar(text: string, zeichen: Set<number>): string {
-  let aus = "";
-  for (const z of fuerSuche(text)) {
-    const code = z.codePointAt(0)!;
-    if (zeichen.has(code)) aus += z;
-  }
-  return aus.trim();
+export interface Zeile {
+  woerter: Wort[];
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  /** Grundlinie (y in Bildpunkten). */
+  grund: number;
 }
 
-function textEbene(font: PDFFont, schluessel: PDFName, zeichen: Set<number>, seite: PdfSeite, mass: number, hoehePt: number) {
+const median = (werte: number[]) => {
+  if (!werte.length) return 0;
+  const s = [...werte].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+};
+
+/**
+ * Die Wörter kommen von Tesseract schon in Lesereihenfolge. Zu einer Zeile
+ * gehört, was danach rechts weitergeht und sich in der Höhe überschneidet.
+ */
+export function zeilenBilden(woerter: Wort[]): Zeile[] {
+  const zeilen: Wort[][] = [];
+  for (const w of woerter) {
+    const z = zeilen[zeilen.length - 1];
+    const letzte = z?.[z.length - 1];
+    if (letzte) {
+      const ueber = Math.min(letzte.y1, w.y1) - Math.max(letzte.y0, w.y0);
+      const hoehe = Math.min(letzte.y1 - letzte.y0, w.y1 - w.y0);
+      if (w.x0 >= letzte.x0 && ueber > hoehe * 0.4) { z.push(w); continue; }
+    }
+    zeilen.push([w]);
+  }
+  return zeilen.map((ws) => ({
+    woerter: ws,
+    x0: Math.min(...ws.map((w) => w.x0)),
+    y0: Math.min(...ws.map((w) => w.y0)),
+    x1: Math.max(...ws.map((w) => w.x1)),
+    y1: Math.max(...ws.map((w) => w.y1)),
+    // Die Unterkante der meisten Wörter ist die Grundlinie (Unterlängen sind seltener).
+    grund: median(ws.map((w) => w.y1)),
+  }));
+}
+
+/** Nur Zeichen, die die Schrift kennt; der Rest fällt weg. */
+function darstellbar(text: string, zeichen: Set<number> | null): string {
+  const t = fuerSuche(text);
+  if (!zeichen) return t;
+  let aus = "";
+  for (const z of t) if (zeichen.has(z.codePointAt(0)!)) aus += z;
+  return aus;
+}
+
+interface Lage {
+  /** Punkte je Bildpunkt. */
+  mass: number;
+  /** Ecke unten links des Bildes auf der Seite. */
+  x: number;
+  y: number;
+  /** Höhe des Bildes auf der Seite. */
+  hoehe: number;
+}
+
+function textEbene(font: PDFFont, schluessel: PDFName, zeichen: Set<number> | null, seite: PdfSeite, l: Lage) {
   const ops = [pushGraphicsState(), beginText(), setTextRenderingMode(TextRenderingMode.Invisible)];
-  for (const w of seite.woerter ?? []) {
-    const text = darstellbar(w.text, zeichen);
+  for (const z of zeilenBilden(seite.woerter ?? [])) {
+    const text = z.woerter.map((w) => darstellbar(w.text, zeichen).trim()).filter(Boolean).join(" ");
     if (!text) continue;
-    const hoehe = Math.max(1, (w.y1 - w.y0) * mass);
-    const breite = Math.max(1, (w.x1 - w.x0) * mass);
-    const groesse = hoehe;
+    // Schriftgrösse aus der Höhe über der Grundlinie (Oberlänge ≈ 0,75 Geviert).
+    const ueberGrund = Math.max(1, z.grund - z.y0);
+    const groesse = Math.max(1, (ueberGrund / 0.75) * l.mass);
+    const breite = Math.max(1, (z.x1 - z.x0) * l.mass);
     const natuerlich = font.widthOfTextAtSize(text, groesse);
     if (natuerlich <= 0) continue;
-    // Grundlinie etwa ein Fünftel über der Unterkante des Rahmens.
-    const x = w.x0 * mass;
-    const y = hoehePt - w.y1 * mass + hoehe * 0.2;
     ops.push(
       setFontAndSize(schluessel, groesse),
-      setCharacterSqueeze((breite / natuerlich) * 100),
-      setTextMatrix(1, 0, 0, 1, x, y),
+      setCharacterSqueeze(Math.max(1, Math.min(1000, (breite / natuerlich) * 100))),
+      setTextMatrix(1, 0, 0, 1, l.x + z.x0 * l.mass, l.y + l.hoehe - z.grund * l.mass),
       showText(font.encodeText(text)),
     );
   }
@@ -69,29 +144,65 @@ function textEbene(font: PDFFont, schluessel: PDFName, zeichen: Set<number>, sei
   return ops;
 }
 
-export async function pdfBauen(seiten: PdfSeite[], titel: string): Promise<Uint8Array> {
-  if (seiten.length === 0) throw new Error("Es gibt keine Seiten.");
-  const pdf = await PDFDocument.create();
-  pdf.setTitle(titel);
-  pdf.setLanguage("de-DE");
-  pdf.setCreator("Quellensammlung – Scannen");
-  pdf.setProducer("pdf-lib");
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const zeichen = new Set(font.getCharacterSet());
+/** Eine einheitliche Seitengrösse: Median der hochkanten Seiten. */
+export function seitenFormat(seiten: { breite: number; hoehe: number }[]): { breite: number; hoehe: number } {
+  const hoch = seiten.filter((s) => s.hoehe >= s.breite);
+  const basis = hoch.length ? hoch : seiten;
+  const breite = (median(basis.map((s) => s.breite)) * 72) / DPI;
+  const verhaeltnis = median(basis.map((s) => s.hoehe / s.breite)) || Math.SQRT2;
+  return { breite, hoehe: breite * verhaeltnis };
+}
 
+/** Römische Zahl für die Seiten vor der Zählung (Umschlag, Vorsatz). */
+function seitenBeschriftung(pdf: PDFDocument, zaehlung: { pdfSeite: number; buchSeite: number }) {
+  const ctx = pdf.context;
+  const nums = [];
+  if (zaehlung.pdfSeite > 1) nums.push(PDFNumber.of(0), ctx.obj({ S: PDFName.of("r") }));
+  nums.push(PDFNumber.of(zaehlung.pdfSeite - 1), ctx.obj({ S: PDFName.of("D"), St: PDFNumber.of(Math.max(1, zaehlung.buchSeite)) }));
+  pdf.catalog.set(PDFName.of("PageLabels"), ctx.obj({ Nums: ctx.obj(nums) }));
+}
+
+export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string): Promise<Uint8Array> {
+  if (seiten.length === 0) throw new Error("Es gibt keine Seiten.");
+  const a: PdfAngaben = typeof angaben === "string" ? { titel: angaben } : angaben;
+  const pdf = await PDFDocument.create();
+  pdf.setTitle(a.titel);
+  if (a.autor) pdf.setAuthor(a.autor);
+  if (a.thema) pdf.setSubject(a.thema);
+  if (a.stichwoerter?.length) pdf.setKeywords(a.stichwoerter);
+  pdf.setLanguage("de-DE");
+  pdf.setCreator("DileHi Quellensammlung");
+  pdf.setProducer("pdf-lib");
+
+  let font: PDFFont;
+  let zeichen: Set<number> | null = null;
+  if (a.schrift) {
+    pdf.registerFontkit(fontkit);
+    font = await pdf.embedFont(a.schrift, { subset: true });
+    zeichen = new Set(font.getCharacterSet());
+  } else {
+    font = await pdf.embedFont(StandardFonts.Helvetica);
+    zeichen = new Set(font.getCharacterSet());
+  }
+
+  const format = seitenFormat(seiten);
   for (const s of seiten) {
-    const mass = 72 / DPI;
-    const breitePt = s.breite * mass;
-    const hoehePt = s.hoehe * mass;
-    const page = pdf.addPage([breitePt, hoehePt]);
+    const quer = s.breite > s.hoehe * 1.05;
+    // Querformat: gleiche Höhe, Breite nach dem Bild.
+    const seiteB = quer ? format.hoehe * (s.breite / s.hoehe) : format.breite;
+    const seiteH = format.hoehe;
+    const mass = Math.min(seiteB / s.breite, seiteH / s.hoehe);
+    const l: Lage = { mass, x: (seiteB - s.breite * mass) / 2, y: (seiteH - s.hoehe * mass) / 2, hoehe: s.hoehe * mass };
+    const page = pdf.addPage([seiteB, seiteH]);
     const bild = await pdf.embedJpg(s.jpeg);
-    page.drawImage(bild, { x: 0, y: 0, width: breitePt, height: hoehePt });
+    page.drawImage(bild, { x: l.x, y: l.y, width: s.breite * mass, height: l.hoehe });
     if (s.woerter && s.woerter.length > 0) {
       // Die Schrift muss als Ressource an der Seite hängen, sonst kennt der
       // Leser den Namen im Textbefehl nicht.
       const schluessel = page.node.newFontDictionary(font.name, font.ref);
-      page.pushOperators(...textEbene(font, schluessel, zeichen, s, mass, hoehePt));
+      page.pushOperators(...textEbene(font, schluessel, zeichen, s, l));
     }
   }
+  if (a.zaehlung) seitenBeschriftung(pdf, a.zaehlung);
   return await pdf.save();
 }

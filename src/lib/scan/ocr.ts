@@ -1,3 +1,4 @@
+import { aufbereiten } from "./aufbereitung";
 import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
 import type { Wort } from "./pdf";
 import { seitentextAufraeumen } from "./text";
@@ -62,9 +63,9 @@ function arbeiterFuer(schrift: Schrift): Promise<Worker> {
 }
 
 /** Ein Bild auf eine Breite bringen, mit der die Erkennung zurechtkommt. */
-async function vorbereiten(bild: Blob, breite: number): Promise<{ bild: Blob; faktor: number }> {
-  if (breite >= MINDESTBREITE) return { bild, faktor: 1 };
-  const faktor = Math.min(2, MINDESTBREITE / breite);
+async function vorbereiten(bild: Blob, breite: number, aufhellen: boolean): Promise<{ bild: Blob; faktor: number }> {
+  if (breite >= MINDESTBREITE && !aufhellen) return { bild, faktor: 1 };
+  const faktor = breite >= MINDESTBREITE ? 1 : Math.min(2, MINDESTBREITE / breite);
   const bitmap = await createImageBitmap(bild);
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * faktor);
@@ -73,16 +74,28 @@ async function vorbereiten(bild: Blob, breite: number): Promise<{ bild: Blob; fa
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
+  if (aufhellen) {
+    // Bildseite (farbig im PDF): Zum Lesen grau und mit ausgeglichener
+    // Beleuchtung, sonst gehen Beschriftungen in der Farbe unter.
+    const daten = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    aufbereiten({ breite: canvas.width, hoehe: canvas.height, daten: daten.data }, { farbig: false });
+    ctx.putImageData(daten, 0, 0);
+  }
   const gross = await new Promise<Blob>((ok, fehler) =>
     canvas.toBlob((b) => (b ? ok(b) : fehler(new Error("Bild nicht vergrössert."))), "image/png")
   );
   return { bild: gross, faktor };
 }
 
+export interface LeseOptionen {
+  /** Eine farbige Bildseite: vor dem Lesen grau machen und Beleuchtung ausgleichen. */
+  aufhellen?: boolean;
+}
+
 /** Eine Seite lesen. `breite` ist die Breite des Bildes in Punkten. */
-export async function erkennen(bild: Blob, breite: number, schrift: Schrift): Promise<OcrErgebnis> {
+export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen = {}): Promise<OcrErgebnis> {
   const worker = await arbeiterFuer(schrift);
-  const { bild: eingabe, faktor } = await vorbereiten(bild, breite);
+  const { bild: eingabe, faktor } = await vorbereiten(bild, breite, o.aufhellen === true);
   const { data } = await worker.recognize(eingabe, {}, { text: true, blocks: true });
   const woerter: Wort[] = [];
   for (const block of data.blocks ?? []) {
@@ -108,8 +121,8 @@ export async function erkennen(bild: Blob, breite: number, schrift: Schrift): Pr
  * Antiqua oder Fraktur? Beide Modelle lesen die Seite; das sicherere gewinnt.
  * Für die erste Seite eines Buches – danach bleibt es bei der Wahl.
  */
-export async function schriftErkennen(bild: Blob, breite: number): Promise<OcrErgebnis> {
-  const [a, f] = await Promise.all([erkennen(bild, breite, "antiqua"), erkennen(bild, breite, "fraktur")]);
+export async function schriftErkennen(bild: Blob, breite: number, o: LeseOptionen = {}): Promise<OcrErgebnis> {
+  const [a, f] = await Promise.all([erkennen(bild, breite, "antiqua", o), erkennen(bild, breite, "fraktur", o)]);
   return f.sicherheit > a.sicherheit + 5 ? f : a;
 }
 
@@ -148,12 +161,13 @@ export async function ausrichtungFinden(
   bild: Blob,
   breite: number,
   hoehe: number,
-  ergebnis: OcrErgebnis
+  ergebnis: OcrErgebnis,
+  o: LeseOptionen = {}
 ): Promise<0 | 90 | 180 | 270> {
   if (ergebnis.sicherheit >= 45 || ergebnis.text.length < 80) return 0;
   let beste: { grad: 0 | 90 | 180 | 270; sicherheit: number } = { grad: 0, sicherheit: ergebnis.sicherheit };
   const versuch = async (grad: 90 | 180 | 270) => {
-    const r = await erkennen(await bildDrehen(bild, grad), grad === 180 ? breite : hoehe, ergebnis.schrift);
+    const r = await erkennen(await bildDrehen(bild, grad), grad === 180 ? breite : hoehe, ergebnis.schrift, o);
     if (r.sicherheit > beste.sicherheit) beste = { grad, sicherheit: r.sicherheit };
   };
   await versuch(180);

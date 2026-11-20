@@ -12,6 +12,7 @@
  *   frak2021.traineddata.gz           Fraktur, UB Mannheim, liegt in ocr-modelle/
  *   ort-wasm-simd-threaded.{wasm,mjs} Rechenkern von onnxruntime-web, fürs Glätten
  *   uvdoc.onnx                        Modell zum Glätten gewölbter Seiten, liegt in ocr-modelle/
+ *   NotoSans-Regular.ttf              Schrift der unsichtbaren Textebene im PDF, liegt in ocr-modelle/
  *
  * public/ocr/ steht in .gitignore: Die Dateien kommen aus node_modules und
  * würden sonst bei jeder neuen Fassung von tesseract.js doppelt im Verlauf liegen.
@@ -34,6 +35,7 @@ const dateien = [
   ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm", "ort-wasm-simd-threaded.wasm"],
   ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.mjs"],
   ["ocr-modelle/uvdoc.onnx", "uvdoc.onnx"],
+  ["ocr-modelle/NotoSans-Regular.ttf", "NotoSans-Regular.ttf"],
 ];
 
 for (const [von, nach] of dateien) {

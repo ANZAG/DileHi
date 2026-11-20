@@ -53,3 +53,37 @@ describe("Text", () => {
     expect(seitentextAufraeumen("  Zeile  \n\n\n\nZwei \n")).toBe("Zeile\n\nZwei");
   });
 });
+
+describe("Einheitliches PDF mit Textebene", () => {
+  it("gibt allen Seiten dieselbe Grösse, Querformat in gleicher Höhe", async () => {
+    const bytes = await pdfBauen([
+      { jpeg: JPEG, breite: 1000, hoehe: 1400 },
+      { jpeg: JPEG, breite: 1100, hoehe: 1500 },
+      { jpeg: JPEG, breite: 900, hoehe: 1300 },
+      { jpeg: JPEG, breite: 2000, hoehe: 1400 },
+    ], "Format");
+    const pdf = await PDFDocument.load(bytes);
+    const g = pdf.getPages().map((p) => p.getSize());
+    expect(g[0]).toEqual(g[1]);
+    expect(g[1]).toEqual(g[2]);
+    expect(g[3].height).toBeCloseTo(g[0].height, 5);
+    expect(g[3].width).toBeGreaterThan(g[3].height);
+  });
+
+  it("bettet Noto Sans ein, setzt Sprache, Angaben und Seitenzählung", async () => {
+    const { readFileSync } = await import("node:fs");
+    const schrift = new Uint8Array(readFileSync("ocr-modelle/NotoSans-Regular.ttf"));
+    const bytes = await pdfBauen([
+      { jpeg: JPEG, breite: 1000, hoehe: 1400 },
+      { jpeg: JPEG, breite: 1000, hoehe: 1400, woerter: [{ text: "Łódź", x0: 10, y0: 10, x1: 200, y1: 50 }, { text: "Gehorſam", x0: 210, y0: 12, x1: 400, y1: 50 }] },
+    ], { titel: "Probe", autor: "Stein", schrift, zaehlung: { pdfSeite: 2, buchSeite: 1 } });
+    const pdf = await PDFDocument.load(bytes);
+    expect(pdf.getAuthor()).toBe("Stein");
+    expect(pdf.getCreator()).toBe("DileHi Quellensammlung");
+    const katalog = pdf.catalog.toString();
+    expect(katalog).toContain("/Lang (de-DE)");
+    expect(katalog).toContain("/PageLabels");
+    const schriften = pdf.context.enumerateIndirectObjects().map(([, o]) => o.toString()).filter((t) => t.includes("/BaseFont"));
+    expect(schriften.some((t) => t.includes("NotoSans"))).toBe(true);
+  });
+});

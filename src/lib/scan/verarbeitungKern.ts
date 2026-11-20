@@ -113,7 +113,7 @@ interface Leinwand {
 export type LeinwandMacher = (breite: number, hoehe: number) => Leinwand;
 export type JpegMacher = (leinwand: Leinwand, qualitaet: number) => Promise<Blob>;
 
-const QUALITAET = 0.85;
+const QUALITAET = 0.75;
 
 export async function verarbeiten(
   roh: Blob,

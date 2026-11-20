@@ -166,10 +166,81 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    die neue Seite ist kurz grün umrandet. *Abbrechen* im Hinweis nimmt den
    Auftrag zurück.
 
+   **Qualitätsprüfung.** Jede Seite bekommt einen Befund: *gut*, *leer*
+   (bleibt drin, damit die Zählung zum Buch stimmt) oder *prüfen* – mit
+   Grund: *unscharf*, *wenig Text erkannt*, *Text unsicher (… %)*. Zu
+   prüfende Seiten sind orange umrandet, ein Tipp auf den Hinweis nimmt sie
+   neu auf. Über dem PDF-Knopf steht die Bilanz („112 Seiten gut, 4 prüfen")
+   mit Sprung zu jeder dieser Seiten. Ist eine Aufnahme unscharf, bietet die
+   Kamera gleich *Neu aufnehmen* an. Karten, Abbildungen und Einbände gelten
+   nicht als Textseiten: Bei ihnen zählen Schärfe und Sicherheit nicht.
+
 5. **PDF bauen und hochladen.** Das PDF zeigt die Seitenbilder, darüber
    unsichtbar der erkannte Text – suchen und markieren geht wie bei einem
    Scan aus dem Kopierer. Danach steht der Text auch in der Datenbank und
    ist in der Quellensammlung durchsuchbar.
+
+   Unter *Angaben fürs PDF* (freiwillig): Autor, Jahr und die
+   Seitenzählung – „PDF-Seite 3 ist Seite 1 im Buch"; die Seiten davor
+   zählen römisch. Der PDF-Leser zeigt dann die Seitenzahlen des Buches.
+
+   Nach dem Hochladen gibt es den Text auch als **Markdown** zum
+   Herunterladen (für die Auswertung, auch mit KI-Werkzeugen): ein Kopf mit
+   Titel und Angaben, je Seite ein Trenner `--- Seite 28 (PDF-Seite 30) ---`,
+   Trennungen zusammengeführt, Absätze am Stück, unsichere Seiten mit
+   `[OCR unsicher]`. Bei Quellen der Sammlung liegt die Markdown-Datei auch
+   in SharePoint neben dem PDF (nicht im Posteingang – dort erschiene sie als
+   weitere Datei ohne Quelle).
+
+## Bildaufbereitung
+
+Jede Seite wird nach dem Zuschnitt aufbereitet (`lib/scan/aufbereitung.ts`),
+im Hintergrund, gut eine Drittelsekunde je Seite:
+
+- **Beleuchtung:** Fotos sind am Bund und an den Rändern dunkler als in der
+  Mitte. Je Feld (1/90 der Seite) gilt das hellste Zehntel als Papier;
+  Abbildungen und Farbe zählen nicht und werden aus dem Papier ringsum
+  ergänzt. Das Bild wird durch diese Papierhelligkeit geteilt: Papier
+  überall weiss, Schrift überall gleich dunkel. Schwarz wird das dunkelste
+  Prozent der Seite – blasse Seiten werden so kräftiger.
+- **Lage:** Die Tinte steht in Zeilen; quer zu ihnen hat ihr Profil scharfe
+  Spitzen. Laufen die Zeilen senkrecht, wird die Seite um 90° gedreht (ob
+  sie dann auf dem Kopf steht, prüft die Texterkennung und dreht zurück).
+  Eine Schräglage bis 5° wird gerade gedreht.
+- **Bildseiten** (Karten, Tafeln, Einbände, viel Farbe) bleiben farbig und
+  werden nur sanft aufgehellt, mit Weissabgleich am Papier. Zum Lesen
+  bekommt die Texterkennung eine graue, ausgeglichene Fassung.
+- **Dunkle Seiten** (Einband, helle Schrift auf dunklem Grund) werden nicht
+  aufgehellt; Tesseract dreht helle Schrift beim Lesen selbst um.
+- **Schärfe:** Varianz des Laplace-Filters geteilt durch die Varianz der
+  Helligkeit (unabhängig vom Kontrast), im Inneren der Seite. Scharfe
+  Textseiten aus dem Handy liegen bei 3800–4700, verwackelte bei
+  1600–2300; die Grenze ist 3000.
+
+Gemessen am Buch „Stein: Uniformen der Armeen von Waterloo" (12 Seiten
+als Regressionstest, darunter die schwierigen S. 14, 27, 30, 38, 46, 116):
+erkannte Wörter 1922 → 3080. S. 46 („Husaren") hat jetzt den ganzen ersten
+Absatz mit allen Zahlen, S. 14 liest „der Franzosen einige / Stunden lang".
+Sauvola-Binarisierung in Tesseract brachte danach nichts mehr.
+
+## Das PDF
+
+- **Textebene zeilenweise**, in der Reihenfolge, in der Tesseract liest
+  (Blöcke, Absätze, Zeilen): je Zeile ein Stück Text mit echten
+  Leerzeichen auf der Grundlinie, so breit gezogen wie die Zeile im Bild.
+  `pdftotext` und Kopieren liefern ganze Zeilen in richtiger Reihenfolge.
+  Trennungen bleiben, wie gedruckt.
+- **Schrift Noto Sans**, eingebettet als Teilmenge (`ocr-modelle/`, OFL):
+  Auch Zeichen ausserhalb von Windows-1252 lassen sich suchen und kopieren.
+- **Eine Seitengrösse** für alle Seiten (Median der Seitenverhältnisse),
+  jedes Bild mittig darauf; querformatige Seiten bleiben quer, in gleicher
+  Höhe.
+- **Grösse:** JPEG-Qualität 0,75; die ausgeglichenen Seiten mit weissem
+  Papier sind etwa halb so gross wie vorher. Seiten über 2400 Punkte (Fotos
+  aus der Kamera-App) werden fürs PDF auf 2400 verkleinert – gut 300 ppi bei
+  A5. Ziel: unter 250 KB je Seite.
+- **Angaben:** Titel, Autor, Thema, Stichwörter, Sprache `de-DE`, Erzeuger
+  „DileHi Quellensammlung", Seitenbeschriftungen nach der Zählung des Buches.
 
 ## Texterkennung
 
@@ -197,8 +268,14 @@ sonst von jsDelivr – jeder Scan meldete dann einem Dritten die Adresse des
 Mitglieds.
 
 Der Text wird gespeichert, wie er erkannt wurde, **mit langem ſ** – für
-Zitate. Gesucht wird mit rundem s: „Gehorsam" findet „Gehorſam". Die
-unsichtbare Schrift im PDF kann kein ſ; dort steht s.
+Zitate; in der Datenbank mit zusammengeführten Trennungen, damit „wurde"
+auch das gedruckte „wur-⏎de" findet. Gesucht wird mit rundem s: „Gehorsam"
+findet „Gehorſam". In der Textebene des PDF steht ebenfalls rundes s, damit
+die Suche im PDF-Leser dasselbe findet.
+
+Der gelesene Text merkt sich, zu welchem Bild er gehört: Wird eine Seite
+gedreht oder ersetzt, während sie gelesen wird, wird das alte Ergebnis
+verworfen und neu gelesen.
 
 Erkannter Text ist ein Entwurf. Für den geprüften Wortlaut auf einer
 Belegkarte bleibt der Blick auf das Seitenbild Pflicht.
@@ -244,12 +321,13 @@ Büchern lieber in Bänden scannen.
 ## Code
 
 `src/pages/intern/Scannen.tsx`, `src/components/scan/`, `src/lib/scan/`
-(Geometrie, Rand finden, Glätten, Finger, Ordner, Auslöser, Texterkennung, PDF,
-Zwischenspeicher, Abschluss),
+(Geometrie, Rand finden, Glätten, Finger, Aufbereitung, Prüfung, Ordner,
+Auslöser, Texterkennung, PDF, Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
 `src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`,
-`src/test/scanDrehen.test.ts`, `src/test/scanLage.test.ts`, `src/test/scanErsetzen.test.ts`.
+`src/test/scanDrehen.test.ts`, `src/test/scanLage.test.ts`, `src/test/scanErsetzen.test.ts`,
+`src/test/scanAufbereitung.test.ts`, `src/test/scanText.test.ts`.
 
 ## Später
 

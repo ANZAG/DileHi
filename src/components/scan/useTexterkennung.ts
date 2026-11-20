@@ -53,9 +53,10 @@ export function useTexterkennung(
         setze({ zustand: "liest" });
         const bild = await dateiLaden(naechste.bildId);
         if (!bild) throw new Error("Bild fehlt im Zwischenspeicher.");
+        const lesen = { aufhellen: !!naechste.befund?.bildseite && !naechste.befund?.dunkel };
         const ergebnis = schrift
-          ? await erkennen(bild, naechste.breite, schrift)
-          : await schriftErkennen(bild, naechste.breite);
+          ? await erkennen(bild, naechste.breite, schrift, lesen)
+          : await schriftErkennen(bild, naechste.breite, lesen);
         // Wurde die Seite unterdessen gedreht oder ersetzt, gehört das
         // Ergebnis zum alten Bild – dann verwerfen und neu lesen.
         const jetzt = aktuell.current ? seitenInReihenfolge(aktuell.current).find((x) => x.id === naechste.id) : undefined;
@@ -68,7 +69,7 @@ export function useTexterkennung(
         setze({ zustand: "fertig", sicherheit: ergebnis.sicherheit, schrift: ergebnis.schrift, woerter: ergebnis.woerter.length });
         const aufnahme = sitzung.aufnahmen.find((a) => a.seiten.some((x) => x.id === naechste.id));
         if (onKopfstand && aufnahme && !aufnahme.ausgerichtet) {
-          const grad = await ausrichtungFinden(bild, naechste.breite, naechste.hoehe, ergebnis);
+          const grad = await ausrichtungFinden(bild, naechste.breite, naechste.hoehe, ergebnis, lesen);
           if (grad) onKopfstand(aufnahme.id, grad);
         }
       } catch (err) {

@@ -49,6 +49,15 @@ export interface Sitzung {
   aufnahmen: Aufnahme[];
   /** Wie weit das Hochladen gekommen ist – für einen zweiten Versuch. */
   abschluss?: AbschlussStand;
+  /** Freiwillige Angaben fürs PDF und den Text-Export. */
+  angaben?: BuchAngaben;
+}
+
+export interface BuchAngaben {
+  autor?: string;
+  jahr?: string;
+  /** PDF-Seite `pdfSeite` (ab 1) ist Seite `buchSeite` im Buch; davor römisch. */
+  zaehlung?: { pdfSeite: number; buchSeite: number };
 }
 
 const DB = "quellen-scannen";

@@ -12,7 +12,7 @@ import { Seitenliste } from "@/components/scan/Seitenliste";
 import { pruefungFuer, pruefungZaehlen, seitePruefen } from "@/lib/scan/pruefung";
 import { WeicheWahl } from "@/components/scan/WeicheWahl";
 import { useTexterkennung } from "@/components/scan/useTexterkennung";
-import { abschliessen, seitenInReihenfolge, type Schritt } from "@/lib/scan/abschluss";
+import { abschliessen, seitenInReihenfolge, textExport, type Schritt } from "@/lib/scan/abschluss";
 import { STANDARD_VIERECK, type Viereck } from "@/lib/scan/geometrie";
 import { ocrBeenden, SCHRIFT_NAME, type SchriftWahl } from "@/lib/scan/ocr";
 import { nachName } from "@/lib/scan/ordner";
@@ -84,7 +84,7 @@ const Scannen = () => {
   const [zuschneiden, setZuschneiden] = useState<{ aufnahmeId: string; roh: Blob; zuschnitt: Zuschnitt } | null>(null);
   const [lauf, setLauf] = useState<{ schritt: Schritt; anteil: number } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [fertig, setFertig] = useState<{ name: string; eingang: boolean } | null>(null);
+  const [fertig, setFertig] = useState<{ name: string; eingang: boolean; markdown?: string } | null>(null);
   /** Die nächste Aufnahme ersetzt diese Seite(n); `doppelVorher` stellt die Einstellung danach wieder her. */
   const [ersetzen, setErsetzen] = useState<(ErsetzenZiel & { text: string; doppelVorher: boolean }) | null>(null);
   const ersetzenRef = useRef(ersetzen);
@@ -502,7 +502,8 @@ const Scannen = () => {
         setLauf({ schritt, anteil });
         aendern((x) => ({ ...x, abschluss: st }));
       });
-      setFertig({ name: stand.dateiName ?? s.weiche.titel, eingang: s.weiche.art === "eingang" });
+      const markdown = await textExport(s).then((t) => t.markdown).catch(() => undefined);
+      setFertig({ name: stand.dateiName ?? s.weiche.titel, eingang: s.weiche.art === "eingang", markdown });
       await allesLoeschen();
       bilderVergessen([...bilder.keys()]);
       setSitzung(leereSitzung(s.zuschnitt));
@@ -544,6 +545,15 @@ const Scannen = () => {
             </p>
             <div className="flex gap-3 pt-1">
               <Link to="/intern/quellen" className="text-primary hover:underline">Zur Quellensammlung</Link>
+              {fertig.markdown && (
+                <a
+                  href={`data:text/markdown;charset=utf-8,${encodeURIComponent(fertig.markdown)}`}
+                  download={fertig.name.replace(/\.pdf$/i, "") + ".md"}
+                  className="text-primary hover:underline"
+                >
+                  Text als Markdown
+                </a>
+              )}
               <button type="button" onClick={() => setFertig(null)} className="text-primary hover:underline">Nächstes Buch</button>
             </div>
           </div>
@@ -722,6 +732,55 @@ const Scannen = () => {
                       )}
                     </div>
                   )}
+                  <details className="text-sm rounded-md border px-3 py-2">
+                    <summary className="cursor-pointer select-none">
+                      Angaben fürs PDF <span className="text-muted-foreground">(freiwillig: Autor, Jahr, Seitenzählung wie im Buch)</span>
+                    </summary>
+                    <div className="grid gap-3 sm:grid-cols-2 pt-3">
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">Autor</span>
+                        <input
+                          value={sitzung.angaben?.autor ?? ""}
+                          onChange={(e) => aendern((x) => ({ ...x, angaben: { ...x.angaben, autor: e.target.value || undefined } }))}
+                          className="w-full h-9 rounded-md border border-input bg-background px-2"
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">Jahr</span>
+                        <input
+                          value={sitzung.angaben?.jahr ?? ""}
+                          onChange={(e) => aendern((x) => ({ ...x, angaben: { ...x.angaben, jahr: e.target.value || undefined } }))}
+                          className="w-full h-9 rounded-md border border-input bg-background px-2"
+                        />
+                      </label>
+                      <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                        <span>PDF-Seite</span>
+                        <input
+                          type="number" min={1} max={seitenZahl} inputMode="numeric"
+                          value={sitzung.angaben?.zaehlung?.pdfSeite ?? ""}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            aendern((x) => ({ ...x, angaben: { ...x.angaben, zaehlung: n > 0 ? { pdfSeite: n, buchSeite: x.angaben?.zaehlung?.buchSeite ?? 1 } : undefined } }));
+                          }}
+                          className="w-20 h-9 rounded-md border border-input bg-background px-2"
+                          aria-label="PDF-Seite"
+                        />
+                        <span>ist Seite</span>
+                        <input
+                          type="number" min={1} inputMode="numeric"
+                          value={sitzung.angaben?.zaehlung?.buchSeite ?? ""}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            aendern((x) => ({ ...x, angaben: { ...x.angaben, zaehlung: n > 0 ? { pdfSeite: x.angaben?.zaehlung?.pdfSeite ?? 1, buchSeite: n } : x.angaben?.zaehlung } }));
+                          }}
+                          className="w-20 h-9 rounded-md border border-input bg-background px-2"
+                          aria-label="Seite im Buch"
+                        />
+                        <span>im Buch.</span>
+                        <span className="text-xs text-muted-foreground w-full">Die Seiten davor (Umschlag, Vorsatz) zählen römisch. Der PDF-Leser zeigt dann die Seitenzahlen des Buches.</span>
+                      </div>
+                    </div>
+                  </details>
                   <p className="text-sm text-muted-foreground">
                     {ocr.offen > 0
                       ? `Die Texterkennung liest noch ${ocr.offen} ${ocr.offen === 1 ? "Seite" : "Seiten"}. Wer jetzt hochlädt, bekommt für diese Seiten keinen Text.`
