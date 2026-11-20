@@ -15,6 +15,7 @@ import { abschliessen, seitenInReihenfolge, type Schritt } from "@/lib/scan/absc
 import { STANDARD_VIERECK, type Viereck } from "@/lib/scan/geometrie";
 import { ocrBeenden, SCHRIFT_NAME, type SchriftWahl } from "@/lib/scan/ocr";
 import { nachName } from "@/lib/scan/ordner";
+import { ersetzenIn, seitenBezeichnung, type ErsetzenZiel } from "@/lib/scan/ersetzen";
 import {
   allesLoeschen, dateiLaden, dateiLoeschen, dateiSpeichern, neueKennung, sitzungLaden, sitzungSpeichern, textLoeschen,
   type Aufnahme, type Sitzung, type Weiche,
@@ -83,6 +84,12 @@ const Scannen = () => {
   const [lauf, setLauf] = useState<{ schritt: Schritt; anteil: number } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [fertig, setFertig] = useState<{ name: string; eingang: boolean } | null>(null);
+  /** Die nächste Aufnahme ersetzt diese Seite(n); `doppelVorher` stellt die Einstellung danach wieder her. */
+  const [ersetzen, setErsetzen] = useState<(ErsetzenZiel & { text: string; doppelVorher: boolean }) | null>(null);
+  const ersetzenRef = useRef(ersetzen);
+  ersetzenRef.current = ersetzen;
+  /** Kurz hervorgehoben (und ins Bild gerollt): die gerade ersetzte Aufnahme. */
+  const [markiert, setMarkiert] = useState<string | null>(null);
   const kette = useRef<Promise<void>>(Promise.resolve());
   const speicherFehler = useRef(false);
   const glaettHinweis = useRef(false);
@@ -201,10 +208,75 @@ const Scannen = () => {
     });
   };
 
+  /** Eine neue Aufnahme an die Stelle einer alten (oder einer ihrer Seiten) setzen. */
+  const aufnahmeErsetzen = (roh: Blob, zuschnitt: Zuschnitt, ziel: ErsetzenZiel) => {
+    setInArbeit((n) => n + 1);
+    kette.current = kette.current.then(async () => {
+      try {
+        const rohId = neueKennung();
+        await dateiSpeichern(rohId, roh);
+        const seiten = await seitenMachen(roh, zuschnitt);
+        const neu: Aufnahme = { id: neueKennung(), rohId, zuschnitt, seiten };
+        const s = sitzungRef.current;
+        const e = s ? ersetzenIn(s.aufnahmen, ziel, neu) : null;
+        if (!e) {
+          // Inzwischen gelöscht: dann eben hinten anhängen.
+          aendern((x) => ({ ...x, aufnahmen: [...x.aufnahmen, neu] }));
+          return;
+        }
+        aendern((x) => ({ ...x, aufnahmen: ersetzenIn(x.aufnahmen, ziel, neu)?.aufnahmen ?? x.aufnahmen }));
+        setMarkiert(neu.id);
+        if (e.weg.aufnahme) await dateiLoeschen(e.weg.aufnahme.rohId);
+        for (const w of e.weg.seiten) { await dateiLoeschen(w.bildId); await textLoeschen(w.id); }
+        bilderVergessen(e.weg.seiten.map((w) => w.bildId));
+      } catch (err) {
+        setFehler(`Die neue Aufnahme liess sich nicht verarbeiten: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        setInArbeit((n) => n - 1);
+      }
+    });
+  };
+
+  /** Seite(n) neu aufnehmen: Kamera auf, die nächste Aufnahme ersetzt sie. */
+  const ersetzenStarten = (aufnahmeId: string, seiteId?: string) => {
+    const s = sitzungRef.current;
+    const a = s?.aufnahmen.find((x) => x.id === aufnahmeId);
+    if (!s || !a) return;
+    const ziel = { aufnahmeId, seiteId: a.seiten.length > 1 ? seiteId : undefined };
+    setErsetzen({ ...ziel, text: seitenBezeichnung(s.aufnahmen, ziel), doppelVorher: s.zuschnitt.doppelseite });
+    // Eine Seite einer Doppelseite nimmt man einzeln auf, eine ganze Aufnahme so wie zuvor.
+    zuschnittSetzen({ ...s.zuschnitt, doppelseite: !ziel.seiteId && a.seiten.length > 1 });
+    if (istHandy) setVollbild(true);
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const ersetzenBeenden = () => {
+    const e = ersetzenRef.current;
+    const z = sitzungRef.current?.zuschnitt;
+    setErsetzen(null);
+    if (e && z && z.doppelseite !== e.doppelVorher) zuschnittSetzen({ ...z, doppelseite: e.doppelVorher });
+  };
+
   const vonKamera = useCallback((roh: Blob) => {
     const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
+    const e = ersetzenRef.current;
+    if (e) {
+      aufnahmeErsetzen(roh, z, e);
+      ersetzenBeenden();
+      // Zurück zur Liste, damit man die neue Seite gleich sieht.
+      if (istHandy) setTimeout(() => setVollbild(false), 700);
+      return;
+    }
     aufnahmeHinzufuegen(roh, z);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Die ersetzte Aufnahme ins Bild rollen und kurz hervorheben.
+  useEffect(() => {
+    if (!markiert || vollbild) return;
+    const t = setTimeout(() => document.getElementById(`aufnahme-${markiert}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    const aus = setTimeout(() => setMarkiert(null), 4000);
+    return () => { clearTimeout(t); clearTimeout(aus); };
+  }, [markiert, vollbild]);
 
   /**
    * Bilder von aussen: Fotos aus der Kamera-App, Seiten aus der Software
@@ -218,7 +290,15 @@ const Scannen = () => {
    */
   const bildVonAussen = (d: File, glaetten?: boolean) => {
     const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
-    aufnahmeHinzufuegen(d, { ...z, drehung: 0, viereck: GANZES_BILD, glaetten: glaetten ?? z.glaetten });
+    const zuschnitt: Zuschnitt = { ...z, drehung: 0, viereck: GANZES_BILD, glaetten: glaetten ?? z.glaetten };
+    // Wartet eine Seite auf Ersatz, nimmt das erste Bild ihren Platz ein.
+    const e = ersetzenRef.current;
+    if (e) {
+      aufnahmeErsetzen(d, zuschnitt, e);
+      ersetzenBeenden();
+      return;
+    }
+    aufnahmeHinzufuegen(d, zuschnitt);
   };
 
   const bilderUebernehmen = (dateien: FileList | null) => {
@@ -487,6 +567,12 @@ const Scannen = () => {
             </span>
           </div>
 
+          {istHandy && !vollbild && ersetzen && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary bg-primary/10 px-3 py-2 text-sm">
+              <Camera size={16} className="text-primary" /> <span className="font-medium">Nächste Aufnahme ersetzt {ersetzen.text}</span>
+              <button type="button" onClick={ersetzenBeenden} className="ml-auto text-muted-foreground hover:text-foreground underline">Abbrechen</button>
+            </div>
+          )}
           {istHandy && !vollbild ? (
             <button
               type="button"
@@ -502,6 +588,7 @@ const Scannen = () => {
             onAufnahme={vonKamera}
             seitenZahl={seitenZahl}
             letzteSeite={letzteSeite}
+            auftrag={ersetzen ? { text: `Nächste Aufnahme ersetzt ${ersetzen.text}`, onAbbrechen: ersetzenBeenden } : undefined}
             vollbild={vollbild}
             onVollbild={setVollbild}
             handy={istHandy}
@@ -566,6 +653,10 @@ const Scannen = () => {
               onZuschneiden={(id) => void zuschneidenOeffnen(id)}
               onSeiteDrehen={seiteDrehen}
               onNeuLesen={(id) => void ocr.seiteNeu(id)}
+              onErsetzen={ersetzenStarten}
+              ersetztWird={ersetzen?.aufnahmeId}
+              ersetztSeite={ersetzen?.seiteId}
+              markiert={markiert}
             />
           )}
 

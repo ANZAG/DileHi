@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Crop, Loader2, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Crop, Loader2, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 import type { Aufnahme } from "@/lib/scan/speicher";
 import { SCHRIFT_NAME } from "@/lib/scan/ocr";
 import type { OcrZustand } from "./useTexterkennung";
@@ -20,6 +20,13 @@ interface Props {
   onZuschneiden: (aufnahmeId: string) => void;
   onSeiteDrehen: (aufnahmeId: string, seiteId: string) => void;
   onNeuLesen: (seiteId: string) => void;
+  /** Neu aufnehmen: eine Seite (seiteId) oder die ganze Aufnahme. */
+  onErsetzen: (aufnahmeId: string, seiteId?: string) => void;
+  /** Wartet gerade auf Ersatz (Aufnahme, ggf. nur diese Seite). */
+  ersetztWird?: string;
+  ersetztSeite?: string;
+  /** Eben ersetzt: kurz hervorheben. */
+  markiert?: string | null;
 }
 
 function Lesestand({ z, onNeu }: { z: OcrZustand | undefined; onNeu: () => void }) {
@@ -40,19 +47,24 @@ function Lesestand({ z, onNeu }: { z: OcrZustand | undefined; onNeu: () => void 
   );
 }
 
-export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeLoeschen, onSeiteLoeschen, onZuschneiden, onSeiteDrehen, onNeuLesen }: Props) {
+export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeLoeschen, onSeiteLoeschen, onZuschneiden, onSeiteDrehen, onNeuLesen, onErsetzen, ersetztWird, ersetztSeite, markiert }: Props) {
   let nummer = 0;
   return (
     <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
       {aufnahmen.map((a, ai) => (
-        <div key={a.id} className={`rounded-lg border bg-card p-2 space-y-2 ${a.seiten.length > 1 ? "col-span-2" : ""}`}>
+        <div
+          key={a.id}
+          id={`aufnahme-${a.id}`}
+          className={`rounded-lg border bg-card p-2 space-y-2 transition-shadow ${a.seiten.length > 1 ? "col-span-2" : ""} ${markiert === a.id ? "ring-2 ring-green-600" : ""}`}
+        >
           <div className="flex gap-2">
             {a.seiten.map((s) => {
               nummer += 1;
               const url = bilder.get(s.bildId);
+              const wartet = ersetztWird === a.id && (!ersetztSeite || ersetztSeite === s.id);
               return (
                 <div key={s.id} className="flex-1 min-w-0 space-y-1">
-                  <div className="relative aspect-[3/4] bg-muted rounded overflow-hidden">
+                  <div className={`relative aspect-[3/4] bg-muted rounded overflow-hidden ${wartet ? "ring-2 ring-primary" : ""}`}>
                     {url && <img src={url} alt={`Seite ${nummer}`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" />}
                     <button
                       type="button"
@@ -62,6 +74,15 @@ export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeL
                       className="absolute top-1 left-1 h-6 w-6 inline-flex items-center justify-center rounded bg-background/80 hover:bg-background"
                     >
                       <RotateCw size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onErsetzen(a.id, s.id)}
+                      aria-label={`Seite ${nummer} neu aufnehmen`}
+                      title="Diese Seite neu aufnehmen – die nächste Aufnahme kommt an ihre Stelle"
+                      className={`absolute bottom-1 right-1 h-7 px-2 inline-flex items-center gap-1 rounded text-[11px] ${wartet ? "bg-primary text-primary-foreground" : "bg-background/85 hover:bg-background"}`}
+                    >
+                      <Camera size={12} /> {wartet ? "wartet" : "Neu"}
                     </button>
                     {a.seiten.length > 1 && (
                       <button
@@ -92,6 +113,11 @@ export function Seitenliste({ aufnahmen, bilder, ocr, onVerschieben, onAufnahmeL
               </button>
             </div>
             <div className="flex gap-1">
+              {a.seiten.length > 1 && (
+                <button type="button" onClick={() => onErsetzen(a.id)} aria-label="Doppelseite neu aufnehmen" title="Beide Seiten neu aufnehmen" className="h-7 w-7 inline-flex items-center justify-center rounded border hover:bg-muted">
+                  <Camera size={14} />
+                </button>
+              )}
               <button type="button" onClick={() => onZuschneiden(a.id)} aria-label="neu zuschneiden" title="Neu zuschneiden" className="h-7 w-7 inline-flex items-center justify-center rounded border hover:bg-muted">
                 <Crop size={14} />
               </button>

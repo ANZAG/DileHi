@@ -155,6 +155,17 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    gelesen), oder *Neu zuschneiden* je Aufnahme. Aufnahmen lassen sich verschieben, neu
    zuschneiden und löschen, einzelne Seiten (eine leere Rückseite) entfernen.
 
+   **Seiten neu aufnehmen.** Ist eine Seite unscharf, schief oder schlecht
+   gelesen: *Neu* unten rechts an der Seite antippen. Die Kamera öffnet sich
+   mit dem Hinweis „Nächste Aufnahme ersetzt S. …", und die nächste Aufnahme
+   kommt genau an diese Stelle – ebenso das nächste übernommene Bild.
+   Gehörte die Seite zu einer Doppelseite, nimmt die Kamera sie einzeln auf
+   (danach gilt wieder die alte Einstellung), und die andere Seite bleibt
+   stehen. Beide Seiten einer Doppelseite zusammen ersetzt der Kameraknopf
+   unten an der Aufnahme. Am Handy geht es danach gleich zurück zur Liste,
+   die neue Seite ist kurz grün umrandet. *Abbrechen* im Hinweis nimmt den
+   Auftrag zurück.
+
 5. **PDF bauen und hochladen.** Das PDF zeigt die Seitenbilder, darüber
    unsichtbar der erkannte Text – suchen und markieren geht wie bei einem
    Scan aus dem Kopierer. Danach steht der Text auch in der Datenbank und
@@ -238,7 +249,7 @@ Zwischenspeicher, Abschluss),
 Tests in `src/test/scanGeometrie.test.ts`, `src/test/scanPdf.test.ts`,
 `src/test/quelltext.test.ts`, `src/test/scanOrdner.test.ts`,
 `src/test/scanFinger.test.ts`, `src/test/scanRand.test.ts`,
-`src/test/scanDrehen.test.ts`, `src/test/scanLage.test.ts`.
+`src/test/scanDrehen.test.ts`, `src/test/scanLage.test.ts`, `src/test/scanErsetzen.test.ts`.
 
 ## Später
 

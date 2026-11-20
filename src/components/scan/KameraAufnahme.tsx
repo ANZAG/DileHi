@@ -42,6 +42,8 @@ interface Props {
   onVollbild: (an: boolean) => void;
   /** Am Handy: Vorschau ungedreht und bildschirmfüllend, Drehung aus dem Lagesensor. */
   handy?: boolean;
+  /** Wartet eine Seite auf Ersatz? Dann steht das gut sichtbar über dem Bild. */
+  auftrag?: { text: string; onAbbrechen: () => void };
 }
 
 /** Was Chrome und Edge bei vielen Webcams zusätzlich können; nicht in lib.dom. */
@@ -124,7 +126,7 @@ function Umschalter<T extends string>({ wert, optionen, onWahl }: {
   );
 }
 
-export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild, handy = false }: Props) {
+export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl, letzteSeite, vollbild, onVollbild, handy = false, auftrag }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const vorschau = useRef<HTMLCanvasElement>(null);
   const buehne = useRef<HTMLDivElement>(null);
@@ -545,6 +547,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
           className="absolute inset-x-0 flex flex-col items-center gap-1.5 pointer-events-none"
           style={{ top: quer ? "max(0.5rem, env(safe-area-inset-top))" : "calc(max(0.5rem, env(safe-area-inset-top)) + 3.25rem)" }}
         >
+          {auftrag && (
+            <span className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-medium pl-3 pr-1 py-1 shadow">
+              <Camera size={15} /> {auftrag.text}
+              <button type="button" onClick={auftrag.onAbbrechen} className="rounded-full bg-black/25 px-2 py-0.5 text-xs">Abbrechen</button>
+            </span>
+          )}
           {randText && <span className="rounded-full bg-black/55 text-xs px-3 py-1">{randText}</span>}
           {automatisch && <span className="rounded-full bg-primary/90 text-primary-foreground text-xs px-3 py-1">Löst nach dem Umblättern selbst aus – Hand aus dem Bild</span>}
           {roh && lageAuto && !lageBereit && (
@@ -645,6 +653,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
 
   return (
     <div className="space-y-3">
+      {auftrag && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary bg-primary/10 px-3 py-2 text-sm">
+          <Camera size={16} className="text-primary" /> <span className="font-medium">{auftrag.text}</span>
+          <button type="button" onClick={auftrag.onAbbrechen} className="ml-auto text-muted-foreground hover:text-foreground underline">Abbrechen</button>
+        </div>
+      )}
       <div ref={buehne} className="relative rounded-lg overflow-hidden border bg-black">
         <video ref={video} playsInline muted className="hidden" />
         <div className="relative">
