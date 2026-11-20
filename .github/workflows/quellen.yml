@@ -1,0 +1,102 @@
+name: Quellen nachbearbeiten
+
+# Vorhandene Quellen der Quellensammlung mit denselben Werkzeugen
+# nachbearbeiten wie neue Scans (scripts/quellen-nachbearbeiten.ts):
+#
+#   pruefen  nur nachsehen: Welche PDFs haben schon Text, welche Seiten
+#            sind Scans und müssten gelesen werden? Schreibt nichts.
+#   text     Stufe 1: jede Quelle durchsuchbar machen. Text aus dem PDF
+#            übernehmen, wo es selbst welchen hat (am Rechner erstellt);
+#            Scan-Seiten aufbereiten und lesen. Die Datei bleibt, wie sie
+#            ist – nur der Text kommt in die Suche.
+#
+# Quellen, die schon Text in der Suche haben, werden übersprungen (ausser
+# mit „neu“). Bricht ein Lauf ab (Zeitlimit), macht der nächste dort weiter.
+# Der Bericht steht in der Zusammenfassung des Laufs und als Artefakt.
+#
+# Einzurichten sind ZWEI Stellen – derselbe Wert, frei gewählt und lang
+# (etwa `openssl rand -hex 32`):
+#
+#   1. GitHub (Repository → Settings → Secrets and variables → Actions)
+#        QUELLEN_TOKEN
+#   2. Bei Supabase (Dashboard → Edge Functions → Secrets)
+#        QUELLEN_TOKEN
+#
+# Ein eigenes Geheimnis, nicht das der Sicherung: Die Edge Function
+# `quellen-werkstatt` kann Text setzen und Dateien ersetzen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      modus:
+        description: "pruefen = nur nachsehen, text = durchsuchbar machen"
+        type: choice
+        options: [pruefen, text]
+        default: pruefen
+      quellen:
+        description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
+        type: string
+        default: ""
+      neu:
+        description: "Auch Quellen, die schon Text haben"
+        type: boolean
+        default: false
+      grenze:
+        description: "Höchstens so viele Quellen in diesem Lauf (0 = alle)"
+        type: string
+        default: "0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quellen-nachbearbeiten
+  cancel-in-progress: false
+
+jobs:
+  nachbearbeiten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Werkzeuge für PDFs
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Modelle der Texterkennung
+        run: node scripts/ocr-dateien.mjs
+
+      - name: Schlüssel vorhanden?
+        env:
+          QUELLEN_TOKEN: ${{ secrets.QUELLEN_TOKEN }}
+        run: |
+          if [ -z "$QUELLEN_TOKEN" ]; then
+            echo "::error::Das Secret QUELLEN_TOKEN fehlt (GitHub und Supabase, siehe Kopf dieser Datei)."
+            exit 1
+          fi
+
+      - name: Nachbearbeiten
+        env:
+          FUNCTIONS_URL: ${{ secrets.FUNCTIONS_URL || vars.FUNCTIONS_URL || format('https://{0}.supabase.co/functions/v1', secrets.SUPABASE_PROJECT_REF) }}
+          QUELLEN_TOKEN: ${{ secrets.QUELLEN_TOKEN }}
+          MODUS: ${{ inputs.modus }}
+          QUELLEN: ${{ inputs.quellen }}
+          NEU: ${{ inputs.neu }}
+          GRENZE: ${{ inputs.grenze }}
+        run: npx vite-node scripts/quellen-nachbearbeiten.ts
+
+      - name: Bericht ablegen
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: quellen-bericht
+          path: bericht.json
+          if-no-files-found: ignore

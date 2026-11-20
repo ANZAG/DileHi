@@ -288,6 +288,39 @@ verworfen und neu gelesen.
 Erkannter Text ist ein Entwurf. Für den geprüften Wortlaut auf einer
 Belegkarte bleibt der Blick auf das Seitenbild Pflicht.
 
+## Vorhandene Quellen nachbearbeiten
+
+Was beim Scannen greift, gilt auch für die Quellen, die schon in der
+Sammlung liegen: GitHub-Action **„Quellen nachbearbeiten“**
+(`.github/workflows/quellen.yml`, Skript `scripts/quellen-nachbearbeiten.ts`,
+Edge Function `quellen-werkstatt`). Starten unter Actions → Quellen
+nachbearbeiten → Run workflow.
+
+- **pruefen:** nur nachsehen und berichten – je PDF, wie viele Seiten
+  schon Text haben und wie viele Scans sind. Schreibt nichts.
+- **text (Stufe 1):** jede Quelle durchsuchbar machen, ohne die Datei
+  anzufassen. Seiten, die am Rechner entstanden sind, behalten ihren Text.
+  Scan-Seiten (ein grosses Bild füllt die Seite) werden mit 300 dpi
+  gerendert, wie ein Scan aufbereitet (Beleuchtung, Lage, Schräglage) und
+  gelesen – Antiqua oder Fraktur entscheidet die erste Seite; steht eine
+  Seite auf dem Kopf, wird sie gedreht gelesen. Hatte das PDF schon eine
+  Textebene mit mehr echten Wörtern, bleibt diese. Der Text kommt in die
+  Suche (`source_pages`).
+
+Quellen mit Text in der Suche werden übersprungen (ausser mit *neu*); ein
+abgebrochener Lauf macht beim nächsten Mal dort weiter. *grenze* begrenzt
+die Zahl der Quellen je Lauf, *quellen* wählt einzelne aus. Der Bericht
+(Seiten, aus dem PDF, gelesen, leer, unsicher, Wörter, Schrift, Dauer) steht
+in der Zusammenfassung des Laufs und als Artefakt `quellen-bericht`.
+
+Einzurichten: das Secret `QUELLEN_TOKEN`, **derselbe Wert** in GitHub
+(Settings → Secrets and variables → Actions) und bei Supabase (Edge
+Functions → Secrets). Ein eigenes Geheimnis, nicht das der Sicherung.
+
+Am Stein-Buch (12 Seiten): alle als Scans erkannt und neu gelesen, 2948
+Wörter, S. 14 vollständig, die quer liegende S. 27 aufrecht; ein am
+Rechner erstelltes PDF behält seinen Text, ohne gelesen zu werden.
+
 ## Volltextsuche
 
 Die Suche der Quellensammlung zeigt unter den Titeln **„Im Text der
