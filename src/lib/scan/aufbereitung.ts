@@ -43,6 +43,8 @@ export interface Befund {
    * Originals bleibt.
    */
   bildseite: boolean;
+  /** Das Bild ist farbig gespeichert (Bildseite oder „Farbig“ eingeschaltet). */
+  farbig?: boolean;
 }
 
 const lum = (d: Uint8ClampedArray, i: number) => (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) / 256;
@@ -363,7 +365,7 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
     bild,
     befund: {
       dunkel, leer: !dunkel && lage.tinte < 0.004, tinte: lage.tinte, schaerfe,
-      schraeg: lage.schraeg, quer: lage.quer, zeilen: lage.zeilen, bildseite,
+      schraeg: lage.schraeg, quer: lage.quer, zeilen: lage.zeilen, bildseite, farbig: o.farbig || bildseite,
     },
   };
 }

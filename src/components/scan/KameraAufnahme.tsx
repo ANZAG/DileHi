@@ -439,7 +439,7 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     <div className={`text-sm ${dunkel ? "flex flex-col gap-2.5 text-white" : "flex flex-wrap items-center gap-x-4 gap-y-2"}`}>
       <label className="inline-flex items-center gap-2">
         <input type="checkbox" checked={zuschnitt.farbig} onChange={(e) => onZuschnitt({ ...zuschnitt, farbig: e.target.checked })} />
-        Farbig (für Bildtafeln)
+        Farbig (nur für Bildtafeln – Karten und Abbildungen erkennt die Seite selbst)
       </label>
       <label className="inline-flex items-center gap-2">
         <input type="checkbox" checked={zuschnitt.finger !== false} onChange={(e) => onZuschnitt({ ...zuschnitt, finger: e.target.checked })} />

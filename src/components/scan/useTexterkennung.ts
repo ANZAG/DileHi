@@ -53,7 +53,9 @@ export function useTexterkennung(
         setze({ zustand: "liest" });
         const bild = await dateiLaden(naechste.bildId);
         if (!bild) throw new Error("Bild fehlt im Zwischenspeicher.");
-        const lesen = { aufhellen: !!naechste.befund?.bildseite && !naechste.befund?.dunkel };
+        // Farbig gespeichert (Bildseite oder „Farbig“): zum Lesen grau und ausgeglichen.
+        const b = naechste.befund;
+        const lesen = { aufhellen: !!b && !!(b.farbig ?? b.bildseite) && !b.dunkel };
         const ergebnis = schrift
           ? await erkennen(bild, naechste.breite, schrift, lesen)
           : await schriftErkennen(bild, naechste.breite, lesen);
