@@ -194,6 +194,14 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
 
 ## Bildaufbereitung
 
+**Übernommene Fotos** (Kamera-App, „Bilder übernehmen") werden wie die
+Kamera auf das Buch zugeschnitten: Tisch und Nachbarseite fallen weg.
+Findet sich nichts Sicheres – etwa weil das Bild schon zugeschnitten ist –,
+bleibt es ganz. Seiten aus der Software eines Buchscanners („Ordner
+beobachten") werden nicht zugeschnitten. Für die beste Auflösung (12 MP
+statt Videobild) am iPhone *Foto mit der Kamera-App* nehmen.
+
+
 Jede Seite wird nach dem Zuschnitt aufbereitet (`lib/scan/aufbereitung.ts`),
 im Hintergrund, gut eine Drittelsekunde je Seite:
 

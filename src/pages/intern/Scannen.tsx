@@ -14,6 +14,7 @@ import { WeicheWahl } from "@/components/scan/WeicheWahl";
 import { useTexterkennung } from "@/components/scan/useTexterkennung";
 import { abschliessen, seitenInReihenfolge, textExport, type Schritt } from "@/lib/scan/abschluss";
 import { STANDARD_VIERECK, type Viereck } from "@/lib/scan/geometrie";
+import { seitenFinden } from "@/lib/scan/seitenFinden";
 import { ocrBeenden, SCHRIFT_NAME, type SchriftWahl } from "@/lib/scan/ocr";
 import { nachName } from "@/lib/scan/ordner";
 import { ersetzenIn, seitenBezeichnung, type ErsetzenZiel } from "@/lib/scan/ersetzen";
@@ -35,6 +36,24 @@ const STANDARD_ZUSCHNITT: Zuschnitt = {
   drehung: 0, viereck: STANDARD_VIERECK, doppelseite: true, bund: 0.5, farbig: false, finger: true, glaetten: true, randAuto: true,
 };
 const GANZES_BILD: Viereck = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+
+/** Das Buch in einem Foto suchen (verkleinert, wie in der Vorschau der Kamera). */
+async function randImBild(bild: Blob, doppel: boolean): Promise<Viereck | null> {
+  try {
+    const bmp = await createImageBitmap(bild);
+    const f = Math.min(1, 800 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(bmp.width * f));
+    c.height = Math.max(1, Math.round(bmp.height * f));
+    const ctx = c.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close();
+    const daten = ctx.getImageData(0, 0, c.width, c.height).data;
+    return seitenFinden({ breite: c.width, hoehe: c.height, daten }, { doppel });
+  } catch {
+    return null;
+  }
+}
 const ZUSCHNITT_MERKER = "scan-zuschnitt";
 
 /** Kamera und Buch stehen beim nächsten Mal meist wieder so – also merken. */
@@ -195,10 +214,12 @@ const Scannen = () => {
     return seiten;
   };
 
-  const aufnahmeHinzufuegen = (roh: Blob, zuschnitt: Zuschnitt) => {
+  /** `vorher`: den Zuschnitt erst in der Reihe bestimmen (Rand eines übernommenen Fotos). */
+  const aufnahmeHinzufuegen = (roh: Blob, zuschnittFest: Zuschnitt, vorher?: (z: Zuschnitt) => Promise<Zuschnitt>) => {
     setInArbeit((n) => n + 1);
     kette.current = kette.current.then(async () => {
       try {
+        const zuschnitt = vorher ? await vorher(zuschnittFest) : zuschnittFest;
         const rohId = neueKennung();
         await dateiSpeichern(rohId, roh);
         const seiten = await seitenMachen(roh, zuschnitt);
@@ -216,10 +237,11 @@ const Scannen = () => {
   };
 
   /** Eine neue Aufnahme an die Stelle einer alten (oder einer ihrer Seiten) setzen. */
-  const aufnahmeErsetzen = (roh: Blob, zuschnitt: Zuschnitt, ziel: ErsetzenZiel) => {
+  const aufnahmeErsetzen = (roh: Blob, zuschnittFest: Zuschnitt, ziel: ErsetzenZiel, vorher?: (z: Zuschnitt) => Promise<Zuschnitt>) => {
     setInArbeit((n) => n + 1);
     kette.current = kette.current.then(async () => {
       try {
+        const zuschnitt = vorher ? await vorher(zuschnittFest) : zuschnittFest;
         const rohId = neueKennung();
         await dateiSpeichern(rohId, roh);
         const seiten = await seitenMachen(roh, zuschnitt);
@@ -295,9 +317,10 @@ const Scannen = () => {
 
   /**
    * Bilder von aussen: Fotos aus der Kamera-App, Seiten aus der Software
-   * eines Buchscanners. Sie sind schon zugeschnitten; geteilt wird nur, wenn
-   * „Doppelseite" eingeschaltet ist. Nach Dateinamen sortiert, so wie
-   * Scanner und Kameras sie durchzählen.
+   * eines Buchscanners. Fotos werden auf das Buch zugeschnitten, Seiten
+   * eines Scanners nicht; geteilt wird nur, wenn „Doppelseite"
+   * eingeschaltet ist. Nach Dateinamen sortiert, so wie Scanner und
+   * Kameras sie durchzählen.
    */
   /**
    * `glaetten`: Fotos aus der Kamera-App ja (wie eingestellt), Seiten aus
@@ -306,14 +329,18 @@ const Scannen = () => {
   const bildVonAussen = (d: File, glaetten?: boolean) => {
     const z = sitzungRef.current?.zuschnitt ?? STANDARD_ZUSCHNITT;
     const zuschnitt: Zuschnitt = { ...z, drehung: 0, viereck: GANZES_BILD, glaetten: glaetten ?? z.glaetten };
+    // Fotos (nicht die Seiten eines Buchscanners): Das Buch im Bild suchen
+    // und zuschneiden – Tisch und Nachbarseite fallen weg. Findet sich
+    // nichts Sicheres (etwa ein schon zugeschnittenes Bild), bleibt es ganz.
+    const vorher = glaetten === undefined ? async (x: Zuschnitt) => ({ ...x, viereck: (await randImBild(d, x.doppelseite)) ?? GANZES_BILD }) : undefined;
     // Wartet eine Seite auf Ersatz, nimmt das erste Bild ihren Platz ein.
     const e = ersetzenRef.current;
     if (e) {
-      aufnahmeErsetzen(d, zuschnitt, e);
+      aufnahmeErsetzen(d, zuschnitt, e, vorher);
       ersetzenBeenden();
       return;
     }
-    aufnahmeHinzufuegen(d, zuschnitt);
+    aufnahmeHinzufuegen(d, zuschnitt, vorher);
   };
 
   const bilderUebernehmen = (dateien: FileList | null) => {
