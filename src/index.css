@@ -119,6 +119,19 @@
 }
 
 /*
+ * iOS zoomt beim Tippen in ein Eingabefeld unter 16 px hinein und danach
+ * nicht wieder heraus. Auf dem Handy beim Scannen deshalb keine kleineren
+ * Felder – sonst ragt die Vollbild-Kamera später über den Bildschirm.
+ */
+@media (pointer: coarse) {
+  .ohne-zoom input:not([type="checkbox"]):not([type="radio"]),
+  .ohne-zoom select,
+  .ohne-zoom textarea {
+    font-size: 16px !important;
+  }
+}
+
+/*
  * Fliesstext-Editor im Seitenbaukasten.
  *
  * Nur so viel, dass man im Editor sieht, was man bearbeitet: das Raster einer

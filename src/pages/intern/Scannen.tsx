@@ -421,7 +421,7 @@ const Scannen = () => {
   const letzteSeite = alleSeiten.length ? bilder.get(alleSeiten[alleSeiten.length - 1].bildId) : undefined;
 
   return (
-    <div className={SEITE}>
+    <div className={`${SEITE} ohne-zoom`}>
       <Link to="/intern/quellen" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft size={16} /> Quellensammlung
       </Link>

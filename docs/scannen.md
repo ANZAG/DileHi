@@ -49,13 +49,22 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
 
    Wie man das Handy hält, sagt der Lagesensor: Hochkant oder quer, das Foto
    wird richtig herum gespeichert, und die Symbole drehen sich an ihrem
-   Platz. Liegt das Handy flach über dem Buch, ist die Lage nicht zu
-   erkennen; dann gilt, wie beim iPhone, die letzte sichere Lage – also das
-   Handy quer anheben und dann über das Buch senken. Das iPhone fragt beim
+   Platz. Liegt das Handy flach über dem Buch, sieht der Sensor kaum etwas;
+   dann hilft das Bild: Eine Doppelseite ist breiter als hoch, eine
+   Einzelseite (und ein Einband) höher als breit. Liegt das gefundene Buch im
+   Kamerabild anders, wird um 90° gedreht – in die Richtung, in die das Handy
+   leicht geneigt ist; steht die Seite danach auf dem Kopf, dreht die
+   Texterkennung sie zurück. Wer von Hand um 90° nachdreht (Buch im
+   Querformat), schaltet diese Hilfe ab, bis er zurückdreht. Das iPhone fragt beim
    ersten Mal um Erlaubnis („Antippen: Drehung des Handys erkennen"). Was von
    Hand dazugedreht wurde oder von der Texterkennung (kopfstehende Seiten),
    bleibt erhalten, auch wenn man das Handy danach anders hält. Ausschalten
    lässt sich die Automatik in den Einstellungen.
+
+   Hat der Browser vorher hineingezoomt (iOS tut das, wenn man in ein kleines
+   Eingabefeld tippt, und zoomt nicht wieder heraus), liegt die Kamera trotzdem
+   genau auf dem sichtbaren Bildschirm; auf der Seite „Scannen" haben die
+   Felder am Handy deshalb auch mindestens 16 px Schrift.
 
    *Selbst auslösen* nimmt nach dem Umblättern von selbst auf, sobald das
    Bild einen Moment still steht; solange es an ist, steht oben ein Hinweis.

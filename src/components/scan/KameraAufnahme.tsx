@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { Camera, Check, Crop, Focus, Maximize2, MoreHorizontal, RotateCw, ScanLine, Smartphone, X, Zap, ZapOff } from "lucide-react";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
 import { viereckAusAnzeige, viereckDrehenUm, viereckZurAnzeige, type Drehung, type Viereck } from "@/lib/scan/geometrie";
-import { fotoDrehung, lageAus, lageBrauchtErlaubnis, lageErlauben, oberflaechenDrehung } from "@/lib/scan/lage";
+import { buchForm, fotoDrehung, lageAus, lageBrauchtErlaubnis, lageErlauben, lageGrob, lageMitBild, oberflaechenDrehung } from "@/lib/scan/lage";
 import { abstandVierecke, seitenFinden } from "@/lib/scan/seitenFinden";
 import { zuschnittDrehen, type Zuschnitt } from "@/lib/scan/verarbeitungKern";
 import { ViereckEditor } from "./ViereckEditor";
@@ -73,6 +73,27 @@ function bestaetigen() {
   try { navigator.vibrate?.(60); } catch { /* ohne Vibration */ }
 }
 
+/**
+ * Der Teil der Seite, den man gerade sieht. Hat der Browser hineingezoomt
+ * (iOS tut das von selbst, wenn man in ein kleines Eingabefeld tippt), ist
+ * er kleiner als das Fenster, und ein Vollbild „inset 0" ragte über den
+ * Rand – oben verschwänden die Symbole, rechts der Drehknopf. Deshalb liegt
+ * das Vollbild genau auf diesem Teil und wird um den Zoom verkleinert.
+ */
+function useSichtbarerBereich(an: boolean) {
+  const [sicht, setSicht] = useState<{ links: number; oben: number; breite: number; hoehe: number; zoom: number } | null>(null);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!an || !vv) { setSicht(null); return; }
+    const messen = () => setSicht({ links: vv.offsetLeft, oben: vv.offsetTop, breite: vv.width, hoehe: vv.height, zoom: vv.scale || 1 });
+    messen();
+    vv.addEventListener("resize", messen);
+    vv.addEventListener("scroll", messen);
+    return () => { vv.removeEventListener("resize", messen); vv.removeEventListener("scroll", messen); };
+  }, [an]);
+  return sicht;
+}
+
 /** Seitenverhältnis b:h in w × h einpassen – ganz sichtbar (contain) oder füllend (cover). */
 function einpassen(b: number, h: number, w: number, hh: number, fuellen: boolean) {
   if (!b || !h || !w || !hh) return null;
@@ -122,6 +143,11 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   const [platz, setPlatz] = useState({ b: 0, h: 0 });
   const [lage, setLage] = useState<Drehung>(0);
   const [lageBereit, setLageBereit] = useState(() => !lageBrauchtErlaubnis());
+  const [grob, setGrob] = useState<Drehung | null>(null);
+  /** Wie das Buch im ungedrehten Kamerabild liegt (erst nach zwei gleichen Funden). */
+  const [form, setForm] = useState<"hoch" | "quer" | null>(null);
+  const formVorher = useRef<"hoch" | "quer" | null>(null);
+  const sicht = useSichtbarerBereich(vollbild);
   const ausloeser = useRef(new Ausloeser());
   const zuschnittRef = useRef(zuschnitt);
   zuschnittRef.current = zuschnitt;
@@ -133,8 +159,15 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   /** Wie die Vorschau gedreht gezeichnet wird – und was ihr zum Foto noch fehlt. */
   const vorschauDrehung: Drehung = roh ? 0 : zuschnitt.drehung;
   const anzeigeDrehung = (((zuschnitt.drehung - vorschauDrehung) % 360) + 360) % 360 as Drehung;
+  /**
+   * Die Lage, nach der gedreht wird: vom Sensor, aber vom Bild berichtigt
+   * (eine Doppelseite ist breiter als hoch) – ausser man hat selbst um 90°
+   * nachgedreht, etwa bei einem Buch im Querformat.
+   */
+  const lageWirksam: Drehung = lageAuto && (zuschnitt.drehungVersatz ?? 0) % 180 === 0
+    ? lageMitBild(lage, form, zuschnitt.doppelseite, grob) : lage;
   /** So weit drehen sich die Symbole, damit sie für den, der das Handy hält, aufrecht stehen. */
-  const symbolDrehung = roh ? fotoDrehung(lage, oberflaechenDrehung()) : 0;
+  const symbolDrehung = roh ? fotoDrehung(lageWirksam, oberflaechenDrehung()) : 0;
 
   // Kamera öffnen, bei jedem Wechsel des Geräts neu.
   useEffect(() => {
@@ -246,6 +279,7 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
     const neu = (e: DeviceOrientationEvent) => {
       if (e.beta === null || e.gamma === null) return;
       setLage((bisher) => lageAus(e.beta!, e.gamma!, bisher));
+      setGrob((bisher) => lageGrob(e.beta!, e.gamma!, bisher));
     };
     window.addEventListener("deviceorientation", neu);
     return () => window.removeEventListener("deviceorientation", neu);
@@ -256,14 +290,14 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   useEffect(() => {
     if (!lageAuto) return;
     const z = zuschnittRef.current;
-    const soll = ((fotoDrehung(lage, oberflaechenDrehung()) + (z.drehungVersatz ?? 0)) % 360) as Drehung;
+    const soll = ((fotoDrehung(lageWirksam, oberflaechenDrehung()) + (z.drehungVersatz ?? 0)) % 360) as Drehung;
     const fehlt = (((soll - z.drehung) % 360) + 360) % 360;
     if (fehlt) onZuschnitt(zuschnittDrehen(z, fehlt as 90 | 180 | 270));
-  }, [lage, lageAuto, onZuschnitt]);
+  }, [lageWirksam, lageAuto, onZuschnitt]);
 
   // Rand automatisch: zweimal je Sekunde das Buch in der Vorschau suchen.
   useEffect(() => {
-    if (!randAuto || !strom) { setRandGefunden(null); return; }
+    if (!randAuto || !strom) { setRandGefunden(null); setForm(null); formVorher.current = null; return; }
     const takt = setInterval(() => {
       const c = vorschau.current;
       if (!c || !c.width) return;
@@ -272,6 +306,11 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       // In der Vorschau gefunden; ins Foto umgerechnet, das um den Rest gedreht ist.
       const gefunden = seitenFinden({ breite: c.width, hoehe: c.height, daten }, { doppel: z.doppelseite });
       setRandGefunden(!!gefunden);
+      if (gefunden && roh) {
+        const f = buchForm(gefunden, c.width, c.height);
+        if (f === formVorher.current) setForm(f);
+        formVorher.current = f;
+      }
       if (!gefunden || z.randAuto === false) return;
       const rest = (((z.drehung - (roh ? 0 : z.drehung)) % 360) + 360) % 360 as Drehung;
       const v = viereckDrehenUm(gefunden, rest);
@@ -459,7 +498,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       </button>
     );
     return (
-      <div className="fixed inset-0 z-[100] bg-black text-white" style={{ height: "100dvh", margin: 0 }}>
+      <div
+        className="fixed z-[100] bg-black text-white touch-none overflow-hidden"
+        style={sicht
+          ? { left: sicht.links, top: sicht.oben, width: sicht.breite * sicht.zoom, height: sicht.hoehe * sicht.zoom, transform: `scale(${1 / sicht.zoom})`, transformOrigin: "0 0", margin: 0 }
+          : { inset: 0, height: "100dvh", margin: 0 }}
+      >
         <video ref={video} playsInline muted className="hidden" />
         <div ref={buehne} className="absolute inset-0 overflow-hidden flex items-center justify-center" onClick={() => void lageAnfragen()}>
           <div className="relative shrink-0" style={passend ? { width: passend.w, height: passend.h } : undefined}>

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { fotoDrehung, lageAus } from "@/lib/scan/lage";
+import { buchForm, fotoDrehung, lageAus, lageGrob, lageMitBild } from "@/lib/scan/lage";
 import { punktDrehen, viereckAusAnzeige, viereckDrehenUm, viereckZurAnzeige, type Viereck } from "@/lib/scan/geometrie";
 
 /**
@@ -66,5 +66,44 @@ describe("Rahmen zwischen Foto und ungedrehter Vorschau", () => {
     const angezeigt = viereckZurAnzeige(imFoto, 90);
     const sortiert = (q: Viereck) => q.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).sort();
     expect(sortiert(angezeigt)).toEqual(sortiert(inVorschau));
+  });
+});
+
+describe("Lage aus dem Bild", () => {
+  // Die Doppelseite aus dem Handy-Foto: quer gehalten, im ungedrehten
+  // Kamerabild (hochkant, 3:4) also höher als breit.
+  const hochImBild: Viereck = [{ x: 0.05, y: 0.2 }, { x: 0.95, y: 0.2 }, { x: 0.8, y: 0.75 }, { x: 0.2, y: 0.75 }];
+
+  it("misst die Form in Bildpunkten, nicht in Anteilen", () => {
+    const quadrat: Viereck = [{ x: 0.2, y: 0.3 }, { x: 0.8, y: 0.3 }, { x: 0.8, y: 0.7 }, { x: 0.2, y: 0.7 }];
+    expect(buchForm(quadrat, 1440, 1440)).toBe("quer");
+    expect(buchForm(quadrat, 1080, 2400)).toBe("hoch");
+    expect(buchForm(hochImBild, 1080, 1920)).toBe("hoch");
+    expect(buchForm([{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }], 1000, 1000)).toBeNull();
+  });
+
+  it("dreht eine hochkant liegende Doppelseite quer, auch wenn der Sensor nichts merkt", () => {
+    expect(lageMitBild(0, "hoch", true, null)).toBe(90);
+    expect(lageMitBild(0, "hoch", true, 270)).toBe(270);
+    expect(lageMitBild(0, "hoch", true, 0)).toBe(90);
+  });
+
+  it("lässt eine passende Lage des Sensors stehen", () => {
+    expect(lageMitBild(270, "hoch", true, 90)).toBe(270);
+    expect(lageMitBild(180, "quer", true, null)).toBe(180);
+    expect(lageMitBild(0, "hoch", false, null)).toBe(0);
+  });
+
+  it("dreht eine quer liegende Einzelseite, sonst nichts", () => {
+    expect(lageMitBild(0, "quer", false, 90)).toBe(90);
+    expect(lageMitBild(90, "hoch", false, null)).toBe(0);
+    expect(lageMitBild(90, null, true, null)).toBe(90);
+  });
+
+  it("schätzt grob auch bei fast flachem Handy", () => {
+    expect(lageGrob(2, -6, null)).toBe(90);
+    expect(lageGrob(0, 0, null)).toBeNull();
+    expect(lageGrob(0.5, 1, 90)).toBe(90); // zu flach: bleibt
+    expect(lageGrob(-4, -4, 90)).toBe(90); // genau zwischen zwei Lagen: bleibt
   });
 });
