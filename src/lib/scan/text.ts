@@ -94,3 +94,30 @@ export function markdownBauen(a: MarkdownAngaben): string {
   });
   return [...kopf, ...teile].join("\n").trimEnd() + "\n";
 }
+
+const KENNWOERTER: Record<"deu" | "lat" | "fra" | "eng", string[]> = {
+  deu: ["der", "die", "und", "das", "nicht", "mit", "von", "zu", "ist", "den", "dem", "des", "ein", "eine", "sich", "auf", "auch", "wurde", "sie", "im"],
+  lat: ["et", "in", "est", "ad", "non", "cum", "ut", "quod", "qui", "quae", "sunt", "eorum", "per", "ab", "vel", "sed", "eius", "atque", "pro", "sint"],
+  fra: ["le", "la", "les", "des", "du", "et", "en", "une", "qui", "dans", "est", "pour", "par", "sur", "au", "aux", "que", "pas", "ont", "ce"],
+  eng: ["the", "of", "and", "to", "in", "is", "that", "with", "was", "for", "were", "from", "by", "which", "are", "as", "this", "be", "on", "at"],
+};
+
+/**
+ * Welche Sprache hat ein (erkannter) Text? An den häufigen kleinen Wörtern
+ * – „der, und“, „et, ad, qui“, „le, les, des“, „the, of, and“. Mehrdeutige
+ * („et“ und „in“ gibt es lateinisch wie französisch oder englisch) zählen
+ * für jede Sprache, die sie hat. Gibt null, wenn es zu wenig Text ist.
+ * Mischung: Liegen Latein und Französisch beide bei mindestens einem
+ * Viertel, ist es eine Edition wie Canivez (lateinischer Text,
+ * französische Anmerkungen).
+ */
+export function spracheRaten(text: string): "deu" | "lat" | "fra" | "eng" | "lat+fra" | null {
+  const woerter = text.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+  const zahl: Record<string, number> = { deu: 0, lat: 0, fra: 0, eng: 0 };
+  for (const w of woerter) for (const [s, liste] of Object.entries(KENNWOERTER)) if (liste.includes(w)) zahl[s]++;
+  const summe = zahl.deu + zahl.lat + zahl.fra + zahl.eng;
+  if (summe < 8) return null;
+  if (zahl.lat >= summe * 0.25 && zahl.fra >= summe * 0.25 && zahl.lat + zahl.fra >= summe * 0.7) return "lat+fra";
+  const [beste] = Object.entries(zahl).sort((a, b) => b[1] - a[1]);
+  return beste[0] as "deu" | "lat" | "fra" | "eng";
+}

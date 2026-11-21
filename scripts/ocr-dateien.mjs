@@ -10,6 +10,7 @@
  *                                     der Browser nimmt die schnellste, die er kann)
  *   deu.traineddata.gz                Antiqua, aus @tesseract.js-data/deu
  *   frak2021.traineddata.gz           Fraktur, UB Mannheim, liegt in ocr-modelle/
+ *   lat/fra/eng.traineddata.gz        Latein, Französisch, Englisch, aus @tesseract.js-data/…
  *   ort-wasm-simd-threaded.{wasm,mjs} Rechenkern von onnxruntime-web, fürs Glätten
  *   uvdoc.onnx                        Modell zum Glätten gewölbter Seiten, liegt in ocr-modelle/
  *   NotoSans-Regular.ttf              Schrift der unsichtbaren Textebene im PDF, liegt in ocr-modelle/
@@ -32,6 +33,9 @@ const dateien = [
   ["node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js", "tesseract-core-relaxedsimd-lstm.wasm.js"],
   ["node_modules/@tesseract.js-data/deu/4.0.0_best_int/deu.traineddata.gz", "deu.traineddata.gz"],
   ["ocr-modelle/frak2021.traineddata.gz", "frak2021.traineddata.gz"],
+  ["node_modules/@tesseract.js-data/lat/4.0.0_best_int/lat.traineddata.gz", "lat.traineddata.gz"],
+  ["node_modules/@tesseract.js-data/fra/4.0.0_best_int/fra.traineddata.gz", "fra.traineddata.gz"],
+  ["node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz", "eng.traineddata.gz"],
   ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm", "ort-wasm-simd-threaded.wasm"],
   ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.mjs"],
   ["ocr-modelle/uvdoc.onnx", "uvdoc.onnx"],

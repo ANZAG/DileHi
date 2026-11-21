@@ -47,6 +47,8 @@ import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/au
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, type PdfSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
+import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
+import { spracheRaten } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern";
@@ -55,7 +57,7 @@ const NEU = process.env.NEU === "true";
 const GRENZE = Number(process.env.GRENZE ?? "0") || 0;
 const WAHL = (process.env.QUELLEN ?? "").split(/[\s,]+/).filter(Boolean);
 const OCR = join(process.cwd(), "public", "ocr");
-const MODELL = { antiqua: "deu", fraktur: "frak2021" } as const;
+const MODELL = { antiqua: "deu", fraktur: "frak2021", latein: "lat", franzoesisch: "fra", englisch: "eng", latein_franzoesisch: "lat+fra" } as const;
 /** Unter dieser Sicherheit (in %) gilt eine Erkennung als unlesbar. */
 const UNLESBAR = 40;
 type Schrift = keyof typeof MODELL;
@@ -391,9 +393,17 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
         await Promise.all(stapel.map(async ({ i, bild, pdfBild, dpi }) => {
           let r: Lesung;
           if (!wahl.schrift) {
-            const [a, f] = await Promise.all([seiteLesen(bild, "antiqua"), seiteLesen(bild, "fraktur")]);
-            r = f.sicherheit > a.sicherheit + 5 ? f : a;
-            if (r.text.trim().length >= 200 && !wahl.schrift) wahl.schrift = f.sicherheit > a.sicherheit + 5 ? "fraktur" : "antiqua";
+            // Wie im Browser (ocr.ts, schriftErkennen): Antiqua gegen Fraktur,
+            // bei Antiqua die Sprache aus dem Text und dann das passende Modell.
+            const [a, f] = await Promise.all((["antiqua", "fraktur"] as const).map(async (s) => ({ schrift: s as Schrift, ...(await seiteLesen(bild, s)) })));
+            let beste = besteSchrift([a, f]);
+            if (beste.schrift === "antiqua") {
+              const sprache = spracheRaten(beste.text);
+              const s = (sprache ? ZUR_SPRACHE[sprache] : "antiqua") as Schrift;
+              if (s !== "antiqua") beste = { schrift: s, ...(await seiteLesen(bild, s)) };
+            }
+            r = beste;
+            if (r.text.trim().length >= 200 && !wahl.schrift) wahl.schrift = beste.schrift;
           } else {
             r = await seiteLesen(bild, wahl.schrift);
           }

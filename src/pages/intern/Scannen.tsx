@@ -15,7 +15,7 @@ import { useTexterkennung } from "@/components/scan/useTexterkennung";
 import { abschliessen, seitenInReihenfolge, textExport, type Schritt } from "@/lib/scan/abschluss";
 import { STANDARD_VIERECK, type Viereck } from "@/lib/scan/geometrie";
 import { seitenFinden } from "@/lib/scan/seitenFinden";
-import { ocrBeenden, SCHRIFT_NAME, type SchriftWahl } from "@/lib/scan/ocr";
+import { ocrBeenden, SCHRIFT_NAME, type Schrift, type SchriftWahl } from "@/lib/scan/ocr";
 import { nachName } from "@/lib/scan/ordner";
 import { ersetzenIn, seitenBezeichnung, type ErsetzenZiel } from "@/lib/scan/ersetzen";
 import {
@@ -672,7 +672,7 @@ const Scannen = () => {
               <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { bilderUebernehmen(e.target.files); e.target.value = ""; }} />
             </label>
             <label className="inline-flex items-center gap-2 ml-auto">
-              Schrift
+              Schrift und Sprache
               <select
                 value={sitzung.schriftWahl}
                 onChange={(e) => schriftWaehlen(e.target.value as SchriftWahl)}
@@ -681,8 +681,7 @@ const Scannen = () => {
                 <option value="auto">
                   Automatisch{sitzung.schriftWahl === "auto" && sitzung.schrift ? ` (${SCHRIFT_NAME[sitzung.schrift]})` : ""}
                 </option>
-                <option value="antiqua">Antiqua</option>
-                <option value="fraktur">Fraktur</option>
+                {(Object.keys(SCHRIFT_NAME) as Schrift[]).map((s) => <option key={s} value={s}>{SCHRIFT_NAME[s]}</option>)}
               </select>
             </label>
           </div>

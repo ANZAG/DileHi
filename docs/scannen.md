@@ -262,8 +262,26 @@ Tesseract im Browser, zwei Modelle:
 Fürs Glätten kommen `uvdoc.onnx` (aus `ocr-modelle/`) und der Rechenkern von
 onnxruntime-web dazu; Herkunft und Lizenzen in `ocr-modelle/README.md`.
 
-*Schrift: Automatisch* lässt beide Modelle die erste Seite lesen und nimmt
-das sicherere für das ganze Buch. Wer umstellt, lässt alle Seiten neu lesen.
+Dazu **Latein, Französisch und Englisch** (`lat`, `fra`, `eng` aus
+`@tesseract.js-data/…`) und die Mischung **Latein + Französisch** – für
+Quelleneditionen wie Canivez (*Statuta capitulorum generalium ordinis
+Cisterciensis*: lateinische Statuten, französische Einleitung und
+Anmerkungen). Das richtige Wörterbuch zählt vor allem bei Akzenten und
+abgenutztem Druck: Eine französische Probeseite las das deutsche Modell zu
+81 % richtig, das französische zu 100 %.
+
+*Schrift und Sprache: Automatisch* lässt Antiqua und Fraktur die erste Seite
+lesen; das sicherere gilt (Fraktur nur mit fünf Punkten Vorsprung). Bei
+Antiqua verrät der gelesene Text die Sprache – an den häufigen kleinen
+Wörtern (der/und, et/ad/qui, le/les/des, the/of/and); ist es nicht Deutsch,
+liest das passende Modell die Seite noch einmal. Liegen Latein und
+Französisch beide bei mindestens einem Viertel, gilt die Mischung. Die Wahl
+gilt dann für das ganze Buch; wer umstellt, lässt alle Seiten neu lesen.
+Dasselbe gilt in „Quellen nachbearbeiten“.
+
+Handschriften liest Tesseract nicht (dafür bräuchte es ein eigenes
+Handschriftenmodell, etwa Kraken mit CATMuS Medieval); die Nachbearbeitung
+erkennt sie an der geringen Sicherheit und lässt sie aus.
 
 Gelesen wird im Hintergrund, während weiter gescannt wird – am Rechner gut
 zwei Sekunden je Seite, am Handy länger. Seiten schmaler als 2400 Punkte

@@ -1,7 +1,7 @@
 import { aufbereiten } from "./aufbereitung";
 import { createWorker, OEM, PSM, type Worker } from "tesseract.js";
 import type { Wort } from "./pdf";
-import { seitentextAufraeumen } from "./text";
+import { seitentextAufraeumen, spracheRaten } from "./text";
 
 /**
  * Texterkennung im Browser, mit Tesseract.
@@ -14,11 +14,46 @@ import { seitentextAufraeumen } from "./text";
  * während im Hintergrund schon die vorigen Seiten gelesen werden.
  */
 
-export type Schrift = "antiqua" | "fraktur";
+/**
+ * Schrift und Sprache des Buches. Deutsch in Antiqua oder Fraktur, dazu
+ * Latein, Französisch und Englisch – etwa für Quelleneditionen wie Canivez
+ * (lateinische Statuten, französische Einleitung und Anmerkungen; dafür die
+ * Mischung „Latein + Französisch“). Das richtige Wörterbuch hilft der
+ * Erkennung vor allem bei Akzenten und abgenutztem Druck.
+ */
+export type Schrift = "antiqua" | "fraktur" | "latein" | "franzoesisch" | "englisch" | "latein_franzoesisch";
 export type SchriftWahl = Schrift | "auto";
 
-export const SCHRIFT_NAME: Record<Schrift, string> = { antiqua: "Antiqua", fraktur: "Fraktur" };
-const MODELL: Record<Schrift, string> = { antiqua: "deu", fraktur: "frak2021" };
+export const SCHRIFT_NAME: Record<Schrift, string> = {
+  antiqua: "Deutsch (Antiqua)",
+  fraktur: "Deutsch (Fraktur)",
+  latein: "Latein",
+  franzoesisch: "Französisch",
+  englisch: "Englisch",
+  latein_franzoesisch: "Latein + Französisch",
+};
+export const MODELL: Record<Schrift, string> = {
+  antiqua: "deu",
+  fraktur: "frak2021",
+  latein: "lat",
+  franzoesisch: "fra",
+  englisch: "eng",
+  latein_franzoesisch: "lat+fra",
+};
+/** Welche Schrift zu einer erratenen Sprache gehört (lib/scan/text.ts, spracheRaten). */
+export const ZUR_SPRACHE: Record<string, Schrift> = {
+  deu: "antiqua", lat: "latein", fra: "franzoesisch", eng: "englisch", "lat+fra": "latein_franzoesisch",
+};
+
+/**
+ * Welche Erkennung gewinnt? Die sicherste – Deutsch (Antiqua) aber schon,
+ * wenn es höchstens zwei Punkte zurückliegt, und Fraktur nur mit deutlichem
+ * Vorsprung (fünf Punkte), wie bisher.
+ */
+export function besteSchrift<T extends { schrift: Schrift; sicherheit: number }>(ergebnisse: T[]): T {
+  const wert = (e: T) => e.sicherheit + (e.schrift === "antiqua" ? 2 : 0) - (e.schrift === "fraktur" ? 5 : 0);
+  return ergebnisse.reduce((a, b) => (wert(b) > wert(a) ? b : a));
+}
 
 export interface OcrErgebnis {
   text: string;
@@ -118,12 +153,20 @@ export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: 
 }
 
 /**
- * Antiqua oder Fraktur? Beide Modelle lesen die Seite; das sicherere gewinnt.
- * Für die erste Seite eines Buches – danach bleibt es bei der Wahl.
+ * Welche Schrift und Sprache? An der ersten Seite eines Buches: Antiqua
+ * gegen Fraktur (das sicherere gewinnt, `besteSchrift`). Bei Antiqua
+ * verrät der gelesene Text die Sprache (`spracheRaten`); ist es nicht
+ * Deutsch, liest das passende Modell die Seite noch einmal. Danach bleibt
+ * es bei der Wahl.
  */
 export async function schriftErkennen(bild: Blob, breite: number, o: LeseOptionen = {}): Promise<OcrErgebnis> {
-  const [a, f] = await Promise.all([erkennen(bild, breite, "antiqua", o), erkennen(bild, breite, "fraktur", o)]);
-  return f.sicherheit > a.sicherheit + 5 ? f : a;
+  const a = await erkennen(bild, breite, "antiqua", o);
+  const f = await erkennen(bild, breite, "fraktur", o);
+  const erst = besteSchrift([a, f]);
+  if (erst.schrift === "fraktur") return erst;
+  const sprache = spracheRaten(erst.text);
+  const schrift = sprache ? ZUR_SPRACHE[sprache] : "antiqua";
+  return schrift === "antiqua" ? erst : await erkennen(bild, breite, schrift, o);
 }
 
 /** Die Worker beenden, wenn die Seite verlassen wird. */

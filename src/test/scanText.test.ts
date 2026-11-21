@@ -42,3 +42,26 @@ describe("PDF-Aufbau", () => {
     expect(f.hoehe / f.breite).toBeCloseTo(1700 / 1200, 2);
   });
 });
+
+describe("Schrift und Sprache", () => {
+  it("nimmt die sicherste Erkennung, Deutsch bei Gleichstand, Fraktur nur mit Vorsprung", async () => {
+    const { besteSchrift } = await import("@/lib/scan/ocr");
+    const e = (schrift: "antiqua" | "fraktur" | "latein" | "franzoesisch", sicherheit: number) => ({ schrift, sicherheit });
+    expect(besteSchrift([e("antiqua", 90), e("franzoesisch", 95)]).schrift).toBe("franzoesisch");
+    expect(besteSchrift([e("antiqua", 92), e("latein", 93)]).schrift).toBe("antiqua");
+    expect(besteSchrift([e("antiqua", 80), e("fraktur", 84)]).schrift).toBe("antiqua");
+    expect(besteSchrift([e("antiqua", 60), e("fraktur", 80)]).schrift).toBe("fraktur");
+  });
+});
+
+describe("Sprache raten", () => {
+  it("erkennt Deutsch, Latein, Französisch, Englisch und die Mischung einer Edition", async () => {
+    const { spracheRaten } = await import("@/lib/scan/text");
+    expect(spracheRaten("Allerdings kam es trotz der Überlegenheit der Franzosen nur zu Scharmützeln, und das Bataillon wurde mit den anderen von der Front abgelöst, die sich auf den Marsch machte.")).toBe("deu");
+    expect(spracheRaten("Statuitur ut abbates qui ad Capitulum non venerint sint in levi culpa et in pane et aqua, et si eorum aliquis non venerit, ab officio suspendatur per annum.")).toBe("lat");
+    expect(spracheRaten("Le chapitre général se réunissait chaque année à l'abbaye mère; les abbés de toutes les maisons étaient tenus d'y assister, sauf ceux qui sont des régions les plus éloignées.")).toBe("fra");
+    expect(spracheRaten("The knives recovered from the excavations in London range in date from the twelfth to the fifteenth century, and most of the blades were forged with a steel edge.")).toBe("eng");
+    expect(spracheRaten("Statuitur ut abbates qui ad Capitulum non venerint sint in levi culpa, et eorum quod in pane et aqua. (1) Le manuscrit de Dijon donne une leçon différente pour ce passage; nous suivons ici le texte de la plupart des témoins et la lettre de l'abbé.")).toBe("lat+fra");
+    expect(spracheRaten("Karte 12")).toBeNull();
+  });
+});
