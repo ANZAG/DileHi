@@ -146,6 +146,49 @@ function textEbene(font: PDFFont, schluessel: PDFName, zeichen: Set<number> | nu
   return ops;
 }
 
+/** Eine Seite eines vorhandenen PDF, die eine Textebene bekommt. */
+export interface TextFuerSeite {
+  /** Seite, ab 1. */
+  seite: number;
+  /** Wörter in Bildpunkten des gerenderten Bildes (CropBox, ohne Drehung). */
+  woerter: Wort[];
+  bildBreite: number;
+  bildHoehe: number;
+}
+
+/**
+ * Einem vorhandenen PDF eine unsichtbare Textebene geben – nur auf den
+ * genannten Seiten, die Bilder bleiben, wie sie sind. Für Schwarzweiss-Scans
+ * (CCITT, JBIG2): Sie neu zu bauen, machte sie als JPEG um ein Vielfaches
+ * grösser (IR87: 15 MB -> 208 MB). Gedrehte Seiten (/Rotate) bleiben ohne
+ * Text, weil das Bild dann quer zur Seite liegt.
+ */
+export async function textEbeneEinfuegen(
+  original: Uint8Array,
+  seiten: TextFuerSeite[],
+  schrift: Uint8Array
+): Promise<{ bytes: Uint8Array; gesetzt: number; gedreht: number }> {
+  const pdf = await PDFDocument.load(original, { updateMetadata: false });
+  pdf.registerFontkit(fontkit);
+  const font = await pdf.embedFont(schrift, { subset: true });
+  const zeichen = new Set(font.getCharacterSet());
+  const alle = pdf.getPages();
+  let gesetzt = 0, gedreht = 0;
+  for (const t of seiten) {
+    const page = alle[t.seite - 1];
+    if (!page || !t.woerter.length) continue;
+    if (page.getRotation().angle % 360 !== 0) { gedreht++; continue; }
+    const box = page.getCropBox();
+    const mass = box.width / t.bildBreite;
+    const l: Lage = { mass, x: box.x, y: box.y, hoehe: t.bildHoehe * mass };
+    const schluessel = page.node.newFontDictionary(font.name, font.ref);
+    page.pushOperators(...textEbene(font, schluessel, zeichen, { jpeg: new Uint8Array(), breite: t.bildBreite, hoehe: t.bildHoehe, woerter: t.woerter }, l));
+    gesetzt++;
+  }
+  pdf.setCreator("DileHi Quellensammlung (Textebene ergänzt)");
+  return { bytes: await pdf.save(), gesetzt, gedreht };
+}
+
 /** Eine einheitliche Seitengrösse: Median der hochkanten Seiten. */
 export function seitenFormat(seiten: { breite: number; hoehe: number }[], dpi = DPI): { breite: number; hoehe: number } {
   const hoch = seiten.filter((s) => s.hoehe >= s.breite);

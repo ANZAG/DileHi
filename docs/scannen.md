@@ -325,6 +325,15 @@ nachbearbeiten → Run workflow.
   Textebene mit mehr echten Wörtern, bleibt diese. Der Text kommt in die
   Suche (`source_pages`).
 
+- **Stufe 2 wählt den Weg je PDF:** Handyfotos (JPEG, über 120 KB je
+  Seite, nur Scan-Seiten) werden *neu gebaut* – aufbereitet und als JPEG
+  werden sie besser und kleiner. Alles andere, vor allem Schwarzweiss-Scans
+  (CCITT, JBIG2, wenige KB je Seite), bekommt nur eine **Textebene** auf die
+  Seiten, die noch keinen Text haben; die Bilder bleiben unverändert, die
+  Datei wächst nur um Schrift und Text. Diese Seiten werden ohne Drehen und
+  Geraderichten gelesen, damit die Wörter auf dem Original liegen. Der
+  erste Probelauf hatte alles neu gebaut: IR87 wurde von 15 auf 208 MB,
+  Knötel von 31 auf 190 MB grösser – ersetzt wurde zum Glück nichts.
 - **probe (Stufe 2 zum Ansehen):** Für reine Scans (jede Seite ein grosses
   Bild – gemischte PDFs bleiben, sonst würden am Rechner gesetzte Seiten zu
   Bildern) ein neues PDF bauen: aufbereitete Seiten, Textebene je Zeile,

@@ -45,7 +45,7 @@ import { createScheduler, createWorker, OEM, PSM, type Scheduler } from "tessera
 import jpeg from "jpeg-js";
 import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/aufbereitung";
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
-import { pdfBauen, type PdfSeite, type Wort } from "../src/lib/scan/pdf";
+import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
 import { istZeichensalat, spracheRaten } from "../src/lib/scan/text";
@@ -105,8 +105,8 @@ function seitenZahl(datei: string): number {
 interface Dokument {
   groessen: { b: number; h: number }[];
   texte: string[];
-  /** Grosse Bilder je Seite: Fläche in Bildpunkten und ppi. */
-  bilder: { punkte: number; ppi: number }[][];
+  /** Bilder je Seite: Fläche in Bildpunkten, ppi und Kodierung (jpeg, ccitt, jbig2 …). */
+  bilder: { punkte: number; ppi: number; art: string }[][];
 }
 const dokumente = new Map<string, Dokument>();
 
@@ -121,11 +121,11 @@ function dokument(datei: string): Dokument {
   // pdftotext trennt die Seiten mit einem Seitenvorschub.
   const texte = lauf("pdftotext", ["-enc", "UTF-8", datei, "-"]).toString().split("\f").slice(0, zahl);
   while (texte.length < zahl) texte.push("");
-  const bilder: { punkte: number; ppi: number }[][] = Array.from({ length: zahl }, () => []);
+  const bilder: { punkte: number; ppi: number; art: string }[][] = Array.from({ length: zahl }, () => []);
   for (const z of lauf("pdfimages", ["-list", datei]).toString().split("\n").slice(2)) {
     const t = z.trim().split(/\s+/);
     const seite = Number(t[0]);
-    if (t[2] === "image" && seite >= 1 && seite <= zahl) bilder[seite - 1].push({ punkte: Number(t[3]) * Number(t[4]), ppi: Number(t[12]) || 150 });
+    if (t[2] === "image" && seite >= 1 && seite <= zahl) bilder[seite - 1].push({ punkte: Number(t[3]) * Number(t[4]), ppi: Number(t[12]) || 150, art: t[8] ?? "" });
   }
   d = { groessen, texte, bilder };
   dokumente.set(datei, d);
@@ -239,6 +239,38 @@ function zumLesen(roh: Pixel): { bild: Pixel; pdfBild: Pixel; dunkel: boolean } 
   return { bild, pdfBild, dunkel: befund.dunkel };
 }
 
+/**
+ * Fürs Einfügen einer Textebene: aufbereitet (Beleuchtung), aber NICHT
+ * gedreht oder gerade gezogen – die Wörter müssen auf dem Bild im
+ * Original liegen.
+ */
+function zumLesenGerade(roh: Pixel): Pixel {
+  const bild = { breite: roh.breite, hoehe: roh.hoehe, daten: new Uint8ClampedArray(roh.daten) };
+  const { dunkel } = aufbereiten(bild, { farbig: false });
+  if (dunkel) {
+    for (let i = 0; i < bild.daten.length; i += 4) {
+      const g = (bild.daten[i] * 77 + bild.daten[i + 1] * 150 + bild.daten[i + 2] * 29) >> 8;
+      bild.daten[i] = bild.daten[i + 1] = bild.daten[i + 2] = g;
+    }
+  }
+  return bild;
+}
+
+/**
+ * Wie wird das PDF verbessert? Handyfotos (JPEG, gross je Seite) neu bauen –
+ * Aufbereitung und JPEG machen sie besser und kleiner. Alles andere, vor
+ * allem Schwarzweiss-Scans (CCITT, JBIG2, wenige KB je Seite), bekommt nur
+ * eine Textebene auf die Seiten ohne Text; die Bilder bleiben. Am Probelauf
+ * gemessen: neu gebaut wurde IR87 von 15 auf 208 MB grösser.
+ */
+function wegFuer(datei: string, zahl: number, nurScans: boolean): "neu" | "textebene" {
+  const d = dokument(datei);
+  const bilder = d.bilder.flat();
+  const jpeg = bilder.filter((b) => b.art === "jpeg" || b.art === "jpx").length;
+  const jeSeite = readFileSync(datei).length / Math.max(1, zahl);
+  return nurScans && bilder.length && jpeg / bilder.length >= 0.8 && jeSeite >= 120_000 ? "neu" : "textebene";
+}
+
 /** Längste Seite eines Bildes im neuen PDF (gut 300 ppi bei A5), wie beim Scannen. */
 const PDF_MAX = 2400;
 
@@ -336,6 +368,8 @@ interface Bericht {
   unlesbar?: number;
   /** Abgebrochen, weil schon der Anfang nicht lesbar war (Handschrift, fremde Schrift). */
   hinweis?: string;
+  /** Stufe 2: neu gebaut oder Textebene ergänzt. */
+  weg?: string;
   /** Stufe 2: Grösse und echte Wörter des neuen PDF, und ob es die Datei ersetzt. */
   neuMegabyte?: number;
   alteWoerter?: number;
@@ -364,10 +398,15 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
       else { zuLesen.push(i); if (textBrauchbar(t)) imPdf[i - 1] = lesetext(seitentextAufraeumen(t)); }
       if (process.env.DATEI) console.log(`  S${i}: ${scan ? "Scan" : "kein Scan"}, ${echteWoerter(t)} echte Wörter im PDF`);
     }
-    // Neu bauen nur, wenn jede Seite ein Scan ist.
-    const bauen = NEU_BAUEN && zuLesen.length === zahl && zahl > 0;
-    if (NEU_BAUEN && !bauen) bericht.ersetzen = "nein – nicht nur Scans";
+    // Neu bauen nur Handyfotos (und nur, wenn jede Seite ein Scan ist);
+    // sonst eine Textebene auf die Seiten, die noch keinen Text haben.
+    const weg = NEU_BAUEN ? wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0) : null;
+    const bauen = weg === "neu";
+    const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1]) : []);
+    if (weg) bericht.weg = weg === "neu" ? "neu gebaut" : `Textebene auf ${ebene.size} Seiten`;
     const pdfSeiten: (PdfSeite & { dpi: number })[] = new Array(zahl);
+    const textSeiten: TextFuerSeite[] = [];
+    const alteWoerter = NEU_BAUEN ? dokument(datei).texte.reduce((n, t) => n + echteWoerter(t), 0) : 0;
     if (schreiben && zuLesen.length) {
       // Antiqua oder Fraktur? An der ersten Seite mit Text beide versuchen.
       const wahl: { schrift: Schrift | null; gewechselt?: number } = { schrift: null };
@@ -402,6 +441,10 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
         }
         const stapel = zuLesen.slice(k, k + parallel).map((i) => {
           const roh = rendern(datei, i, ordner);
+          if (ebene.has(i)) {
+            const bild = zumLesenGerade(roh);
+            return { i, dpi: roh.dpi, bild, pdfBild: bild, dunkel: false };
+          }
           return { i, dpi: roh.dpi, ...zumLesen(roh) };
         });
         await Promise.all(stapel.map(async ({ i, bild, pdfBild, dpi }) => {
@@ -445,11 +488,29 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
           if (text.split(/\s+/).filter(Boolean).length < 5) bericht.leer++;
           else if (r.sicherheit < 70) bericht.unsicher++;
           if (bauen) pdfSeiten[i - 1] = fuersPdf(r.kopf ? vierteldrehen(vierteldrehen(pdfBild)) : pdfBild, r.woerter, dpi, scanPpi(datei, i));
+          // Textebene: nur aufrecht gelesene Seiten mit Text (sonst lägen die Wörter falsch).
+          if (ebene.has(i) && !r.kopf && text) textSeiten.push({ seite: i, woerter: r.woerter, bildBreite: bild.breite, bildHoehe: bild.hoehe });
         }));
         process.stdout.write(`  ${Math.min(k + parallel, zuLesen.length)}/${zuLesen.length} Seiten gelesen\r`);
       }
       bericht.schrift = wahl.schrift ?? "antiqua";
-      if (bauen && bericht.hinweis) bericht.ersetzen = "nein – nicht lesbar";
+      if (weg && bericht.hinweis) bericht.ersetzen = "nein – nicht lesbar";
+      if (weg === "textebene" && !bericht.hinweis) {
+        if (!textSeiten.length) bericht.ersetzen = "nein – hat schon Text";
+        else {
+          const r = await textEbeneEinfuegen(new Uint8Array(readFileSync(datei)), textSeiten, new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))));
+          pdf = r.bytes;
+          bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.gedreht ? ` (${r.gedreht} gedreht, ohne)` : ""}`;
+          bericht.neuMegabyte = Math.round((pdf.length / 1e6) * 10) / 10;
+          bericht.alteWoerter = alteWoerter;
+          const neu = join(ordner, "neu.pdf");
+          writeFileSync(neu, pdf);
+          bericht.neueWoerter = echteWoerter(lauf("pdftotext", ["-enc", "UTF-8", neu, "-"]).toString());
+          // Besser: mehr echter Text, und höchstens wenig grösser (die Schrift, der Text).
+          const groesser = bericht.neuMegabyte > bericht.megabyte * 1.15 + 2;
+          bericht.ersetzen = bericht.neueWoerter <= alteWoerter * 1.02 ? "nein – kein Gewinn an Text" : groesser ? "nein – grösser" : "ja";
+        }
+      }
       if (bauen && !bericht.hinweis) {
         const dpis = pdfSeiten.map((x) => x.dpi).sort((a, b) => a - b);
         pdf = await pdfBauen(pdfSeiten, {
@@ -458,7 +519,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
           dpi: dpis[Math.floor(dpis.length / 2)],
         });
         bericht.neuMegabyte = Math.round((pdf.length / 1e6) * 10) / 10;
-        bericht.alteWoerter = echteWoerter(lauf("pdftotext", ["-enc", "UTF-8", datei, "-"]).toString());
+        bericht.alteWoerter = alteWoerter;
         const neu = join(ordner, "neu.pdf");
         writeFileSync(neu, pdf);
         bericht.neueWoerter = echteWoerter(lauf("pdftotext", ["-enc", "UTF-8", neu, "-"]).toString());
@@ -500,8 +561,8 @@ async function hochladen(uploadUrl: string, bytes: Uint8Array): Promise<void> {
 // ── Bericht ─────────────────────────────────────────────────────────────────
 function berichtSchreiben(zeilen: Bericht[], zuLesen: Map<string, number>) {
   if (NEU_BAUEN) {
-    const md = `## Quellen nachbearbeiten (${MODUS})\n\n| Quelle | Seiten | MB vorher | MB neu | Wörter vorher | Wörter neu | unsicher | Ersetzen |\n|---|---:|---:|---:|---:|---:|---:|---|\n${zeilen.map((b) =>
-      `| ${b.titel} | ${b.seiten} | ${b.megabyte} | ${b.neuMegabyte ?? "–"} | ${b.alteWoerter ?? "–"} | ${b.neueWoerter ?? "–"} | ${b.unsicher} | ${b.ersetzen ?? "–"}${b.fehler ? ` ⚠ ${b.fehler}` : ""} |`).join("\n")}\n`;
+    const md = `## Quellen nachbearbeiten (${MODUS})\n\n| Quelle | Seiten | Weg | MB vorher | MB neu | Wörter vorher | Wörter neu | unsicher | Ersetzen |\n|---|---:|---|---:|---:|---:|---:|---:|---|\n${zeilen.map((b) =>
+      `| ${b.titel} | ${b.seiten} | ${b.weg ?? "–"} | ${b.megabyte} | ${b.neuMegabyte ?? "–"} | ${b.alteWoerter ?? "–"} | ${b.neueWoerter ?? "–"} | ${b.unsicher} | ${b.ersetzen ?? "–"}${b.fehler ? ` ⚠ ${b.fehler}` : ""} |`).join("\n")}\n`;
     console.log("\n" + md);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
     writeFileSync("bericht.json", JSON.stringify(zeilen, null, 2));
