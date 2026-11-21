@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ausrichtungFinden, erkennen, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
+import { ausrichtungFinden, erkennenMitGegenprobe, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
 import { dateiLaden, textLaden, textLoeschen, textSpeichern, type Sitzung } from "@/lib/scan/speicher";
 import { seitenInReihenfolge } from "@/lib/scan/abschluss";
 
@@ -46,7 +46,11 @@ export function useTexterkennung(
     (async () => {
       try {
         const schon = await textLaden(naechste.id);
-        if (schon && (!schrift || schon.schrift === schrift) && (!schon.bildId || schon.bildId === naechste.bildId)) {
+        // Antiqua und Fraktur gelten als dieselbe Wahl: Eine unsichere
+        // Seite liest auch die andere (erkennenMitGegenprobe).
+        const deutsch = (x: Schrift | null | undefined) => x === "antiqua" || x === "fraktur";
+        const passt = !schrift || schon?.schrift === schrift || (deutsch(schon?.schrift) && deutsch(schrift));
+        if (schon && passt && (!schon.bildId || schon.bildId === naechste.bildId)) {
           setze({ zustand: "fertig", sicherheit: schon.sicherheit, schrift: schon.schrift, woerter: schon.woerter?.length ?? 0 });
           return;
         }
@@ -57,7 +61,7 @@ export function useTexterkennung(
         const b = naechste.befund;
         const lesen = { aufhellen: !!b && !!(b.farbig ?? b.bildseite) && !b.dunkel };
         const ergebnis = schrift
-          ? await erkennen(bild, naechste.breite, schrift, lesen)
+          ? await erkennenMitGegenprobe(bild, naechste.breite, schrift, lesen)
           : await schriftErkennen(bild, naechste.breite, lesen);
         // Wurde die Seite unterdessen gedreht oder ersetzt, gehört das
         // Ergebnis zum alten Bild – dann verwerfen und neu lesen.

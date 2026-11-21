@@ -58,6 +58,8 @@ const GRENZE = Number(process.env.GRENZE ?? "0") || 0;
 const WAHL = (process.env.QUELLEN ?? "").split(/[\s,]+/).filter(Boolean);
 const OCR = join(process.cwd(), "public", "ocr");
 const MODELL = { antiqua: "deu", fraktur: "frak2021", latein: "lat", franzoesisch: "fra", englisch: "eng", latein_franzoesisch: "lat+fra" } as const;
+/** Die jeweils andere deutsche Schrift (zum Gegenlesen unsicherer Seiten). */
+const ANDERE: Partial<Record<Schrift, Schrift>> = { antiqua: "fraktur", fraktur: "antiqua" };
 /** Unter dieser Sicherheit (in %) gilt eine Erkennung als unlesbar. */
 const UNLESBAR = 40;
 type Schrift = keyof typeof MODELL;
@@ -368,7 +370,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
     const pdfSeiten: (PdfSeite & { dpi: number })[] = new Array(zahl);
     if (schreiben && zuLesen.length) {
       // Antiqua oder Fraktur? An der ersten Seite mit Text beide versuchen.
-      const wahl: { schrift: Schrift | null } = { schrift: null };
+      const wahl: { schrift: Schrift | null; gewechselt?: number } = { schrift: null };
       const parallel = Math.max(1, Math.min(4, cpus().length));
       // Sicherheit der Seiten mit Text: Ist schon der Anfang eines Werks
       // unlesbar (Handschrift, fremde Schrift), lohnt der Rest nicht.
@@ -418,6 +420,18 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
             if (r.text.trim().length >= 200 && !wahl.schrift) wahl.schrift = beste.schrift;
           } else {
             r = await seiteLesen(bild, wahl.schrift);
+            // Unsicher? Dann die andere deutsche Schrift auch – die erste
+            // Seite (oft ein Titelblatt in Antiqua) hat nicht immer recht.
+            // Gewinnt die andere dreimal hintereinander, gilt sie fürs Buch.
+            const andere = ANDERE[wahl.schrift];
+            if (andere && r.sicherheit < 70) {
+              const zweit = await seiteLesen(bild, andere);
+              if (zweit.sicherheit > r.sicherheit + 5) {
+                r = zweit;
+                wahl.gewechselt = (wahl.gewechselt ?? 0) + 1;
+                if (wahl.gewechselt >= 3) { wahl.schrift = andere; wahl.gewechselt = 0; }
+              } else wahl.gewechselt = 0;
+            }
           }
           let text = lesetext(seitentextAufraeumen(r.text));
           // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.

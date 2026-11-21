@@ -169,6 +169,21 @@ export async function schriftErkennen(bild: Blob, breite: number, o: LeseOptione
   return schrift === "antiqua" ? erst : await erkennen(bild, breite, schrift, o);
 }
 
+/**
+ * Eine Seite in der Schrift des Buches lesen – und ist das unsicher (unter
+ * 70 %), bei Deutsch auch in der anderen Schrift (Antiqua ↔ Fraktur); das
+ * Bessere gilt (mit fünf Punkten Vorsprung). Die erste Seite, die die
+ * Schrift fürs Buch bestimmt, ist oft ein Titelblatt in Antiqua, während
+ * das Buch in Fraktur gesetzt ist.
+ */
+export async function erkennenMitGegenprobe(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen = {}): Promise<OcrErgebnis> {
+  const r = await erkennen(bild, breite, schrift, o);
+  const andere: Schrift | null = schrift === "antiqua" ? "fraktur" : schrift === "fraktur" ? "antiqua" : null;
+  if (!andere || r.sicherheit >= 70) return r;
+  const zweit = await erkennen(bild, breite, andere, o);
+  return zweit.sicherheit > r.sicherheit + 5 ? zweit : r;
+}
+
 /** Die Worker beenden, wenn die Seite verlassen wird. */
 export async function ocrBeenden(): Promise<void> {
   const alle = [...arbeiter.values()];
