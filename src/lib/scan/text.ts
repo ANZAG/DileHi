@@ -141,8 +141,27 @@ export function textMasse(texte: string[]): { kennwoerter: number; vielfalt: num
   return { kennwoerter, vielfalt, woerter: lang.length };
 }
 
-/** Zeichensalat statt Text (siehe `textMasse`)? Erst ab 1500 Wörtern Stichprobe. */
+/**
+ * Anteil der Zeichenfolgen, die wie Wörter aussehen (mindestens drei
+ * Buchstaben, höchstens Satzzeichen davor und dahinter). Gemessen an der
+ * Sammlung: echte Bücher 69–90 %, der Codex Manesse als Zeichensalat 50 %
+ * (dafür 46 % Bruchstücke aus ein, zwei Buchstaben: „e“, „ae“, „Le..“).
+ */
+export function wortartig(texte: string[]): { anteil: number; zahl: number } {
+  const teile = texte.join(" ").split(/\s+/).filter(Boolean).slice(0, 5000);
+  const gut = teile.filter((t) => /^[(„"»«']*[\p{L}ſ]{3,}[-.,;:!?)"“'»«]*$/u.test(t)).length;
+  return { anteil: teile.length ? gut / teile.length : 0, zahl: teile.length };
+}
+
+/**
+ * Zeichensalat statt Text? Erst ab einer Stichprobe von 1500 Wörtern. Zwei
+ * Wege, die sich ergänzen: wenige kleine Wörter und kaum Wiederholungen
+ * (`textMasse`, so sah der Sachsenspiegel aus), oder zu wenig, das
+ * überhaupt wie Wörter aussieht (`wortartig`, so sah die Manesse aus).
+ */
 export function istZeichensalat(texte: string[]): boolean {
   const m = textMasse(texte);
+  const w = wortartig(texte);
+  if (w.zahl >= 1500 && w.anteil < 0.6) return true;
   return m.woerter >= 1500 && m.kennwoerter < 0.09 && m.vielfalt > 0.56;
 }

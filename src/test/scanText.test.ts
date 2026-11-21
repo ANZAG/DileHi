@@ -75,5 +75,8 @@ describe("Zeichensalat", () => {
     expect(istZeichensalat([satz.repeat(80)])).toBe(false);
     const katalog = Array.from({ length: 300 }, (_, i) => `Fundort Haithabu Inv.Nr. ${i} Messer Eisen Griffangel Länge ${i % 20} cm`).join("\n");
     expect(istZeichensalat([katalog])).toBe(false);
+    // So sah der Codex Manesse aus: viele Bruchstücke, die sich wiederholen.
+    const manesse = Array.from({ length: 400 }, () => "Sautelanee. Derr, hen Nude, Sie, e -e -i äs, Leh ü e alu i ebe Are, Ae Cette, e dera").join(" ");
+    expect(istZeichensalat([manesse])).toBe(true);
   });
 });
