@@ -56,6 +56,8 @@ const GRENZE = Number(process.env.GRENZE ?? "0") || 0;
 const WAHL = (process.env.QUELLEN ?? "").split(/[\s,]+/).filter(Boolean);
 const OCR = join(process.cwd(), "public", "ocr");
 const MODELL = { antiqua: "deu", fraktur: "frak2021" } as const;
+/** Unter dieser Sicherheit (in %) gilt eine Erkennung als unlesbar. */
+const UNLESBAR = 40;
 type Schrift = keyof typeof MODELL;
 
 // ── Edge Function ───────────────────────────────────────────────────────────
@@ -326,6 +328,10 @@ interface Bericht {
   megabyte: number;
   sekunden: number;
   fehler?: string;
+  /** Seiten, deren Erkennung so unsicher war, dass ihr Text wegblieb. */
+  unlesbar?: number;
+  /** Abgebrochen, weil schon der Anfang nicht lesbar war (Handschrift, fremde Schrift). */
+  hinweis?: string;
   /** Stufe 2: Grösse und echte Wörter des neuen PDF, und ob es die Datei ersetzt. */
   neuMegabyte?: number;
   alteWoerter?: number;
@@ -362,7 +368,22 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
       // Antiqua oder Fraktur? An der ersten Seite mit Text beide versuchen.
       const wahl: { schrift: Schrift | null } = { schrift: null };
       const parallel = Math.max(1, Math.min(4, cpus().length));
+      // Sicherheit der Seiten mit Text: Ist schon der Anfang eines Werks
+      // unlesbar (Handschrift, fremde Schrift), lohnt der Rest nicht.
+      const sicherheiten: number[] = [];
+      let geprueft = false;
       for (let k = 0; k < zuLesen.length; k += parallel) {
+        if (!geprueft && sicherheiten.length >= 12) {
+          geprueft = true;
+          const mitte = [...sicherheiten].sort((a, b) => a - b)[Math.floor(sicherheiten.length / 2)];
+          if (mitte < UNLESBAR) {
+            bericht.hinweis = `nicht lesbar (Handschrift?) – nach ${k} Seiten aufgehört`;
+            // Was bisher gelesen wurde, ist Zeichensalat: weg damit (eine
+            // alte Textebene bleibt, wo es eine gab).
+            for (const i of zuLesen.slice(0, k)) texte[i - 1] = imPdf[i - 1];
+            break;
+          }
+        }
         const stapel = zuLesen.slice(k, k + parallel).map((i) => {
           const roh = rendern(datei, i, ordner);
           return { i, dpi: roh.dpi, ...zumLesen(roh) };
@@ -377,6 +398,10 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
             r = await seiteLesen(bild, wahl.schrift);
           }
           let text = lesetext(seitentextAufraeumen(r.text));
+          // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.
+          if (r.text.trim().length >= 40) sicherheiten.push(r.sicherheit);
+          // Sehr unsicher und kaum echte Wörter: kein Text (sonst Zeichenmüll in der Suche).
+          if (r.sicherheit < UNLESBAR && echteWoerter(text) < 30) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
           // Hatte die alte Textebene mehr echte Wörter, bleibt sie.
           if (echteWoerter(imPdf[i - 1]) > echteWoerter(text) * 1.1) { text = imPdf[i - 1]; bericht.ausPdf++; }
           else bericht.gelesen++;
@@ -388,7 +413,8 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
         process.stdout.write(`  ${Math.min(k + parallel, zuLesen.length)}/${zuLesen.length} Seiten gelesen\r`);
       }
       bericht.schrift = wahl.schrift ?? "antiqua";
-      if (bauen) {
+      if (bauen && bericht.hinweis) bericht.ersetzen = "nein – nicht lesbar";
+      if (bauen && !bericht.hinweis) {
         const dpis = pdfSeiten.map((x) => x.dpi).sort((a, b) => a - b);
         pdf = await pdfBauen(pdfSeiten, {
           titel,
@@ -450,7 +476,7 @@ function berichtSchreiben(zeilen: Bericht[], zuLesen: Map<string, number>) {
     : "| Quelle | Seiten | Text aus PDF | gelesen | leer | unsicher | Wörter | Schrift | MB | Dauer |\n|---|---:|---:|---:|---:|---:|---:|---|---:|---:|";
   const reihen = zeilen.map((b) => MODUS === "pruefen"
     ? `| ${b.titel} | ${b.seiten} | ${b.ausPdf} | ${zuLesen.get(b.titel) ?? 0} | ${b.megabyte} |${b.fehler ? ` ⚠ ${b.fehler}` : ""}`
-    : `| ${b.titel} | ${b.seiten} | ${b.ausPdf} | ${b.gelesen} | ${b.leer} | ${b.unsicher} | ${b.woerter} | ${b.schrift} | ${b.megabyte} | ${Math.round(b.sekunden / 60)} min |${b.fehler ? ` ⚠ ${b.fehler}` : ""}`);
+    : `| ${b.titel} | ${b.seiten} | ${b.ausPdf} | ${b.gelesen} | ${b.leer} | ${b.unsicher} | ${b.woerter} | ${b.schrift} | ${b.megabyte} | ${Math.round(b.sekunden / 60)} min |${b.hinweis ? ` ${b.hinweis}` : ""}${b.unlesbar ? ` ${b.unlesbar} Seiten unlesbar` : ""}${b.fehler ? ` ⚠ ${b.fehler}` : ""}`);
   const summe = zeilen.reduce((n, b) => n + b.woerter, 0);
   const md = `## Quellen nachbearbeiten (${MODUS})\n\n${kopf}\n${reihen.join("\n")}\n\n${zeilen.length} Quellen, ${summe} Wörter.\n`;
   console.log("\n" + md);
