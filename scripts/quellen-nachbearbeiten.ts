@@ -91,13 +91,47 @@ function seitenZahl(datei: string): number {
   return m ? Number(m[1]) : 0;
 }
 
-/** Grösse einer Seite in Punkten (1/72 Zoll). */
-function seitenGroesse(datei: string, i: number): { b: number; h: number } {
-  const m = /Page\s+\d+\s+size:\s+([\d.]+)\s+x\s+([\d.]+)/.exec(lauf("pdfinfo", ["-f", String(i), "-l", String(i), datei]).toString());
-  return m ? { b: Number(m[1]), h: Number(m[2]) } : { b: 420, h: 595 };
+/**
+ * Was die Werkzeuge über ein PDF wissen – je Dokument EINMAL erhoben: Jeder
+ * Aufruf liest das ganze PDF ein, und bei Scans von mehreren hundert MB
+ * kostete das je Seite und Werkzeug Sekunden.
+ */
+interface Dokument {
+  groessen: { b: number; h: number }[];
+  texte: string[];
+  /** Grosse Bilder je Seite: Fläche in Bildpunkten und ppi. */
+  bilder: { punkte: number; ppi: number }[][];
+}
+const dokumente = new Map<string, Dokument>();
+
+function dokument(datei: string): Dokument {
+  let d = dokumente.get(datei);
+  if (d) return d;
+  const zahl = seitenZahl(datei);
+  const groessen = Array.from({ length: zahl }, () => ({ b: 420, h: 595 }));
+  for (const m of lauf("pdfinfo", ["-f", "1", "-l", String(zahl), datei]).toString().matchAll(/Page\s+(\d+)\s+size:\s+([\d.]+)\s+x\s+([\d.]+)/g)) {
+    groessen[Number(m[1]) - 1] = { b: Number(m[2]), h: Number(m[3]) };
+  }
+  // pdftotext trennt die Seiten mit einem Seitenvorschub.
+  const texte = lauf("pdftotext", ["-enc", "UTF-8", datei, "-"]).toString().split("\f").slice(0, zahl);
+  while (texte.length < zahl) texte.push("");
+  const bilder: { punkte: number; ppi: number }[][] = Array.from({ length: zahl }, () => []);
+  for (const z of lauf("pdfimages", ["-list", datei]).toString().split("\n").slice(2)) {
+    const t = z.trim().split(/\s+/);
+    const seite = Number(t[0]);
+    if (t[2] === "image" && seite >= 1 && seite <= zahl) bilder[seite - 1].push({ punkte: Number(t[3]) * Number(t[4]), ppi: Number(t[12]) || 150 });
+  }
+  d = { groessen, texte, bilder };
+  dokumente.set(datei, d);
+  return d;
 }
 
-const pdfText = (datei: string, i: number) => lauf("pdftotext", ["-f", String(i), "-l", String(i), "-enc", "UTF-8", datei, "-"]).toString();
+/** Grösse einer Seite in Punkten (1/72 Zoll). */
+function seitenGroesse(datei: string, i: number): { b: number; h: number } {
+  return dokument(datei).groessen[i - 1] ?? { b: 420, h: 595 };
+}
+
+const pdfText = (datei: string, i: number) => dokument(datei).texte[i - 1] ?? "";
 
 /**
  * Ist der Text, den das PDF schon hat, brauchbar? Genug Wörter, und die
@@ -132,12 +166,8 @@ function istScan(datei: string, i: number): boolean {
 function scanPpi(datei: string, i: number): number {
   const g = seitenGroesse(datei, i);
   const flaeche = (g.b / 72) * (g.h / 72) * 150 * 150;
-  const liste = lauf("pdfimages", ["-list", "-f", String(i), "-l", String(i), datei]).toString().split("\n").slice(2);
   let ppi = 0;
-  for (const z of liste) {
-    const t = z.trim().split(/\s+/);
-    if (t[2] === "image" && Number(t[3]) * Number(t[4]) >= flaeche * 0.25) ppi = Math.max(ppi, Number(t[12]) || 150);
-  }
+  for (const b of dokument(datei).bilder[i - 1] ?? []) if (b.punkte >= flaeche * 0.25) ppi = Math.max(ppi, b.ppi);
   return ppi;
 }
 
@@ -381,6 +411,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
     bericht.fehler = err instanceof Error ? err.message : String(err);
   } finally {
     rmSync(ordner, { recursive: true, force: true });
+    dokumente.delete(datei);
   }
   bericht.woerter = texte.reduce((n, t) => n + t.split(/\s+/).filter(Boolean).length, 0);
   bericht.sekunden = Math.round((Date.now() - anfang) / 1000);
