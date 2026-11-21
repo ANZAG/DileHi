@@ -65,3 +65,15 @@ describe("Sprache raten", () => {
     expect(spracheRaten("Karte 12")).toBeNull();
   });
 });
+
+describe("Zeichensalat", () => {
+  it("erkennt Zeichensalat aus einer Handschrift, nicht aber Text oder Katalog", async () => {
+    const { istZeichensalat } = await import("@/lib/scan/text");
+    const salat = Array.from({ length: 1800 }, (_, i) => `ay${(i * 7919) % 9973}men`.replace(/\d/g, (d) => "abcdefghij"[+d])).join(" ");
+    expect(istZeichensalat([salat])).toBe(true);
+    const satz = "Die Regimenter der Legion standen bei Waterloo im Zentrum und hielten den Gutshof bis zum Abend, als die Munition ausging und der Feind von allen Seiten kam. ";
+    expect(istZeichensalat([satz.repeat(80)])).toBe(false);
+    const katalog = Array.from({ length: 300 }, (_, i) => `Fundort Haithabu Inv.Nr. ${i} Messer Eisen Griffangel Länge ${i % 20} cm`).join("\n");
+    expect(istZeichensalat([katalog])).toBe(false);
+  });
+});

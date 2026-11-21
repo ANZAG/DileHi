@@ -48,7 +48,7 @@ import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, type PdfSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { spracheRaten } from "../src/lib/scan/text";
+import { istZeichensalat, spracheRaten } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern";
@@ -374,7 +374,19 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
       // unlesbar (Handschrift, fremde Schrift), lohnt der Rest nicht.
       const sicherheiten: number[] = [];
       let geprueft = false;
+      let salatGeprueft = false;
       for (let k = 0; k < zuLesen.length; k += parallel) {
+        // Zeichensalat (Handschrift, die die Erkennung mit Zuversicht falsch
+        // liest): kaum kleine Wörter, kaum Wiederholungen – siehe textMasse.
+        const bisher = zuLesen.slice(0, k).map((i) => texte[i - 1]);
+        if (!salatGeprueft && bisher.join(" ").length > 12000) {
+          salatGeprueft = true;
+          if (istZeichensalat(bisher)) {
+            bericht.hinweis = `nicht lesbar (Handschrift?) – Zeichensalat, nach ${k} Seiten aufgehört`;
+            for (const i of zuLesen.slice(0, k)) texte[i - 1] = imPdf[i - 1];
+            break;
+          }
+        }
         if (!geprueft && sicherheiten.length >= 12) {
           geprueft = true;
           const mitte = [...sicherheiten].sort((a, b) => a - b)[Math.floor(sicherheiten.length / 2)];

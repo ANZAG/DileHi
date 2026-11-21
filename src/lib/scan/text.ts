@@ -121,3 +121,28 @@ export function spracheRaten(text: string): "deu" | "lat" | "fra" | "eng" | "lat
   const [beste] = Object.entries(zahl).sort((a, b) => b[1] - a[1]);
   return beste[0] as "deu" | "lat" | "fra" | "eng";
 }
+
+/**
+ * Ist das gelesener Text oder Zeichensalat (etwa aus einer Handschrift)?
+ * Zwei Masse über eine Stichprobe: der Anteil der häufigen kleinen Wörter
+ * (KENNWOERTER, alle Sprachen) und wie oft sich Wörter wiederholen
+ * (verschiedene / alle Wörter ab drei Buchstaben, auf den ersten 3000).
+ * Echter Text wiederholt sein Vokabular; Zeichensalat kaum. Gemessen an der
+ * Sammlung: echte Bücher – auch Fundkataloge – ab 10 % kleine Wörter und
+ * höchstens 54 % verschiedene; der Heidelberger Sachsenspiegel als
+ * Zeichensalat 7 % und 63 %.
+ */
+export function textMasse(texte: string[]): { kennwoerter: number; vielfalt: number; woerter: number } {
+  const alle = texte.join(" ").toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+  const kenn = new Set(Object.values(KENNWOERTER).flat());
+  const kennwoerter = alle.length ? alle.filter((w) => kenn.has(w)).length / alle.length : 0;
+  const lang = alle.filter((w) => w.length >= 3).slice(0, 3000);
+  const vielfalt = lang.length ? new Set(lang).size / lang.length : 0;
+  return { kennwoerter, vielfalt, woerter: lang.length };
+}
+
+/** Zeichensalat statt Text (siehe `textMasse`)? Erst ab 1500 Wörtern Stichprobe. */
+export function istZeichensalat(texte: string[]): boolean {
+  const m = textMasse(texte);
+  return m.woerter >= 1500 && m.kennwoerter < 0.09 && m.vielfalt > 0.56;
+}
