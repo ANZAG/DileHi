@@ -49,7 +49,7 @@ import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { istZeichensalat, spracheRaten, zaehlungFinden } from "../src/lib/scan/text";
+import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, wortartig, zaehlungFinden } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern" || MODUS.startsWith("austauschen");
@@ -474,7 +474,9 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         // Zeichensalat (Handschrift, die die Erkennung mit Zuversicht falsch
         // liest): kaum kleine Wörter, kaum Wiederholungen – siehe textMasse.
         const bisher = zuLesen.slice(0, k).map((i) => texte[i - 1]);
-        if (!salatGeprueft && bisher.join(" ").length > 12000) {
+        // Erst entscheiden, wenn ohne wiederkehrende Zeilen (Stempel eines
+        // Digitalisats) genug übrig ist – sonst beim nächsten Stapel wieder.
+        if (!salatGeprueft && bisher.join(" ").length > 12000 && wortartig(ohneWiederkehrendeZeilen(bisher)).zahl >= 1500) {
           salatGeprueft = true;
           if (istZeichensalat(bisher)) {
             bericht.hinweis = `nicht lesbar (Handschrift?) – Zeichensalat, nach ${k} Seiten aufgehört`;
@@ -572,6 +574,15 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           if (ebene.has(i) && !r.kopf && text) textSeiten.push({ seite: i, woerter: r.woerter, bildBreite: bild.breite, bildHoehe: bild.hoehe });
         }));
         process.stdout.write(`  ${Math.min(k + parallel, zuLesen.length)}/${zuLesen.length} Seiten gelesen\r`);
+      }
+      // Am Ende noch einmal über alles Gelesene, falls es unterwegs nie genug
+      // für eine Entscheidung war (Sachsenspiegel: vorne nur Stempel).
+      if (!salatGeprueft && !bericht.hinweis) {
+        const gelesen = zuLesen.map((i) => texte[i - 1]);
+        if (wortartig(ohneWiederkehrendeZeilen(gelesen)).zahl >= 1500 && istZeichensalat(gelesen)) {
+          bericht.hinweis = "nicht lesbar (Handschrift?) – Zeichensalat, erst am Ende erkannt";
+          for (const i of zuLesen) texte[i - 1] = imPdf[i - 1];
+        }
       }
       bericht.schrift = wahl.schrift ?? "antiqua";
       if (weg && bericht.hinweis) bericht.ersetzen = "nein – nicht lesbar";

@@ -187,13 +187,33 @@ export function wortartig(texte: string[]): { anteil: number; zahl: number } {
 }
 
 /**
+ * Zeilen, die auf vielen Seiten wiederkehren (Stempel eines Digitalisats
+ * wie „UNIVERSITÄTS-BIBLIOTHEK HEIDELBERG – gefördert von der …“, Adressen,
+ * lebende Kolumnentitel), aus allen Seiten entfernen – für die Prüfung auf
+ * Zeichensalat: Beim Heidelberger Sachsenspiegel hob der Stempel auf jeder
+ * Seite den Salat über die Schwellen. Ziffern zählen beim Vergleich nicht;
+ * Adressen (http…) fallen immer weg.
+ */
+export function ohneWiederkehrendeZeilen(texte: string[]): string[] {
+  const schluessel = (z: string) => z.toLowerCase().replace(/[\d\s.,;:©|()[\]\-–_/\\>]+/g, " ").trim();
+  const zaehler = new Map<string, number>();
+  const seiten = texte.filter((t) => t.trim()).length;
+  for (const t of texte) for (const k of new Set(t.split("\n").map(schluessel).filter((k) => k.length >= 6))) zaehler.set(k, (zaehler.get(k) ?? 0) + 1);
+  const grenze = Math.max(4, seiten * 0.3);
+  return texte.map((t) => t.split("\n")
+    .filter((z) => !/https?:|www\.|digi\.|\.de\b/i.test(z) && (zaehler.get(schluessel(z)) ?? 0) < grenze)
+    .join("\n"));
+}
+
+/**
  * Zeichensalat statt Text? Erst ab einer Stichprobe von 1500 Wörtern. Zwei
  * Wege, die sich ergänzen: wenige kleine Wörter und kaum Wiederholungen
  * (`textMasse`, so sah der Sachsenspiegel aus), oder zu wenig, das
  * überhaupt wie Wörter aussieht, und dazu wenige kleine Wörter (`wortartig`,
  * so sah die Manesse aus).
  */
-export function istZeichensalat(texte: string[]): boolean {
+export function istZeichensalat(roh: string[]): boolean {
+  const texte = ohneWiederkehrendeZeilen(roh);
   const m = textMasse(texte);
   const w = wortartig(texte);
   // Wenig Wortartiges allein reicht nicht: Ein Anmerkungsapparat voller
