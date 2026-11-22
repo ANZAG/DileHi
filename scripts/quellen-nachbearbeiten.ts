@@ -49,7 +49,7 @@ import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, wortartig, zaehlungFinden } from "../src/lib/scan/text";
+import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungFinden } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern" || MODUS.startsWith("austauschen");
@@ -478,6 +478,8 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         // Digitalisats) genug übrig ist – sonst beim nächsten Stapel wieder.
         if (!salatGeprueft && bisher.join(" ").length > 12000 && wortartig(ohneWiederkehrendeZeilen(bisher)).zahl >= 1500) {
           salatGeprueft = true;
+          const sauber = ohneWiederkehrendeZeilen(bisher);
+          console.log(`\n  Zeichensalat-Prüfung nach ${k} Seiten: ${JSON.stringify({ ...textMasse(sauber), wortartig: wortartig(sauber) })}`);
           if (istZeichensalat(bisher)) {
             bericht.hinweis = `nicht lesbar (Handschrift?) – Zeichensalat, nach ${k} Seiten aufgehört`;
             for (const i of zuLesen.slice(0, k)) texte[i - 1] = imPdf[i - 1];
@@ -579,7 +581,9 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
       // für eine Entscheidung war (Sachsenspiegel: vorne nur Stempel).
       if (!salatGeprueft && !bericht.hinweis) {
         const gelesen = zuLesen.map((i) => texte[i - 1]);
-        if (wortartig(ohneWiederkehrendeZeilen(gelesen)).zahl >= 1500 && istZeichensalat(gelesen)) {
+        const sauber = ohneWiederkehrendeZeilen(gelesen);
+        console.log(`\n  Zeichensalat-Prüfung am Ende: ${JSON.stringify({ ...textMasse(sauber), wortartig: wortartig(sauber) })}`);
+        if (wortartig(sauber).zahl >= 1500 && istZeichensalat(gelesen)) {
           bericht.hinweis = "nicht lesbar (Handschrift?) – Zeichensalat, erst am Ende erkannt";
           for (const i of zuLesen) texte[i - 1] = imPdf[i - 1];
         }
@@ -771,6 +775,17 @@ async function main() {
   if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten < 20);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
+
+  if (MODUS === "leeren") {
+    // Suchtext der genannten Quellen entfernen (etwa Zeichensalat aus einer
+    // Handschrift). Nur mit ausdrücklich genannten Quellen; die Datei bleibt.
+    if (!WAHL.length) throw new Error("leeren braucht QUELLEN.");
+    for (const q of auswahl) {
+      await werkstatt("text", { sourceId: q.id, seiten: [] });
+      console.log(`${q.title}: Suchtext entfernt (vorher ${q.textSeiten} Seiten)`);
+    }
+    return;
+  }
 
   if (MODUS === "austauschen" || MODUS === "austauschen-probe") {
     if (auswahl.length !== 1) throw new Error("austauschen braucht genau eine Quelle (QUELLEN).");

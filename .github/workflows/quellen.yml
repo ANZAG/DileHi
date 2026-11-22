@@ -25,6 +25,7 @@ name: Quellen nachbearbeiten
 #            welche Stellen (PDF-Seiten, in der Reihenfolge des Scans),
 #            „eingang“ welche Datei (leer = die neueste). Mit
 #            austauschen-probe nur als Artefakt zum Ansehen.
+#   leeren   den Suchtext der genannten Quellen entfernen (Datei bleibt)
 #   doppelt  die genannten Quellen löschen, wenn es eine ältere mit gleichem
 #            Titel und gleicher Grösse gibt (Datei in den Papierkorb).
 #
@@ -49,7 +50,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen, leeren]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
