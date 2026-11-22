@@ -1,11 +1,12 @@
-import { SCHAERFE_GRENZE, type Befund } from "./aufbereitung";
+import { SCHAERFE_GRENZE, SCHAERFE_GRENZE_BILD, type Befund } from "./aufbereitung";
 
 /**
  * Qualitätsprüfung je Seite, vor dem PDF: gut, leer oder „prüfen" – mit
  * Gründen, damit man weiss, ob man neu aufnehmen sollte.
  *
- * - unscharf: Schärfe unter der Grenze, aber nur auf Seiten mit Text
- *   (Karten und Abbildungen haben von Natur aus wenig scharfe Kanten).
+ * - unscharf: Schärfe unter der Grenze – auf Textseiten am Text gemessen,
+ *   auf Bildseiten (Tafeln, Karten) an den schärfsten Stellen
+ *   (Bildunterschrift, Konturen), mit eigener Grenze.
  * - Text unsicher: Sicherheit der Erkennung unter 70 %.
  * - wenig Text erkannt: Die Seite zeigt deutlich Zeilen, gelesen wurde
  *   aber kaum etwas.
@@ -30,7 +31,12 @@ export function seitePruefen(befund: Befund | undefined, lesung: Lesung | undefi
   if (befund?.leer && (!lesung || lesung.woerter < 10)) return { art: "leer", gruende: [], textseite: false };
   const gruende: string[] = [];
   const textseite = befund ? !befund.dunkel && befund.zeilen >= TEXTSEITE : (lesung?.woerter ?? 0) >= 30;
-  if (befund && textseite && befund.schaerfe < SCHAERFE_GRENZE) gruende.push("unscharf");
+  if (befund && !befund.dunkel && !befund.leer && (befund.schaerfeFelder ?? 99) >= 20) {
+    const bildseite = befund.bildseite === true;
+    // Ältere Aufnahmen (vor der feldweisen Messung) haben für Bildseiten
+    // keinen brauchbaren Wert – dort keine Warnung.
+    if (bildseite ? befund.schaerfeBild !== undefined && befund.schaerfeBild < SCHAERFE_GRENZE_BILD : textseite && befund.schaerfe < SCHAERFE_GRENZE) gruende.push("unscharf");
+  }
   if (lesung && textseite) {
     if (lesung.woerter < 40) gruende.push("wenig Text erkannt");
     else if (lesung.sicherheit < 70) gruende.push(`Text unsicher (${Math.round(lesung.sicherheit)} %)`);

@@ -118,7 +118,7 @@ describe("Aufbereitung", () => {
     const weich = textseite(600, 800, { weich: true });
     aufbereiten(scharf, { farbig: false });
     aufbereiten(weich, { farbig: false });
-    expect(schaerfeMessen(scharf)).toBeGreaterThan(schaerfeMessen(weich) * 1.5);
+    expect(schaerfeMessen(scharf).text).toBeGreaterThan(schaerfeMessen(weich).text * 1.5);
   });
 });
 
@@ -133,6 +133,15 @@ describe("Qualitätsprüfung", () => {
     const p = seitePruefen(befund({ schaerfe: 2200 }), { sicherheit: 95, woerter: 0 });
     expect(p.art).toBe("pruefen");
     expect(p.gruende).toEqual(["unscharf", "wenig Text erkannt"]);
+  });
+
+  it("Bildtafeln: an den schärfsten Stellen gemessen, mit eigener Grenze", () => {
+    // Scharfe Tafel mit Unterschrift: glatte Farbflächen drücken den Textwert, die Spitze ist hoch.
+    expect(seitePruefen(befund({ bildseite: true, schaerfe: 2600, schaerfeBild: 3400, schaerfeFelder: 120 }), undefined).gruende).toEqual([]);
+    // Verwackelte Tafel (Stein S. 72): auch ohne Zeilen erkannt.
+    expect(seitePruefen(befund({ bildseite: true, zeilen: 0.5, schaerfe: 280, schaerfeBild: 520, schaerfeFelder: 74 }), undefined).gruende).toEqual(["unscharf"]);
+    // Ältere Aufnahme ohne feldweise Messung: keine Warnung für Bildseiten.
+    expect(seitePruefen(befund({ bildseite: true, schaerfe: 300 }), undefined).gruende).toEqual([]);
   });
 
   it("Karten und Abbildungen: keine Zeilen, also nicht „wenig Text\"", () => {

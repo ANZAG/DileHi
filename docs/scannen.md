@@ -253,10 +253,14 @@ im Hintergrund, gut eine Drittelsekunde je Seite:
   (6 %) liegt; eine Abbildung bis an den Rand bleibt.
 - **Dunkle Seiten** (Einband, helle Schrift auf dunklem Grund) werden nicht
   aufgehellt; Tesseract dreht helle Schrift beim Lesen selbst um.
-- **Schärfe:** Varianz des Laplace-Filters geteilt durch die Varianz der
-  Helligkeit (unabhängig vom Kontrast), im Inneren der Seite. Scharfe
-  Textseiten aus dem Handy liegen bei 3800–4700, verwackelte bei
-  1600–2300; die Grenze ist 3000.
+- **Schärfe:** feldweise (30 × 30 Punkte auf 600 Punkten Breite), nur in
+  Feldern mit Kontrast – Schrift und Konturen, nicht leeres Papier oder
+  glatte Farbflächen: Varianz des Laplace-Filters geteilt durch die Varianz
+  der Helligkeit. Textseiten zählen das obere Viertel der Felder (Grenze
+  3700), Bildseiten das obere Zehntel, also Bildunterschrift und Konturen
+  (Grenze 1800). Über die ganze Seite gemittelt galt vorher jede scharfe
+  Farbtafel als unscharf und eine verwackelte nie. Stein: Text unscharf
+  2967/3156, scharf 4311–5738; Tafel unscharf 519, scharf 3138–4468.
 
 Gemessen am Buch „Stein: Uniformen der Armeen von Waterloo" (12 Seiten
 als Regressionstest, darunter die schwierigen S. 14, 27, 30, 38, 46, 116):

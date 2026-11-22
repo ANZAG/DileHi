@@ -25,8 +25,12 @@ export interface Befund {
   leer: boolean;
   /** Anteil der Tinte (dunkle Bildpunkte) nach der Korrektur. */
   tinte: number;
-  /** Schärfe (siehe `schaerfeMessen`). */
+  /** Schärfe für Text (siehe `schaerfeMessen`). */
   schaerfe: number;
+  /** Schärfe der schärfsten Stellen – für Bildseiten (siehe `schaerfeMessen`). */
+  schaerfeBild?: number;
+  /** Felder mit Kontrast, auf denen die Schärfe gemessen ist. */
+  schaerfeFelder?: number;
   /** Schräglage des Textes in Grad (so viel wurde gegen den Uhrzeigersinn zurückgedreht). */
   schraeg: number;
   /** Die Zeilen liefen senkrecht: Die Seite lag um 90° gedreht und wurde gedreht. */
@@ -307,32 +311,45 @@ export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: bool
 }
 
 /**
- * Schärfe: Varianz des Laplace-Filters (4er-Nachbarschaft) auf ≈ 600 Punkten
- * Breite, geteilt durch die Varianz der Helligkeit (× 1000) – so hängt sie
- * nicht vom Kontrast ab. Gemessen auf der aufbereiteten Seite: Textseiten
- * aus dem Handy liegen scharf bei 3800 bis 4700, verwackelt oder flau
- * bei 1600 bis 2300.
+ * Schärfe, feldweise: Die Seite (auf ≈ 600 Punkten Breite, ohne Rand) in
+ * Felder von 30 × 30 Punkten; in jedem Feld mit deutlichem Kontrast (Schrift,
+ * Konturen – nicht leeres Papier, nicht glatte Farbfläche) die Varianz des
+ * Laplace-Filters geteilt durch die Varianz der Helligkeit (× 1000), also
+ * unabhängig vom Kontrast. `text` ist das obere Viertel dieser Felder
+ * (Textseiten: fast jedes Feld trägt Schrift), `bild` das obere Zehntel
+ * (Bildtafeln: nur Bildunterschrift und Konturen sind scharf zu messen).
+ *
+ * Über die ganze Seite gemittelt, wie vorher, galt jede scharfe Farbtafel
+ * als unscharf (glatte Aquarellflächen) und eine verwackelte nie. Gemessen
+ * an Stein (Handyfotos): Text unscharf 2967/3156 (S. 26, 38), scharf
+ * 4311–5738; Tafel unscharf 519 (S. 72), scharf 3138–4468.
  */
-export function schaerfeMessen(bild: Pixel): number {
+export function schaerfeMessen(bild: Pixel): { text: number; bild: number; felder: number } {
   const { g, w, h } = verkleinern(bild, 600);
-  let s = 0, s2 = 0, n = 0, m1 = 0, m2 = 0;
-  // Nur das Innere: Am Rand liegen Buchkante und Schatten, die den Kontrast
-  // erhöhen, ohne etwas über die Schärfe der Schrift zu sagen.
+  const feld = 30;
   const rx = Math.max(1, Math.round(w * 0.08)), ry = Math.max(1, Math.round(h * 0.06));
-  for (let y = ry; y < h - ry; y++) for (let x = rx; x < w - rx; x++) {
-    const k = y * w + x;
-    const l = g[k - 1] + g[k + 1] + g[k - w] + g[k + w] - 4 * g[k];
-    s += l; s2 += l * l; n++;
-    m1 += g[k]; m2 += g[k] * g[k];
+  const werte: number[] = [];
+  for (let ty = ry; ty + feld <= h - ry; ty += feld) for (let tx = rx; tx + feld <= w - rx; tx += feld) {
+    let s = 0, s2 = 0, m1 = 0, m2 = 0, n = 0;
+    for (let y = ty; y < ty + feld; y++) for (let x = tx; x < tx + feld; x++) {
+      const k = y * w + x;
+      const l = g[k - 1] + g[k + 1] + g[k - w] + g[k + w] - 4 * g[k];
+      s += l; s2 += l * l; m1 += g[k]; m2 += g[k] * g[k]; n++;
+    }
+    const streuung = m2 / n - (m1 / n) ** 2;
+    if (streuung < 400) continue; // Papier oder glatte Fläche: sagt nichts über die Schärfe
+    werte.push(((s2 / n - (s / n) ** 2) / streuung) * 1000);
   }
-  if (!n) return 0;
-  const lap = s2 / n - (s / n) ** 2;
-  const streuung = m2 / n - (m1 / n) ** 2;
-  return streuung > 1 ? (lap / streuung) * 1000 : 0;
+  if (!werte.length) return { text: 0, bild: 0, felder: 0 };
+  werte.sort((a, b) => a - b);
+  const anteil = (q: number) => werte[Math.floor((werte.length - 1) * q)];
+  return { text: anteil(0.75), bild: anteil(0.9), felder: werte.length };
 }
 
-/** Ab hier gilt eine Textseite als scharf genug (siehe `schaerfeMessen`). */
-export const SCHAERFE_GRENZE = 3000;
+/** Ab hier gilt eine Textseite als scharf genug (`schaerfeMessen().text`). */
+export const SCHAERFE_GRENZE = 3700;
+/** Ab hier gilt eine Bildseite als scharf genug (`schaerfeMessen().bild`). */
+export const SCHAERFE_GRENZE_BILD = 1800;
 
 /**
  * Anteil deutlich farbiger Punkte im Inneren der Seite (ohne 10 % Rand, wo
@@ -559,11 +576,11 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
   const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15 || farbe > FARB_GRENZE;
   aufbereiten(bild, { farbig: o.farbig || bildseite });
   if (!dunkel) randSaeubern(bild);
-  const schaerfe = schaerfeMessen(bild);
+  const sm = schaerfeMessen(bild);
   return {
     bild,
     befund: {
-      dunkel, leer: !dunkel && lage.tinte < 0.004, tinte: lage.tinte, schaerfe,
+      dunkel, leer: !dunkel && lage.tinte < 0.004, tinte: lage.tinte, schaerfe: sm.text, schaerfeBild: sm.bild, schaerfeFelder: sm.felder,
       schraeg: lage.schraeg, quer: lage.quer, zeilen: lage.zeilen, bildseite, farbig: o.farbig || bildseite,
     },
   };
