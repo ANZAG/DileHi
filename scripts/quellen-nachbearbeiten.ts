@@ -36,7 +36,7 @@
  * Texterkennung in public/ocr (scripts/ocr-dateien.mjs).
  */
 import { execFileSync } from "node:child_process";
-import { appendFileSync, createWriteStream, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, createWriteStream, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus, tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -614,6 +614,23 @@ async function main() {
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
 
+  if (MODUS === "zurueck") {
+    // Die Fassung von vor VOR wieder zur aktuellen machen (neue Fassung in
+    // SharePoint, nichts geht verloren). Nur mit ausdrücklich genannten Quellen.
+    const vor = Date.parse(process.env.VOR ?? "");
+    if (!WAHL.length || !Number.isFinite(vor)) throw new Error("zurueck braucht QUELLEN und VOR (Zeitpunkt, ISO).");
+    for (const q of auswahl) {
+      const { versionen } = await werkstatt<{ versionen: { id: string; zeit: string | null; size: number | null }[] }>("versionen", { sourceId: q.id });
+      const alt = versionen.filter((v) => v.zeit && Date.parse(v.zeit) < vor).sort((a, b) => Date.parse(b.zeit!) - Date.parse(a.zeit!))[0];
+      console.log(`${q.title}: ${versionen.map((v) => `${v.id} ${v.zeit} ${Math.round((v.size ?? 0) / 1e5) / 10} MB`).join(" | ")}`);
+      if (!alt) { console.log("  keine ältere Fassung"); continue; }
+      if (alt.id === versionen[0]?.id) { console.log("  ist schon die aktuelle"); continue; }
+      const { size } = await werkstatt<{ size: number | null }>("wiederherstellen", { sourceId: q.id, versionId: alt.id });
+      console.log(`  wiederhergestellt: Fassung ${alt.id} (${alt.zeit}), jetzt ${Math.round((size ?? 0) / 1e5) / 10} MB`);
+    }
+    return;
+  }
+
   const zeilen: Bericht[] = [];
   const zuLesen = new Map<string, number>();
   const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
@@ -632,7 +649,10 @@ async function main() {
       }
       if (pdf && MODUS === "probe") {
         mkdirSync("neu", { recursive: true });
-        writeFileSync(join("neu", `${q.title.replace(/[^\p{L}\p{N} ._-]/gu, "_").slice(0, 80)}.pdf`), pdf);
+        const name = q.title.replace(/[^\p{L}\p{N} ._-]/gu, "_").slice(0, 80);
+        writeFileSync(join("neu", `${name}.pdf`), pdf);
+        // Das Original daneben – zum Vergleichen.
+        copyFileSync(datei, join("neu", `${name}.original.pdf`));
       }
       if (pdf && MODUS === "verbessern" && bericht.ersetzen === "ja" && !bericht.fehler) {
         const { uploadUrl } = await werkstatt<{ uploadUrl: string }>("ersetzen-sitzung", { sourceId: q.id });

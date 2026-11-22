@@ -17,6 +17,9 @@ name: Quellen nachbearbeiten
 #            so viel echter Text, nicht grösser), ersetzt es die Datei in
 #            SharePoint. Die alte Fassung bleibt im Versionsverlauf der
 #            Datei (in SharePoint: Datei → Versionsverlauf → Wiederherstellen).
+#   zurueck  für die genannten Quellen die Fassung von vor „vor“ wieder zur
+#            aktuellen machen (aus dem Versionsverlauf; legt eine neue
+#            Fassung an, nichts geht verloren).
 #
 # Quellen, die schon Text in der Suche haben, werden übersprungen (ausser
 # mit „neu“). Bricht ein Lauf ab (Zeitlimit), macht der nächste dort weiter.
@@ -39,7 +42,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern]
+        options: [pruefen, text, probe, verbessern, zurueck]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
@@ -53,6 +56,10 @@ on:
         description: "Höchstens so viele Quellen in diesem Lauf (0 = alle)"
         type: string
         default: "0"
+      vor:
+        description: "Nur für zurueck: Zeitpunkt (ISO, etwa 2026-11-22T06:00:00Z) – die letzte Fassung davor wird wiederhergestellt"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -99,6 +106,7 @@ jobs:
           QUELLEN: ${{ inputs.quellen }}
           NEU: ${{ inputs.neu }}
           GRENZE: ${{ inputs.grenze }}
+          VOR: ${{ inputs.vor }}
         run: npx vite-node scripts/quellen-nachbearbeiten.ts
 
       - name: Bericht ablegen

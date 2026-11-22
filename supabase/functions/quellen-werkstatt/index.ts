@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fileInFolder, graphJson, resolveTarget } from "../_shared/sharepoint.ts";
+import { fileInFolder, graph, graphJson, graphReason, resolveTarget } from "../_shared/sharepoint.ts";
 
 /**
  * Werkstatt für vorhandene Quellen – aufgerufen von der GitHub-Action
@@ -23,6 +23,10 @@ import { fileInFolder, graphJson, resolveTarget } from "../_shared/sharepoint.ts
  *   text              Text je Seite in die Suche (ersetzt, was da war).
  *   ersetzen-sitzung  Hochladeadresse für eine neue Fassung der Datei.
  *   ersetzt           Nach dem Hochladen: Grösse und Namen nachtragen.
+ *   versionen         Versionsverlauf der Datei (neueste zuerst).
+ *   wiederherstellen  Eine frühere Fassung (versionId) wieder zur aktuellen
+ *                     machen – SharePoint legt dafür eine neue Fassung an,
+ *                     nichts geht verloren. Grösse wird nachgetragen.
  */
 
 const corsHeaders = {
@@ -108,6 +112,30 @@ Deno.serve(async (req) => {
         const q = await quelle();
         const item = await fileInFolder(await target(), q.drive_item_id);
         await admin.from("sources").update({ file_size: item.size ?? null, file_name: item.name ?? q.file_name }).eq("id", q.id);
+        return json(200, { size: item.size ?? null });
+      }
+
+      case "versionen": {
+        const q = await quelle();
+        const t = await target();
+        const v = await graphJson<{ value: { id: string; lastModifiedDateTime?: string; size?: number }[] }>(
+          `/drives/${t.driveId}/items/${encodeURIComponent(q.drive_item_id)}/versions`
+        );
+        return json(200, { versionen: v.value.map((x) => ({ id: x.id, zeit: x.lastModifiedDateTime ?? null, size: x.size ?? null })) });
+      }
+
+      case "wiederherstellen": {
+        const q = await quelle();
+        const t = await target();
+        const vid = String(body.versionId ?? "");
+        if (!vid) throw new Error("Es fehlt die Version.");
+        const resp = await graph(
+          `/drives/${t.driveId}/items/${encodeURIComponent(q.drive_item_id)}/versions/${encodeURIComponent(vid)}/restoreVersion`,
+          { method: "POST" }
+        );
+        if (!resp.ok) throw new Error(`SharePoint: ${await graphReason(resp)}`);
+        const item = await fileInFolder(t, q.drive_item_id);
+        await admin.from("sources").update({ file_size: item.size ?? null }).eq("id", q.id);
         return json(200, { size: item.size ?? null });
       }
 
