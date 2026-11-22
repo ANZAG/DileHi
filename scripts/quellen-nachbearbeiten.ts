@@ -107,6 +107,8 @@ interface Dokument {
   texte: string[];
   /** Bilder je Seite: Fläche in Bildpunkten, ppi und Kodierung (jpeg, ccitt, jbig2 …). */
   bilder: { punkte: number; ppi: number; art: string }[][];
+  /** Erzeuger laut PDF (Creator) – unsere eigenen PDFs erkennen wir daran. */
+  erzeuger: string;
 }
 const dokumente = new Map<string, Dokument>();
 
@@ -127,7 +129,8 @@ function dokument(datei: string): Dokument {
     const seite = Number(t[0]);
     if (t[2] === "image" && seite >= 1 && seite <= zahl) bilder[seite - 1].push({ punkte: Number(t[3]) * Number(t[4]), ppi: Number(t[12]) || 150, art: t[8] ?? "" });
   }
-  d = { groessen, texte, bilder };
+  const erzeuger = /Creator:\s+(.*)/.exec(lauf("pdfinfo", [datei]).toString())?.[1]?.trim() ?? "";
+  d = { groessen, texte, bilder, erzeuger };
   dokumente.set(datei, d);
   return d;
 }
@@ -400,13 +403,25 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
     }
     // Neu bauen nur Handyfotos (und nur, wenn jede Seite ein Scan ist);
     // sonst eine Textebene auf die Seiten, die noch keinen Text haben.
-    const weg = NEU_BAUEN ? wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0) : null;
+    // Schon von uns gebaut oder ergänzt (Stufe 2)? Dann nicht noch einmal:
+    // Neu bauen aus schon komprimierten Bildern verlöre bei jedem Lauf.
+    const schonBearbeitet = NEU_BAUEN && dokument(datei).erzeuger.startsWith("DileHi Quellensammlung");
+    if (schonBearbeitet) bericht.ersetzen = "nein – schon bearbeitet";
+    const weg = NEU_BAUEN && !schonBearbeitet ? wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0) : null;
     const bauen = weg === "neu";
     const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1]) : []);
     if (weg) bericht.weg = weg === "neu" ? "neu gebaut" : `Textebene auf ${ebene.size} Seiten`;
     const pdfSeiten: (PdfSeite & { dpi: number })[] = new Array(zahl);
     const textSeiten: TextFuerSeite[] = [];
     const alteWoerter = NEU_BAUEN ? dokument(datei).texte.reduce((n, t) => n + echteWoerter(t), 0) : 0;
+    // Stufe 2: Nur lesen, was gebraucht wird – beim Neubau alle Seiten, bei
+    // der Textebene nur die Seiten ohne Text. Die übrigen behalten ihren
+    // Text (sonst würde der Suchtext dieser Seiten beim Ersetzen leer).
+    if (NEU_BAUEN) {
+      const noetig = bauen ? zuLesen : zuLesen.filter((i) => ebene.has(i));
+      for (const i of zuLesen) if (!noetig.includes(i)) texte[i - 1] = imPdf[i - 1];
+      zuLesen.splice(0, zuLesen.length, ...(schonBearbeitet ? [] : noetig));
+    }
     if (schreiben && zuLesen.length) {
       // Antiqua oder Fraktur? An der ersten Seite mit Text beide versuchen.
       const wahl: { schrift: Schrift | null; gewechselt?: number } = { schrift: null };
