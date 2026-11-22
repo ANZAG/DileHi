@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { buchForm, fotoDrehung, lageAus, lageGrob, lageMitBild } from "@/lib/scan/lage";
+import { seitenNeigung, wasserwaage, buchForm, fotoDrehung, lageAus, lageGrob, lageMitBild } from "@/lib/scan/lage";
 import { punktDrehen, viereckAusAnzeige, viereckDrehenUm, viereckZurAnzeige, type Viereck } from "@/lib/scan/geometrie";
 
 /**
@@ -105,5 +105,33 @@ describe("Lage aus dem Bild", () => {
     expect(lageGrob(0, 0, null)).toBeNull();
     expect(lageGrob(0.5, 1, 90)).toBe(90); // zu flach: bleibt
     expect(lageGrob(-4, -4, 90)).toBe(90); // genau zwischen zwei Lagen: bleibt
+  });
+});
+
+describe("Ausrichtungshilfe", () => {
+  it("Wasserwaage: flach 0°, gekippt die Neigung, in Richtung der Kippung", () => {
+    expect(wasserwaage(0, 0, 0).grad).toBeCloseTo(0, 5);
+    const rechts = wasserwaage(0, 10, 0); // rechte Kante tiefer
+    expect(rechts.grad).toBeCloseTo(10, 0);
+    expect(rechts.x).toBeGreaterThan(0);
+    const oben = wasserwaage(10, 0, 0); // obere Kante angehoben
+    expect(oben.grad).toBeCloseTo(10, 0);
+    expect(oben.y).toBeGreaterThan(0);
+    // Oberfläche quer (90°): die Kippung nach rechts im Gerät zeigt auf der Oberfläche nach oben.
+    expect(wasserwaage(0, 10, 90).y).toBeLessThan(0);
+  });
+
+  it("Seitenneigung: gerade 0°, schräg der Winkel, auch hochkant gedreht", () => {
+    const gerade = [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 0.1, y: 0.9 }] as const;
+    expect(seitenNeigung([...gerade], 600, 800)).toBeCloseTo(0, 5);
+    // um 3° im Uhrzeigersinn gedreht (in Bildpunkten 600 × 800, um die Mitte)
+    const a = (3 * Math.PI) / 180;
+    const schraeg = gerade.map(({ x, y }) => {
+      const px = (x - 0.5) * 600, py = (y - 0.5) * 800;
+      return { x: (px * Math.cos(a) - py * Math.sin(a)) / 600 + 0.5, y: (px * Math.sin(a) + py * Math.cos(a)) / 800 + 0.5 };
+    }) as unknown as Parameters<typeof seitenNeigung>[0];
+    expect(seitenNeigung(schraeg, 600, 800)).toBeCloseTo(3, 1);
+    // Ecken anders herum gezählt (Viereck einer quer liegenden Seite): gleiche Abweichung
+    expect(seitenNeigung([schraeg[1], schraeg[2], schraeg[3], schraeg[0]], 600, 800)).toBeCloseTo(3, 1);
   });
 });

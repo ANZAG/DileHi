@@ -192,6 +192,29 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    in SharePoint neben dem PDF (nicht im Posteingang – dort erschiene sie als
    weitere Datei ohne Quelle).
 
+## Ausrichtungshilfe
+
+In der Kamera (abschaltbar unter „…“, gemerkt je Gerät), wie bei der
+iPhone-Kamera:
+
+- **Wasserwaage:** ein festes weisses Kreuz in der Mitte und ein oranges,
+  das der Neigung des Handys folgt (Lagesensor). Liegen beide übereinander
+  (unter 2°, dann grün), hält man das Handy flach über dem Buch – das Foto
+  wird nicht trapezförmig, die Schrift oben so gross wie unten. Erscheint
+  nur, wenn das Handy ungefähr nach unten zeigt.
+- **Linie für gerade Zeilen:** eine feste waagrechte Linie und, orange, die
+  Richtung der gefundenen Seite mit ihrem Winkel („3,0° ↻“: das Handy so
+  herum drehen). Unter 1° wird die Linie grün („gerade“).
+
+Beides hilft, die Schräglage klein zu halten; was bleibt, zieht die
+Aufbereitung gerade (bis 5°).
+
+**Einzelseite:** Liegt neben der Seite ein Streifen der Nachbarseite hinter
+dem Bund oder der Schnitt des Buches, ist dort eine Stufe – deutlich
+dunkleres Papier jenseits einer scharfen Kante. Die Erkennung schneidet die
+Fläche dort ab (äusseres Drittel links und rechts), statt das ganze Buch
+zu rahmen.
+
 ## Bildaufbereitung
 
 **Übernommene Fotos** (Kamera-App, „Bilder übernehmen") werden wie die

@@ -129,3 +129,35 @@ export async function lageErlauben(): Promise<boolean> {
 export const lageBrauchtErlaubnis = () =>
   typeof DeviceOrientationEvent !== "undefined" &&
   typeof (DeviceOrientationEvent as unknown as MitErlaubnis).requestPermission === "function";
+
+/**
+ * Wasserwaage: Wie schief liegt das Handy über dem Buch? `x`, `y` ist die
+ * Schwerkraft in der Ebene des Bildschirms (Anteil von 1 g) in Koordinaten
+ * der Oberfläche (x nach rechts, y nach unten), `grad` die Neigung gegen
+ * die Waagrechte. Liegt das Handy flach (Kamera senkrecht nach unten), ist
+ * beides 0 – dann ist das Foto nicht verzerrt (kein Trapez), und die
+ * Schrift steht gleich gross von oben bis unten.
+ */
+export function wasserwaage(beta: number, gamma: number, oberflaeche: number): { x: number; y: number; grad: number } {
+  const g = schwerkraft(beta, gamma);
+  // Gerät (y nach oben) in die Oberfläche: um deren Drehung gegen den Uhrzeigersinn.
+  const a = (oberflaeche * Math.PI) / 180;
+  const x = g.x * Math.cos(a) - g.y * Math.sin(a);
+  const yOben = g.x * Math.sin(a) + g.y * Math.cos(a);
+  const staerke = Math.min(1, Math.hypot(g.x, g.y));
+  return { x, y: -yOben, grad: (Math.asin(staerke) * 180) / Math.PI };
+}
+
+/**
+ * Wie schräg liegt die Seite im Bild? Der Winkel der vier Kanten des
+ * Vierecks (in Bildpunkten der Anzeige, `breite` × `hoehe`),
+ * gemittelt, als Abweichung von der nächsten Waagrechten oder Senkrechten:
+ * im Uhrzeigersinn positiv, −45 … 45°. Dreht man das Handy um diesen
+ * Winkel mit, stehen die Zeilen gerade.
+ */
+export function seitenNeigung(v: Viereck, breite: number, hoehe: number): number {
+  const winkel = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    (Math.atan2((b.y - a.y) * hoehe, (b.x - a.x) * breite) * 180) / Math.PI;
+  const rest = (w: number) => ((((w + 45) % 90) + 90) % 90) - 45;
+  return (rest(winkel(v[0], v[1])) + rest(winkel(v[3], v[2])) + rest(winkel(v[0], v[3])) + rest(winkel(v[1], v[2]))) / 4;
+}

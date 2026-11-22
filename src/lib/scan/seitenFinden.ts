@@ -293,6 +293,12 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
     if (beste && beste.anteil >= 0.8) punkte.push(...beste.zellen);
   }
 
+  if (!o.doppel) {
+    const vorher = punkte.length;
+    einzelSeiteSchneiden(punkte, papierhaft, w, h, t, p);
+    if (punkte.length < vorher) o.flaeche?.((() => { const mm = new Uint8Array(w * h); for (const k of punkte) mm[k] = 1; return mm; })(), w, h);
+  }
+
   let zahl = 0, sx = 0, sy = 0;
   const raender = new Set<string>();
   {
@@ -362,6 +368,61 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
     return { x: Math.max(0, Math.min(1, x / w)), y: Math.max(0, Math.min(1, y / h)) };
   };
   return [ecke(ecken[0]), ecke(ecken[1]), ecke(ecken[2]), ecke(ecken[3])];
+}
+
+/**
+ * Einzelseite: Steht am Rand der Fläche eine Stufe – deutlich dunkleres,
+ * aber noch helles Papier jenseits einer scharfen Kante –, ist das die
+ * Nachbarseite hinter dem Bund oder der Schnitt des Buches (die Kanten der
+ * Blätter darunter). Beides gehört nicht zur Seite und wird abgeschnitten.
+ * Gesucht wird links und rechts im äusseren Drittel, in einem waagrechten
+ * Band durch die Mitte der Fläche. Am Handyfoto (Stein, Einzelseite):
+ * Seite 117–200, Nachbarseite 121, Stufe auf drei Rasterfelder.
+ */
+function einzelSeiteSchneiden(punkte: number[], papierhaft: Uint8Array, w: number, h: number, t: number, p: (s: string) => void): void {
+  if (!punkte.length) return;
+  let x0 = w, x1 = 0, y0 = h, y1 = 0;
+  for (const k of punkte) {
+    const x = k % w, y = (k - x) / w;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  const breite = x1 - x0 + 1;
+  if (breite < 20) return;
+  const ya = Math.round(y0 + (y1 - y0) * 0.3), yb = Math.round(y0 + (y1 - y0) * 0.7);
+  const profil = new Float64Array(w);
+  for (let x = x0; x <= x1; x++) {
+    let s = 0, n = 0;
+    for (let y = ya; y <= yb; y++) { s += papierhaft[y * w + x]; n++; }
+    profil[x] = n ? s / n : 0;
+  }
+  const mittel = (a: number, b: number) => {
+    let s = 0, n = 0;
+    for (let x = Math.max(x0, a); x <= Math.min(x1, b); x++) { s += profil[x]; n++; }
+    return n ? s / n : 0;
+  };
+  const tief = Math.max(3, Math.round(breite * 0.33));
+  let links = x0, rechts = x1;
+  // Rechts: Seite innen (c-3…c-1), aussen (c+2…x1) dunkler, Stufe scharf.
+  let beste = 0;
+  for (let c = x1 - tief; c <= x1 - 2; c++) {
+    const innen = mittel(c - 3, c - 1), aussen = mittel(c + 2, x1);
+    const stufe = profil[c - 2] - profil[c + 2];
+    if (aussen > t * 0.7 && aussen < innen * 0.85 && stufe > innen * 0.15 && innen - aussen > beste) { beste = innen - aussen; rechts = c; }
+  }
+  beste = 0;
+  for (let c = x0 + tief; c >= x0 + 2; c--) {
+    const innen = mittel(c + 1, c + 3), aussen = mittel(x0, c - 2);
+    const stufe = profil[c + 2] - profil[c - 2];
+    if (aussen > t * 0.5 && aussen < innen * 0.85 && stufe > innen * 0.15 && innen - aussen > beste) { beste = innen - aussen; links = c; }
+  }
+  if (links === x0 && rechts === x1) return;
+  p(`Einzelseite: geschnitten bei ${links}…${rechts} (Fläche ${x0}…${x1})`);
+  let j = 0;
+  for (const k of punkte) {
+    const x = k % w;
+    if (x >= links && x <= rechts) punkte[j++] = k;
+  }
+  punkte.length = j;
 }
 
 interface Kante {

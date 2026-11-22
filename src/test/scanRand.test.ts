@@ -56,6 +56,21 @@ describe("Rand des Buches finden", () => {
     expect(v![3].y).toBeGreaterThan(0.83);
   });
 
+  it("Einzelseite: lässt die Nachbarseite hinter dem Bund weg (dunklere Stufe am Rand)", () => {
+    // Seite 0,05–0,85, dahinter bis zum Bildrand die Nachbarseite im Schatten.
+    const bild = szene(KARTON, { x0: 0.05, y0: 0.15, x1: 0.85, y1: 0.85 });
+    for (let y = Math.round(800 * 0.15); y < 800 * 0.85; y++) for (let x = Math.round(600 * 0.85); x < 600; x++) {
+      bild.daten.set([170, 165, 155, 255], (y * 600 + x) * 4);
+    }
+    const einzeln = seitenFinden(bild);
+    expect(einzeln).not.toBeNull();
+    expect(einzeln![1].x).toBeLessThan(0.88);
+    expect(einzeln![1].x).toBeGreaterThan(0.82);
+    // Eine helle Seite ohne Stufe bleibt ganz (siehe oben); bei Doppelseite wird nicht geschnitten.
+    const doppelt = seitenFinden(bild, { doppel: true });
+    expect(doppelt === null || doppelt[1].x > 0.95).toBe(true);
+  });
+
   it("meldet auf einem weissen Tisch nichts, statt eine Seite abzuschneiden", () => {
     expect(seitenFinden(szene(TISCH, { x0: 0.1, y0: 0.2, x1: 0.9, y1: 0.8 }))).toBeNull();
   });

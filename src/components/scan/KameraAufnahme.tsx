@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Camera, Check, Crop, Focus, Maximize2, MoreHorizontal, RotateCw, ScanLine, Smartphone, X, Zap, ZapOff } from "lucide-react";
+import { Ausrichtung } from "./Ausrichtung";
 import { Ausloeser, unterschied } from "@/lib/scan/ausloeser";
 import { viereckAusAnzeige, viereckDrehenUm, viereckZurAnzeige, type Drehung, type Viereck } from "@/lib/scan/geometrie";
-import { buchForm, fotoDrehung, lageAus, lageBrauchtErlaubnis, lageErlauben, lageGrob, lageMitBild, oberflaechenDrehung } from "@/lib/scan/lage";
+import { seitenNeigung, wasserwaage, buchForm, fotoDrehung, lageAus, lageBrauchtErlaubnis, lageErlauben, lageGrob, lageMitBild, oberflaechenDrehung } from "@/lib/scan/lage";
 import { abstandVierecke, seitenFinden } from "@/lib/scan/seitenFinden";
 import { zuschnittDrehen, type Zuschnitt } from "@/lib/scan/verarbeitungKern";
 import { ViereckEditor } from "./ViereckEditor";
@@ -56,6 +57,7 @@ interface Erweitert {
 }
 
 const KAMERA_MERKER = "scan-kamera";
+const AUSRICHTUNG_MERKER = "scan-ausrichtung";
 const merken = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ohne Merker */ } };
 const erinnern = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 
@@ -150,6 +152,10 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
   const [grob, setGrob] = useState<Drehung | null>(null);
   /** Wie das Buch im ungedrehten Kamerabild liegt (erst nach zwei gleichen Funden). */
   const [form, setForm] = useState<"hoch" | "quer" | null>(null);
+  /** Ausrichtungshilfe (Wasserwaage, Laserstrich); gemerkt je Gerät. */
+  const [ausrichtung, setAusrichtung] = useState(() => erinnern(AUSRICHTUNG_MERKER) !== "aus");
+  const [waage, setWaage] = useState<{ x: number; y: number; grad: number } | null>(null);
+  const waageZeit = useRef(0);
   const formVorher = useRef<"hoch" | "quer" | null>(null);
   const sicht = useSichtbarerBereich(vollbild);
   const ausloeser = useRef(new Ausloeser());
@@ -284,6 +290,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       if (e.beta === null || e.gamma === null) return;
       setLage((bisher) => lageAus(e.beta!, e.gamma!, bisher));
       setGrob((bisher) => lageGrob(e.beta!, e.gamma!, bisher));
+      // Wasserwaage höchstens zehnmal je Sekunde neu zeichnen.
+      const jetzt = performance.now();
+      if (jetzt - waageZeit.current > 100) {
+        waageZeit.current = jetzt;
+        setWaage(wasserwaage(e.beta!, e.gamma!, oberflaechenDrehung()));
+      }
     };
     window.addEventListener("deviceorientation", neu);
     return () => window.removeEventListener("deviceorientation", neu);
@@ -445,6 +457,10 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         <input type="checkbox" checked={zuschnitt.finger !== false} onChange={(e) => onZuschnitt({ ...zuschnitt, finger: e.target.checked })} />
         Finger am Rand entfernen
       </label>
+      <label className="inline-flex items-center gap-2">
+        <input type="checkbox" checked={ausrichtung} onChange={(e) => { setAusrichtung(e.target.checked); merken(AUSRICHTUNG_MERKER, e.target.checked ? "an" : "aus"); }} />
+        Ausrichtungshilfe (Wasserwaage und Linie für gerade Zeilen)
+      </label>
       <label className="inline-flex items-center gap-2" title="Lädt beim ersten Mal 32 MB und rechnet dann gut eine Sekunde je Seite.">
         <input type="checkbox" checked={zuschnitt.glaetten === true} onChange={(e) => onZuschnitt({ ...zuschnitt, glaetten: e.target.checked })} />
         Gewölbte Seiten glätten
@@ -519,6 +535,13 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         <div ref={buehne} className={`absolute overflow-hidden flex items-center justify-center ${quer ? "inset-y-0 left-16 right-32" : "inset-0"}`} onClick={() => void lageAnfragen()}>
           <div className="relative shrink-0" style={passend ? { width: passend.w, height: passend.h } : undefined}>
             <canvas ref={vorschau} className="block w-full h-full" />
+            {ausrichtung && passend && (
+              <Ausrichtung
+                waage={roh && lageBereit ? waage : null}
+                neigung={randAuto && randGefunden ? seitenNeigung(viereckZurAnzeige(zuschnitt.viereck, anzeigeDrehung), passend.w, passend.h) : null}
+                drehung={symbolDrehung}
+              />
+            )}
             {editor}
             {blitz && <div className="absolute inset-0 bg-white/85 pointer-events-none" />}
           </div>
