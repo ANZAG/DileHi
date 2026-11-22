@@ -553,10 +553,12 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           }
           let text = lesetext(seitentextAufraeumen(r.text));
           // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.
-          // Nur Seiten mit nennenswertem Text zählen für die Prüfung – Titelei,
-          // Leerseiten und Tafeln am Anfang eines Bandes (Canivez 2, 3, 5)
-          // liessen sonst ein gedrucktes Buch als Handschrift abbrechen.
-          if (r.text.trim().length >= 200) sicherheiten.push(r.sicherheit);
+          // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für
+          // die Prüfung. (Mit „mindestens 200 Zeichen“ kam eine Handschrift –
+          // kurze Zeilen Salat je Seite – nie auf 30 Seiten und lief ganz durch:
+          // der Sachsenspiegel. Die 30 Seiten reichen, damit Titelei und
+          // Leerseiten am Anfang eines Bandes den Mittelwert nicht bestimmen.)
+          if (r.text.trim().length >= 40) sicherheiten.push(r.sicherheit);
           // Sehr unsicher und kaum echte Wörter: kein Text (sonst Zeichenmüll in der Suche).
           if (r.sicherheit < UNLESBAR && echteWoerter(text) < 30) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
           // Hatte die alte Textebene mehr echte Wörter, bleibt sie.
@@ -848,6 +850,11 @@ async function main() {
       zuLesen.set(q.title, bericht.seiten - bericht.ausPdf);
       if (MODUS === "text" && !bericht.fehler && texte.some((t) => t.trim())) {
         await werkstatt("text", { sourceId: q.id, seiten: texte });
+      } else if (MODUS === "text" && !bericht.fehler && bericht.hinweis && q.textSeiten > 0) {
+        // Nicht lesbar und kein Text: Was noch in der Suche steht, ist
+        // Zeichensalat aus einem früheren Lauf – weg damit.
+        await werkstatt("text", { sourceId: q.id, seiten: [] });
+        console.log(`  alter Suchtext (${q.textSeiten} Seiten) entfernt – nicht lesbar`);
       }
       if (pdf && MODUS === "probe") {
         mkdirSync("neu", { recursive: true });
