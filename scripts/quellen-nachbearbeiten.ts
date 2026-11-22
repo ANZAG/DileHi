@@ -52,7 +52,7 @@ import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
 import { istZeichensalat, spracheRaten, zaehlungFinden } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
-const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern";
+const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern" || MODUS.startsWith("austauschen");
 const LIEST = MODUS === "text" || NEU_BAUEN;
 const NEU = process.env.NEU === "true";
 const GRENZE = Number(process.env.GRENZE ?? "0") || 0;
