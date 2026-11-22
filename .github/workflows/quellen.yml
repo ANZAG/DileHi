@@ -49,7 +49,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"

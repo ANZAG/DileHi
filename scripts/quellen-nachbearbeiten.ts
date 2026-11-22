@@ -415,7 +415,7 @@ interface Bericht {
   ersetzen?: string;
 }
 
-async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoche?: string | null): Promise<{ bericht: Bericht; texte: string[]; pdf?: Uint8Array }> {
+async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoche?: string | null, nurTextebene = process.env.WEG === "textebene"): Promise<{ bericht: Bericht; texte: string[]; pdf?: Uint8Array }> {
   const anfang = Date.now();
   const ordner = mkdtempSync(join(tmpdir(), "seiten-"));
   const zahl = seitenZahl(datei);
@@ -445,7 +445,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
     // WEG=textebene: auch Handyfotos nur um eine Textebene ergänzen – für
     // PDFs, deren Neubau grösser würde (die Bilder bleiben, der Text kommt dazu).
     const weg = NEU_BAUEN && !schonBearbeitet
-      ? (process.env.WEG === "textebene" ? "textebene" : wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0))
+      ? (nurTextebene ? "textebene" : wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0))
       : null;
     const bauen = weg === "neu";
     const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1]) : []);
@@ -600,7 +600,10 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         writeFileSync(neu, pdf);
         bericht.neueWoerter = echteWoerter(lauf("pdftotext", ["-enc", "UTF-8", neu, "-"]).toString());
         // Besser: mindestens so viel echter Text (2 % Spielraum) und nicht grösser.
-        const besser = bericht.neueWoerter >= bericht.alteWoerter * 0.98 && bericht.neuMegabyte <= bericht.megabyte * 1.05;
+        // Etwas grösser ist in Ordnung, wenn Text dazukommt (Vorgabe: nicht
+        // „unermesslich“) – bis zum 1,5-Fachen plus 2 MB. Sonst versucht der
+        // Aufrufer die Textebene (Bilder bleiben).
+        const besser = bericht.neueWoerter >= bericht.alteWoerter * 0.98 && bericht.neuMegabyte <= bericht.megabyte * 1.5 + 2;
         bericht.ersetzen = besser ? "ja" : bericht.neueWoerter < bericht.alteWoerter * 0.98 ? "nein – weniger Text" : "nein – grösser";
       }
     } else {
@@ -746,7 +749,7 @@ async function main() {
   }
   if (!process.env.FUNCTIONS_URL || !process.env.QUELLEN_TOKEN) throw new Error("FUNCTIONS_URL und QUELLEN_TOKEN fehlen.");
   const { quellen } = await werkstatt<{ quellen: Quelle[] }>("liste");
-  let auswahl = quellen.filter((q) => (q.mime_type ?? "").includes("pdf") || /\.pdf$/i.test(q.file_name ?? ""));
+  let auswahl = quellen.filter((q) => (q.mime_type ?? "").includes("pdf") || /\.pdf$/i.test(q.file_name ?? "") || (MODUS === "doppelt" && WAHL.includes(q.id)));
   if (WAHL.length) auswahl = auswahl.filter((q) => WAHL.includes(q.id));
   if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten === 0);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
@@ -757,6 +760,39 @@ async function main() {
     const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
     try { await austauschen(auswahl[0], ordner); }
     finally { rmSync(ordner, { recursive: true, force: true }); await Promise.all([...planer.values()].map(async (p) => (await p).terminate())); }
+    return;
+  }
+
+  if (MODUS === "txt-pruefen") {
+    // Textdateien (fertige OCR) in der Sammlung: Wie sind sie aufgebaut, zu
+    // welchem PDF gehören sie? Schreibt nichts.
+    const alle = quellen;
+    const txt = alle.filter((q) => /\.txt$/i.test(q.file_name ?? q.title));
+    const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
+    for (const t of txt) {
+      const basis = t.title.replace(/\.txt$/i, "").replace(/\s*\(OCR[^)]*\)\s*/i, "").trim().toLowerCase();
+      const pdfs = alle.filter((q) => q.id !== t.id && /pdf/i.test(q.mime_type ?? q.file_name ?? "") && q.title.replace(/\.pdf$/i, "").replace(/-komprimiert$/i, "").trim().toLowerCase() === basis);
+      const { url } = await werkstatt<{ url: string }>("download", { sourceId: t.id });
+      const r = await fetch(url);
+      const text = Buffer.from(await r.arrayBuffer()).toString("utf8");
+      const ff = (text.match(/\f/g) ?? []).length;
+      const marken = text.match(/^[ \t]*(?:[-=#*]{2,}[ \t]*)?(?:Seite|Page|S\.|p\.)[ \t]*\d+[^\n]{0,20}$/gim) ?? [];
+      const woerter = echteWoerter(text);
+      console.log(`\n=== ${t.title} (${t.id}) – ${text.length} Zeichen, ${woerter} echte Wörter, ${ff} Seitenvorschübe, ${marken.length} Seitenmarken`);
+      console.log(`  Marken z. B.: ${marken.slice(0, 5).map((m) => JSON.stringify(m.trim())).join(" ")}`);
+      for (const pdf of pdfs) {
+        const d = join(ordner, `${pdf.id}.pdf`);
+        const rp = await fetch((await werkstatt<{ url: string }>("download", { sourceId: pdf.id })).url);
+        await pipeline(Readable.fromWeb(rp.body as never), createWriteStream(d));
+        console.log(`  PDF: ${pdf.title} (${pdf.id}), ${seitenZahl(d)} Seiten, Text in der Suche: ${pdf.textSeiten} Seiten`);
+        rmSync(d, { force: true });
+      }
+      if (!pdfs.length) console.log("  kein PDF gleichen Namens");
+      console.log(`  Anfang: ${JSON.stringify(text.slice(0, 400))}`);
+      const mitte = Math.floor(text.length / 2);
+      console.log(`  Mitte: ${JSON.stringify(text.slice(mitte, mitte + 300))}`);
+    }
+    rmSync(ordner, { recursive: true, force: true });
     return;
   }
 
@@ -799,7 +835,12 @@ async function main() {
       const r = await fetch(url);
       if (!r.ok || !r.body) throw new Error(`Herunterladen: ${r.status}`);
       await pipeline(Readable.fromWeb(r.body as never), createWriteStream(datei));
-      const { bericht, texte, pdf } = await bearbeiten(datei, q.title, LIEST, q.epoch);
+      let { bericht, texte, pdf } = await bearbeiten(datei, q.title, LIEST, q.epoch);
+      // Neubau zu gross: dann nur die Textebene – die Bilder bleiben, der Text kommt dazu.
+      if (NEU_BAUEN && bericht.weg === "neu gebaut" && bericht.ersetzen === "nein – grösser") {
+        console.log(`  Neubau zu gross (${bericht.neuMegabyte} MB) – stattdessen Textebene`);
+        ({ bericht, texte, pdf } = await bearbeiten(datei, q.title, LIEST, q.epoch, true));
+      }
       zuLesen.set(q.title, bericht.seiten - bericht.ausPdf);
       if (MODUS === "text" && !bericht.fehler && texte.some((t) => t.trim())) {
         await werkstatt("text", { sourceId: q.id, seiten: texte });
