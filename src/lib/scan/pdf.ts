@@ -44,6 +44,13 @@ export interface PdfSeite {
   breite: number;
   hoehe: number;
   woerter?: Wort[];
+  /**
+   * Auflösung dieses Bildes, wenn bekannt (Nachbearbeitung: aus dem alten
+   * PDF). Dann wird die Seite in wahrer Grösse gesetzt statt aufs Format
+   * gezogen – sonst wirkt ein Bild mit etwas mehr Rand kleiner gedruckt als
+   * seine Nachbarn.
+   */
+  dpi?: number;
 }
 
 export interface PdfAngaben {
@@ -190,10 +197,10 @@ export async function textEbeneEinfuegen(
 }
 
 /** Eine einheitliche Seitengrösse: Median der hochkanten Seiten. */
-export function seitenFormat(seiten: { breite: number; hoehe: number }[], dpi = DPI): { breite: number; hoehe: number } {
+export function seitenFormat(seiten: { breite: number; hoehe: number; dpi?: number }[], dpi = DPI): { breite: number; hoehe: number } {
   const hoch = seiten.filter((s) => s.hoehe >= s.breite);
   const basis = hoch.length ? hoch : seiten;
-  const breite = (median(basis.map((s) => s.breite)) * 72) / dpi;
+  const breite = median(basis.map((s) => (s.breite * 72) / (s.dpi ?? dpi)));
   const verhaeltnis = median(basis.map((s) => s.hoehe / s.breite)) || Math.SQRT2;
   return { breite, hoehe: breite * verhaeltnis };
 }
@@ -236,7 +243,9 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
     // Querformat: gleiche Höhe, Breite nach dem Bild.
     const seiteB = quer ? format.hoehe * (s.breite / s.hoehe) : format.breite;
     const seiteH = format.hoehe;
-    const mass = Math.min(seiteB / s.breite, seiteH / s.hoehe);
+    const passend = Math.min(seiteB / s.breite, seiteH / s.hoehe);
+    // Wahre Grösse, wenn bekannt – aber nie über die Seite hinaus.
+    const mass = s.dpi ? Math.min(passend, 72 / s.dpi) : passend;
     const l: Lage = { mass, x: (seiteB - s.breite * mass) / 2, y: (seiteH - s.hoehe * mass) / 2, hoehe: s.hoehe * mass };
     const page = pdf.addPage([seiteB, seiteH]);
     const bild = await pdf.embedJpg(s.jpeg);

@@ -262,6 +262,49 @@ export function schaerfeMessen(bild: Pixel): number {
 export const SCHAERFE_GRENZE = 3000;
 
 /**
+ * Anteil deutlich farbiger Punkte im Inneren der Seite (ohne 10 % Rand, wo
+ * Tisch, Nachbarseite oder Finger liegen). Vorher Weissabgleich am hellsten
+ * Zehntel, damit vergilbtes Papier nicht als Farbe zählt. Gezählt wird ein
+ * Punkt, wenn sein stärkster und schwächster Kanal mehr als 45 auseinander
+ * liegen.
+ *
+ * Gemessen (Stein, Pivka): Text- und Tabellenseiten 0,0–0,1 %, auch blasse
+ * und mit getönten Tabellenzeilen; Karte mit roten und blauen Truppen 0,2 %;
+ * Rückumschlag mit kleiner Uniformtafel 5 %, Einband 6,7 %. Eine farbige
+ * Abbildung auf der Seite liegt also deutlich über `FARB_GRENZE`.
+ */
+export function farbAnteil(bild: Pixel): number {
+  const { breite: w, hoehe: h, daten: d } = bild;
+  const x0 = Math.floor(w * 0.1), x1 = Math.ceil(w * 0.9), y0 = Math.floor(h * 0.1), y1 = Math.ceil(h * 0.9);
+  const schritt = Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 200000)));
+  const lum: number[] = [];
+  for (let y = y0; y < y1; y += schritt) for (let x = x0; x < x1; x += schritt) {
+    const i = (y * w + x) * 4;
+    lum.push(d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11);
+  }
+  if (lum.length === 0) return 0;
+  const hell = [...lum].sort((a, b) => a - b)[Math.floor(lum.length * 0.9)];
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let y = y0, k = 0; y < y1; y += schritt) for (let x = x0; x < x1; x += schritt, k++) {
+    if (lum[k] < hell) continue;
+    const i = (y * w + x) * 4;
+    r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+  }
+  const mittel = (r + g + b) / (3 * n);
+  const fr = mittel / Math.max(1, r / n), fg = mittel / Math.max(1, g / n), fb = mittel / Math.max(1, b / n);
+  let bunt = 0;
+  for (let y = y0; y < y1; y += schritt) for (let x = x0; x < x1; x += schritt) {
+    const i = (y * w + x) * 4;
+    const R = d[i] * fr, G = d[i + 1] * fg, B = d[i + 2] * fb;
+    if (Math.max(R, G, B) - Math.min(R, G, B) > 45) bunt++;
+  }
+  return bunt / lum.length;
+}
+
+/** Ab diesem `farbAnteil` bleibt eine Seite farbig. */
+export const FARB_GRENZE = 0.003;
+
+/**
  * Tinte (dunkle Punkte im aufbereiteten Bild), Schräglage und Richtung der
  * Zeilen. Die Zeilen ergeben im Profil quer zu ihnen scharfe Spitzen; die
  * Drehung mit den schärfsten Spitzen ist die richtige.
@@ -329,6 +372,81 @@ export function geradeDrehen(bild: Pixel, grad: number): Pixel {
   return { breite: w, hoehe: h, daten: aus };
 }
 
+/**
+ * Dunkle Streifen am Rand entfernen: Scannerdeckel, Buchschnitt, ein
+ * Streifen der Nachbarseite, schwarze Kanten nach dem Geradedrehen. Entfernt
+ * wird, was dunkel ist, den Bildrand berührt und ganz in einem schmalen
+ * Band am Rand liegt (`band`, Anteil der kürzeren Seite) – eine Abbildung,
+ * die bis an den Rand reicht, ragt weiter hinein und bleibt. Übermalt wird
+ * mit der Papierfarbe. Gibt den Anteil der übermalten Fläche zurück.
+ */
+export function randSaeubern(bild: Pixel, band = 0.06): number {
+  const { breite: w, hoehe: h, daten: d } = bild;
+  const zelle = Math.max(1, Math.round(Math.max(w, h) / 500));
+  const gw = Math.ceil(w / zelle), gh = Math.ceil(h / zelle);
+  // Je Zelle der dunkelste Punkt (Linien bleiben sichtbar) und die Helligkeit.
+  const min = new Uint8Array(gw * gh).fill(255);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4, k = Math.floor(y / zelle) * gw + Math.floor(x / zelle);
+    const l = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+    if (l < min[k]) min[k] = l;
+  }
+  const dunkel = (k: number) => min[k] < 110;
+  // Papierfarbe: Mittel der hellsten Zellen (aus dem Bild selbst).
+  const hellste = [...min].sort((a, b) => b - a)[Math.floor(min.length * 0.2)];
+  let pr = 0, pg = 0, pb = 0, pn = 0;
+  for (let y = 0; y < h; y += zelle) for (let x = 0; x < w; x += zelle) {
+    const i = (y * w + x) * 4;
+    if (min[Math.floor(y / zelle) * gw + Math.floor(x / zelle)] >= hellste) { pr += d[i]; pg += d[i + 1]; pb += d[i + 2]; pn++; }
+  }
+  const papier = pn ? [pr / pn, pg / pn, pb / pn] : [255, 255, 255];
+  const tief = Math.max(2, Math.round((Math.min(gw, gh) * band)));
+  const marke = new Int32Array(gw * gh).fill(-1);
+  const weg: number[] = [];
+  let teil = 0;
+  const randZellen: number[] = [];
+  for (let x = 0; x < gw; x++) randZellen.push(x, (gh - 1) * gw + x);
+  for (let y = 0; y < gh; y++) randZellen.push(y * gw, y * gw + gw - 1);
+  for (const start of randZellen) {
+    if (marke[start] !== -1 || !dunkel(start)) continue;
+    // Zusammenhängende dunkle Zellen vom Rand aus.
+    const stapel = [start], glied: number[] = [];
+    marke[start] = teil;
+    let x0 = gw, x1 = -1, y0 = gh, y1 = -1;
+    while (stapel.length) {
+      const k = stapel.pop()!;
+      glied.push(k);
+      const x = k % gw, y = (k - x) / gw;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      for (const n of [x > 0 ? k - 1 : -1, x < gw - 1 ? k + 1 : -1, y > 0 ? k - gw : -1, y < gh - 1 ? k + gw : -1]) {
+        if (n >= 0 && marke[n] === -1 && dunkel(n)) { marke[n] = teil; stapel.push(n); }
+      }
+    }
+    teil++;
+    // Liegt ganz im Band an mindestens einer Seite, die es berührt?
+    const imBand = (x0 === 0 && x1 < tief) || (x1 === gw - 1 && x0 >= gw - tief) || (y0 === 0 && y1 < tief) || (y1 === gh - 1 && y0 >= gh - tief);
+    if (imBand) weg.push(...glied);
+  }
+  if (!weg.length) return 0;
+  // Übermalen, eine Zelle breiter (der helle Saum am Streifen).
+  const malen = new Uint8Array(gw * gh);
+  for (const k of weg) {
+    const x = k % gw, y = (k - x) / gw;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < gw && yy < gh) malen[yy * gw + xx] = 1;
+    }
+  }
+  let zahl = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!malen[Math.floor(y / zelle) * gw + Math.floor(x / zelle)]) continue;
+    const i = (y * w + x) * 4;
+    d[i] = papier[0]; d[i + 1] = papier[1]; d[i + 2] = papier[2];
+    zahl++;
+  }
+  return zahl / (w * h);
+}
+
 /** Um 90° im Uhrzeigersinn drehen. */
 export function vierteldrehen(bild: Pixel): Pixel {
   const { breite: w, hoehe: h, daten: d } = bild;
@@ -348,6 +466,7 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
   let bild = eingang;
   // Lage auf einer aufbereiteten Kopie messen (auf dem Foto stört der Schatten).
   const probe = { breite: bild.breite, hoehe: bild.hoehe, daten: new Uint8ClampedArray(bild.daten) };
+  const farbe = farbAnteil(eingang);
   const { dunkel, buntAnteil } = aufbereiten(probe, { farbig: false });
   let lage = dunkel ? { tinte: 0, schraeg: 0, quer: false, zeilen: 0 } : textLage(probe);
   if (lage.quer) {
@@ -356,10 +475,13 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
     lage = { ...textLage(p2), quer: true };
   }
   if (Math.abs(lage.schraeg) >= 0.3) bild = geradeDrehen(bild, -lage.schraeg);
-  // Bildseite: dunkel (Einband), kaum Zeilen bei viel Tinte (Karte), oder
-  // viel Farbe. Sie bleibt farbig.
-  const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15;
+  // Bildseite: dunkel (Einband), kaum Zeilen bei viel Tinte (Karte), viel
+  // getöntes Papier, oder eine farbige Abbildung (Uniformtafel – auch wenn
+  // sie nur einen Teil der Seite füllt und eine Bildunterschrift hat). Sie
+  // bleibt farbig.
+  const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15 || farbe > FARB_GRENZE;
   aufbereiten(bild, { farbig: o.farbig || bildseite });
+  if (!dunkel) randSaeubern(bild);
   const schaerfe = schaerfeMessen(bild);
   return {
     bild,

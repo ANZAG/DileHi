@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { aufbereiten, geradeDrehen, schaerfeMessen, seiteAufbereiten, textLage, vierteldrehen, type Befund } from "@/lib/scan/aufbereitung";
+import { aufbereiten, farbAnteil, FARB_GRENZE, geradeDrehen, schaerfeMessen, seiteAufbereiten, textLage, vierteldrehen, type Befund } from "@/lib/scan/aufbereitung";
 import { seitePruefen } from "@/lib/scan/pruefung";
 import type { Pixel } from "@/lib/scan/geometrie";
 
@@ -92,6 +92,25 @@ describe("Aufbereitung", () => {
     const b = seiteAufbereiten(dunkel, { farbig: false }).befund;
     expect(b.dunkel).toBe(true);
     expect(b.leer).toBe(false);
+  });
+
+  it("Textseite bleibt grau, eine farbige Tafel mit Bildunterschrift bleibt farbig", () => {
+    const text = textseite();
+    expect(farbAnteil(text)).toBeLessThan(FARB_GRENZE / 3);
+    expect(seiteAufbereiten(text, { farbig: false }).befund.farbig).toBe(false);
+    // Uniformtafel: rote Jacke, grüne Hose auf vergilbtem Papier, nur ein
+    // kleiner Teil der Seite; darunter weiter Textzeilen.
+    const tafel = textseite();
+    for (let y = 150; y < 260; y++) for (let x = 250; x < 330; x++) {
+      const i = (y * tafel.breite + x) * 4;
+      const [r, g, b] = y < 210 ? [170, 50, 40] : [60, 110, 60];
+      tafel.daten[i] = r; tafel.daten[i + 1] = g; tafel.daten[i + 2] = b;
+    }
+    expect(farbAnteil(tafel)).toBeGreaterThan(FARB_GRENZE);
+    const { bild, befund } = seiteAufbereiten(tafel, { farbig: false });
+    expect(befund.farbig).toBe(true);
+    const i = (180 * bild.breite + 290) * 4;
+    expect(bild.daten[i] - bild.daten[i + 1]).toBeGreaterThan(60); // noch rot
   });
 
   it("unterscheidet scharf und unscharf", () => {
