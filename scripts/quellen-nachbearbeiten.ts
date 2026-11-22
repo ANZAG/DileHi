@@ -614,6 +614,17 @@ async function main() {
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
 
+  if (MODUS === "doppelt") {
+    // Doppelt angelegte Quellen entfernen (die Werkstatt prüft, dass es eine
+    // ältere gleiche gibt). Nur mit ausdrücklich genannten Quellen.
+    if (!WAHL.length) throw new Error("doppelt braucht QUELLEN.");
+    for (const q of auswahl) {
+      const r = await werkstatt<{ bleibt: string }>("doppelt-loeschen", { sourceId: q.id });
+      console.log(`${q.title}: gelöscht (${q.id}), bleibt ${r.bleibt}`);
+    }
+    return;
+  }
+
   if (MODUS === "zurueck") {
     // Die Fassung von vor VOR wieder zur aktuellen machen (neue Fassung in
     // SharePoint, nichts geht verloren). Nur mit ausdrücklich genannten Quellen.

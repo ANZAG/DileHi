@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fileInFolder, graph, graphJson, graphReason, resolveTarget } from "../_shared/sharepoint.ts";
+import { deleteFile, fileInFolder, graph, graphJson, graphReason, resolveTarget } from "../_shared/sharepoint.ts";
 
 /**
  * Werkstatt für vorhandene Quellen – aufgerufen von der GitHub-Action
@@ -27,6 +27,10 @@ import { fileInFolder, graph, graphJson, graphReason, resolveTarget } from "../_
  *   wiederherstellen  Eine frühere Fassung (versionId) wieder zur aktuellen
  *                     machen – SharePoint legt dafür eine neue Fassung an,
  *                     nichts geht verloren. Grösse wird nachgetragen.
+ *   doppelt-loeschen  Eine doppelt angelegte Quelle entfernen – nur, wenn es
+ *                     eine ältere mit gleichem Titel und gleicher Grösse
+ *                     gibt. Die Datei geht in den Papierkorb der Website
+ *                     (93 Tage wiederherstellbar).
  */
 
 const corsHeaders = {
@@ -137,6 +141,23 @@ Deno.serve(async (req) => {
         const item = await fileInFolder(t, q.drive_item_id);
         await admin.from("sources").update({ file_size: item.size ?? null }).eq("id", q.id);
         return json(200, { size: item.size ?? null });
+      }
+
+      case "doppelt-loeschen": {
+        const q = await quelle();
+        const { data: ich } = await admin.from("sources").select("created_at").eq("id", q.id).single();
+        const { data: andere } = await admin.from("sources").select("id, drive_item_id")
+          .eq("title", q.title).eq("file_size", q.file_size ?? -1).neq("id", q.id)
+          .lt("created_at", ich!.created_at as string).not("drive_item_id", "is", null);
+        const bleibt = (andere ?? []).find((a) => a.drive_item_id !== q.drive_item_id);
+        if (!bleibt) throw new Error("Keine ältere Quelle mit gleichem Titel und gleicher Grösse – nicht gelöscht.");
+        const { count } = await admin.from("library_sources").select("*", { count: "exact", head: true }).eq("collection_source_id", q.id);
+        if (count) throw new Error("Auf diese Quelle wird verwiesen – nicht gelöscht.");
+        await admin.from("source_pages").delete().eq("file_key", q.drive_item_id);
+        const { error } = await admin.from("sources").delete().eq("id", q.id);
+        if (error) throw error;
+        await deleteFile(await target(), q.drive_item_id);
+        return json(200, { geloescht: q.id, bleibt: bleibt.id });
       }
 
       default:

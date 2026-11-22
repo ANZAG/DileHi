@@ -20,6 +20,8 @@ name: Quellen nachbearbeiten
 #   zurueck  für die genannten Quellen die Fassung von vor „vor“ wieder zur
 #            aktuellen machen (aus dem Versionsverlauf; legt eine neue
 #            Fassung an, nichts geht verloren).
+#   doppelt  die genannten Quellen löschen, wenn es eine ältere mit gleichem
+#            Titel und gleicher Grösse gibt (Datei in den Papierkorb).
 #
 # Quellen, die schon Text in der Suche haben, werden übersprungen (ausser
 # mit „neu“). Bricht ein Lauf ab (Zeitlimit), macht der nächste dort weiter.
@@ -42,7 +44,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
