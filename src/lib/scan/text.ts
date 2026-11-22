@@ -192,16 +192,28 @@ export function wortartig(texte: string[]): { anteil: number; zahl: number } {
  * lebende Kolumnentitel), aus allen Seiten entfernen – für die Prüfung auf
  * Zeichensalat: Beim Heidelberger Sachsenspiegel hob der Stempel auf jeder
  * Seite den Salat über die Schwellen. Ziffern zählen beim Vergleich nicht;
- * Adressen (http…) fallen immer weg.
+ * Adressen (http…) fallen immer weg; ebenso Zeilen mit einem langen Wort
+ * (ab 7 Buchstaben), das auf so vielen Seiten steht. Am echten Text: beim
+ * Sachsenspiegel die Stempelwörter (heidelberg, manfred …), beim
+ * Schwabenspiegel der Darmstädter Stempel, bei Schleswig „jahrhundert“.
  */
 export function ohneWiederkehrendeZeilen(texte: string[]): string[] {
   const schluessel = (z: string) => z.toLowerCase().replace(/[\d\s.,;:©|()[\]\-–_/\\>]+/g, " ").trim();
-  const zaehler = new Map<string, number>();
   const seiten = texte.filter((t) => t.trim()).length;
-  for (const t of texte) for (const k of new Set(t.split("\n").map(schluessel).filter((k) => k.length >= 6))) zaehler.set(k, (zaehler.get(k) ?? 0) + 1);
   const grenze = Math.max(4, seiten * 0.3);
+  // Ganze Zeilen, die gleich wiederkehren …
+  const zeilen = new Map<string, number>();
+  for (const t of texte) for (const k of new Set(t.split("\n").map(schluessel).filter((k) => k.length >= 6))) zeilen.set(k, (zeilen.get(k) ?? 0) + 1);
+  // … und lange Wörter, die auf vielen Seiten stehen: Die Erkennung liest
+  // einen Stempel jedes Mal etwas anders und mischt ihn mit dem Rest einer
+  // Zeile, gleiche Zeilen gibt es dann kaum.
+  const woerter = new Map<string, number>();
+  for (const t of texte) for (const w of new Set(t.toLowerCase().split(/[^\p{L}ſ]+/u).filter((w) => w.length >= 7))) woerter.set(w, (woerter.get(w) ?? 0) + 1);
+  const haeufig = new Set([...woerter].filter(([, n]) => n >= grenze).map(([w]) => w));
   return texte.map((t) => t.split("\n")
-    .filter((z) => !/https?:|www\.|digi\.|\.de\b/i.test(z) && (zaehler.get(schluessel(z)) ?? 0) < grenze)
+    .filter((z) => !/https?:|www\.|digi\.|\.de\b/i.test(z)
+      && (zeilen.get(schluessel(z)) ?? 0) < grenze
+      && !z.toLowerCase().split(/[^\p{L}ſ]+/u).some((w) => haeufig.has(w)))
     .join("\n"));
 }
 

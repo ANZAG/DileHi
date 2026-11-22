@@ -86,10 +86,10 @@ describe("Zeichensalat", () => {
     // Stempel des Digitalisats (Sachsenspiegel) fällt vor der Prüfung weg, der Rest bleibt.
     const { ohneWiederkehrendeZeilen } = await import("@/lib/scan/text");
     const stempel = (i: number) => `gefördert von der\nUNIVERSITÄTS-BIBLIOTHEK HEIDELBERG\nhttp://digi.ub.uni-heidelberg.de/diglit/cpg164/00${10 + i} © Universitätsbibliothek Heidelberg\nMANFRED LAUTENSCHLÄGER STIFTUNG\n`;
-    const seiten = Array.from({ length: 20 }, (_, i) => stempel(i) + `vor Hüntazsehulte zu ${"abcdefghij"[i % 10]}hm te Kurt auters`);
+    const seiten = Array.from({ length: 20 }, (_, i) => stempel(i) + `vor Hüntaz${"abcdefghijklmnopqrst"[i]}ehulte zu hm te Kurt auters`);
     const sauber = ohneWiederkehrendeZeilen(seiten);
     expect(sauber.every((t) => !/HEIDELBERG|LAUTENSCHL|gefördert|http/i.test(t))).toBe(true);
-    expect(sauber[3]).toContain("Hüntazsehulte");
+    expect(sauber[3]).toContain("Hüntazdehulte");
     // Ein gedrucktes Buch mit Kolumnentitel auf jeder Seite bleibt Text.
     const buch = Array.from({ length: 40 }, (_, i) => `UNIFORMEN DER ARMEEN VON WATERLOO ${i + 10}\n` + satz.repeat(3));
     expect(istZeichensalat(buch)).toBe(false);
