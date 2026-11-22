@@ -86,6 +86,10 @@ interface Hintergrund {
   papierHell: number;
   /** Anteil der bunten Felder (Abbildungen in Farbe). */
   buntAnteil: number;
+  /** Hellstes Zehntel je Feld, ungeglättet und ohne Füllung. */
+  roh: Float32Array;
+  /** Feld ist Papier (hell genug, nicht bunt). */
+  istPapier: Uint8Array;
 }
 
 function hintergrundSchaetzen(bild: Pixel): Hintergrund {
@@ -162,7 +166,73 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
     }
     hell = neu;
   }
-  return { hell, gw, gh, feld, papier, papierAnteil: zahl / (gw * gh), median: median * 4 + 2, papierHell, buntAnteil: buntZahl / (gw * gh) };
+  const istPapier = new Uint8Array(gw * gh);
+  for (let k = 0; k < gw * gh; k++) istPapier[k] = gewicht[k] > 0 ? 1 : 0;
+  return { hell, gw, gh, feld, papier, papierAnteil: zahl / (gw * gh), median: median * 4 + 2, papierHell, buntAnteil: buntZahl / (gw * gh), roh: p90, istPapier };
+}
+
+/**
+ * Für Bildseiten: die Beleuchtung als glatte Fläche (Polynom 2. Grades in x
+ * und y) durch die hellen Papierfelder, mehrmals gerechnet, wobei Felder
+ * deutlich unter der Fläche (Abbildung, nicht Papier) herausfallen. Anders
+ * als das feldweise Papier füllt sie nichts aus einer grossen Farbfläche
+ * auf – sonst würden matte Flächen einer Tafel (grüner Rock) fleckig weiss.
+ * Gibt eine Funktion (x, y) → Papierhelligkeit zurück.
+ */
+function beleuchtungsFlaeche(hg: Hintergrund): ((x: number, y: number) => number) | null {
+  const { gw, gh, roh, istPapier, papierHell } = hg;
+  const merkmale = (fx: number, fy: number) => {
+    const u = (fx + 0.5) / gw - 0.5, v = (fy + 0.5) / gh - 0.5;
+    return [1, u, v, u * u, u * v, v * v];
+  };
+  let nimm = new Uint8Array(gw * gh);
+  for (let k = 0; k < gw * gh; k++) nimm[k] = istPapier[k] && roh[k] >= papierHell * 0.7 ? 1 : 0;
+  let c: number[] | null = null;
+  for (let runde = 0; runde < 4; runde++) {
+    const a = Array.from({ length: 6 }, () => new Array(7).fill(0));
+    let n = 0;
+    for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
+      const k = fy * gw + fx;
+      if (!nimm[k]) continue;
+      const m = merkmale(fx, fy);
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 6; j++) a[i][j] += m[i] * m[j];
+        a[i][6] += m[i] * roh[k];
+      }
+      n++;
+    }
+    if (n < 30) return c ? wert(c) : null;
+    for (let i = 0; i < 6; i++) a[i][i] += 1e-6 * n;
+    // Gauss-Elimination.
+    for (let i = 0; i < 6; i++) {
+      let p = i;
+      for (let r = i + 1; r < 6; r++) if (Math.abs(a[r][i]) > Math.abs(a[p][i])) p = r;
+      [a[i], a[p]] = [a[p], a[i]];
+      for (let r = 0; r < 6; r++) {
+        if (r === i || a[i][i] === 0) continue;
+        const f = a[r][i] / a[i][i];
+        for (let j = i; j < 7; j++) a[r][j] -= f * a[i][j];
+      }
+    }
+    c = a.map((z, i) => (z[i] ? z[6] / z[i] : 0));
+    const neu = new Uint8Array(gw * gh);
+    for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
+      const k = fy * gw + fx;
+      const m = merkmale(fx, fy);
+      const f = m.reduce((s, v, i) => s + v * c![i], 0);
+      neu[k] = istPapier[k] && roh[k] >= f * 0.92 ? 1 : 0;
+    }
+    nimm = neu;
+  }
+  return c ? wert(c) : null;
+
+  function wert(k: number[]) {
+    const lo = papierHell * 0.5, hi = 255;
+    return (x: number, y: number) => {
+      const m = merkmale(x / hg.feld - 0.5, y / hg.feld - 0.5);
+      return Math.min(hi, Math.max(lo, m.reduce((s, v, i) => s + v * k[i], 0)));
+    };
+  }
 }
 
 /** Papierhelligkeit am Bildpunkt (bilinear zwischen den Feldmitten). */
@@ -217,9 +287,10 @@ export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: bool
       tabelle[i] = Math.round(255 * Math.pow(t, 1.3));
     }
   }
+  const flaeche = o.farbig ? beleuchtungsFlaeche(hg) : null;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4;
-    const p = Math.max(8, hellAn(hg, x, y));
+    const p = Math.max(8, flaeche ? flaeche(x, y) : hellAn(hg, x, y));
     if (o.farbig) {
       // Sanft: Papier knapp weiss, Farben behalten.
       const f = 245 / p;
@@ -342,7 +413,9 @@ export function textLage(bild: Pixel): { tinte: number; schraeg: number; quer: b
   }
   let querWert = -1;
   for (let a = -5; a <= 5.001; a += 0.5) querWert = Math.max(querWert, schaerfe(a, true));
-  const quer = anteil > 0.01 && querWert > besteWert * 1.6;
+  // Nur bei deutlichen Zeilen drehen: Textseiten liegen bei 4 bis 16, eine
+  // Farbtafel (Pivka S. 29) bei 1,4 – sie wurde vorher fälschlich gedreht.
+  const quer = anteil > 0.01 && querWert > besteWert * 3;
   // Schärfe des Profils je Tintenpunkt, gegen die Richtung quer dazu.
   const zeilen = Math.max(besteWert, querWert) / Math.max(1, Math.min(besteWert, querWert)) - 1;
   return { tinte: anteil, schraeg: quer ? 0 : beste, quer, zeilen };
@@ -404,12 +477,11 @@ export function randSaeubern(bild: Pixel, band = 0.06): number {
   const marke = new Int32Array(gw * gh).fill(-1);
   const weg: number[] = [];
   let teil = 0;
-  const randZellen: number[] = [];
-  for (let x = 0; x < gw; x++) randZellen.push(x, (gh - 1) * gw + x);
-  for (let y = 0; y < gh; y++) randZellen.push(y * gw, y * gw + gw - 1);
-  for (const start of randZellen) {
+  // Alle dunklen Stücke; entfernt wird, was im Randband liegt und entweder
+  // den Rand berührt oder eine lange, dünne Linie entlang des Randes ist
+  // (Buchschnitt, Kante der Nachbarseite mit einem Spalt Papier davor).
+  for (let start = 0; start < gw * gh; start++) {
     if (marke[start] !== -1 || !dunkel(start)) continue;
-    // Zusammenhängende dunkle Zellen vom Rand aus.
     const stapel = [start], glied: number[] = [];
     marke[start] = teil;
     let x0 = gw, x1 = -1, y0 = gh, y1 = -1;
@@ -423,9 +495,11 @@ export function randSaeubern(bild: Pixel, band = 0.06): number {
       }
     }
     teil++;
-    // Liegt ganz im Band an mindestens einer Seite, die es berührt?
-    const imBand = (x0 === 0 && x1 < tief) || (x1 === gw - 1 && x0 >= gw - tief) || (y0 === 0 && y1 < tief) || (y1 === gh - 1 && y0 >= gh - tief);
-    if (imBand) weg.push(...glied);
+    const links = x1 < tief, rechts = x0 >= gw - tief, oben = y1 < tief, unten = y0 >= gh - tief;
+    const beruehrt = (links && x0 === 0) || (rechts && x1 === gw - 1) || (oben && y0 === 0) || (unten && y1 === gh - 1);
+    const senkrecht = (links || rechts) && y1 - y0 + 1 >= gh * 0.15 && x1 - x0 + 1 <= Math.max(2, tief / 2);
+    const waagrecht = (oben || unten) && x1 - x0 + 1 >= gw * 0.15 && y1 - y0 + 1 <= Math.max(2, tief / 2);
+    if (beruehrt || senkrecht || waagrecht) weg.push(...glied);
   }
   if (!weg.length) return 0;
   // Übermalen, eine Zelle breiter (der helle Saum am Streifen).

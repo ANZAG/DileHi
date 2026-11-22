@@ -351,7 +351,10 @@ async function seiteLesen(bild: Pixel, schrift: Schrift): Promise<Lesung> {
   const r = await lesen(pgm(bild), schrift);
   if (r.sicherheit >= 45 || r.text.trim().length < 80) return r;
   const kopf = await lesen(pgm(vierteldrehen(vierteldrehen(bild))), schrift);
-  return kopf.sicherheit >= 50 && kopf.sicherheit >= r.sicherheit + 15 ? { ...kopf, kopf: true } : r;
+  // Kopfstehend nur bei deutlich mehr echten Wörtern: Auf einer Bildtafel
+  // mit kurzer Unterschrift las Tesseract kopfüber „sicherer“ (Pivka S. 35).
+  const ew = echteWoerter(r.text), ek = echteWoerter(kopf.text);
+  return kopf.sicherheit >= 50 && kopf.sicherheit >= r.sicherheit + 15 && ek >= 20 && ek >= ew * 1.5 + 5 ? { ...kopf, kopf: true } : r;
 }
 
 // ── Eine Quelle ─────────────────────────────────────────────────────────────
