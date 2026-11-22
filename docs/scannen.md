@@ -253,13 +253,21 @@ Sauvola-Binarisierung in Tesseract brachte danach nichts mehr.
 - **Eine Seitengrösse** für alle Seiten (Median der Seitenverhältnisse),
   jedes Bild mittig darauf; querformatige Seiten bleiben quer, in gleicher
   Höhe. Ist die Auflösung jeder Seite bekannt (Nachbearbeitung), steht das
-  Bild in wahrer Grösse darauf statt aufs Format gezogen.
+  Bild in wahrer Grösse darauf statt aufs Format gezogen, und eine im Buch
+  quer gedruckte Tafel bekommt das gedrehte Hochformat.
 - **Grösse:** JPEG-Qualität 0,75; die ausgeglichenen Seiten mit weissem
   Papier sind etwa halb so gross wie vorher. Seiten über 2400 Punkte (Fotos
   aus der Kamera-App) werden fürs PDF auf 2400 verkleinert – gut 300 ppi bei
   A5. Ziel: unter 250 KB je Seite.
 - **Angaben:** Titel, Autor, Thema, Stichwörter, Sprache `de-DE`, Erzeuger
   „DileHi Quellensammlung", Seitenbeschriftungen nach der Zählung des Buches.
+  In der Nachbearbeitung: Autor aus dem Original oder aus einem Titel
+  „Autor: Werk“ (bzw. einem Titel aus nur einem Namen), Thema das Werk,
+  Stichwörter Epoche, Sprache und „Quellensammlung“. Die Zählung ergibt
+  sich aus den erkannten Seitenzahlen (`zaehlungFinden`): Am Anfang oder
+  Ende der Seitentexte steht eine Zahl, die zu „PDF-Seite + Versatz“ passt;
+  der häufigste Versatz gilt, wenn er klar vorn liegt. Beim Einfügen einer
+  Textebene wird nur ergänzt, was das Original nicht hat.
 
 ## Texterkennung
 
@@ -342,7 +350,13 @@ nachbearbeiten → Run workflow.
   (CCITT, JBIG2, wenige KB je Seite), bekommt nur eine **Textebene** auf die
   Seiten, die noch keinen Text haben; die Bilder bleiben unverändert, die
   Datei wächst nur um Schrift und Text. Diese Seiten werden ohne Drehen und
-  Geraderichten gelesen, damit die Wörter auf dem Original liegen. Der
+  Geraderichten gelesen, damit die Wörter auf dem Original liegen. Beim
+  Neubau wird eine um 90° gedrehte Seite auch ungedreht gelesen; ungedreht
+  gilt nur, wenn es dabei mindestens so viele echte Wörter gibt **und**
+  diese waagrecht liegen – Tesseract liest Quertext auch ungedreht, dann
+  aber Buchstabe für Buchstabe senkrecht (Stein S. 27). Eine Zeichnung mit
+  senkrechten Messern (Schleswig S. 30) bleibt so aufrecht, eine im Buch
+  quer gedruckte Tafel mit senkrechter Unterschrift (S. 29) wird gedreht. Der
   erste Probelauf hatte alles neu gebaut: IR87 wurde von 15 auf 208 MB,
   Knötel von 31 auf 190 MB grösser – ersetzt wurde zum Glück nichts.
 - **probe (Stufe 2 zum Ansehen):** Für reine Scans (jede Seite ein grosses

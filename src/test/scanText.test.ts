@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { buchSeite, lesetext, markdownBauen, roemisch } from "@/lib/scan/text";
+import { zaehlungFinden, buchSeite, lesetext, markdownBauen, roemisch } from "@/lib/scan/text";
 import { zeilenBilden, seitenFormat } from "@/lib/scan/pdf";
 
 describe("Lesetext", () => {
@@ -78,5 +78,24 @@ describe("Zeichensalat", () => {
     // So sah der Codex Manesse aus: viele Bruchstücke, die sich wiederholen.
     const manesse = Array.from({ length: 400 }, () => "Sautelanee. Derr, hen Nude, Sie, e -e -i äs, Leh ü e alu i ebe Are, Ae Cette, e dera").join(" ");
     expect(istZeichensalat([manesse])).toBe(true);
+  });
+});
+
+describe("Zählung aus den Seitenzahlen", () => {
+  it("findet den Versatz wie bei Stein (Buchseite 1 auf PDF-Seite 3)", () => {
+    const texte = Array.from({ length: 30 }, (_, k) => {
+      const pdf = k + 1, buch = pdf - 2;
+      if (pdf <= 2 || pdf % 5 === 0) return "Eine Tafel ohne Zahl";
+      return pdf % 2 ? `Text über das Jahr 1815 und die Schlacht, Absatz ${pdf} ${buch}` : `${buch} KAVALLERIE Organisation Diese Gattung bestand`;
+    });
+    expect(zaehlungFinden(texte)).toEqual({ pdfSeite: 3, buchSeite: 1 });
+  });
+  it("Zählung ab einer höheren Buchseite (Auszug)", () => {
+    const texte = Array.from({ length: 10 }, (_, k) => `Seite mit Text und noch mehr Text ${k + 101}`);
+    expect(zaehlungFinden(texte)).toEqual({ pdfSeite: 1, buchSeite: 101 });
+  });
+  it("ohne klare Zahlen keine Zählung", () => {
+    expect(zaehlungFinden(["Im Jahr 1815 kam", "es 1813 zu", "Kämpfen 1806 bei Jena"])).toBeUndefined();
+    expect(zaehlungFinden([])).toBeUndefined();
   });
 });

@@ -61,6 +61,38 @@ export function buchSeite(i: number, zaehlung?: { pdfSeite: number; buchSeite: n
   return String(zaehlung.buchSeite + i - zaehlung.pdfSeite);
 }
 
+/**
+ * Die Zählung des Buches aus den erkannten Seitenzahlen: am Anfang und Ende
+ * jedes Seitentexts eine Zahl, die zu „PDF-Seite + Versatz“ passt. Der
+ * häufigste Versatz gilt, wenn er mindestens dreimal und doppelt so oft wie
+ * der nächste vorkommt (Jahreszahlen oder Zahlen im Text streuen). Stein:
+ * PDF-Seite 20 beginnt mit „18“, 27 endet mit „25“, 110 mit „108“ – also
+ * Buchseite 1 auf PDF-Seite 3, davor i und ii.
+ */
+export function zaehlungFinden(texte: string[]): { pdfSeite: number; buchSeite: number } | undefined {
+  const versatz = new Map<number, number>();
+  texte.forEach((t, k) => {
+    const teile = t.trim().split(/\s+/).filter(Boolean);
+    if (teile.length < 3) return;
+    const gesehen = new Set<number>();
+    for (const w of [teile[0], teile[1], teile[teile.length - 2], teile[teile.length - 1]]) {
+      const m = /^[-–—([]?(\d{1,4})[)\]–—-]?$/.exec(w);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (n < 1 || n > 3999) continue;
+      const d = n - (k + 1);
+      if (gesehen.has(d)) continue;
+      gesehen.add(d);
+      versatz.set(d, (versatz.get(d) ?? 0) + 1);
+    }
+  });
+  const reihe = [...versatz].sort((a, b) => b[1] - a[1]);
+  if (!reihe.length || reihe[0][1] < 3 || (reihe[1] && reihe[0][1] < reihe[1][1] * 2)) return undefined;
+  const d = reihe[0][0];
+  const pdfSeite = Math.max(1, 1 - d);
+  return { pdfSeite, buchSeite: pdfSeite + d };
+}
+
 export interface MarkdownAngaben {
   titel: string;
   autor?: string;

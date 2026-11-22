@@ -173,9 +173,15 @@ export interface TextFuerSeite {
 export async function textEbeneEinfuegen(
   original: Uint8Array,
   seiten: TextFuerSeite[],
-  schrift: Uint8Array
+  schrift: Uint8Array,
+  angaben: Omit<PdfAngaben, "titel" | "schrift" | "dpi"> = {}
 ): Promise<{ bytes: Uint8Array; gesetzt: number; gedreht: number }> {
   const pdf = await PDFDocument.load(original, { updateMetadata: false });
+  // Angaben und Zählung nur ergänzen, wo das Original keine hat.
+  if (angaben.autor && !pdf.getAuthor()) pdf.setAuthor(angaben.autor);
+  if (angaben.thema && !pdf.getSubject()) pdf.setSubject(angaben.thema);
+  if (angaben.stichwoerter?.length && !pdf.getKeywords()) pdf.setKeywords([angaben.stichwoerter.join(", ")]);
+  if (angaben.zaehlung && !pdf.catalog.has(PDFName.of("PageLabels"))) seitenBeschriftung(pdf, angaben.zaehlung);
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(schrift, { subset: true });
   const zeichen = new Set(font.getCharacterSet());
@@ -221,7 +227,7 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
   pdf.setTitle(a.titel);
   if (a.autor) pdf.setAuthor(a.autor);
   if (a.thema) pdf.setSubject(a.thema);
-  if (a.stichwoerter?.length) pdf.setKeywords(a.stichwoerter);
+  if (a.stichwoerter?.length) pdf.setKeywords([a.stichwoerter.join(", ")]);
   pdf.setLanguage("de-DE");
   pdf.setCreator("DileHi Quellensammlung");
   pdf.setProducer("pdf-lib");

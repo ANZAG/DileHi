@@ -38,7 +38,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, copyFileSync, createWriteStream, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createScheduler, createWorker, OEM, PSM, type Scheduler } from "tesseract.js";
@@ -48,7 +48,7 @@ import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { istZeichensalat, spracheRaten } from "../src/lib/scan/text";
+import { istZeichensalat, spracheRaten, zaehlungFinden } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern";
@@ -87,6 +87,7 @@ interface Quelle {
   file_size: number | null;
   mime_type: string | null;
   textSeiten: number;
+  epoch?: string | null;
 }
 
 // ── PDF lesen ───────────────────────────────────────────────────────────────
@@ -153,6 +154,36 @@ export function textBrauchbar(text: string): boolean {
   const woerter = teile.filter((t) => /^[(„"»«']*[\p{L}ſ]{2,}[-.,;:!?)"“'»«]*$/u.test(t));
   const kurz = teile.filter((t) => t.length <= 2).length;
   return woerter.length / teile.length >= 0.65 && kurz / teile.length < 0.35;
+}
+
+const SPRACHE_NAME: Record<Schrift, string> = {
+  antiqua: "Deutsch", fraktur: "Deutsch (Fraktur)", latein: "Latein", franzoesisch: "Französisch", englisch: "Englisch", latein_franzoesisch: "Latein, Französisch",
+};
+
+/**
+ * Angaben fürs neue PDF: Autor aus dem Original (falls gesetzt) oder aus
+ * einem Titel „Autor: Werk“ bzw. einem Titel aus nur einem Namen („Pivka“);
+ * Thema das Werk; Stichwörter Epoche, Sprache, Quellensammlung; Zählung aus
+ * den erkannten Seitenzahlen.
+ */
+function angabenFuer(datei: string, titel: string, epoche: string | null | undefined, texte: string[], schrift?: Schrift) {
+  const info = lauf("pdfinfo", [datei]).toString("utf8");
+  const feld = (name: string) => new RegExp(`^${name}:\\s+(.+)$`, "m").exec(info)?.[1]?.trim() || undefined;
+  const ohneEndung = titel.replace(/\.pdf$/i, "").trim();
+  const teile = /^([^:]{2,40}):\s*(.+)$/.exec(ohneEndung);
+  const einName = /^\p{Lu}[\p{L}'-]+$/u.test(ohneEndung) && !/\.pdf$/i.test(titel);
+  const autor = feld("Author") ?? (teile ? teile[1].trim() : einName ? ohneEndung : undefined);
+  const thema = teile ? teile[2].trim() : ohneEndung;
+  const ep = epoche ? (epoche === "mittelalter" ? "Mittelalter" : epoche) : undefined;
+  const stichwoerter = [ep, schrift ? SPRACHE_NAME[schrift] : undefined, "Quellensammlung"].filter((x): x is string => !!x);
+  return { autor, thema, stichwoerter, zaehlung: zaehlungFinden(texte) };
+}
+
+/** Anteil der Wörter (ab 3 Zeichen), deren Rahmen breiter als hoch ist; ohne solche 1. */
+export function waagrecht(woerter: Wort[]): number {
+  const lange = woerter.filter((w) => w.text.trim().length >= 3);
+  if (!lange.length) return 1;
+  return lange.filter((w) => w.x1 - w.x0 > w.y1 - w.y0).length / lange.length;
 }
 
 /** Wörter, die wie Wörter aussehen (kein Zeichenmüll). */
@@ -227,7 +258,7 @@ function pgm(bild: Pixel): Buffer {
  * fürs PDF (Bildseiten farbig, Einbände nur gestreckt), `bild` die graue
  * Fassung zum Lesen.
  */
-function zumLesen(roh: Pixel, nichtVierteln = false): { bild: Pixel; pdfBild: Pixel; dunkel: boolean; quer: boolean } {
+function zumLesen(roh: Pixel, nichtVierteln = false): { bild: Pixel; pdfBild: Pixel; dunkel: boolean; quer: boolean; zeilen: number } {
   const { bild: pdfBild, befund } = seiteAufbereiten(roh, { farbig: false, nichtVierteln });
   if (befund.dunkel) kontrastStrecken(pdfBild);
   const bild = { breite: pdfBild.breite, hoehe: pdfBild.hoehe, daten: new Uint8ClampedArray(pdfBild.daten) };
@@ -239,7 +270,7 @@ function zumLesen(roh: Pixel, nichtVierteln = false): { bild: Pixel; pdfBild: Pi
       bild.daten[i] = bild.daten[i + 1] = bild.daten[i + 2] = g;
     }
   }
-  return { bild, pdfBild, dunkel: befund.dunkel, quer: befund.quer };
+  return { bild, pdfBild, dunkel: befund.dunkel, quer: befund.quer, zeilen: befund.zeilen };
 }
 
 /**
@@ -383,7 +414,7 @@ interface Bericht {
   ersetzen?: string;
 }
 
-async function bearbeiten(datei: string, titel: string, schreiben: boolean): Promise<{ bericht: Bericht; texte: string[]; pdf?: Uint8Array }> {
+async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoche?: string | null): Promise<{ bericht: Bericht; texte: string[]; pdf?: Uint8Array }> {
   const anfang = Date.now();
   const ordner = mkdtempSync(join(tmpdir(), "seiten-"));
   const zahl = seitenZahl(datei);
@@ -461,7 +492,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
           const roh = rendern(datei, i, ordner);
           if (ebene.has(i)) {
             const bild = zumLesenGerade(roh);
-            return { i, dpi: roh.dpi, bild, pdfBild: bild, dunkel: false, quer: false, roh };
+            return { i, dpi: roh.dpi, bild, pdfBild: bild, dunkel: false, quer: false, zeilen: 0, roh };
           }
           return { i, dpi: roh.dpi, ...zumLesen(roh), roh };
         });
@@ -496,13 +527,19 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
               } else wahl.gewechselt = 0;
             }
           }
+          if (process.env.DEBUG_BILD) writeFileSync(`${process.env.DEBUG_BILD}-${i}.pgm`, pgm(bild));
+          if (process.env.DEBUG_QUER) console.log(`\n  S${i}: quer ${seite.quer}, zeilen ${seite.zeilen.toFixed(1)}, ${echteWoerter(r.text)} Wörter`);
           if (seite.quer) {
             // Um 90° gedreht: Lange Formen (Messer in einer Zeichnung) sehen
             // aus wie Zeilen. Auch ungedreht lesen; das Bessere gilt, bei
             // Gleichstand bleibt die Seite, wie sie war (Schleswig S. 30).
             const g = zumLesen(seite.roh, true);
             const rg = await seiteLesen(g.bild, wahl.schrift ?? "antiqua");
-            if (echteWoerter(rg.text) >= echteWoerter(r.text)) { r = rg; bild = g.bild; pdfBild = g.pdfBild; }
+            // Tesseract liest gedruckten Quertext auch ungedreht – dann aber
+            // Buchstabe für Buchstabe senkrecht (Stein S. 27). Ungedreht gilt
+            // nur, wenn seine Wörter waagrecht liegen.
+            if (process.env.DEBUG_QUER) console.log(`  S${i}: ungedreht ${echteWoerter(rg.text)} Wörter, waagrecht ${waagrecht(rg.woerter).toFixed(2)}; gedreht waagrecht ${waagrecht(r.woerter).toFixed(2)}`);
+            if (echteWoerter(rg.text) >= echteWoerter(r.text) && waagrecht(rg.woerter) >= 0.6) { r = rg; bild = g.bild; pdfBild = g.pdfBild; }
           }
           let text = lesetext(seitentextAufraeumen(r.text));
           // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.
@@ -526,7 +563,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
       if (weg === "textebene" && !bericht.hinweis) {
         if (!textSeiten.length) bericht.ersetzen = "nein – hat schon Text";
         else {
-          const r = await textEbeneEinfuegen(new Uint8Array(readFileSync(datei)), textSeiten, new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))));
+          const r = await textEbeneEinfuegen(new Uint8Array(readFileSync(datei)), textSeiten, new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))), angabenFuer(datei, titel, epoche, texte, wahl.schrift));
           pdf = r.bytes;
           bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.gedreht ? ` (${r.gedreht} gedreht, ohne)` : ""}`;
           bericht.neuMegabyte = Math.round((pdf.length / 1e6) * 10) / 10;
@@ -543,6 +580,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
         const dpis = pdfSeiten.map((x) => x.dpi).sort((a, b) => a - b);
         pdf = await pdfBauen(pdfSeiten, {
           titel,
+          ...angabenFuer(datei, titel, epoche, texte, wahl.schrift),
           schrift: new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))),
           dpi: dpis[Math.floor(dpis.length / 2)],
         });
@@ -612,7 +650,7 @@ function berichtSchreiben(zeilen: Bericht[], zuLesen: Map<string, number>) {
 // ── Ablauf ──────────────────────────────────────────────────────────────────
 async function main() {
   if (process.env.DATEI) {
-    const { bericht, texte, pdf } = await bearbeiten(process.env.DATEI, process.env.DATEI, MODUS !== "pruefen");
+    const { bericht, texte, pdf } = await bearbeiten(process.env.DATEI, basename(process.env.DATEI).replace(/\.pdf$/i, ""), MODUS !== "pruefen", process.env.EPOCHE);
     console.log(JSON.stringify(bericht, null, 2));
     if (pdf && process.env.NEU_PDF) writeFileSync(process.env.NEU_PDF, pdf);
     if (process.env.AUSGABE) writeFileSync(process.env.AUSGABE, texte.map((t, i) => `--- Seite ${i + 1} ---\n${t}`).join("\n\n"));
@@ -666,7 +704,7 @@ async function main() {
       const r = await fetch(url);
       if (!r.ok || !r.body) throw new Error(`Herunterladen: ${r.status}`);
       await pipeline(Readable.fromWeb(r.body as never), createWriteStream(datei));
-      const { bericht, texte, pdf } = await bearbeiten(datei, q.title, LIEST);
+      const { bericht, texte, pdf } = await bearbeiten(datei, q.title, LIEST, q.epoch);
       zuLesen.set(q.title, bericht.seiten - bericht.ausPdf);
       if (MODUS === "text" && !bericht.fehler && texte.some((t) => t.trim())) {
         await werkstatt("text", { sourceId: q.id, seiten: texte });
