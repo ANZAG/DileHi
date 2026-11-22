@@ -217,7 +217,17 @@ im Hintergrund, gut eine Drittelsekunde je Seite:
   Eine Schräglage bis 5° wird gerade gedreht.
 - **Bildseiten** (Karten, Tafeln, Einbände, viel Farbe) bleiben farbig und
   werden nur sanft aufgehellt, mit Weissabgleich am Papier. Zum Lesen
-  bekommt die Texterkennung eine graue, ausgeglichene Fassung.
+  bekommt die Texterkennung eine graue, ausgeglichene Fassung. Farbig
+  bleibt auch jede Seite mit einer farbigen Abbildung, selbst wenn sie nur
+  einen Teil der Seite füllt und eine Bildunterschrift hat (Uniformtafel):
+  Gezählt werden deutlich farbige Punkte im Inneren der Seite nach
+  Weissabgleich (`farbAnteil`). Text- und Tabellenseiten liegen bei 0,0 bis
+  0,1 %, auch vergilbte und mit getönten Tabellenzeilen; ab 0,3 % bleibt
+  die Seite farbig, eine kleine Tafel auf dem Rückumschlag hat 3,8 %.
+- **Dunkle Ränder** (Scannerdeckel, Buchschnitt, Streifen der
+  Nachbarseite, Ecken nach dem Geradedrehen) werden mit der Papierfarbe
+  übermalt – nur, was den Rand berührt und ganz in einem schmalen Band
+  (6 %) liegt; eine Abbildung bis an den Rand bleibt.
 - **Dunkle Seiten** (Einband, helle Schrift auf dunklem Grund) werden nicht
   aufgehellt; Tesseract dreht helle Schrift beim Lesen selbst um.
 - **Schärfe:** Varianz des Laplace-Filters geteilt durch die Varianz der
@@ -242,7 +252,8 @@ Sauvola-Binarisierung in Tesseract brachte danach nichts mehr.
   Auch Zeichen ausserhalb von Windows-1252 lassen sich suchen und kopieren.
 - **Eine Seitengrösse** für alle Seiten (Median der Seitenverhältnisse),
   jedes Bild mittig darauf; querformatige Seiten bleiben quer, in gleicher
-  Höhe.
+  Höhe. Ist die Auflösung jeder Seite bekannt (Nachbearbeitung), steht das
+  Bild in wahrer Grösse darauf statt aufs Format gezogen.
 - **Grösse:** JPEG-Qualität 0,75; die ausgeglichenen Seiten mit weissem
   Papier sind etwa halb so gross wie vorher. Seiten über 2400 Punkte (Fotos
   aus der Kamera-App) werden fürs PDF auf 2400 verkleinert – gut 300 ppi bei
@@ -344,6 +355,11 @@ nachbearbeiten → Run workflow.
   Datei in SharePoint – dieselbe Datei, neue Fassung; die alte bleibt im
   Versionsverlauf (SharePoint: Datei → Versionsverlauf → Wiederherstellen).
   Der Text in der Suche wird mit ersetzt.
+- **zurueck:** für die unter *quellen* genannten Quellen die letzte Fassung
+  vor dem Zeitpunkt *vor* wieder zur aktuellen machen (SharePoint legt dafür
+  eine neue Fassung an, nichts geht verloren). So wurden Stein, Pivka und
+  drei weitere zurückgeholt, nachdem im ersten Neubau farbige Tafeln grau
+  geworden waren.
 
 Am Stein-Auszug: 7,5 MB → 3,5 MB, echte Wörter im PDF 1506 → 2677.
 
