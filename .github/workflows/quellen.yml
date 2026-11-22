@@ -20,6 +20,11 @@ name: Quellen nachbearbeiten
 #   zurueck  für die genannten Quellen die Fassung von vor „vor“ wieder zur
 #            aktuellen machen (aus dem Versionsverlauf; legt eine neue
 #            Fassung an, nichts geht verloren).
+#   austauschen  neu fotografierte Seiten in eine Quelle einsetzen: die
+#            Seiten als kleiner Scan (App → Posteingang), „seiten“ sagt, an
+#            welche Stellen (PDF-Seiten, in der Reihenfolge des Scans),
+#            „eingang“ welche Datei (leer = die neueste). Mit
+#            austauschen-probe nur als Artefakt zum Ansehen.
 #   doppelt  die genannten Quellen löschen, wenn es eine ältere mit gleichem
 #            Titel und gleicher Grösse gibt (Datei in den Papierkorb).
 #
@@ -44,7 +49,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck, doppelt]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
@@ -58,6 +63,14 @@ on:
         description: "Höchstens so viele Quellen in diesem Lauf (0 = alle)"
         type: string
         default: "0"
+      seiten:
+        description: "Nur für austauschen: PDF-Seiten, die ersetzt werden (etwa 26,38,72), in der Reihenfolge des neuen Scans"
+        type: string
+        default: ""
+      eingang:
+        description: "Nur für austauschen: Name der Datei im Posteingang (leer = die neueste)"
+        type: string
+        default: ""
       vor:
         description: "Nur für zurueck: Zeitpunkt (ISO, etwa 2026-11-22T06:00:00Z) – die letzte Fassung davor wird wiederhergestellt"
         type: string
@@ -109,6 +122,8 @@ jobs:
           NEU: ${{ inputs.neu }}
           GRENZE: ${{ inputs.grenze }}
           VOR: ${{ inputs.vor }}
+          SEITEN: ${{ inputs.seiten }}
+          EINGANG: ${{ inputs.eingang }}
         run: npx vite-node scripts/quellen-nachbearbeiten.ts
 
       - name: Bericht ablegen
@@ -120,7 +135,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Neue PDFs ablegen (probe)
-        if: always() && inputs.modus == 'probe'
+        if: always() && (inputs.modus == 'probe' || inputs.modus == 'austauschen-probe')
         uses: actions/upload-artifact@v5
         with:
           name: quellen-neu

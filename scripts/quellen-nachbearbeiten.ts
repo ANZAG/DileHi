@@ -43,6 +43,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createScheduler, createWorker, OEM, PSM, type Scheduler } from "tesseract.js";
 import jpeg from "jpeg-js";
+import { PDFDocument } from "pdf-lib";
 import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/aufbereitung";
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
@@ -624,6 +625,83 @@ async function hochladen(uploadUrl: string, bytes: Uint8Array): Promise<void> {
   throw new Error("Hochladen: Die letzte Antwort fehlte.");
 }
 
+// ── Einzelne Seiten austauschen ─────────────────────────────────────────────
+/**
+ * Neu fotografierte Seiten in ein vorhandenes PDF einsetzen (MODUS
+ * austauschen / austauschen-probe). Die neuen Seiten kommen als PDF aus dem
+ * Posteingang (ein kleiner Scan mit der App, EINGANG = Name oder Kennung;
+ * leer = das neueste PDF dort), in der Reihenfolge von SEITEN (PDF-Seiten
+ * des Buches, etwa „26,38,72“). Jede wird aufbereitet, gelesen und in der
+ * Seitengrösse der alten Seite eingesetzt; alles andere am PDF bleibt
+ * (übrige Seiten, Seitenbeschriftung, Angaben). Der Text der Seiten kommt
+ * in die Suche.
+ */
+async function austauschen(q: Quelle, ordner: string): Promise<void> {
+  const nummern = (process.env.SEITEN ?? "").split(/[\s,;]+/).filter(Boolean).map(Number);
+  if (!nummern.length || nummern.some((n) => !Number.isInteger(n) || n < 1)) throw new Error(`SEITEN ist keine Liste von Seitenzahlen: „${process.env.SEITEN ?? ""}“`);
+  const { dateien } = await werkstatt<{ dateien: { id: string; name: string; size: number | null; zeit: string | null }[] }>("eingang");
+  console.log(`Posteingang: ${dateien.map((d) => `${d.name} (${d.zeit})`).join(" | ") || "leer"}`);
+  const suche = (process.env.EINGANG ?? "").trim();
+  const neu = suche ? dateien.find((d) => d.id === suche || d.name === suche) ?? dateien.find((d) => d.name.includes(suche)) : dateien[0];
+  if (!neu) throw new Error(suche ? `Im Posteingang gibt es kein PDF „${suche}“.` : "Im Posteingang liegt kein PDF.");
+  console.log(`Neue Seiten aus: ${neu.name}`);
+
+  const laden = async (url: string, datei: string) => {
+    const r = await fetch(url);
+    if (!r.ok || !r.body) throw new Error(`Herunterladen: ${r.status}`);
+    await pipeline(Readable.fromWeb(r.body as never), createWriteStream(datei));
+  };
+  const altDatei = join(ordner, "alt.pdf"), neuDatei = join(ordner, "neu.pdf");
+  await laden((await werkstatt<{ url: string }>("download", { sourceId: q.id })).url, altDatei);
+  await laden((await werkstatt<{ url: string }>("eingang-download", { itemId: neu.id })).url, neuDatei);
+  const zahl = seitenZahl(neuDatei);
+  if (zahl !== nummern.length) throw new Error(`Das PDF im Posteingang hat ${zahl} Seiten, angegeben sind ${nummern.length} (${nummern.join(", ")}).`);
+  const alt = await PDFDocument.load(readFileSync(altDatei), { updateMetadata: false });
+  const zuViel = nummern.filter((n) => n > alt.getPageCount());
+  if (zuViel.length) throw new Error(`Das Buch hat nur ${alt.getPageCount()} Seiten (${zuViel.join(", ")}).`);
+
+  const schrift = new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf")));
+  const texte: Record<string, string> = {};
+  let buchSchrift: Schrift | undefined;
+  for (const [k, n] of nummern.entries()) {
+    const roh = rendern(neuDatei, k + 1, ordner);
+    // Die App hat die Seite schon gedreht und zugeschnitten: nicht noch einmal vierteln.
+    const z = zumLesen(roh, true);
+    let r: Lesung;
+    if (!buchSchrift) {
+      const [a, f] = await Promise.all((["antiqua", "fraktur"] as const).map(async (s) => ({ schrift: s as Schrift, ...(await seiteLesen(z.bild, s)) })));
+      let beste = besteSchrift([a, f]);
+      if (beste.schrift === "antiqua") {
+        const sprache = spracheRaten(beste.text);
+        const s = (sprache ? ZUR_SPRACHE[sprache] : "antiqua") as Schrift;
+        if (s !== "antiqua") beste = { schrift: s, ...(await seiteLesen(z.bild, s)) };
+      }
+      r = beste;
+      if (r.text.trim().length >= 200) buchSchrift = beste.schrift;
+    } else r = await seiteLesen(z.bild, buchSchrift);
+    const { dpi: _dpi, ...seite } = fuersPdf(r.kopf ? vierteldrehen(vierteldrehen(z.pdfBild)) : z.pdfBild, r.woerter, roh.dpi, scanPpi(neuDatei, k + 1));
+    const groesse = alt.getPage(n - 1).getSize();
+    const einzel = await PDFDocument.load(await pdfBauen([seite], { titel: q.title, schrift, format: { breite: groesse.width, hoehe: groesse.height } }));
+    const [kopie] = await alt.copyPages(einzel, [0]);
+    alt.removePage(n - 1);
+    alt.insertPage(n - 1, kopie);
+    texte[String(n)] = lesetext(seitentextAufraeumen(r.text));
+    console.log(`  Seite ${n}: ${echteWoerter(r.text)} Wörter (Sicherheit ${Math.round(r.sicherheit)})`);
+  }
+  const bytes = await alt.save();
+  console.log(`  ${Math.round((readFileSync(altDatei).length / 1e6) * 10) / 10} MB → ${Math.round((bytes.length / 1e6) * 10) / 10} MB`);
+  if (MODUS === "austauschen-probe") {
+    mkdirSync("neu", { recursive: true });
+    writeFileSync(join("neu", `${q.title.replace(/[^\p{L}\p{N} ._-]/gu, "_").slice(0, 80)}.pdf`), bytes);
+    return;
+  }
+  const { uploadUrl } = await werkstatt<{ uploadUrl: string }>("ersetzen-sitzung", { sourceId: q.id });
+  await hochladen(uploadUrl, bytes);
+  await werkstatt("ersetzt", { sourceId: q.id });
+  await werkstatt("seiten-text", { sourceId: q.id, seiten: texte });
+  console.log(`  ersetzt; Seiten ${nummern.join(", ")} ausgetauscht. Das PDF im Posteingang („${neu.name}“) kann gelöscht werden.`);
+}
+
 // ── Bericht ─────────────────────────────────────────────────────────────────
 function berichtSchreiben(zeilen: Bericht[], zuLesen: Map<string, number>) {
   if (NEU_BAUEN) {
@@ -664,6 +742,14 @@ async function main() {
   if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten === 0);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
+
+  if (MODUS === "austauschen" || MODUS === "austauschen-probe") {
+    if (auswahl.length !== 1) throw new Error("austauschen braucht genau eine Quelle (QUELLEN).");
+    const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
+    try { await austauschen(auswahl[0], ordner); }
+    finally { rmSync(ordner, { recursive: true, force: true }); await Promise.all([...planer.values()].map(async (p) => (await p).terminate())); }
+    return;
+  }
 
   if (MODUS === "doppelt") {
     // Doppelt angelegte Quellen entfernen (die Werkstatt prüft, dass es eine

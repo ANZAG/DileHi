@@ -64,6 +64,8 @@ export interface PdfAngaben {
   zaehlung?: { pdfSeite: number; buchSeite: number };
   /** Bildpunkte je Zoll der Seitenbilder, wenn bekannt (aus einem PDF gerendert); sonst 200. */
   dpi?: number;
+  /** Seitengrösse in Punkten vorgeben (Seiten in ein vorhandenes PDF einsetzen). */
+  format?: { breite: number; hoehe: number };
 }
 
 /** Angenommene Auflösung, aus der sich die Seitengrösse ergibt. */
@@ -243,7 +245,7 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
     zeichen = new Set(font.getCharacterSet());
   }
 
-  const format = seitenFormat(seiten, a.dpi);
+  const format = a.format ?? seitenFormat(seiten, a.dpi);
   for (const s of seiten) {
     const quer = s.breite > s.hoehe * 1.05;
     // Querformat: gleiche Höhe, Breite nach dem Bild. Mit bekannter

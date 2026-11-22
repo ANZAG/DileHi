@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { deleteFile, fileInFolder, graph, graphJson, graphReason, resolveTarget } from "../_shared/sharepoint.ts";
+import { deleteFile, fileInFolder, graph, graphJson, graphReason, INBOX, isInFolder, resolveTarget, type DriveItem } from "../_shared/sharepoint.ts";
 
 /**
  * Werkstatt für vorhandene Quellen – aufgerufen von der GitHub-Action
@@ -27,6 +27,9 @@ import { deleteFile, fileInFolder, graph, graphJson, graphReason, resolveTarget 
  *   wiederherstellen  Eine frühere Fassung (versionId) wieder zur aktuellen
  *                     machen – SharePoint legt dafür eine neue Fassung an,
  *                     nichts geht verloren. Grösse wird nachgetragen.
+ *   eingang           Die PDFs im Posteingang (neueste zuerst).
+ *   eingang-download  Download-Adresse einer Datei im Posteingang.
+ *   seiten-text       Text nur für einzelne Seiten setzen ({ seite: text }).
  *   doppelt-loeschen  Eine doppelt angelegte Quelle entfernen – nur, wenn es
  *                     eine ältere mit gleichem Titel und gleicher Grösse
  *                     gibt. Die Datei geht in den Papierkorb der Website
@@ -141,6 +144,43 @@ Deno.serve(async (req) => {
         const item = await fileInFolder(t, q.drive_item_id);
         await admin.from("sources").update({ file_size: item.size ?? null }).eq("id", q.id);
         return json(200, { size: item.size ?? null });
+      }
+
+      case "eingang": {
+        const t = await target();
+        const r = await graph(
+          `/drives/${t.driveId}/root:/${encodeURIComponent(INBOX)}:/children?$select=id,name,size,file,createdDateTime&$top=200`
+        );
+        if (r.status === 404) return json(200, { dateien: [] });
+        if (!r.ok) throw new Error(`SharePoint: ${await graphReason(r)}`);
+        const { value } = await r.json() as { value: (DriveItem & { createdDateTime?: string })[] };
+        const dateien = value.filter((d) => d.file && /\.pdf$/i.test(d.name))
+          .map((d) => ({ id: d.id, name: d.name, size: d.size ?? null, zeit: d.createdDateTime ?? null }))
+          .sort((a, b) => String(b.zeit).localeCompare(String(a.zeit)));
+        return json(200, { dateien });
+      }
+
+      case "eingang-download": {
+        const t = await target();
+        const item = await graphJson<DriveItem>(`/drives/${t.driveId}/items/${encodeURIComponent(String(body.itemId ?? ""))}`);
+        if (!isInFolder(item.parentReference?.path, INBOX)) throw new Error("Diese Datei liegt nicht im Posteingang.");
+        const url = item["@microsoft.graph.downloadUrl"];
+        if (!url) throw new Error("SharePoint hat keine Download-Adresse geliefert.");
+        return json(200, { url, name: item.name });
+      }
+
+      case "seiten-text": {
+        const q = await quelle();
+        const seiten = (body.seiten ?? {}) as Record<string, unknown>;
+        const nummern = Object.keys(seiten).map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 5000);
+        if (!nummern.length) throw new Error("Es fehlen die Seiten.");
+        const { error: weg } = await admin.from("source_pages").delete().eq("file_key", q.drive_item_id).in("page", nummern);
+        if (weg) throw weg;
+        const { error } = await admin.from("source_pages").insert(
+          nummern.map((n) => ({ file_key: q.drive_item_id, page: n, body: String(seiten[String(n)] ?? "").slice(0, 200000), created_by: null }))
+        );
+        if (error) throw error;
+        return json(200, { seiten: nummern.length });
       }
 
       case "doppelt-loeschen": {

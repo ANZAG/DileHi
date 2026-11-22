@@ -369,6 +369,16 @@ nachbearbeiten → Run workflow.
   Datei in SharePoint – dieselbe Datei, neue Fassung; die alte bleibt im
   Versionsverlauf (SharePoint: Datei → Versionsverlauf → Wiederherstellen).
   Der Text in der Suche wird mit ersetzt.
+- **austauschen:** einzelne Seiten einer Quelle ersetzen, etwa unscharf
+  fotografierte. Die Seiten mit der App als kleinen Scan aufnehmen und in
+  den **Posteingang** hochladen; dann den Lauf mit *quellen* (genau eine
+  Quelle), *seiten* (die PDF-Seiten des Buches in der Reihenfolge des
+  Scans, etwa `26,38,72`) und *eingang* (Name der Datei; leer = die
+  neueste) starten. Jede Seite wird aufbereitet, gelesen und in der Grösse
+  der alten Seite eingesetzt; die übrigen Seiten, Seitenbeschriftung und
+  Angaben bleiben, der Text der Seiten kommt in die Suche. Die alte Fassung
+  bleibt im Versionsverlauf. Mit *austauschen-probe* nur als Artefakt zum
+  Ansehen. Danach kann das PDF im Posteingang gelöscht werden.
 - **zurueck:** für die unter *quellen* genannten Quellen die letzte Fassung
   vor dem Zeitpunkt *vor* wieder zur aktuellen machen (SharePoint legt dafür
   eine neue Fassung an, nichts geht verloren). So wurden Stein, Pivka und
