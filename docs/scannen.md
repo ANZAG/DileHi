@@ -396,6 +396,13 @@ nachbearbeiten → Run workflow.
   Datei in SharePoint – dieselbe Datei, neue Fassung; die alte bleibt im
   Versionsverlauf (SharePoint: Datei → Versionsverlauf → Wiederherstellen).
   Der Text in der Suche wird mit ersetzt.
+- **weg = textebene** (zu *probe*/*verbessern*): auch Handyfotos nicht neu
+  bauen, nur die Textebene ergänzen – für PDFs, deren Neubau grösser würde
+  (Cowgill, Medieval Horse, Schwabenspiegel …: vorher ohne jeden Text im
+  PDF). Beim Ergänzen einer Textebene bricht ein Buch nicht mehr nach 12
+  unsicheren Seiten als „nicht lesbar“ ab: Die Seiten ohne Text sind dort
+  oft Tafeln und Titelblätter; schlechte Einzelseiten fallen einzeln weg,
+  der Zeichensalat-Test bleibt.
 - **austauschen:** einzelne Seiten einer Quelle ersetzen, etwa unscharf
   fotografierte. Die Seiten mit der App als kleinen Scan aufnehmen und in
   den **Posteingang** hochladen; dann den Lauf mit *quellen* (genau eine

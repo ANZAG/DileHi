@@ -442,7 +442,11 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
     // Neu bauen aus schon komprimierten Bildern verlöre bei jedem Lauf.
     const schonBearbeitet = NEU_BAUEN && dokument(datei).erzeuger.startsWith("DileHi Quellensammlung");
     if (schonBearbeitet) bericht.ersetzen = "nein – schon bearbeitet";
-    const weg = NEU_BAUEN && !schonBearbeitet ? wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0) : null;
+    // WEG=textebene: auch Handyfotos nur um eine Textebene ergänzen – für
+    // PDFs, deren Neubau grösser würde (die Bilder bleiben, der Text kommt dazu).
+    const weg = NEU_BAUEN && !schonBearbeitet
+      ? (process.env.WEG === "textebene" ? "textebene" : wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0))
+      : null;
     const bauen = weg === "neu";
     const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1]) : []);
     if (weg) bericht.weg = weg === "neu" ? "neu gebaut" : `Textebene auf ${ebene.size} Seiten`;
@@ -478,7 +482,12 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
             break;
           }
         }
-        if (!geprueft && sicherheiten.length >= 12) {
+        // Nur, wenn das ganze Buch gelesen wird: Beim Ergänzen einer Textebene
+        // sind die Seiten ohne Text oft Tafeln und Titelblätter – unsicher
+        // gelesen, ohne dass das Buch unlesbar wäre (Becker 02–06, Knötel).
+        // Schlechte Einzelseiten fallen dort ohnehin weg (siehe unten), und der
+        // Zeichensalat-Test bleibt.
+        if (!geprueft && weg !== "textebene" && sicherheiten.length >= 12) {
           geprueft = true;
           const mitte = [...sicherheiten].sort((a, b) => a - b)[Math.floor(sicherheiten.length / 2)];
           if (mitte < UNLESBAR) {
