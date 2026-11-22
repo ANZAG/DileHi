@@ -248,6 +248,8 @@ function hellAn(hg: Hintergrund, x: number, y: number): number {
 export interface AufbereitenOptionen {
   /** Farbig lassen (Bildtafeln): nur Weissabgleich und sanfte Korrektur. */
   farbig: boolean;
+  /** Nicht um 90° drehen, auch wenn die Zeilen senkrecht zu laufen scheinen. */
+  nichtVierteln?: boolean;
 }
 
 /**
@@ -543,6 +545,7 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
   const farbe = farbAnteil(eingang);
   const { dunkel, buntAnteil } = aufbereiten(probe, { farbig: false });
   let lage = dunkel ? { tinte: 0, schraeg: 0, quer: false, zeilen: 0 } : textLage(probe);
+  if (lage.quer && o.nichtVierteln) lage = { ...lage, quer: false, schraeg: 0 };
   if (lage.quer) {
     bild = vierteldrehen(bild);
     const p2 = vierteldrehen(probe);

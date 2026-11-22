@@ -227,8 +227,8 @@ function pgm(bild: Pixel): Buffer {
  * fürs PDF (Bildseiten farbig, Einbände nur gestreckt), `bild` die graue
  * Fassung zum Lesen.
  */
-function zumLesen(roh: Pixel): { bild: Pixel; pdfBild: Pixel; dunkel: boolean } {
-  const { bild: pdfBild, befund } = seiteAufbereiten(roh, { farbig: false });
+function zumLesen(roh: Pixel, nichtVierteln = false): { bild: Pixel; pdfBild: Pixel; dunkel: boolean; quer: boolean } {
+  const { bild: pdfBild, befund } = seiteAufbereiten(roh, { farbig: false, nichtVierteln });
   if (befund.dunkel) kontrastStrecken(pdfBild);
   const bild = { breite: pdfBild.breite, hoehe: pdfBild.hoehe, daten: new Uint8ClampedArray(pdfBild.daten) };
   if (befund.farbig && !befund.dunkel) aufbereiten(bild, { farbig: false });
@@ -239,7 +239,7 @@ function zumLesen(roh: Pixel): { bild: Pixel; pdfBild: Pixel; dunkel: boolean } 
       bild.daten[i] = bild.daten[i + 1] = bild.daten[i + 2] = g;
     }
   }
-  return { bild, pdfBild, dunkel: befund.dunkel };
+  return { bild, pdfBild, dunkel: befund.dunkel, quer: befund.quer };
 }
 
 /**
@@ -461,11 +461,13 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
           const roh = rendern(datei, i, ordner);
           if (ebene.has(i)) {
             const bild = zumLesenGerade(roh);
-            return { i, dpi: roh.dpi, bild, pdfBild: bild, dunkel: false };
+            return { i, dpi: roh.dpi, bild, pdfBild: bild, dunkel: false, quer: false, roh };
           }
-          return { i, dpi: roh.dpi, ...zumLesen(roh) };
+          return { i, dpi: roh.dpi, ...zumLesen(roh), roh };
         });
-        await Promise.all(stapel.map(async ({ i, bild, pdfBild, dpi }) => {
+        await Promise.all(stapel.map(async (seite) => {
+          const { i, dpi } = seite;
+          let { bild, pdfBild } = seite;
           let r: Lesung;
           if (!wahl.schrift) {
             // Wie im Browser (ocr.ts, schriftErkennen): Antiqua gegen Fraktur,
@@ -493,6 +495,14 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean): Pro
                 if (wahl.gewechselt >= 3) { wahl.schrift = andere; wahl.gewechselt = 0; }
               } else wahl.gewechselt = 0;
             }
+          }
+          if (seite.quer) {
+            // Um 90° gedreht: Lange Formen (Messer in einer Zeichnung) sehen
+            // aus wie Zeilen. Auch ungedreht lesen; das Bessere gilt, bei
+            // Gleichstand bleibt die Seite, wie sie war (Schleswig S. 30).
+            const g = zumLesen(seite.roh, true);
+            const rg = await seiteLesen(g.bild, wahl.schrift ?? "antiqua");
+            if (echteWoerter(rg.text) >= echteWoerter(r.text)) { r = rg; bild = g.bild; pdfBild = g.pdfBild; }
           }
           let text = lesetext(seitentextAufraeumen(r.text));
           // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.

@@ -240,9 +240,10 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
   const format = seitenFormat(seiten, a.dpi);
   for (const s of seiten) {
     const quer = s.breite > s.hoehe * 1.05;
-    // Querformat: gleiche Höhe, Breite nach dem Bild.
-    const seiteB = quer ? format.hoehe * (s.breite / s.hoehe) : format.breite;
-    const seiteH = format.hoehe;
+    // Querformat: gleiche Höhe, Breite nach dem Bild. Mit bekannter
+    // Auflösung (eine im Buch quer gedruckte Tafel): das Hochformat gedreht.
+    const seiteB = quer ? (s.dpi ? format.hoehe : format.hoehe * (s.breite / s.hoehe)) : format.breite;
+    const seiteH = quer && s.dpi ? format.breite : format.hoehe;
     const passend = Math.min(seiteB / s.breite, seiteH / s.hoehe);
     // Wahre Grösse, wenn bekannt – aber nie über die Seite hinaus.
     const mass = s.dpi ? Math.min(passend, 72 / s.dpi) : passend;
