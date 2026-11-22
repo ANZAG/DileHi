@@ -57,6 +57,8 @@ const LIEST = MODUS === "text" || NEU_BAUEN;
 const NEU = process.env.NEU === "true";
 const GRENZE = Number(process.env.GRENZE ?? "0") || 0;
 const WAHL = (process.env.QUELLEN ?? "").split(/[\s,]+/).filter(Boolean);
+/** Diese Quellen auslassen (etwa Handschriften, deren Prüfung noch nicht sicher greift). */
+const AUSSER = (process.env.AUSSER ?? "").split(/[\s,]+/).filter(Boolean);
 const OCR = join(process.cwd(), "public", "ocr");
 const MODELL = { antiqua: "deu", fraktur: "frak2021", latein: "lat", franzoesisch: "fra", englisch: "eng", latein_franzoesisch: "lat+fra" } as const;
 /** Die jeweils andere deutsche Schrift (zum Gegenlesen unsicherer Seiten). */
@@ -771,6 +773,7 @@ async function main() {
   const { quellen } = await werkstatt<{ quellen: Quelle[] }>("liste");
   let auswahl = quellen.filter((q) => (q.mime_type ?? "").includes("pdf") || /\.pdf$/i.test(q.file_name ?? "") || (MODUS === "doppelt" && WAHL.includes(q.id)));
   if (WAHL.length) auswahl = auswahl.filter((q) => WAHL.includes(q.id));
+  if (AUSSER.length) auswahl = auswahl.filter((q) => !AUSSER.includes(q.id));
   // Wenige Seiten mit Text: wahrscheinlich ein abgebrochener Lauf – noch einmal.
   if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten < 20);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);

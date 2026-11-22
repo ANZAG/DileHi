@@ -60,6 +60,10 @@ on:
         description: "Auch Quellen, die schon Text haben"
         type: boolean
         default: false
+      ausser:
+        description: "Diese Quellen auslassen (Kennungen, durch Komma getrennt)"
+        type: string
+        default: ""
       grenze:
         description: "Höchstens so viele Quellen in diesem Lauf (0 = alle)"
         type: string
@@ -126,6 +130,7 @@ jobs:
           QUELLEN: ${{ inputs.quellen }}
           NEU: ${{ inputs.neu }}
           GRENZE: ${{ inputs.grenze }}
+          AUSSER: ${{ inputs.ausser }}
           VOR: ${{ inputs.vor }}
           WEG: ${{ inputs.weg }}
           SEITEN: ${{ inputs.seiten }}
