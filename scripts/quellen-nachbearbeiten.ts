@@ -487,7 +487,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         // gelesen, ohne dass das Buch unlesbar wäre (Becker 02–06, Knötel).
         // Schlechte Einzelseiten fallen dort ohnehin weg (siehe unten), und der
         // Zeichensalat-Test bleibt.
-        if (!geprueft && weg !== "textebene" && sicherheiten.length >= 12) {
+        if (!geprueft && weg !== "textebene" && sicherheiten.length >= 30) {
           geprueft = true;
           const mitte = [...sicherheiten].sort((a, b) => a - b)[Math.floor(sicherheiten.length / 2)];
           if (mitte < UNLESBAR) {
@@ -553,7 +553,10 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           }
           let text = lesetext(seitentextAufraeumen(r.text));
           // Nur Seiten, auf denen die Erkennung überhaupt etwas fand, zählen für die Prüfung.
-          if (r.text.trim().length >= 40) sicherheiten.push(r.sicherheit);
+          // Nur Seiten mit nennenswertem Text zählen für die Prüfung – Titelei,
+          // Leerseiten und Tafeln am Anfang eines Bandes (Canivez 2, 3, 5)
+          // liessen sonst ein gedrucktes Buch als Handschrift abbrechen.
+          if (r.text.trim().length >= 200) sicherheiten.push(r.sicherheit);
           // Sehr unsicher und kaum echte Wörter: kein Text (sonst Zeichenmüll in der Suche).
           if (r.sicherheit < UNLESBAR && echteWoerter(text) < 30) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
           // Hatte die alte Textebene mehr echte Wörter, bleibt sie.
@@ -751,7 +754,8 @@ async function main() {
   const { quellen } = await werkstatt<{ quellen: Quelle[] }>("liste");
   let auswahl = quellen.filter((q) => (q.mime_type ?? "").includes("pdf") || /\.pdf$/i.test(q.file_name ?? "") || (MODUS === "doppelt" && WAHL.includes(q.id)));
   if (WAHL.length) auswahl = auswahl.filter((q) => WAHL.includes(q.id));
-  if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten === 0);
+  // Wenige Seiten mit Text: wahrscheinlich ein abgebrochener Lauf – noch einmal.
+  if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten < 20);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
 

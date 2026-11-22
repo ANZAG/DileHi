@@ -78,6 +78,11 @@ describe("Zeichensalat", () => {
     // So sah der Codex Manesse aus: viele Bruchstücke, die sich wiederholen.
     const manesse = Array.from({ length: 400 }, () => "Sautelanee. Derr, hen Nude, Sie, e -e -i äs, Leh ü e alu i ebe Are, Ae Cette, e dera").join(" ");
     expect(istZeichensalat([manesse])).toBe(true);
+    // Canivez: Statuten mit Anmerkungsapparat voller Kürzel und Zahlen – Text, kein Salat.
+    const canivez = Array.from({ length: 120 }, (_, i) =>
+      `${i % 9 + 1} In dioec. Cadurcen., OC, ${170 + i}. Cf. supra stat. ${40 + i}. Grandselve, in Vasconia, dioec. Tolosan., OC, 81. ` +
+      `${i + 3}. Item, ut monasteriorum Ordinis officiales in temporalibus constituti salubrius gubernent, et ad monasterii bona fidelius dispensanda.`).join("\n");
+    expect(istZeichensalat([canivez])).toBe(false);
   });
 });
 

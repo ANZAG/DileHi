@@ -180,7 +180,8 @@ export function textMasse(texte: string[]): { kennwoerter: number; vielfalt: num
  * (dafür 46 % Bruchstücke aus ein, zwei Buchstaben: „e“, „ae“, „Le..“).
  */
 export function wortartig(texte: string[]): { anteil: number; zahl: number } {
-  const teile = texte.join(" ").split(/\s+/).filter(Boolean).slice(0, 5000);
+  // Zahlen (Jahre, Seiten, Nummern) sind kein Zeichensalat und zählen nicht mit.
+  const teile = texte.join(" ").split(/\s+/).filter((t) => t && !/^[\d.,;:()\[\]\-–\/]+$/.test(t)).slice(0, 5000);
   const gut = teile.filter((t) => /^[(„"»«']*[\p{L}ſ]{3,}[-.,;:!?)"“'»«]*$/u.test(t)).length;
   return { anteil: teile.length ? gut / teile.length : 0, zahl: teile.length };
 }
@@ -189,11 +190,15 @@ export function wortartig(texte: string[]): { anteil: number; zahl: number } {
  * Zeichensalat statt Text? Erst ab einer Stichprobe von 1500 Wörtern. Zwei
  * Wege, die sich ergänzen: wenige kleine Wörter und kaum Wiederholungen
  * (`textMasse`, so sah der Sachsenspiegel aus), oder zu wenig, das
- * überhaupt wie Wörter aussieht (`wortartig`, so sah die Manesse aus).
+ * überhaupt wie Wörter aussieht, und dazu wenige kleine Wörter (`wortartig`,
+ * so sah die Manesse aus).
  */
 export function istZeichensalat(texte: string[]): boolean {
   const m = textMasse(texte);
   const w = wortartig(texte);
-  if (w.zahl >= 1500 && w.anteil < 0.6) return true;
+  // Wenig Wortartiges allein reicht nicht: Ein Anmerkungsapparat voller
+  // Kürzel („In dioec. Cadurcen., OC, 172.“, Canivez) hat ebenfalls wenig,
+  // aber viele kleine Wörter (et, in, ad). Die Manesse hatte beides nicht.
+  if (w.zahl >= 1500 && w.anteil < 0.6 && m.kennwoerter < 0.15) return true;
   return m.woerter >= 1500 && m.kennwoerter < 0.09 && m.vielfalt > 0.56;
 }
