@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_KARTE, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeFunction } from "@/lib/functionError";
 import { CheckCircle2, Loader2, ChevronRight, FileText } from "lucide-react";
@@ -249,11 +249,7 @@ const MembershipApplication = () => {
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full text-center space-y-4 p-8 rounded-xl border bg-card shadow"
-        >
+        <div className={`${EINBLENDEN_KARTE} max-w-md w-full text-center space-y-4 p-8 rounded-xl border bg-card shadow`}>
           <CheckCircle2 size={48} className="mx-auto text-green-600" />
           <h1 className="font-serif text-2xl font-bold">Antrag eingegangen!</h1>
           <p className="text-muted-foreground text-sm">
@@ -267,7 +263,7 @@ const MembershipApplication = () => {
           >
             Zurück zur Startseite <ChevronRight size={14} />
           </Link>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -284,7 +280,7 @@ const MembershipApplication = () => {
       />
 
       <div className="container py-10 max-w-xl px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div className={EINBLENDEN_SEITE}>
 
           {/* ── CI-Header (angelehnt ans Briefpapier) ── */}
           <div className="mb-8 pb-6 border-b border-border">
@@ -483,7 +479,7 @@ const MembershipApplication = () => {
               * Pflichtfelder
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { EINBLENDEN, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery } from "@tanstack/react-query";
 import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,7 +90,7 @@ const Dashboard = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <div className={EINBLENDEN_SEITE}>
         {/*
           Wer als Erster hereinkommt, steht sonst vor einem Bereich, in dem
           nichts steht, und weiss nicht, wo er anfangen soll. Der Streifen
@@ -163,11 +163,11 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mt-6">
           {cards.map((card: any, i) => (
-            <motion.div
+            <div
               key={card.path + card.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              className={EINBLENDEN}
+              // Die Kacheln kommen nacheinander, wie vorher mit framer-motion.
+              style={{ animationDelay: `${i * 100}ms` }}
             >
               <Link
                 to={card.path}
@@ -178,10 +178,10 @@ const Dashboard = () => {
                 <h2 className="font-serif text-sm sm:text-lg font-semibold mb-1 break-words hyphens-auto" lang="de">{card.title}</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground break-words">{card.desc}</p>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

@@ -118,6 +118,11 @@ export default defineConfig(({ mode }) => {
       format: "es",
     },
     build: {
+      // Die Liste, welcher Programmteil welche anderen braucht
+      // (.vite/manifest.json). scripts/vorabzug.mjs liest daraus die
+      // modulepreload-Zeilen der fertigen Seiten und löscht die Datei danach
+      // wieder aus dist/ – ausgeliefert wird sie nicht.
+      manifest: true,
       rollupOptions: {
         output: {
           // Die grossen Bibliotheken in eigene Dateien. Sie ändern sich nur

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Download, Link as LinkIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { useEvents } from "@/components/events/useEvents";
@@ -65,7 +65,7 @@ const EventsPage = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <NeuHier
           tour="veranstaltungen"
           text="Zum ersten Mal hier? Kurz gezeigt, wie Zusagen und Anmeldungen laufen."
@@ -173,7 +173,7 @@ const EventsPage = () => {
           expandedId={expandedId}
           setExpandedId={setExpandedId}
         />
-      </motion.div>
+      </div>
 
       {/* Create Event Dialog */}
       <Dialog open={ev.showCreate} onOpenChange={ev.setShowCreate}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -364,7 +364,7 @@ const MemberMap = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Link
           to="/intern"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
@@ -420,7 +420,7 @@ const MemberMap = () => {
             <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };

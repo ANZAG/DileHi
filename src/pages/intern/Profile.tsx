@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PushToggle from "@/components/PushToggle";
@@ -364,7 +364,7 @@ const Profile = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <div className="flex items-center justify-between mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={16} /> Zurück
@@ -830,7 +830,7 @@ const Profile = () => {
             Speichern
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

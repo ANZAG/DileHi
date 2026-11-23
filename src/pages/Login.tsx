@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { EINBLENDEN } from "@/lib/einblenden";
 import { Lock, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
@@ -104,7 +104,7 @@ const Login = () => {
   if (forgotMode) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+        <div className={`${EINBLENDEN} w-full max-w-sm`}>
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
               <Lock size={24} />
@@ -143,14 +143,14 @@ const Login = () => {
               <ArrowLeft size={14} /> Zurück zur Anmeldung
             </button>
           </form>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-sm">
+      <div className={`${EINBLENDEN} w-full max-w-sm`}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
             <Lock size={24} />
@@ -213,7 +213,7 @@ const Login = () => {
             Passwort vergessen?
           </button>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 };

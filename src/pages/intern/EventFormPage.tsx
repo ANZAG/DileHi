@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { ArrowLeft, FileText, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,7 +80,7 @@ export default function EventFormPage({ initialTab }: { initialTab: Tab }) {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <div className="flex items-center gap-3 mb-4">
           <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Zurück">
             <ArrowLeft size={20} />
@@ -119,7 +119,7 @@ export default function EventFormPage({ initialTab }: { initialTab: Tab }) {
         <div hidden={tab !== "anmeldungen"}>
           <EventFormEvaluation embedded />
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

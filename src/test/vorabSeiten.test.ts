@@ -4,9 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 // Bauwerkzeug, absichtlich kein Teil der Anwendung -- deshalb aus scripts/.
 import {
-  APP_ADRESSEN, APP_BEREICHE, apacheHauptadresse, apacheSeiten, bildAdressen, dokument, fehlerDokument,
-  gegenstueck, hauptadressePruefen, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument,
-  seitenStand, sichererSlug, titelbild, vorladeZeile,
+  APP_ADRESSEN, APP_BEREICHE, MANIFEST_DATEI, QUELLE_KONTAKT, QUELLE_SEITE, apacheHauptadresse, apacheSeiten,
+  bildAdressen, dokument, fehlerDokument, gegenstueck, hauptadressePruefen, mitModulVorladen, mitVorab,
+  mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand, sichererSlug, titelbild, vorladeModule,
+  vorladeZeile,
 } from "../../scripts/vorabSeiten.mjs";
 
 /**
@@ -220,5 +221,115 @@ describe("Schneller Start", () => {
     // Und eine ohne CORS für die Bilder.
     expect(aus).toContain('<link rel="preconnect" href="https://abc.supabase.co" />');
     expect(mitVorverbindung(vorlage, "kaputt")).toBe(vorlage);
+  });
+});
+
+describe("modulepreload für die Programmteile einer Seite", () => {
+  // So sieht Vites Liste aus (build.manifest), auf das Nötige gekürzt.
+  const manifest = {
+    "index.html": {
+      file: "assets/index-AAAA.js", isEntry: true, src: "index.html",
+      imports: ["_react-BBBB.js", "_supabase-CCCC.js"],
+      dynamicImports: ["src/pages/SeiteAnzeigen.tsx", "src/pages/Kontakt.tsx", "src/pages/Login.tsx"],
+      css: ["assets/index-DDDD.css"],
+    },
+    "_react-BBBB.js": { file: "assets/react-BBBB.js" },
+    "_supabase-CCCC.js": { file: "assets/supabase-CCCC.js", imports: ["_react-BBBB.js"] },
+    "src/pages/SeiteAnzeigen.tsx": {
+      file: "assets/SeiteAnzeigen-EEEE.js", isDynamicEntry: true, src: "src/pages/SeiteAnzeigen.tsx",
+      // Programmteile binden auch das Hauptprogramm ein – ein Kreis.
+      imports: ["_react-BBBB.js", "index.html", "_bausteine-FFFF.js"],
+      dynamicImports: ["src/components/Galerie.tsx"],
+    },
+    "_bausteine-FFFF.js": { file: "assets/bausteine-FFFF.js", imports: ["_SEO-GGGG.js", "src/pages/SeiteAnzeigen.tsx"], css: ["assets/bausteine-HHHH.css"] },
+    "_SEO-GGGG.js": { file: "assets/SEO-GGGG.js", imports: ["_react-BBBB.js"] },
+    "src/components/Galerie.tsx": { file: "assets/Galerie-IIII.js", isDynamicEntry: true },
+    "src/pages/Kontakt.tsx": { file: "assets/Kontakt-JJJJ.js", isDynamicEntry: true, imports: ["index.html", "_SEO-GGGG.js"] },
+    "src/pages/Login.tsx": { file: "assets/Login-KKKK.js", isDynamicEntry: true, imports: ["index.html"] },
+    "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2": { file: "assets/inter-latin-400-normal-LLLL.woff2" },
+  };
+  const gebaut = vorlage.replace(
+    '<script type="module" src="/assets/index.js"></script>',
+    '<script type="module" crossorigin src="/assets/index-AAAA.js"></script>\n    <link rel="modulepreload" crossorigin href="/assets/react-BBBB.js">',
+  );
+
+  it("nennt den Programmteil der Seite und alles, was er fest einbindet", () => {
+    expect(vorladeModule(manifest, QUELLE_SEITE)).toEqual([
+      "assets/SeiteAnzeigen-EEEE.js", "assets/bausteine-FFFF.js", "assets/SEO-GGGG.js",
+    ]);
+    expect(vorladeModule(manifest, QUELLE_KONTAKT)).toEqual(["assets/Kontakt-JJJJ.js", "assets/SEO-GGGG.js"]);
+  });
+
+  it("lässt weg, was das Hauptprogramm schon lädt oder erst bei Bedarf kommt", () => {
+    const dateien = vorladeModule(manifest, QUELLE_SEITE);
+    // Hauptprogramm und seine Bibliotheken: Die Hinweise setzt Vite selbst.
+    expect(dateien).not.toContain("assets/index-AAAA.js");
+    expect(dateien).not.toContain("assets/react-BBBB.js");
+    // Die Galerie lädt nur, wer eine auf der Seite hat.
+    expect(dateien).not.toContain("assets/Galerie-IIII.js");
+    // Nur Programm, kein CSS: Ein Stylesheet ist kein Modul.
+    expect(dateien.every((d) => d.endsWith(".js"))).toBe(true);
+  });
+
+  it("gibt bei einer unbrauchbaren Liste nichts zurück, statt zu scheitern", () => {
+    expect(vorladeModule(null, QUELLE_SEITE)).toEqual([]);
+    expect(vorladeModule("kaputt", QUELLE_SEITE)).toEqual([]);
+    expect(vorladeModule({}, QUELLE_SEITE)).toEqual([]);
+    expect(vorladeModule(manifest, "src/pages/GibtEsNicht.tsx")).toEqual([]);
+    // Ohne Hauptprogramm ist nicht zu sagen, was schon geladen wird.
+    const ohneEinstieg = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "index.html"));
+    expect(vorladeModule(ohneEinstieg, QUELLE_SEITE)).toEqual([]);
+    // Ein Verweis ins Leere oder ein Name mit Sonderzeichen kommt nicht ins HTML.
+    const schief = {
+      ...manifest,
+      "src/pages/SeiteAnzeigen.tsx": { file: "assets/SeiteAnzeigen-EEEE.js", imports: ["_fehlt.js", "_boese.js"] },
+      "_boese.js": { file: 'assets/x"><script>.js' },
+    };
+    expect(vorladeModule(schief, QUELLE_SEITE)).toEqual(["assets/SeiteAnzeigen-EEEE.js"]);
+  });
+
+  it("setzt die Zeilen in den Kopf, so wie Vite seine eigenen schreibt", () => {
+    const html = mitModulVorladen(gebaut, manifest, QUELLE_SEITE);
+    for (const datei of ["SeiteAnzeigen-EEEE", "bausteine-FFFF", "SEO-GGGG"]) {
+      expect(html).toContain(`<link rel="modulepreload" crossorigin href="/assets/${datei}.js">`);
+    }
+    expect(html.match(/rel="modulepreload"/g)).toHaveLength(4);
+    expect(html.indexOf("SeiteAnzeigen-EEEE")).toBeLessThan(html.indexOf("</head>"));
+    // Zweimal angewandt bleibt es bei einer Zeile je Datei.
+    expect(mitModulVorladen(html, manifest, QUELLE_SEITE)).toBe(html);
+  });
+
+  it("übernimmt die Basisadresse vom Hauptprogramm", () => {
+    const unterordner = gebaut.split('"/assets/').join('"/verein/assets/');
+    expect(mitModulVorladen(unterordner, manifest, QUELLE_KONTAKT))
+      .toContain('<link rel="modulepreload" crossorigin href="/verein/assets/Kontakt-JJJJ.js">');
+  });
+
+  it("lässt die Vorlage in Ruhe, wenn die Liste nicht zu ihr gehört", () => {
+    // Das Hauptprogramm heisst im HTML anders als in der Liste: anderer Bau.
+    expect(mitModulVorladen(vorlage, manifest, QUELLE_SEITE)).toBe(vorlage);
+    expect(mitModulVorladen(gebaut, null, QUELLE_SEITE)).toBe(gebaut);
+  });
+
+  it("bleibt in den fertigen Dokumenten erhalten", () => {
+    const seite = { slug: "verein", title: "Über uns", content: { content: [] } };
+    const html = seitenDokument(mitModulVorladen(gebaut, manifest, QUELLE_SEITE), { seite, marke, menue });
+    expect(html).toContain('href="/assets/SeiteAnzeigen-EEEE.js"');
+    expect(fehlerDokument(mitModulVorladen(gebaut, manifest, QUELLE_SEITE), { marke })).toContain('href="/assets/bausteine-FFFF.js"');
+  });
+
+  it("ist verdrahtet: Vite schreibt die Liste, der Vorabzug liest und löscht sie", () => {
+    const wurzel = path.resolve(__dirname, "../..");
+    expect(fs.readFileSync(path.join(wurzel, "vite.config.ts"), "utf8")).toMatch(/^\s*manifest: true,/m);
+    const vorabzug = fs.readFileSync(path.join(wurzel, "scripts/vorabzug.mjs"), "utf8");
+    expect(MANIFEST_DATEI).toBe(".vite/manifest.json");
+    expect(vorabzug).toContain("path.join(DIST, MANIFEST_DATEI)");
+    expect(vorabzug).toContain("rmSync(path.dirname(datei)");
+    expect(vorabzug).toContain("mitModulVorladen(eigene, manifest, QUELLE_SEITE)");
+    expect(vorabzug).toContain("mitModulVorladen(vorlageSeite, manifest, QUELLE_KONTAKT)");
+    // Die Quellen gibt es unter diesen Namen – sonst fände die Liste nichts.
+    for (const quelle of [QUELLE_SEITE, QUELLE_KONTAKT]) {
+      expect(fs.existsSync(path.join(wurzel, quelle))).toBe(true);
+    }
   });
 });

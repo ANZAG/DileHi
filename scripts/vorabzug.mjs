@@ -21,11 +21,12 @@
 // für die Seiten: Ohne Seitenliste kein 404 – sonst sagte der Server zu jeder
 // Seite „gibt es nicht".
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
+  MANIFEST_DATEI, QUELLE_KONTAKT, QUELLE_SEITE,
   apacheHauptadresse, apacheSeiten, bildAdressen, dateiVon, fehlerDokument, hauptadressePruefen,
-  kontaktDokument, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand,
+  kontaktDokument, mitModulVorladen, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand,
   shellDokument, sichererSlug,
 } from "./vorabSeiten.mjs";
 
@@ -82,7 +83,31 @@ function einsetzen(datei, marke, text) {
   writeFileSync(ziel, alt.replace(zeile, () => text));
 }
 
+/**
+ * Vites Liste der Programmteile lesen und aus dem Build nehmen.
+ *
+ * Gebraucht wird sie nur hier, für die modulepreload-Zeilen der fertigen
+ * Seiten. Auf dem Webspace hätte sie nichts verloren: Sie zählt jede
+ * Quelldatei samt Programmteil auf. Deshalb weg damit, auch wenn danach
+ * nichts abgeholt wird. Fehlt sie oder ist sie unlesbar, gibt es keine
+ * Hinweise – die Seiten laden dann wie bisher.
+ */
+function manifestHolen() {
+  const datei = path.join(DIST, MANIFEST_DATEI);
+  let manifest = null;
+  try {
+    if (existsSync(datei)) manifest = JSON.parse(readFileSync(datei, "utf8"));
+  } catch (e) {
+    melden(`Liste der Programmteile unlesbar (${e.message}) – kein modulepreload.`);
+  }
+  try {
+    rmSync(path.dirname(datei), { recursive: true, force: true });
+  } catch { /* bleibt liegen; schadet nicht */ }
+  return manifest;
+}
+
 async function main() {
+  const manifest = manifestHolen();
   if (!url || !schluessel) {
     melden("keine Datenbankadresse im Bau – index.html bleibt, wie sie ist.");
     return;
@@ -153,12 +178,13 @@ async function main() {
     }
     if (seite.slug === "kontakt") continue; // die feste Kontaktseite hat Vorrang (src/App.tsx)
     const eigene = shellDokument(mitVorab(roh, { ...gemeinsam, seite: seitenStand(seite) }), { marke: branding });
-    schreiben(dateiVon(seite.slug), seitenDokument(eigene, { seite, marke: branding, menue, bilder }));
+    schreiben(dateiVon(seite.slug), seitenDokument(mitModulVorladen(eigene, manifest, QUELLE_SEITE), { seite, marke: branding, menue, bilder }));
     fertig.push(seite.slug);
   }
-  schreiben(dateiVon("kontakt"), kontaktDokument(vorlageSeite, { marke: branding, menue }));
+  schreiben(dateiVon("kontakt"), kontaktDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_KONTAKT), { marke: branding, menue }));
   fertig.push("kontakt");
-  schreiben("404.html", fehlerDokument(vorlageSeite, { marke: branding }));
+  // Auch die Fehlerseite zeigt SeiteAnzeigen (Sammelroute in src/App.tsx).
+  schreiben("404.html", fehlerDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_SEITE), { marke: branding }));
   melden(`Vorab-HTML für ${fertig.length} Seiten: ${fertig.join(", ")}.`);
 
   // Seiten mit Sonderzeichen im Namen bekämen von den Regeln ein 404. Dann

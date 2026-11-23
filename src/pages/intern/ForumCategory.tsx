@@ -2,7 +2,7 @@ import { lazy, Suspense, type ComponentProps } from "react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { ArrowLeft, Pin, Lock, Plus, MessageSquare, Archive, ChevronDown } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
@@ -95,7 +95,7 @@ export default function ForumCategory() {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Brotkrumen
           teile={[
             { label: "Mitgliederbereich", to: "/intern" },
@@ -245,7 +245,7 @@ export default function ForumCategory() {
             )}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

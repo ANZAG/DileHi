@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Trash2, Copy, Link as LinkIcon, FileText, Settings, Save, RotateCcw } from "lucide-react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import type { FormField } from "@/components/event-forms/types";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
@@ -254,7 +254,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
       <>{children}</>
     ) : (
       <div className={SEITE}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div className={EINBLENDEN_SEITE}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
@@ -269,7 +269,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
           />
 
           {children}
-        </motion.div>
+        </div>
       </div>
     );
 
