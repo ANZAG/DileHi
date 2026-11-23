@@ -180,7 +180,8 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Scan aus dem Kopierer. Danach steht der Text auch in der Datenbank und
    ist in der Quellensammlung durchsuchbar.
 
-   Unter *Angaben fürs PDF* (freiwillig): Autor, Jahr und die
+   Unter *Angaben fürs PDF* (freiwillig): Titel (wie auf dem Titelblatt,
+   statt des kurzen Namens fürs Ablegen), Autor (voller Name), Jahr und die
    Seitenzählung – „PDF-Seite 3 ist Seite 1 im Buch"; die Seiten davor
    zählen römisch. Der PDF-Leser zeigt dann die Seitenzahlen des Buches.
 
@@ -413,6 +414,19 @@ nachbearbeiten → Run workflow.
   Angaben bleiben, der Text der Seiten kommt in die Suche. Die alte Fassung
   bleibt im Versionsverlauf. Mit *austauschen-probe* nur als Artefakt zum
   Ansehen. Danach kann das PDF im Posteingang gelöscht werden.
+  Gelesen wird in der echten Grösse des Fotos (nicht hochgerechnet), und
+  hat eine Seite unsichere Wörter, zusätzlich ×0,8 und ×1,2 – die Lesung
+  mit den wenigsten unsicheren Wörtern gilt (Stein S. 26). Die Bilder der
+  herausgenommenen Seiten fallen aus der Datei.
+- **angaben:** Titel, Autor, Jahr, Thema und Seitenbeschriftung ins PDF
+  genau einer Quelle schreiben, ohne die Seiten anzufassen. *angaben* etwa
+  `titel=Napoleons Verbündete in Deutschland, Band 2: Nassau und
+  Oldenburg; autor=Otto von Pivka; jahr=1979; zaehlung=auto`. Mit
+  `zaehlung=auto` wird die Zählung aus den gedruckten Seitenzahlen
+  bestimmt, auch in Abschnitten: eingeschobene Bildtafeln heissen
+  „Tafel 1, 2 …“, danach geht die Zählung weiter. `zaehlung=5:1` heisst
+  „PDF-Seite 5 ist Seite 1“. Neue Fassung, die alte bleibt im
+  Versionsverlauf.
 - **zurueck:** für die unter *quellen* genannten Quellen die letzte Fassung
   vor dem Zeitpunkt *vor* wieder zur aktuellen machen (SharePoint legt dafür
   eine neue Fassung an, nichts geht verloren). So wurden Stein, Pivka und
