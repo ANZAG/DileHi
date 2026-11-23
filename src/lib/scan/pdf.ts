@@ -1,5 +1,5 @@
 import {
-  PDFDocument, PDFName, PDFNumber, PDFString, StandardFonts, TextRenderingMode, beginText, endText,
+  PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, PDFString, StandardFonts, TextRenderingMode, beginText, endText,
   popGraphicsState, pushGraphicsState, setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode,
   showText, type PDFFont,
 } from "pdf-lib";
@@ -279,4 +279,29 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
   }
   if (a.bereiche ?? a.zaehlung) seitenBeschriftung(pdf, (a.bereiche ?? a.zaehlung)!);
   return await pdf.save();
+}
+
+/**
+ * Verwaiste Objekte entfernen: pdf-lib schreibt beim Speichern alles, was
+ * je geladen wurde – auch die Bilder herausgenommener Seiten. Ohne das
+ * wuchs Stein mit jedem Seitenaustausch um gut 1 MB. Gibt die Zahl der
+ * entfernten Objekte zurück.
+ */
+export function verwaisteEntfernen(pdf: PDFDocument): number {
+  const ctx = pdf.context;
+  const erreicht = new Set<string>();
+  const offen: unknown[] = [ctx.trailerInfo.Root, ctx.trailerInfo.Info, ctx.trailerInfo.Encrypt];
+  while (offen.length) {
+    const o = offen.pop();
+    if (o instanceof PDFRef) {
+      if (erreicht.has(o.toString())) continue;
+      erreicht.add(o.toString());
+      offen.push(ctx.lookup(o));
+    } else if (o instanceof PDFDict) offen.push(...o.values());
+    else if (o instanceof PDFArray) offen.push(...o.asArray());
+    else if (o instanceof PDFStream) offen.push(o.dict);
+  }
+  let weg = 0;
+  for (const [ref] of ctx.enumerateIndirectObjects()) if (!erreicht.has(ref.toString())) { ctx.delete(ref); weg++; }
+  return weg;
 }

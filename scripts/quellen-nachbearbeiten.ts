@@ -46,7 +46,7 @@ import jpeg from "jpeg-js";
 import { PDFDocument } from "pdf-lib";
 import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/aufbereitung";
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
-import { pdfBauen, seitenBeschriftung, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
+import { pdfBauen, seitenBeschriftung, textEbeneEinfuegen, verwaisteEntfernen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
 import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungBereiche, zaehlungFinden, type Bereich } from "../src/lib/scan/text";
@@ -758,6 +758,8 @@ async function austauschen(q: Quelle, ordner: string): Promise<void> {
       writeFileSync(join("neu", `ocr-${n}.txt`), r.text);
     }
   }
+  // Die Bilder der herausgenommenen Seiten nicht mitschleppen.
+  verwaisteEntfernen(alt);
   const bytes = await alt.save();
   console.log(`  ${Math.round((readFileSync(altDatei).length / 1e6) * 10) / 10} MB → ${Math.round((bytes.length / 1e6) * 10) / 10} MB`);
   if (MODUS === "austauschen-probe") {
@@ -844,7 +846,9 @@ async function main() {
     if (thema) pdf.setSubject(thema);
     if (a.jahr) pdf.setKeywords([[pdf.getKeywords(), a.jahr].filter(Boolean).join(", ")]);
     if (bereiche) seitenBeschriftung(pdf, bereiche);
+    const weg = verwaisteEntfernen(pdf);
     const bytes = await pdf.save();
+    console.log(`  ${weg} verwaiste Objekte entfernt; ${Math.round((readFileSync(datei).length / 1e6) * 10) / 10} MB → ${Math.round((bytes.length / 1e6) * 10) / 10} MB`);
     console.log(`${q.title}: Titel „${a.titel ?? "–"}“, Autor „${a.autor ?? "–"}“, Thema „${thema || "–"}“, Zählung ${JSON.stringify(bereiche ?? "unverändert")}`);
     const { uploadUrl } = await werkstatt<{ uploadUrl: string }>("ersetzen-sitzung", { sourceId: q.id });
     await hochladen(uploadUrl, bytes);
