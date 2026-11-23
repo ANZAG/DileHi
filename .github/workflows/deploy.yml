@@ -47,6 +47,11 @@ on:
   # Von Hand: Actions -> Build & Deploy -> Run workflow, etwa gleich nach dem
   # Veroeffentlichen einer neuen Seite.
   workflow_dispatch:
+    inputs:
+      alles:
+        description: 'Alles neu hochladen (auch unveränderte Dateien in assets/ und ocr/)'
+        type: boolean
+        default: false
 jobs:
   seo-checks:
     runs-on: ubuntu-latest
@@ -58,6 +63,9 @@ jobs:
           # eingebautes WebSocket und fs.globSync – lokal (Node 24) grün,
           # hier rot, und das am 11.09.2026 mitten im Ausrollen.
           node-version: 24
+          # Die heruntergeladenen Pakete zwischen den Läufen aufheben: spart
+          # bei jedem Lauf das erneute Laden von npm (zweimal je Push).
+          cache: npm
       - name: Install
         run: npm install
       - name: ESLint (alt-text, label-has-associated-control, a11y)
@@ -101,6 +109,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: npm
       # Bis zum Umzug stand die Adresse der Datenbank in einer eingecheckten
       # .env. Jeder Build ohne eigene Angaben sprach damit mit der Datenbank
       # von DileHi – auch der eines fremden Vereins. Jetzt holt der Build sie
@@ -321,6 +330,8 @@ jobs:
           # die erste Zeile, die geaendert gehoert: Sonst laedt die Kopie in
           # das Verzeichnis des Vereins, von dem sie abstammt.
           ZIEL: /dilehi.de/
+          # „Alles neu hochladen" beim Start von Hand (sonst leer).
+          ALLES: ${{ inputs.alles }}
         run: |
           # Eine Kopie dieses Repos hat noch keine FTP-Zugaenge. Ohne diese
           # Zeilen scheitert dort jeder Push an einer lftp-Meldung, die
@@ -402,19 +413,44 @@ jobs:
           # `--ignore-time` nimmt den Zeitstempel dort heraus, und von den 3 MB
           # geht nur hoch, was neu ist.
           #
-          # Alles ausserhalb von assets/ (index.html, sw.js, .htaccess,
-          # robots.txt, Symbole) traegt keine Pruefsumme im Namen und geht
-          # jedes Mal hoch. Das sind ein paar Dutzend Kilobyte.
+          # Alles ausserhalb von assets/ und ocr/ (index.html, sw.js,
+          # .htaccess, robots.txt, Symbole, _vorab/) traegt keine Pruefsumme
+          # im Namen und geht jedes Mal hoch. Das sind ein paar Dutzend
+          # Kilobyte.
           #
           # --parallel=4: vier Dateien gleichzeitig. Bei vielen kleinen Dateien
           # ist nicht die Leitung der Engpass, sondern das Hin und Her fuer
           # jede einzelne.
-          if [ -d dist/assets ]; then
-            lftp -c "$ZUGANG mirror --reverse --verbose --parallel=4 --ignore-time ./dist/assets/ ${ZIEL}assets/"
+          #
+          # ocr/ (Texterkennung: Sprachmodelle, Rechenkerne, das Modell zum
+          # Glaetten -- zusammen 62 MB) gehoert nicht zu „ein paar Dutzend
+          # Kilobyte". Die Dateien kommen bei jedem Build unveraendert aus
+          # node_modules und ocr-modelle/, bekamen aber jedes Mal einen neuen
+          # Zeitstempel und gingen deshalb bei JEDEM Lauf komplett hoch, auch
+          # jede Nacht. Sie aendern sich nur mit einer neuen Fassung von
+          # tesseract.js oder onnxruntime -- und dann aendert sich ihre
+          # Groesse. Also auch hier `--ignore-time`: hoch geht nur, was neu ist
+          # oder eine andere Groesse hat.
+          #
+          # Die eine Luecke: eine geaenderte Datei mit auf das Byte gleicher
+          # Groesse bliebe liegen. Dafuer gibt es beim Start von Hand den
+          # Haken „Alles neu hochladen" -- dann zaehlt wieder der Zeitstempel,
+          # und alles geht hoch.
+          GLEICH="--ignore-time"
+          if [ "$ALLES" = "true" ]; then
+            GLEICH=""
+            echo "::notice::Alles wird neu hochgeladen (von Hand verlangt)."
           fi
-          lftp -c "$ZUGANG mirror --reverse --delete --verbose --parallel=4 --exclude '^assets/' $AUSNAHME ./dist/ $ZIEL"
           if [ -d dist/assets ]; then
-            lftp -c "$ZUGANG mirror --reverse --delete --verbose --parallel=4 --ignore-time ./dist/assets/ ${ZIEL}assets/"
+            lftp -c "$ZUGANG mirror --reverse --verbose --parallel=4 $GLEICH ./dist/assets/ ${ZIEL}assets/"
+          fi
+          # Vor der index.html: Die Seite ruft die Dateien in ocr/ beim Namen.
+          if [ -d dist/ocr ]; then
+            lftp -c "$ZUGANG mirror --reverse --delete --verbose --parallel=4 $GLEICH ./dist/ocr/ ${ZIEL}ocr/"
+          fi
+          lftp -c "$ZUGANG mirror --reverse --delete --verbose --parallel=4 --exclude '^assets/' --exclude '^ocr/' $AUSNAHME ./dist/ $ZIEL"
+          if [ -d dist/assets ]; then
+            lftp -c "$ZUGANG mirror --reverse --delete --verbose --parallel=4 $GLEICH ./dist/assets/ ${ZIEL}assets/"
           fi
 
       # Hat es geklappt?
