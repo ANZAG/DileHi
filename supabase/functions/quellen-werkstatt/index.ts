@@ -39,6 +39,10 @@ import { deleteFile, fileInFolder, graph, graphJson, graphReason, INBOX, isInFol
  *                     nur, wenn das PDF mindestens 100 Seiten und mindestens
  *                     die Hälfte seiner Seiten mit Text in der Suche hat.
  *                     Die Datei geht in den Papierkorb der Website.
+ *   kopie-loeschen    Eine Kopie eines PDFs (anders komprimiert, anderer
+ *                     Name) entfernen – nur, wenn das Original (originalId)
+ *                     ein PDF mit gleich vielen Seiten ist und mindestens
+ *                     100 Seiten und die Hälfte seiner Seiten mit Text hat.
  */
 
 const corsHeaders = {
@@ -203,6 +207,30 @@ Deno.serve(async (req) => {
         if (error) throw error;
         await deleteFile(await target(), q.drive_item_id);
         return json(200, { geloescht: q.id, bleibt: bleibt.id });
+      }
+
+      case "kopie-loeschen": {
+        const q = await quelle();
+        const { data: original } = await admin.from("sources").select("id, title, drive_item_id, file_name")
+          .eq("id", String(body.originalId ?? "")).maybeSingle();
+        const istPdf = (n: string | null | undefined) => /\.pdf$/i.test(n ?? "");
+        if (!original?.drive_item_id || original.id === q.id || original.drive_item_id === q.drive_item_id) throw new Error("originalId ist keine andere Quelle mit Datei – nicht gelöscht.");
+        if (!istPdf(q.file_name ?? q.title) || !istPdf((original.file_name as string | null) ?? (original.title as string))) throw new Error("Beide müssen PDFs sein – nicht gelöscht.");
+        const zahl = async (key: string, nurText: boolean) => {
+          let abfrage = admin.from("source_pages").select("*", { count: "exact", head: true }).eq("file_key", key);
+          if (nurText) abfrage = abfrage.neq("body", "");
+          return (await abfrage).count ?? 0;
+        };
+        const [seitenKopie, seitenOriginal, mitText] = await Promise.all([zahl(q.drive_item_id, false), zahl(original.drive_item_id as string, false), zahl(original.drive_item_id as string, true)]);
+        if (!seitenKopie || seitenKopie !== seitenOriginal) throw new Error(`Seitenzahl verschieden (${seitenKopie} / ${seitenOriginal}) – nicht gelöscht.`);
+        if (mitText < 100 || mitText < seitenOriginal / 2) throw new Error(`Das Original hat erst ${mitText} von ${seitenOriginal} Seiten mit Text – nicht gelöscht.`);
+        const { count } = await admin.from("library_sources").select("*", { count: "exact", head: true }).eq("collection_source_id", q.id);
+        if (count) throw new Error("Auf diese Quelle wird verwiesen – nicht gelöscht.");
+        await admin.from("source_pages").delete().eq("file_key", q.drive_item_id);
+        const { error } = await admin.from("sources").delete().eq("id", q.id);
+        if (error) throw error;
+        await deleteFile(await target(), q.drive_item_id);
+        return json(200, { geloescht: q.id, original: original.id, seiten: seitenOriginal });
       }
 
       case "txt-loeschen": {

@@ -883,6 +883,23 @@ async function main() {
     return;
   }
 
+  if (MODUS === "kopie-loeschen") {
+    // Kopien eines PDFs (anders komprimiert) entfernen. QUELLEN: Paare
+    // „kopie-Kennung:original-Kennung“ (die Werkstatt prüft Seitenzahl und Text).
+    for (const paar of WAHL) {
+      const [kopie, original] = paar.split(":");
+      if (!kopie || !original) throw new Error(`Kein Paar kopie:original: „${paar}“`);
+      const k = quellen.find((q) => q.id === kopie);
+      try {
+        const r = await werkstatt<{ seiten: number }>("kopie-loeschen", { sourceId: kopie, originalId: original });
+        console.log(`${k?.title ?? kopie}: gelöscht (Original mit ${r.seiten} Seiten bleibt)`);
+      } catch (err) {
+        console.log(`${k?.title ?? kopie}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    return;
+  }
+
   if (MODUS === "txt-loeschen") {
     // Textdateien entfernen, deren Inhalt das PDF jetzt selbst durchsuchbar
     // hat. QUELLEN: Paare „txt-Kennung:pdf-Kennung“ (die Werkstatt prüft,
