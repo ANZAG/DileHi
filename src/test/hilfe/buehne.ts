@@ -115,6 +115,60 @@ create function storage.foldername(name text) returns text[] language sql immuta
 let installed: Promise<PGlite> | undefined;
 
 /**
+ * Unter diesen Namen reicht `buehneAbzug.ts` den Abzug an die Testdateien
+ * weiter: wo er liegt und zu welchem Stand der Migrationen er gehört.
+ */
+export const ABZUG_DATEI = "DILEHI_BUEHNE_ABZUG";
+export const ABZUG_STAND = "DILEHI_BUEHNE_ABZUG_STAND";
+
+/** Alle Migrationen in der Reihenfolge, in der sie eingespielt werden. */
+async function migrationen(): Promise<{ name: string; sql: string }[]> {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  return readdirSync("supabase/migrations")
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((name) => ({
+      name,
+      sql: readFileSync(`supabase/migrations/${name}`, "utf-8").replace(/\r\n/g, "\n"),
+    }));
+}
+
+/**
+ * Woran man erkennt, ob ein Abzug noch zu den Dateien passt.
+ *
+ * Der Abzug entsteht einmal je Lauf. Im Beobachtungsmodus dauert ein Lauf
+ * Stunden, und wer dabei eine Migration ändert, bekäme sonst weiter die
+ * Datenbank von vorhin – grün, aber am Alten geprüft.
+ */
+async function stand(dateien: { name: string; sql: string }[]): Promise<string> {
+  const { createHash } = await import("node:crypto");
+  const hash = createHash("sha256").update(SUPABASE);
+  for (const { name, sql } of dateien) hash.update(`\0${name}\0${sql}`);
+  return hash.digest("hex");
+}
+
+/** Leere Datenbank, darauf alle Migrationen – der lange Weg. */
+async function aufbauen(dateien: { name: string; sql: string }[]): Promise<PGlite> {
+  const db = await leereDatenbank();
+  for (const { name, sql } of dateien) await einspielen(db, name, sql);
+  return db;
+}
+
+/**
+ * Die fertige Installation als Abzug des Datenverzeichnisses.
+ *
+ * Nur für `buehneAbzug.ts`. Ungepackt: Packen und Entpacken kosten mehr Zeit,
+ * als die 40 MB auf der Platte wert sind, und die Datei lebt nur einen Lauf.
+ */
+export async function abzugErstellen(): Promise<{ daten: Uint8Array; stand: string }> {
+  const dateien = await migrationen();
+  const db = await aufbauen(dateien);
+  const abzug = await db.dumpDataDir("none");
+  await db.close();
+  return { daten: new Uint8Array(await abzug.arrayBuffer()), stand: await stand(dateien) };
+}
+
+/**
  * Eine fertige Installation: leere Datenbank, darauf alle Migrationen.
  *
  * Für Prüfungen, die wissen wollen, was beim Aufsetzen in einer Tabelle steht
@@ -124,15 +178,28 @@ let installed: Promise<PGlite> | undefined;
  * einmal war.
  *
  * Einmal je Testdatei aufgebaut, danach wiederverwendet. Nur lesen.
+ *
+ * Aufgebaut heißt: aus dem Abzug geladen, den `buehneAbzug.ts` einmal je Lauf
+ * anlegt. Vorher spielte jede der gut zwanzig Testdateien alle Migrationen
+ * selbst ein, und das war der größte Teil der Laufzeit. Jede Datei bekommt
+ * weiterhin ihre eigene Datenbank; geteilt wird nur der Ausgangspunkt.
+ *
+ * Fehlt der Abzug oder passt er nicht mehr zu den Migrationen, wird wie
+ * früher eingespielt – langsamer, aber nie am falschen Stand.
  */
 export function installation(): Promise<PGlite> {
   installed ??= (async () => {
-    const { readFileSync, readdirSync } = await import("node:fs");
-    const db = await leereDatenbank();
-    const dateien = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
-    for (const f of dateien) {
-      await einspielen(db, f, readFileSync(`supabase/migrations/${f}`, "utf-8").replace(/\r\n/g, "\n"));
+    const { existsSync, readFileSync } = await import("node:fs");
+    const dateien = await migrationen();
+    const datei = process.env[ABZUG_DATEI];
+    if (!datei || !existsSync(datei) || process.env[ABZUG_STAND] !== (await stand(dateien))) {
+      return aufbauen(dateien);
     }
+    const db = new PGlite({
+      extensions: { pgcrypto, uuid_ossp },
+      loadDataDir: new Blob([readFileSync(datei)]),
+    });
+    await db.waitReady;
     return db;
   })();
   return installed;
