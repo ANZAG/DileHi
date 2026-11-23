@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { maskiereHtml } from "@/lib/betonung";
 import { Tent, RefreshCw, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,7 @@ function printTentMap(spacing: number, eventTitle?: string) {
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Lagerplan${eventTitle ? ` – ${eventTitle}` : ""}</title>
+  <title>Lagerplan${eventTitle ? ` – ${maskiereHtml(eventTitle)}` : ""}</title>
   <style>
     @page { size: A4 landscape; margin: 12mm; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111; }
@@ -81,7 +82,7 @@ function printTentMap(spacing: number, eventTitle?: string) {
   </style>
 </head>
 <body>
-  <h1>Lagerplan${eventTitle ? ` – ${eventTitle}` : ""}</h1>
+  <h1>Lagerplan${eventTitle ? ` – ${maskiereHtml(eventTitle)}` : ""}</h1>
   <p>Abstand / Laufweg: ${spacing.toFixed(1)} m pro Zelt | Fläche inkl. Abspannseile und Wege</p>
   ${svgContent}
   <div class="legend">

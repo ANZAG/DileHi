@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
 import { marke } from "../_shared/einstellungen.ts";
+import { kontoZurAdresse } from "../_shared/konto.ts";
 
 /**
  * Das erste Konto einer frischen Installation.
@@ -151,8 +152,7 @@ Deno.serve(async (req) => {
     const rolle = katalog?.[0]?.key ?? kandidaten[0];
 
     // ── Konto anlegen und einladen ──────────────────────────────────────────
-    const { data: vorhandene } = await admin.auth.admin.listUsers();
-    const schonDa = vorhandene?.users?.find((u) => u.email === email);
+    const schonDa = await kontoZurAdresse(admin, email);
 
     const ziel = await adresseDerSeite(admin, req);
     let userId: string;

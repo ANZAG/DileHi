@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
 import { baueMail } from "../_shared/vorlagen.ts";
+import { kontoZurAdresse } from "../_shared/konto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,8 +21,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: users } = await adminClient.auth.admin.listUsers();
-    const targetUser = users?.users?.find((u) => u.email === email);
+    const targetUser = await kontoZurAdresse(adminClient, email);
 
     if (!targetUser) {
       return new Response(JSON.stringify({ success: true }), {

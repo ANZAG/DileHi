@@ -19,6 +19,7 @@ import { useDefaultRole } from "@/hooks/useDefaultRole";
 import { invokeFunction } from "@/lib/functionError";
 import MitgliederImport from "./MitgliederImport";
 import EinladungWeitergeben, { type EinladungsAntwort } from "./EinladungWeitergeben";
+import { heuteIso } from "@/lib/datum";
 import {
   Select,
   SelectContent,
@@ -344,7 +345,7 @@ const MemberRegistry = () => {
 
   const deactivateMember = useMutation({
     mutationFn: async (m: MemberData) => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = heuteIso();
       // Erst das Austrittsdatum, dann die Rolle. Bisher wurde die Rolle auch
       // gelöscht, wenn das Datum nicht gespeichert war – ohne Meldung.
       await invokeFunction("manage-member", {
@@ -799,7 +800,7 @@ const MemberRegistry = () => {
                       variant="outline"
                       className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                       onClick={() => {
-                        const today = new Date().toISOString().slice(0, 10);
+                        const today = heuteIso();
                         setEditIsActive(false);
                         if (!editExitDate) setEditExitDate(today);
                       }}

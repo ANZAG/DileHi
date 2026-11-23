@@ -4,6 +4,7 @@ import { seitePruefen } from "./pruefung";
 import { textAblegen } from "./quelltext";
 import { dateiLaden, textLaden, type Sitzung } from "./speicher";
 import { lesetext, markdownBauen } from "./text";
+import { alsIso, heuteIso } from "@/lib/datum";
 
 /**
  * Aus den Aufnahmen wird eine Quelle: PDF bauen, nach SharePoint laden,
@@ -66,7 +67,7 @@ export type Schritt = "pdf" | "hochladen" | "zuordnen" | "text" | "fertig";
 
 /** Der Name der Datei: Titel, Datum. Was SharePoint nicht mag, ersetzt der Server. */
 export function dateiname(titel: string, heute = new Date()): string {
-  const datum = heute.toISOString().slice(0, 10);
+  const datum = alsIso(heute);
   const sauber = titel.replace(/\s+/g, " ").trim().slice(0, 120) || "Scan";
   return `${sauber} (Scan ${datum}).pdf`;
 }
@@ -87,7 +88,7 @@ export async function textExport(sitzung: Sitzung): Promise<{ texte: string[]; m
   }
   const markdown = markdownBauen({
     titel: a.titel ?? sitzung.weiche?.titel ?? "Scan", autor: a.autor, jahr: a.jahr, zaehlung: a.zaehlung,
-    datum: new Date().toISOString().slice(0, 10),
+    datum: heuteIso(),
     seiten: texte.map((text, i) => ({ text, unsicher: unsicher[i] })),
   });
   return { texte, markdown };
