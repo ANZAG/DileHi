@@ -49,7 +49,7 @@ import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
 import { pdfBauen, seitenBeschriftung, textEbeneEinfuegen, verwaisteEntfernen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungBereiche, zaehlungFinden, type Bereich } from "../src/lib/scan/text";
+import { fuerSalatPruefung, istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungBereiche, zaehlungFinden, type Bereich } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern" || MODUS.startsWith("austauschen");
@@ -509,10 +509,11 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         const bisher = zuLesen.slice(0, k).map((i) => texte[i - 1]);
         // Erst entscheiden, wenn ohne wiederkehrende Zeilen (Stempel eines
         // Digitalisats) genug übrig ist – sonst beim nächsten Stapel wieder.
-        if (!salatGeprueft && bisher.join(" ").length > 12000 && wortartig(ohneWiederkehrendeZeilen(bisher)).zahl >= 1500) {
+        if (!salatGeprueft && bisher.join(" ").length > 12000 && wortartig(fuerSalatPruefung(bisher)).zahl >= 1500) {
           salatGeprueft = true;
           const sauber = ohneWiederkehrendeZeilen(bisher);
-          console.log(`\n  Zeichensalat-Prüfung nach ${k} Seiten: ${JSON.stringify({ ...textMasse(sauber), wortartig: wortartig(sauber) })}`);
+          const gefiltert = fuerSalatPruefung(bisher);
+          console.log(`\n  Zeichensalat-Prüfung nach ${k} Seiten: ${JSON.stringify({ ...textMasse(gefiltert), wortartig: wortartig(gefiltert) })}`);
           // Je Seite, zum Nachjustieren: Anteil wortartiger Wörter und Anfang.
           zuLesen.slice(0, k).forEach((i, j) => {
             const w = wortartig([sauber[j]]);
@@ -619,7 +620,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
       // für eine Entscheidung war (Sachsenspiegel: vorne nur Stempel).
       if (!salatGeprueft && !bericht.hinweis) {
         const gelesen = zuLesen.map((i) => texte[i - 1]);
-        const sauber = ohneWiederkehrendeZeilen(gelesen);
+        const sauber = fuerSalatPruefung(gelesen);
         console.log(`\n  Zeichensalat-Prüfung am Ende: ${JSON.stringify({ ...textMasse(sauber), wortartig: wortartig(sauber) })}`);
         if (wortartig(sauber).zahl >= 1500 && istZeichensalat(gelesen)) {
           bericht.hinweis = "nicht lesbar (Handschrift?) – Zeichensalat, erst am Ende erkannt";

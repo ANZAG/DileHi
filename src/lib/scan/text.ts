@@ -295,12 +295,30 @@ export function ohneWiederkehrendeZeilen(texte: string[]): string[] {
  * so sah die Manesse aus).
  */
 export function istZeichensalat(roh: string[]): boolean {
-  const texte = ohneWiederkehrendeZeilen(roh);
+  const texte = fuerSalatPruefung(roh);
   const m = textMasse(texte);
   const w = wortartig(texte);
   // Wenig Wortartiges allein reicht nicht: Ein Anmerkungsapparat voller
-  // Kürzel („In dioec. Cadurcen., OC, 172.“, Canivez) hat ebenfalls wenig,
-  // aber viele kleine Wörter (et, in, ad). Die Manesse hatte beides nicht.
-  if (w.zahl >= 1500 && w.anteil < 0.6 && m.kennwoerter < 0.15) return true;
+  // Kürzel („In dioec. Cadurcen., OC, 172.“, Canivez 5: 56 % wortartig,
+  // 12 % kleine Wörter) hat ebenfalls wenig, aber mehr kleine Wörter (et,
+  // in, ad). Und eine Tabelle voller Abkürzungen („Reſ.⸗Inf.⸗R. 16 u. I7“,
+  // Ruhmeshalle: 37 %, 7 %) wiederholt ihre Kürzel ständig (Vielfalt 0,21);
+  // Salat kaum. Die Manesse (52 %, 6 %, 0,79) und die Weingartner
+  // Liederhandschrift (58 %, 8 %, 0,60) hatten von allem wenig.
+  if (w.zahl >= 1500 && w.anteil < 0.6 && m.kennwoerter < 0.09 && m.vielfalt > 0.45) return true;
   return m.woerter >= 1500 && m.kennwoerter < 0.09 && m.vielfalt > 0.56;
+}
+
+/**
+ * Die Seiten, an denen die Zeichensalat-Prüfung misst: ohne wiederkehrende
+ * Zeilen (`ohneWiederkehrendeZeilen`) und ohne Seiten, die gar kein Text
+ * sind – Einband, marmoriertes Vorsatzpapier, auf dem die Erkennung
+ * Hunderte Zeichen „liest“ (Studien und Mitteilungen 1893, S. 3–4: 4 %
+ * und 3 % wortartig). Eine Handschrift liegt bei 50–80 % je Seite.
+ */
+export function fuerSalatPruefung(roh: string[]): string[] {
+  return ohneWiederkehrendeZeilen(roh).filter((t) => {
+    const w = wortartig([t]);
+    return !(w.zahl >= 100 && w.anteil < 0.15);
+  });
 }

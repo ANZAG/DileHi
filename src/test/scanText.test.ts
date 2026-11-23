@@ -76,8 +76,20 @@ describe("Zeichensalat", () => {
     const katalog = Array.from({ length: 300 }, (_, i) => `Fundort Haithabu Inv.Nr. ${i} Messer Eisen Griffangel Länge ${i % 20} cm`).join("\n");
     expect(istZeichensalat([katalog])).toBe(false);
     // So sah der Codex Manesse aus: viele Bruchstücke, die sich wiederholen.
-    const manesse = Array.from({ length: 400 }, () => "Sautelanee. Derr, hen Nude, Sie, e -e -i äs, Leh ü e alu i ebe Are, Ae Cette, e dera").join(" ");
+    // Gemessen: 52 % wortartig, 6 % kleine Wörter, Vielfalt 0,79.
+    const silben = ["sau", "te", "lan", "ee", "derr", "hen", "nu", "de", "leh", "alu", "ebe", "are", "cet", "dera", "mi", "ro"];
+    let z = 7;
+    const zufall = () => Math.floor((z = (z * 1103515245 + 12345) % 2147483648) / 65536) % 16;
+    const manesse = Array.from({ length: 3600 }, (_, i) => i % 2
+      ? ["e", "-e", "-i", "äs", "ü", "Ae", "i"][i % 7]
+      : silben[zufall()] + silben[zufall()] + (i % 3 ? silben[zufall()] : "") + ",").join(" ");
     expect(istZeichensalat([manesse])).toBe(true);
+    // Ruhmeshalle: Kriegsgliederung voller Abkürzungen, die sich wiederholen – Text.
+    const gliederung = Array.from({ length: 300 }, (_, i) => `${i % 40}. bayr. Reſ.⸗Inf.⸗Brig. mit bayr. Reſ.⸗Inf.⸗R. ${i % 17} u. I${i % 9}. J.⸗D. Edw.⸗Inf.⸗Br. Div.⸗Machr.⸗Kdr.`).join("\n");
+    expect(istZeichensalat([gliederung])).toBe(false);
+    // Marmoriertes Vorsatzpapier vorne zählt nicht mit (Studien und Mitteilungen 1893).
+    const marmor = Array.from({ length: 400 }, (_, i) => ["X", "*", "S", "e", "ö", "N", "——", "x"][i % 8]).join(" ");
+    expect(istZeichensalat([marmor, marmor, satz.repeat(80)])).toBe(false);
     // Canivez: Statuten mit Anmerkungsapparat voller Kürzel und Zahlen – Text, kein Salat.
     const canivez = Array.from({ length: 120 }, (_, i) =>
       `${i % 9 + 1} In dioec. Cadurcen., OC, ${170 + i}. Cf. supra stat. ${40 + i}. Grandselve, in Vasconia, dioec. Tolosan., OC, 81. ` +
