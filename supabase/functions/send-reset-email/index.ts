@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendeMail, seitenAdresse } from "../_shared/mail.ts";
 import { baueMail } from "../_shared/vorlagen.ts";
-import { kontoZurAdresse } from "../_shared/konto.ts";
+import { absenderAdresse, anfrageErlaubt, kontoZurAdresse } from "../_shared/konto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +20,17 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Bremse: je Absender und je Adresse. Wer sie reisst, bekommt dieselbe
+    // Antwort wie sonst auch – ob es das Konto gibt, verrät sie nicht.
+    const darf = String(email).length <= 320
+      && await anfrageErlaubt(adminClient, "reset", absenderAdresse(req), 10)
+      && await anfrageErlaubt(adminClient, "reset-adresse", String(email).trim().toLowerCase(), 3);
+    if (!darf) {
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const targetUser = await kontoZurAdresse(adminClient, email);
 
