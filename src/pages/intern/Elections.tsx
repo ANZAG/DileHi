@@ -12,6 +12,7 @@ import { ergebnisVon } from "@/lib/ergebnisBild";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
 import { SEITE } from "@/lib/layout";
+import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 const Elections = () => {
@@ -221,16 +222,14 @@ const Elections = () => {
 
   const deleteGroup = useMutation({
     mutationFn: async (groupId: string) => {
-      // Batch delete: one query per table instead of one per election
-      const electionIds = elections
-        .filter((e) => e.group_id === groupId)
-        .map((e) => e.id);
-      if (electionIds.length > 0) {
-        // Cascade order: votes → candidates → elections
-        await supabase.from("votes").delete().in("election_id", electionIds);
-        await supabase.from("candidates").delete().in("election_id", electionIds);
-        await supabase.from("elections").delete().in("id", electionIds);
-      }
+      // Erst die Abstimmungen, über denselben Weg wie beim einzelnen Löschen:
+      // Sonst verschwänden geschlossene Abstimmungen ohne Eintrag im
+      // Löschprotokoll. Die Datenbank würde sie mit dem Thema zwar selbst
+      // mitlöschen – aber eben ohne Protokoll.
+      await loescheAbstimmungen(
+        elections.filter((e) => e.group_id === groupId),
+        user!.id,
+      );
       const { error } = await supabase.from("election_groups").delete().eq("id", groupId);
       if (error) throw error;
     },
@@ -239,6 +238,8 @@ const Elections = () => {
       queryClient.invalidateQueries({ queryKey: ["elections"] });
       toast({ title: "Thema gelöscht" });
     },
+    // Ohne das blieb ein gescheitertes Löschen stumm.
+    onError: () => toast({ title: "Fehler beim Löschen", variant: "destructive" }),
   });
 
   const refreshAll = () => {
