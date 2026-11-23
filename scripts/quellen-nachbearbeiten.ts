@@ -720,7 +720,12 @@ async function austauschen(q: Quelle, ordner: string): Promise<void> {
     alt.removePage(n - 1);
     alt.insertPage(n - 1, kopie);
     texte[String(n)] = lesetext(seitentextAufraeumen(r.text));
-    console.log(`  Seite ${n}: ${echteWoerter(r.text)} Wörter (Sicherheit ${Math.round(r.sicherheit)})`);
+    console.log(`  Seite ${n}: ${echteWoerter(r.text)} Wörter (Sicherheit ${Math.round(r.sicherheit)}), gelesen ${z.bild.breite}×${z.bild.hoehe} bei ${roh.dpi} dpi, Schrift ${buchSchrift ?? "?"}`);
+    if (process.env.DEBUG_BILD) {
+      mkdirSync("neu", { recursive: true });
+      writeFileSync(join("neu", `ocr-${n}.pgm`), pgm(z.bild));
+      writeFileSync(join("neu", `ocr-${n}.txt`), r.text);
+    }
   }
   const bytes = await alt.save();
   console.log(`  ${Math.round((readFileSync(altDatei).length / 1e6) * 10) / 10} MB → ${Math.round((bytes.length / 1e6) * 10) / 10} MB`);

@@ -133,6 +133,7 @@ jobs:
           AUSSER: ${{ inputs.ausser }}
           VOR: ${{ inputs.vor }}
           WEG: ${{ inputs.weg }}
+          DEBUG_BILD: ${{ inputs.modus == 'austauschen-probe' && 'ja' || '' }}
           SEITEN: ${{ inputs.seiten }}
           EINGANG: ${{ inputs.eingang }}
         run: npx vite-node scripts/quellen-nachbearbeiten.ts
