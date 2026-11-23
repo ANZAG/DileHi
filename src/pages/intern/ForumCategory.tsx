@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentProps } from "react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,11 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import ForumEditor from "@/components/forum/ForumEditor";
 import { createThread, fetchCategories, fetchReadState, fetchThreads, istUngelesen } from "@/components/forum/api";
 import { supabase } from "@/integrations/supabase/client";
 import { SEITE } from "@/lib/layout";
 import Brotkrumen from "@/components/forum/Brotkrumen";
+
+// Der Editor (tiptap, rund 160 kB gepackt) wird nachgeladen: Die Beiträge
+// stehen schon da, während er kommt. Vorher wartete die ganze Seite auf ihn.
+const ForumEditorNachgeladen = lazy(() => import("@/components/forum/ForumEditor"));
+const ForumEditor = (props: ComponentProps<typeof ForumEditorNachgeladen>) => (
+  <Suspense fallback={<div className="h-24 rounded-md border bg-muted/30 animate-pulse" aria-busy="true" />}>
+    <ForumEditorNachgeladen {...props} />
+  </Suspense>
+);
 
 export default function ForumCategory() {
   const { slug } = useParams<{ slug: string }>();

@@ -796,8 +796,8 @@ const SourceItem = ({ source: s, user, onDelete, onDownload, onPreview, onAttach
         )}
         {s.content && <p className="text-sm text-muted-foreground mt-1 truncate">{s.content}</p>}
         <div className="flex flex-wrap gap-3 mt-2">
-          {s.url && (
-            <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+          {s.url && /^https?:\/\//i.test(s.url.trim()) && (
+            <a href={s.url.trim()} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
               <ExternalLink size={12} /> Link öffnen
             </a>
           )}
