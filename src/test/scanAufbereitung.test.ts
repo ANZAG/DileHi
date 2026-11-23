@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { aufbereiten, farbAnteil, FARB_GRENZE, geradeDrehen, schaerfeMessen, seiteAufbereiten, textLage, vierteldrehen, type Befund } from "@/lib/scan/aufbereitung";
+import { aufbereiten, farbAnteil, FARB_GRENZE, geradeDrehen, schaerfeMessen, schwarzenRandAbschneiden, seiteAufbereiten, textLage, vierteldrehen, type Befund } from "@/lib/scan/aufbereitung";
 import { seitePruefen } from "@/lib/scan/pruefung";
 import type { Pixel } from "@/lib/scan/geometrie";
 
@@ -192,5 +192,71 @@ describe("Seite im Schatten", () => {
     for (const [x, y] of [[3, 400], [596, 400], [300, 3], [300, 796], [3, 3], [596, 796]]) {
       expect(bild.daten[(y * bild.breite + x) * 4]).toBeGreaterThan(200);
     }
+  });
+});
+
+describe("Textseite mit Farbe und Abbildung", () => {
+  // Dunstiges Foto einer Seite: Papier grau (200), Schrift dunkelgrau, eine
+  // rote Überschrift, unten ein Schwarzweissfoto mit hellem Himmel.
+  function seite(w = 600, h = 800): Pixel {
+    const daten = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      let f: [number, number, number] = [200, 200, 198];
+      const imText = x > 70 && x < 530 && y > 150 && y < 440;
+      if (imText && y % 24 < 6 && (x * 7 + ((y / 24) | 0) * 13) % 37 < 25) f = [70, 70, 70];
+      if (x > 70 && x < 420 && y > 60 && y < 110) f = [185, 60, 55]; // rote Überschrift
+      if (x > 70 && x < 530 && y > 480 && y < 740) {
+        // Foto: oben heller, glatter Himmel, unten Gebäude in Mitteltönen
+        const g = y < 580 ? 150 : 60 + ((x * 5 + y * 3) % 90);
+        f = [g, g, g];
+      }
+      daten.set([...f, 255], i);
+    }
+    return { breite: w, hoehe: h, daten };
+  }
+
+  it("weisst das Papier, behält die Farbe der Überschrift und lässt das Foto, wie es ist", () => {
+    const { bild, befund } = seiteAufbereiten(seite(), { farbig: false, nichtVierteln: true });
+    const an = (x: number, y: number) => Array.from(bild.daten.subarray((y * bild.breite + x) * 4, (y * bild.breite + x) * 4 + 3));
+    expect(befund.farbig).toBe(true);
+    // Papier neben dem Text und am Rand: weiss
+    for (const [x, y] of [[30, 300], [570, 300], [300, 30]]) expect(Math.min(...an(x, y))).toBeGreaterThan(245);
+    // Überschrift: rot geblieben
+    const [r, g, b] = an(200, 85);
+    expect(r - g).toBeGreaterThan(60);
+    expect(r - b).toBeGreaterThan(60);
+    // Himmel des Fotos: nicht weiss gewaschen
+    const himmel = an(300, 530);
+    expect(Math.max(...himmel)).toBeLessThan(215);
+    expect(Math.max(...himmel)).toBeGreaterThan(120);
+  });
+
+  it("hält einen Rückumschlag mit weisser Schrift auf grauem Grund nicht für Papier", () => {
+    const w = 600, h = 800, daten = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const schrift = x > 80 && x < 520 && y > 100 && y < 600 && y % 24 < 7 && (x * 7 + ((y / 24) | 0) * 13) % 37 < 25;
+      const rand = x < 12 || y < 12 || x >= w - 12 || y >= h - 12;
+      daten.set(rand ? [235, 235, 232, 255] : schrift ? [240, 240, 235, 255] : [120, 125, 122, 255], (y * w + x) * 4);
+    }
+    const { bild, befund } = seiteAufbereiten({ breite: w, hoehe: h, daten }, { farbig: false, nichtVierteln: true });
+    expect(befund.bildseite).toBe(true);
+    const grund = bild.daten[(700 * bild.breite + 300) * 4];
+    expect(grund).toBeLessThan(200); // der graue Grund ist nicht weiss geworden
+    expect(seitePruefen(befund, { sicherheit: 40, woerter: 5 }).gruende).toEqual([]); // keine Text-Warnung an einer Bildseite
+  });
+
+  it("schneidet den schwarzen Balken unter einem Einband ab", () => {
+    const w = 400, h = 500, daten = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      daten.set(y >= 480 ? [4, 4, 6, 255] : [150 + (x % 60), 110, 70, 255], (y * w + x) * 4);
+    }
+    const aus = schwarzenRandAbschneiden({ breite: w, hoehe: h, daten });
+    expect(aus.hoehe).toBe(480);
+    expect(aus.breite).toBe(400);
+    // Ein Bild ohne schwarzen Rand bleibt, wie es ist – auch ein fast ganz dunkles nur bis 8 %.
+    expect(schwarzenRandAbschneiden(aus)).toBe(aus);
+    const nacht = { breite: 100, hoehe: 100, daten: new Uint8ClampedArray(100 * 100 * 4) };
+    expect(schwarzenRandAbschneiden(nacht).hoehe).toBeGreaterThanOrEqual(84);
   });
 });
