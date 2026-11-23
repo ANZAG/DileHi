@@ -353,10 +353,19 @@ jobs:
           sudo apt-get install -y lftp
           ZIEL="${ZIEL%/}/"
 
+          # Das Zertifikat des Servers wird geprueft (vorher: false). Ohne
+          # Pruefung konnte sich jemand in die Leitung haengen, sich als der
+          # Server ausgeben und Benutzername und Passwort mitlesen -- und
+          # danach die Seite ersetzen. Scheitert der Schritt jetzt mit
+          # "Certificate verification: Not trusted" oder "... hostname
+          # mismatch", stimmt FTP_SERVER nicht mit dem Namen im Zertifikat
+          # ueberein: Dann den Servernamen eintragen, den der Hoster fuer FTP
+          # nennt (nicht die eigene Domain, nicht die IP).
           ZUGANG="
             set ftp:ssl-force true;
             set ftp:ssl-protect-data true;
-            set ssl:verify-certificate false;
+            set ssl:verify-certificate true;
+            set ssl:check-hostname true;
             set net:max-retries 3;
             set net:timeout 20;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
