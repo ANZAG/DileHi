@@ -29,3 +29,32 @@ export async function kontoZurAdresse(admin: SupabaseClient, email: string): Pro
 export function heuteInDeutschland(jetzt = new Date()): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(jetzt);
 }
+
+/**
+ * Bremse für Funktionen, die ohne Anmeldung aufrufbar sind (Kontakt,
+ * „Passwort vergessen"): höchstens `hoechstens` Anfragen je `fenster` und
+ * Absender. Gezählt wird in der Datenbank (public.anfrage_erlaubt). Geht die
+ * Abfrage selbst schief, wird durchgelassen – lieber eine Anfrage zu viel
+ * als ein Kontaktformular, das wegen der Bremse niemanden mehr erreicht.
+ */
+export async function anfrageErlaubt(
+  admin: SupabaseClient,
+  art: string,
+  absender: string,
+  hoechstens: number,
+  fenster = "1 hour",
+): Promise<boolean> {
+  const { data, error } = await admin.rpc("anfrage_erlaubt", {
+    _art: art, _hoechstens: hoechstens, _fenster: fenster, _absender: absender,
+  });
+  if (error) {
+    console.error("anfrage_erlaubt:", error.message);
+    return true;
+  }
+  return data !== false;
+}
+
+/** Die Adresse des Aufrufers, wie der Vorschaltrechner sie mitgibt. */
+export function absenderAdresse(req: Request): string {
+  return (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unbekannt";
+}
