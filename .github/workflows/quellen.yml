@@ -25,6 +25,8 @@ name: Quellen nachbearbeiten
 #            welche Stellen (PDF-Seiten, in der Reihenfolge des Scans),
 #            „eingang“ welche Datei (leer = die neueste). Mit
 #            austauschen-probe nur als Artefakt zum Ansehen.
+#   angaben  Titel, Autor, Jahr, Thema und Seitenbeschriftung ins PDF der
+#            genannten Quelle schreiben (Seiten bleiben, neue Fassung)
 #   leeren   den Suchtext der genannten Quellen entfernen (Datei bleibt)
 #   doppelt  die genannten Quellen löschen, wenn es eine ältere mit gleichem
 #            Titel und gleicher Grösse gibt (Datei in den Papierkorb).
@@ -50,7 +52,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen, leeren]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen, leeren, angaben]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
@@ -78,6 +80,10 @@ on:
         default: ""
       weg:
         description: "Nur für verbessern/probe: textebene = auch Handyfotos nicht neu bauen, nur Textebene ergänzen"
+        type: string
+        default: ""
+      angaben:
+        description: "Nur für angaben: „titel=…; autor=…; jahr=…; thema=…; zaehlung=auto“ (oder zaehlung=5:1)"
         type: string
         default: ""
       vor:
@@ -132,6 +138,7 @@ jobs:
           GRENZE: ${{ inputs.grenze }}
           AUSSER: ${{ inputs.ausser }}
           VOR: ${{ inputs.vor }}
+          ANGABEN: ${{ inputs.angaben }}
           WEG: ${{ inputs.weg }}
           DEBUG_BILD: ${{ inputs.modus == 'austauschen-probe' && 'ja' || '' }}
           SEITEN: ${{ inputs.seiten }}

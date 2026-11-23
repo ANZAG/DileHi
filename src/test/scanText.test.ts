@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { zaehlungFinden, buchSeite, lesetext, markdownBauen, roemisch } from "@/lib/scan/text";
+import { zaehlungBereiche, zaehlungFinden, buchSeite, lesetext, markdownBauen, roemisch } from "@/lib/scan/text";
 import { zeilenBilden, seitenFormat } from "@/lib/scan/pdf";
 
 describe("Lesetext", () => {
@@ -112,5 +112,30 @@ describe("Zählung aus den Seitenzahlen", () => {
   it("ohne klare Zahlen keine Zählung", () => {
     expect(zaehlungFinden(["Im Jahr 1815 kam", "es 1813 zu", "Kämpfen 1806 bei Jena"])).toBeUndefined();
     expect(zaehlungFinden([])).toBeUndefined();
+  });
+});
+
+describe("Zählung in Abschnitten", () => {
+  it("Pivka: Titelei römisch, eingeschobene Farbtafeln, danach weiter", () => {
+    // PDF 5 = Seite 1 (Versatz −4) bis PDF 28; Tafeln PDF 29–36; PDF 37 = Seite 25 (−12).
+    const texte = Array.from({ length: 56 }, (_, k) => {
+      const pdf = k + 1;
+      if (pdf <= 4 || (pdf >= 29 && pdf <= 36) || pdf === 56) return "Tafel ohne Zahl mit Bildunterschrift";
+      const buch = pdf <= 28 ? pdf - 4 : pdf - 12;
+      return pdf % 2 ? `Text der Seite mit einigen Wörtern ${buch}` : "Seite ohne Zahl am Ende hier";
+    });
+    expect(zaehlungBereiche(texte)).toEqual([
+      { pdfSeite: 1, art: "roemisch", start: 1 },
+      { pdfSeite: 5, art: "zahl", start: 1 },
+      { pdfSeite: 29, art: "tafel", start: 1 },
+      { pdfSeite: 37, art: "zahl", start: 25 },
+    ]);
+  });
+  it("ein Versatz wie Stein", () => {
+    const texte = Array.from({ length: 30 }, (_, k) => (k > 3 ? `Text ${k - 1}` + " und mehr Worte" : "Titel"));
+    expect(zaehlungBereiche(texte.map((t, k) => (k > 3 ? `${k - 1} Text und mehr Worte` : t)))).toEqual([
+      { pdfSeite: 1, art: "roemisch", start: 1 },
+      { pdfSeite: 3, art: "zahl", start: 1 },
+    ]);
   });
 });

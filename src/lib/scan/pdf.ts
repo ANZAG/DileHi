@@ -1,10 +1,10 @@
 import {
-  PDFDocument, PDFName, PDFNumber, StandardFonts, TextRenderingMode, beginText, endText,
+  PDFDocument, PDFName, PDFNumber, PDFString, StandardFonts, TextRenderingMode, beginText, endText,
   popGraphicsState, pushGraphicsState, setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode,
   showText, type PDFFont,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { fuerSuche } from "./text";
+import { fuerSuche, type Bereich } from "./text";
 
 /**
  * Ein durchsuchbares PDF aus Seitenbildern.
@@ -62,6 +62,8 @@ export interface PdfAngaben {
   schrift?: Uint8Array;
   /** Seitenzählung wie im Buch: PDF-Seite `pdfSeite` (ab 1) ist Buchseite `buchSeite`. */
   zaehlung?: { pdfSeite: number; buchSeite: number };
+  /** Zählung in Abschnitten (geht vor `zaehlung`), etwa mit eingeschobenen Tafeln. */
+  bereiche?: Bereich[];
   /** Bildpunkte je Zoll der Seitenbilder, wenn bekannt (aus einem PDF gerendert); sonst 200. */
   dpi?: number;
   /** Seitengrösse in Punkten vorgeben (Seiten in ein vorhandenes PDF einsetzen). */
@@ -183,7 +185,8 @@ export async function textEbeneEinfuegen(
   if (angaben.autor && !pdf.getAuthor()) pdf.setAuthor(angaben.autor);
   if (angaben.thema && !pdf.getSubject()) pdf.setSubject(angaben.thema);
   if (angaben.stichwoerter?.length && !pdf.getKeywords()) pdf.setKeywords([angaben.stichwoerter.join(", ")]);
-  if (angaben.zaehlung && !pdf.catalog.has(PDFName.of("PageLabels"))) seitenBeschriftung(pdf, angaben.zaehlung);
+  const z = angaben.bereiche ?? angaben.zaehlung;
+  if (z && !pdf.catalog.has(PDFName.of("PageLabels"))) seitenBeschriftung(pdf, z);
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(schrift, { subset: true });
   const zeichen = new Set(font.getCharacterSet());
@@ -214,11 +217,19 @@ export function seitenFormat(seiten: { breite: number; hoehe: number; dpi?: numb
 }
 
 /** Römische Zahl für die Seiten vor der Zählung (Umschlag, Vorsatz). */
-function seitenBeschriftung(pdf: PDFDocument, zaehlung: { pdfSeite: number; buchSeite: number }) {
+export function seitenBeschriftung(pdf: PDFDocument, zaehlung: { pdfSeite: number; buchSeite: number } | Bereich[]) {
+  const bereiche: Bereich[] = Array.isArray(zaehlung) ? zaehlung : [
+    ...(zaehlung.pdfSeite > 1 ? [{ pdfSeite: 1, art: "roemisch" as const, start: 1 }] : []),
+    { pdfSeite: zaehlung.pdfSeite, art: "zahl" as const, start: Math.max(1, zaehlung.buchSeite) },
+  ];
   const ctx = pdf.context;
   const nums = [];
-  if (zaehlung.pdfSeite > 1) nums.push(PDFNumber.of(0), ctx.obj({ S: PDFName.of("r") }));
-  nums.push(PDFNumber.of(zaehlung.pdfSeite - 1), ctx.obj({ S: PDFName.of("D"), St: PDFNumber.of(Math.max(1, zaehlung.buchSeite)) }));
+  for (const b of bereiche) {
+    const stil = b.art === "roemisch" ? { S: PDFName.of("r") }
+      : b.art === "tafel" ? { S: PDFName.of("D"), P: PDFString.of("Tafel "), St: PDFNumber.of(Math.max(1, b.start)) }
+      : { S: PDFName.of("D"), St: PDFNumber.of(Math.max(1, b.start)) };
+    nums.push(PDFNumber.of(b.pdfSeite - 1), ctx.obj(stil));
+  }
   pdf.catalog.set(PDFName.of("PageLabels"), ctx.obj({ Nums: ctx.obj(nums) }));
 }
 
@@ -266,6 +277,6 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
       page.pushOperators(...textEbene(font, schluessel, zeichen, s, l));
     }
   }
-  if (a.zaehlung) seitenBeschriftung(pdf, a.zaehlung);
+  if (a.bereiche ?? a.zaehlung) seitenBeschriftung(pdf, (a.bereiche ?? a.zaehlung)!);
   return await pdf.save();
 }

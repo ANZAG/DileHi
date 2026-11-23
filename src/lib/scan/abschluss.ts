@@ -86,7 +86,7 @@ export async function textExport(sitzung: Sitzung): Promise<{ texte: string[]; m
     unsicher.push(!!ocr && seitePruefen(s.befund, { sicherheit: ocr.sicherheit, woerter: ocr.woerter.length }).art === "pruefen");
   }
   const markdown = markdownBauen({
-    titel: sitzung.weiche?.titel ?? "Scan", autor: a.autor, jahr: a.jahr, zaehlung: a.zaehlung,
+    titel: a.titel ?? sitzung.weiche?.titel ?? "Scan", autor: a.autor, jahr: a.jahr, zaehlung: a.zaehlung,
     datum: new Date().toISOString().slice(0, 10),
     seiten: texte.map((text, i) => ({ text, unsicher: unsicher[i] })),
   });
@@ -116,9 +116,9 @@ export async function abschliessen(
       melden("pdf", (i + 1) / seiten.length / 2, st);
     }
     const bytes = await pdfBauen(pdfSeiten, {
-      titel: weiche.titel,
+      titel: a.titel ?? weiche.titel,
       autor: a.autor,
-      thema: [a.autor, weiche.titel, a.jahr].filter(Boolean).join(", "),
+      thema: [a.autor, a.titel ?? weiche.titel, a.jahr].filter(Boolean).join(", "),
       stichwoerter: ["DileHi", "Quellensammlung", ...(weiche.art !== "eingang" ? [weiche.epoch] : []), ...(a.jahr ? [a.jahr] : [])],
       schrift: await schriftLaden(),
       zaehlung: a.zaehlung,

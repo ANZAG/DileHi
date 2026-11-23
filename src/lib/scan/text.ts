@@ -93,6 +93,76 @@ export function zaehlungFinden(texte: string[]): { pdfSeite: number; buchSeite: 
   return { pdfSeite, buchSeite: pdfSeite + d };
 }
 
+/** Ein Abschnitt der Seitenbeschriftung ab PDF-Seite `pdfSeite` (ab 1). */
+export interface Bereich {
+  pdfSeite: number;
+  /** römisch (Titelei), Zahl (Buchseiten) oder „Tafel 1, 2 …“ (eingeschobene Seiten ohne Zahl). */
+  art: "roemisch" | "zahl" | "tafel";
+  start: number;
+}
+
+/**
+ * Die Zählung des Buches in Abschnitten, wenn Seiten ohne Zahl eingeschoben
+ * sind (Farbtafeln): Pivka hat vor den Tafeln PDF 13 = Seite 9 (Versatz −4),
+ * danach PDF 37 = Seite 25 (−12) – dazwischen 8 Tafeln. Je Seite der
+ * Versatz der Zahl am Anfang oder Ende (wie `zaehlungFinden`); Versätze,
+ * die mindestens dreimal vorkommen, bilden Abschnitte in Seitenfolge.
+ * Wird der Versatz kleiner, sind so viele Seiten eingeschoben – sie stehen
+ * direkt vor der ersten Seite mit der neuen Zahl und heissen „Tafel n“.
+ * Ohne brauchbare Zahlen: undefined.
+ */
+export function zaehlungBereiche(texte: string[]): Bereich[] | undefined {
+  const je: number[][] = texte.map((t, k) => {
+    const teile = t.trim().split(/\s+/).filter(Boolean);
+    if (teile.length < 3) return [];
+    const d = new Set<number>();
+    for (const w of [teile[0], teile[1], teile[teile.length - 2], teile[teile.length - 1]]) {
+      const m = /^[-–—([]?(\d{1,4})[)\]–—-]?$/.exec(w);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (n >= 1 && n <= 3999) d.add(n - (k + 1));
+    }
+    return [...d];
+  });
+  const zahl = new Map<number, number>();
+  for (const ds of je) for (const d of ds) zahl.set(d, (zahl.get(d) ?? 0) + 1);
+  const gut = new Set([...zahl].filter(([, n]) => n >= 3).map(([d]) => d));
+  if (!gut.size) return undefined;
+  // Je Seite der häufigste gute Versatz; dann Abschnitte gleichen Versatzes.
+  const punkte: { seite: number; d: number }[] = [];
+  je.forEach((ds, k) => {
+    const g = ds.filter((d) => gut.has(d)).sort((a, b) => (zahl.get(b) ?? 0) - (zahl.get(a) ?? 0));
+    if (g.length) punkte.push({ seite: k + 1, d: g[0] });
+  });
+  const abschnitte: { d: number; erste: number }[] = [];
+  for (const p of punkte) {
+    const letzter = abschnitte[abschnitte.length - 1];
+    if (letzter && letzter.d === p.d) continue;
+    // Ein Ausreisser (eine Seite) zwischen zwei gleichen Abschnitten zählt nicht.
+    const folgende = punkte.filter((q) => q.seite > p.seite).slice(0, 2);
+    if (letzter && folgende.length && folgende.every((q) => q.d === letzter.d)) continue;
+    abschnitte.push({ d: p.d, erste: p.seite });
+  }
+  const bereiche: Bereich[] = [];
+  const a0 = abschnitte[0];
+  const start0 = Math.max(1, 1 - a0.d);
+  if (start0 > 1) bereiche.push({ pdfSeite: 1, art: "roemisch", start: 1 });
+  bereiche.push({ pdfSeite: start0, art: "zahl", start: start0 + a0.d });
+  let tafel = 1;
+  for (let i = 1; i < abschnitte.length; i++) {
+    const { d, erste } = abschnitte[i];
+    const vorher = abschnitte[i - 1].d;
+    if (d < vorher) {
+      const eingeschoben = vorher - d;
+      const von = Math.max(bereiche[bereiche.length - 1].pdfSeite + 1, erste - eingeschoben);
+      bereiche.push({ pdfSeite: von, art: "tafel", start: tafel });
+      tafel += erste - von;
+    }
+    bereiche.push({ pdfSeite: erste, art: "zahl", start: erste + d });
+  }
+  return bereiche;
+}
+
 export interface MarkdownAngaben {
   titel: string;
   autor?: string;

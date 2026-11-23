@@ -760,11 +760,20 @@ const Scannen = () => {
                   )}
                   <details className="text-sm rounded-md border px-3 py-2">
                     <summary className="cursor-pointer select-none">
-                      Angaben fürs PDF <span className="text-muted-foreground">(freiwillig: Autor, Jahr, Seitenzählung wie im Buch)</span>
+                      Angaben fürs PDF <span className="text-muted-foreground">(freiwillig: Titel, Autor, Jahr, Seitenzählung wie im Buch)</span>
                     </summary>
                     <div className="grid gap-3 sm:grid-cols-2 pt-3">
+                      <label className="space-y-1 sm:col-span-2">
+                        <span className="text-xs text-muted-foreground">Titel, wie auf der Titelseite (etwa „Napoleons Verbündete in Deutschland, Band 2: Nassau und Oldenburg“)</span>
+                        <input
+                          value={sitzung.angaben?.titel ?? ""}
+                          onChange={(e) => aendern((x) => ({ ...x, angaben: { ...x.angaben, titel: e.target.value || undefined } }))}
+                          placeholder={sitzung.weiche?.titel ?? ""}
+                          className="w-full h-9 rounded-md border border-input bg-background px-2"
+                        />
+                      </label>
                       <label className="space-y-1">
-                        <span className="text-xs text-muted-foreground">Autor</span>
+                        <span className="text-xs text-muted-foreground">Autor (voller Name, etwa „Otto von Pivka“)</span>
                         <input
                           value={sitzung.angaben?.autor ?? ""}
                           onChange={(e) => aendern((x) => ({ ...x, angaben: { ...x.angaben, autor: e.target.value || undefined } }))}

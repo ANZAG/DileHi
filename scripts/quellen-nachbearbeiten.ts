@@ -46,10 +46,10 @@ import jpeg from "jpeg-js";
 import { PDFDocument } from "pdf-lib";
 import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/aufbereitung";
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
-import { pdfBauen, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
+import { pdfBauen, seitenBeschriftung, textEbeneEinfuegen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
 import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
-import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungFinden } from "../src/lib/scan/text";
+import { istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungBereiche, zaehlungFinden, type Bereich } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
 const NEU_BAUEN = MODUS === "probe" || MODUS === "verbessern" || MODUS.startsWith("austauschen");
@@ -179,7 +179,7 @@ function angabenFuer(datei: string, titel: string, epoche: string | null | undef
   const thema = teile ? teile[2].trim() : ohneEndung;
   const ep = epoche ? (epoche === "mittelalter" ? "Mittelalter" : epoche) : undefined;
   const stichwoerter = [ep, schrift ? SPRACHE_NAME[schrift] : undefined, "Quellensammlung"].filter((x): x is string => !!x);
-  return { autor, thema, stichwoerter, zaehlung: zaehlungFinden(texte) };
+  return { autor, thema, stichwoerter, zaehlung: zaehlungFinden(texte), bereiche: zaehlungBereiche(texte) };
 }
 
 /** Anteil der Wörter (ab 3 Zeichen), deren Rahmen breiter als hoch ist; ohne solche 1. */
@@ -783,6 +783,45 @@ async function main() {
   if (!NEU && MODUS === "text") auswahl = auswahl.filter((q) => q.textSeiten < 20);
   if (GRENZE > 0) auswahl = auswahl.slice(0, GRENZE);
   console.log(`${auswahl.length} von ${quellen.length} Quellen werden bearbeitet (${MODUS}).`);
+
+  if (MODUS === "angaben") {
+    // Titel, Autor, Jahr und Seitenbeschriftung ins PDF schreiben, ohne die
+    // Seiten anzufassen. ANGABEN: „titel=…; autor=…; jahr=…; thema=…;
+    // zaehlung=auto“ (oder „zaehlung=5:1“: PDF-Seite 5 ist Seite 1).
+    if (auswahl.length !== 1) throw new Error("angaben braucht genau eine Quelle (QUELLEN).");
+    const q = auswahl[0];
+    const a: Record<string, string> = {};
+    for (const teil of (process.env.ANGABEN ?? "").split(";")) {
+      const i = teil.indexOf("=");
+      if (i > 0) a[teil.slice(0, i).trim().toLowerCase()] = teil.slice(i + 1).trim();
+    }
+    const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
+    const datei = join(ordner, "alt.pdf");
+    const r = await fetch((await werkstatt<{ url: string }>("download", { sourceId: q.id })).url);
+    await pipeline(Readable.fromWeb(r.body as never), createWriteStream(datei));
+    const zahl = seitenZahl(datei);
+    const texte = Array.from({ length: zahl }, (_, i) => pdfText(datei, i + 1));
+    let bereiche: Bereich[] | undefined;
+    const z = a.zaehlung ?? "auto";
+    const m = /^(\d+):(\d+)$/.exec(z);
+    if (m) bereiche = [...(+m[1] > 1 ? [{ pdfSeite: 1, art: "roemisch" as const, start: 1 }] : []), { pdfSeite: +m[1], art: "zahl" as const, start: +m[2] }];
+    else if (z === "auto") bereiche = zaehlungBereiche(texte);
+    const pdf = await PDFDocument.load(readFileSync(datei), { updateMetadata: false });
+    if (a.titel) pdf.setTitle(a.titel);
+    if (a.autor) pdf.setAuthor(a.autor);
+    const thema = a.thema ?? [a.autor, a.titel, a.jahr].filter(Boolean).join(", ");
+    if (thema) pdf.setSubject(thema);
+    if (a.jahr) pdf.setKeywords([[pdf.getKeywords(), a.jahr].filter(Boolean).join(", ")]);
+    if (bereiche) seitenBeschriftung(pdf, bereiche);
+    const bytes = await pdf.save();
+    console.log(`${q.title}: Titel „${a.titel ?? "–"}“, Autor „${a.autor ?? "–"}“, Thema „${thema || "–"}“, Zählung ${JSON.stringify(bereiche ?? "unverändert")}`);
+    const { uploadUrl } = await werkstatt<{ uploadUrl: string }>("ersetzen-sitzung", { sourceId: q.id });
+    await hochladen(uploadUrl, bytes);
+    await werkstatt("ersetzt", { sourceId: q.id });
+    rmSync(ordner, { recursive: true, force: true });
+    console.log("  ersetzt (neue Fassung; die alte bleibt im Versionsverlauf)");
+    return;
+  }
 
   if (MODUS === "leeren") {
     // Suchtext der genannten Quellen entfernen (etwa Zeichensalat aus einer

@@ -54,6 +54,8 @@ export interface Sitzung {
 }
 
 export interface BuchAngaben {
+  /** Titel des Buches, wie auf der Titelseite (sonst der Name der Quelle). */
+  titel?: string;
   autor?: string;
   jahr?: string;
   /** PDF-Seite `pdfSeite` (ab 1) ist Seite `buchSeite` im Buch; davor römisch. */
