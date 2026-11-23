@@ -14,6 +14,9 @@ export default defineConfig({
     testTimeout: 30_000,
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // Baut die Bühne einmal je Lauf und legt sie als Abzug ab; die Testdateien
+    // laden ihn, statt jede für sich alle Migrationen einzuspielen.
+    globalSetup: ["./src/test/hilfe/buehneAbzug.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     // Einige Module laden den Supabase-Client, und der verlangt eine Adresse.
     // Bis zum Umzug kam sie aus der eingecheckten .env; lokal liegt eine
