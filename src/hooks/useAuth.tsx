@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -42,50 +43,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [realPermissions, setRealPermissions] = useState<string[]>([]);
   const [impersonatingRole, setImpersonatingRole] = useState<string | null>(null);
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  const queryClient = useQueryClient();
 
   const isMember = roles.length > 0;
 
-  const fetchRolesAndPermissions = async (userId: string) => {
+  /** Für wen die Rechte geladen sind, und wann – damit nicht jede Rückkehr in den Tab alles neu lädt. */
+  const geladen = useRef<{ userId: string; zeit: number } | null>(null);
+
+  /**
+   * Rollen und Rechte laden – vier Abfragen, gleichzeitig (vorher
+   * nacheinander). Schlägt eine fehl (Funkloch), gilt das NICHT als „keine
+   * Rechte": Was schon geladen war, bleibt; beim ersten Laden wird zweimal
+   * nachgefasst, bevor die Seite ohne Rechte weitermacht. Vorher sah ein
+   * Mitglied nach einem Netzfehler aus wie ein Fremder.
+   */
+  const fetchRolesAndPermissions = async (userId: string, versuch = 0): Promise<void> => {
+    const [profil, rollen, katalog, rechte] = await Promise.all([
+      supabase.from("profiles").select("is_active").eq("id", userId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.rpc("get_role_catalog"),
+      supabase.rpc("get_user_permissions", { _user_id: userId }),
+    ]);
     // Check if profile is active – if not, log out immediately
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("is_active")
-      .eq("id", userId)
-      .maybeSingle();
-    if (profileData && profileData.is_active === false) {
+    if (profil.data && profil.data.is_active === false) {
       await supabase.auth.signOut();
       return;
     }
-
-    // Fetch roles
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    if (rolesData) {
-      setRoles(rolesData.map((r) => r.role));
+    if (rollen.error || rechte.error) {
+      if (versuch < 2) {
+        await new Promise((ok) => setTimeout(ok, 1500 * (versuch + 1)));
+        return fetchRolesAndPermissions(userId, versuch + 1);
+      }
+      // Nichts überschreiben; nur das Warten beenden.
+      setPermissionsLoaded(true);
+      return;
     }
-
-    // Fetch role catalog for display labels (single source of truth from DB)
-    const { data: catalogData } = await supabase.rpc("get_role_catalog");
-    if (catalogData) {
+    setRoles((rollen.data ?? []).map((r) => r.role));
+    // Role catalog for display labels (single source of truth from DB)
+    if (katalog.data) {
       const labels: Record<string, string> = {};
-      (catalogData as { key: string; label: string }[]).forEach((r) => {
+      (katalog.data as { key: string; label: string }[]).forEach((r) => {
         labels[r.key] = r.label;
       });
       setRoleLabels(labels);
     }
-
-    // Fetch permissions
-    const { data: permsData } = await supabase.rpc("get_user_permissions", {
-      _user_id: userId,
-    });
-    if (permsData) {
-      const perms = permsData as unknown as string[];
-      setPermissions(perms);
-      setRealPermissions(perms);
-    }
+    const perms = (rechte.data ?? []) as unknown as string[];
+    setPermissions(perms);
+    setRealPermissions(perms);
     setPermissionsLoaded(true);
+    geladen.current = { userId, zeit: Date.now() };
   };
 
   const startImpersonation = useCallback(async (role: string) => {
@@ -118,8 +124,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRolesAndPermissions(session.user.id), 0);
+          // Die Sitzung meldet sich bei jeder Rückkehr in den Tab und bei
+          // jedem erneuerten Schlüssel. Für dasselbe Konto wird nur neu
+          // geladen, wenn der letzte Stand älter als fünf Minuten ist – so
+          // greift eine entzogene Rolle oder ein deaktiviertes Konto
+          // weiterhin bald, ohne vier Abfragen bei jedem Tabwechsel.
+          const stand = geladen.current;
+          const frisch = stand && stand.userId === session.user.id && Date.now() - stand.zeit < 5 * 60_000;
+          if (!frisch) setTimeout(() => fetchRolesAndPermissions(session.user.id), 0);
         } else {
+          geladen.current = null;
           setRoles([]);
           setRoleLabels({});
           setPermissions([]);
@@ -187,6 +201,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Was für dieses Konto geladen war, darf der nächste am selben Gerät
+    // nicht sehen – viele Abfragen tragen die Kennung des Kontos nicht im
+    // Schlüssel und blieben sonst bis zu zwei Minuten stehen.
+    queryClient.clear();
   };
 
   return (

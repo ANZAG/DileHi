@@ -117,6 +117,22 @@ export default defineConfig(({ mode }) => {
     worker: {
       format: "es",
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Die grossen Bibliotheken in eigene Dateien. Sie ändern sich nur
+          // mit einer neuen Fassung der Bibliothek; steckten sie mit dem
+          // eigenen Code in einer Datei (656 kB, 197 kB gepackt), bekam diese
+          // bei jedem Ausrollen einen neuen Namen, und wer die Seite schon
+          // kannte, lud alles neu. So bleibt der grosse Teil im Browser.
+          manualChunks: {
+            react: ["react", "react-dom", "react-router-dom"],
+            supabase: ["@supabase/supabase-js"],
+            abfragen: ["@tanstack/react-query"],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
