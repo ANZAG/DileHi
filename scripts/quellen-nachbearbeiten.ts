@@ -214,10 +214,18 @@ function scanPpi(datei: string, i: number): number {
   return ppi;
 }
 
-/** Eine Seite rendern (höchstens 300 dpi, höchstens 3300 Punkte lang) – als Bild für die Aufbereitung. */
-function rendern(datei: string, i: number, ordner: string): Pixel & { dpi: number } {
+/**
+ * Eine Seite rendern (höchstens 300 dpi, höchstens 3300 Punkte lang) – als
+ * Bild für die Aufbereitung. `nativ`: nicht über die Auflösung des
+ * eingebetteten Fotos hinaus hochrechnen. Stein S. 26 aus der App (2400
+ * Punkte lang) las Tesseract auf 3300 hochgerechnet mit Lücken („eine
+ * breite Bor am (gen un len Auf“), in der echten Grösse fehlerfrei.
+ */
+function rendern(datei: string, i: number, ordner: string, nativ = false): Pixel & { dpi: number } {
   const g = seitenGroesse(datei, i);
-  const dpi = Math.max(100, Math.min(300, Math.floor((3300 * 72) / Math.max(g.b, g.h))));
+  let dpi = Math.max(100, Math.min(300, Math.floor((3300 * 72) / Math.max(g.b, g.h))));
+  const ppi = nativ ? scanPpi(datei, i) : 0;
+  if (ppi >= 120) dpi = Math.min(dpi, Math.ceil(ppi));
   const ziel = join(ordner, `s${i}`);
   lauf("pdftoppm", ["-f", String(i), "-l", String(i), "-r", String(dpi), "-singlefile", datei, ziel]);
   const bild = ppmLesen(readFileSync(`${ziel}.ppm`));
@@ -698,7 +706,7 @@ async function austauschen(q: Quelle, ordner: string): Promise<void> {
   const texte: Record<string, string> = {};
   let buchSchrift: Schrift | undefined;
   for (const [k, n] of nummern.entries()) {
-    const roh = rendern(neuDatei, k + 1, ordner);
+    const roh = rendern(neuDatei, k + 1, ordner, true);
     // Die App hat die Seite schon gedreht und zugeschnitten: nicht noch einmal vierteln.
     const z = zumLesen(roh, true);
     let r: Lesung;
