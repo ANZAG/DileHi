@@ -51,6 +51,21 @@ describe("Stimmen", () => {
     expect((await db.query<{ n: number }>("select count(*)::int as n from public.votes where election_id = $1", [wahl])).rows[0].n).toBe(0);
   });
 
+  it("lassen sich über cast_votes nicht mit negativen Zahlen vervielfachen", async () => {
+    // 50 für Anna, −49 für Bert: Die Summe ist 1 – und vorher gab es 50 Stimmen.
+    const bert = (await db.query<{ id: string }>("insert into public.candidates (election_id, name) values ($1, 'Bert') returning id", [wahl])).rows[0].id;
+    const stimme = (votes: unknown) => alsMitglied(MITGLIED, "select public.cast_votes($1, $2, $3::jsonb)", [wahl, MITGLIED, JSON.stringify(votes)]);
+    await expect(stimme([{ candidate_id: kandidat, count: 50 }, { candidate_id: bert, count: -49 }])).rejects.toThrow(/Ungültige/);
+    await expect(stimme([{ candidate_id: kandidat, count: 1.5 }, { candidate_id: bert, count: -0.5 }])).rejects.toThrow(/Ungültige/);
+    await expect(stimme([{ candidate_id: kandidat, count: "1" }])).rejects.toThrow(/Ungültige/);
+    await expect(stimme([{ candidate_id: kandidat }])).rejects.toThrow(/Ungültige/);
+    // Kandidat einer anderen Wahl
+    const andere = (await db.query<{ id: string }>("insert into public.elections (title, status, created_by) values ('Andere', 'active', $1) returning id", [LEITUNG])).rows[0].id;
+    const fremd = (await db.query<{ id: string }>("insert into public.candidates (election_id, name) values ($1, 'Fremd') returning id", [andere])).rows[0].id;
+    await expect(stimme([{ candidate_id: fremd, count: 1 }])).rejects.toThrow(/Ungültige/);
+    expect((await db.query<{ n: number }>("select count(*)::int as n from public.votes where election_id = $1", [wahl])).rows[0].n).toBe(0);
+  });
+
   it("gehen über cast_votes – genau so viele, wie dem Mitglied zustehen", async () => {
     await expect(
       alsMitglied(MITGLIED, "select public.cast_votes($1, $2, $3::jsonb)", [wahl, MITGLIED, JSON.stringify([{ candidate_id: kandidat, count: 5 }])])
