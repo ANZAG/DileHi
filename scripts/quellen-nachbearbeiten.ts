@@ -604,6 +604,9 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           if (r.text.trim().length >= 40) sicherheiten.push(r.sicherheit);
           // Sehr unsicher und kaum echte Wörter: kein Text (sonst Zeichenmüll in der Suche).
           if (r.sicherheit < UNLESBAR && echteWoerter(text) < 30) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
+          // Kein Text, sondern Muster (marmoriertes Vorsatzpapier, Einband):
+          // Hunderte „Zeichen“, kaum etwas Wortartiges (Studien 1893, S. 3–4).
+          else if (fuerSalatPruefung([text]).length === 0) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
           // Hatte die alte Textebene mehr echte Wörter, bleibt sie.
           if (echteWoerter(imPdf[i - 1]) > echteWoerter(text) * 1.1) { text = imPdf[i - 1]; bericht.ausPdf++; }
           else bericht.gelesen++;
