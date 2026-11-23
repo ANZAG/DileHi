@@ -217,7 +217,8 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
         const { error } = await (supabase.rpc as any)("update_response_by_edit_token", {
           _edit_token: guestEditToken,
           _name: name.trim(),
-          _email: email.trim() || null,
+          // Die Funktion nimmt eine leere Adresse als NULL; die erzeugten Typen kennen nur „text“.
+          _email: (email.trim() || null) as string,
           _answers: answerArray as any,
         });
         if (error) throw error;
@@ -265,7 +266,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
         const { data: returnedEditToken, error } = await supabase.rpc("submit_form_response", {
           _token: token!,
           _name: name.trim(),
-          _email: email.trim() || null,
+          _email: (email.trim() || null) as string,
           _answers: answerArray as any,
         });
 

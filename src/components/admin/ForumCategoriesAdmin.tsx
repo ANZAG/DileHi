@@ -116,7 +116,7 @@ export default function ForumCategoriesAdmin() {
 
             <Select
               value={c.status}
-              onValueChange={(v) => save.mutate({ id: c.id, ...c, status: v as CategoryStatus })}
+              onValueChange={(v) => save.mutate({ ...c, status: v as CategoryStatus })}
             >
               <SelectTrigger className="h-8 w-full sm:w-40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>

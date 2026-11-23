@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 // Bauwerkzeug, absichtlich kein Teil der Anwendung -- deshalb aus scripts/.
+// @ts-expect-error -- Bauskript ohne Typangaben
 import { apr1 } from "../../scripts/apr1.mjs";
 
 /**

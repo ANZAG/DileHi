@@ -333,9 +333,9 @@ const Contributions = () => {
         membershipType: p.membership_type ?? null,
         name: p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.display_name,
         status: contrib?.status || "offen",
-        amount: contrib?.amount,
-        paidAt: contrib?.paid_at,
-        notes: contrib?.notes,
+        amount: contrib?.amount ?? null,
+        paidAt: contrib?.paid_at ?? null,
+        notes: contrib?.notes ?? null,
         contribId: contrib?.id,
         interval: p.contribution_interval,
       };

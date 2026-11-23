@@ -1844,7 +1844,7 @@ export function Besucherhinweis({
 }: Gemeinsam & { epoche: string; einleitung?: string; abschluss?: string }) {
   return (
     <section className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
-      <VisitorHighlight epoch={epoche} intro={einleitung} outro={abschluss} />
+      <VisitorHighlight epoch={epoche} intro={einleitung ?? ""} outro={abschluss} />
     </section>
   );
 }
