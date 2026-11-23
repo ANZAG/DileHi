@@ -74,6 +74,109 @@ function verkleinern(bild: Pixel, zielBreite: number, dunkelstes = false): { g: 
   return { g, w, h };
 }
 
+/**
+ * Der Farbstich des Lichts über die Seite: Im Schatten oder im warmen Licht
+ * einer Lampe ist Papier bräunlich, daneben im Tageslicht weiss – auf
+ * derselben Seite. Das ist keine Farbe der Seite, sondern des Lichts, und
+ * es ändert sich sanft von einer Ecke zur anderen. Eine Abbildung dagegen
+ * hat scharfe Grenzen.
+ *
+ * Gemessen wird je Feld die Farbe des hellsten Zehntels (Papier, nicht
+ * Schrift) als Verhältnis Rot/Grün und Blau/Grün; durch die Felder wird je
+ * eine glatte Fläche gelegt (Polynom 3. Grades in x und y, mehrmals
+ * gerechnet, wobei Felder abseits der Fläche – Abbildungen – herausfallen).
+ * Ergebnis: Faktoren für Rot und Blau, die das Papier an jeder Stelle
+ * farblos machen.
+ *
+ * Ohne das galt eine Textseite im Schatten als farbige Bildseite (Handyfoto:
+ * `farbAnteil` 34 % statt unter 0,3 %) und wurde nicht geweisst.
+ */
+export function farbstich(bild: Pixel): (x: number, y: number) => [number, number] {
+  const { breite: w, hoehe: h, daten: d } = bild;
+  const feld = Math.max(4, Math.round(Math.max(w, h) / 48));
+  const gw = Math.ceil(w / feld), gh = Math.ceil(h / feld);
+  const schritt = Math.max(1, Math.floor(feld / 10));
+  const rg = new Float32Array(gw * gh), bg = new Float32Array(gw * gh), hell = new Float32Array(gw * gh);
+  const verteilung = new Uint32Array(64);
+  for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
+    verteilung.fill(0);
+    let n = 0;
+    const x1 = Math.min(w, (fx + 1) * feld), y1 = Math.min(h, (fy + 1) * feld);
+    for (let y = fy * feld; y < y1; y += schritt) for (let x = fx * feld; x < x1; x += schritt) { verteilung[lum(d, (y * w + x) * 4) >> 2]++; n++; }
+    let s = 0, b = 63;
+    for (; b > 0; b--) { s += verteilung[b]; if (s >= n * 0.1) break; }
+    let r = 0, g = 0, bl = 0;
+    for (let y = fy * feld; y < y1; y += schritt) for (let x = fx * feld; x < x1; x += schritt) {
+      const i = (y * w + x) * 4;
+      if ((lum(d, i) >> 2) < b) continue;
+      r += d[i]; g += d[i + 1]; bl += d[i + 2];
+    }
+    const k = fy * gw + fx;
+    rg[k] = Math.log(Math.max(1, r) / Math.max(1, g));
+    bg[k] = Math.log(Math.max(1, bl) / Math.max(1, g));
+    hell[k] = b * 4 + 2;
+  }
+  const sortiert = Float32Array.from(hell).sort();
+  const papierHell = sortiert[Math.floor(sortiert.length * 0.8)] || 1;
+  const merkmale = (u: number, v: number) => [1, u, v, u * u, u * v, v * v, u * u * u, u * u * v, u * v * v, v * v * v];
+  const M = 10;
+  const anpassen = (werte: Float32Array): number[] => {
+    let nimm = new Uint8Array(gw * gh);
+    let zahl = 0, summe = 0;
+    for (let k = 0; k < nimm.length; k++) if (hell[k] >= papierHell * 0.4) { nimm[k] = 1; zahl++; summe += werte[k]; }
+    // Zu wenig Papier für eine Fläche: ein Stich für die ganze Seite.
+    let c: number[] = [zahl ? summe / zahl : 0, ...new Array(M - 1).fill(0)];
+    if (zahl < 60) return c;
+    for (let runde = 0; runde < 4; runde++) {
+      const a = Array.from({ length: M }, () => new Array(M + 1).fill(0));
+      let n = 0;
+      for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
+        const k = fy * gw + fx;
+        if (!nimm[k]) continue;
+        const m = merkmale((fx + 0.5) / gw - 0.5, (fy + 0.5) / gh - 0.5);
+        for (let i = 0; i < M; i++) {
+          for (let j = 0; j < M; j++) a[i][j] += m[i] * m[j];
+          a[i][M] += m[i] * werte[k];
+        }
+        n++;
+      }
+      if (n < 60) break;
+      for (let i = 0; i < M; i++) a[i][i] += 1e-6 * n;
+      for (let i = 0; i < M; i++) {
+        let piv = i;
+        for (let r = i + 1; r < M; r++) if (Math.abs(a[r][i]) > Math.abs(a[piv][i])) piv = r;
+        [a[i], a[piv]] = [a[piv], a[i]];
+        if (a[i][i] === 0) continue;
+        for (let r = 0; r < M; r++) {
+          if (r === i) continue;
+          const f = a[r][i] / a[i][i];
+          for (let j = i; j <= M; j++) a[r][j] -= f * a[i][j];
+        }
+      }
+      c = a.map((z, i) => (z[i] ? z[M] / z[i] : 0));
+      // Felder abseits der Fläche (mehr als 6 %): Abbildung, nicht Licht.
+      const neu = new Uint8Array(gw * gh);
+      for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
+        const k = fy * gw + fx;
+        if (hell[k] < papierHell * 0.4) continue;
+        const m = merkmale((fx + 0.5) / gw - 0.5, (fy + 0.5) / gh - 0.5);
+        let f = 0;
+        for (let i = 0; i < M; i++) f += m[i] * c[i];
+        if (Math.abs(werte[k] - f) <= 0.06) neu[k] = 1;
+      }
+      nimm = neu;
+    }
+    return c;
+  };
+  const cr = anpassen(rg), cb = anpassen(bg);
+  return (x, y) => {
+    const m = merkmale(Math.min(1, Math.max(0, x / w)) - 0.5, Math.min(1, Math.max(0, y / h)) - 0.5);
+    let r = 0, b = 0;
+    for (let i = 0; i < M; i++) { r += m[i] * cr[i]; b += m[i] * cb[i]; }
+    return [Math.exp(-r), Math.exp(-b)];
+  };
+}
+
 interface Hintergrund {
   /** Papierhelligkeit je Feld (Raster gw × gh, Feldgrösse `feld`). */
   hell: Float32Array;
@@ -105,6 +208,7 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
   const bunt = new Float32Array(gw * gh);
   const gesamt = new Uint32Array(64);
   const verteilung = new Uint32Array(64);
+  const stich = farbstich(bild);
   for (let fy = 0; fy < gh; fy++) for (let fx = 0; fx < gw; fx++) {
     verteilung.fill(0);
     let n = 0;
@@ -119,11 +223,14 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
     let s = 0, b = 63;
     for (; b > 0; b--) { s += verteilung[b]; if (s >= n * 0.1) break; }
     let m = 0, sr = 0, sg = 0, sb = 0, sc = 0;
+    const [stichR, stichB] = stich((fx + 0.5) * feld, (fy + 0.5) * feld);
     for (let y = fy * feld; y < y1; y += 2) for (let x = fx * feld; x < x1; x += 2) {
       const i = (y * w + x) * 4;
       if ((lum(d, i) >> 2) < b) continue;
       sr += d[i]; sg += d[i + 1]; sb += d[i + 2];
-      sc += Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
+      // Bunt ist, was nach Abzug des Farbstichs noch Farbe hat.
+      const R = d[i] * stichR, B = d[i + 2] * stichB;
+      sc += Math.max(R, d[i + 1], B) - Math.min(R, d[i + 1], B);
       m++;
     }
     const k = fy * gw + fx;
@@ -353,8 +460,9 @@ export const SCHAERFE_GRENZE_BILD = 1800;
 
 /**
  * Anteil deutlich farbiger Punkte im Inneren der Seite (ohne 10 % Rand, wo
- * Tisch, Nachbarseite oder Finger liegen). Vorher Weissabgleich am hellsten
- * Zehntel, damit vergilbtes Papier nicht als Farbe zählt. Gezählt wird ein
+ * Tisch, Nachbarseite oder Finger liegen). Vorher wird der Farbstich des
+ * Lichts abgezogen (`farbstich`), damit vergilbtes Papier und eine Seite im
+ * Schatten nicht als Farbe zählen. Gezählt wird ein
  * Punkt, wenn sein stärkster und schwächster Kanal mehr als 45 auseinander
  * liegen.
  *
@@ -363,7 +471,7 @@ export const SCHAERFE_GRENZE_BILD = 1800;
  * Rückumschlag mit kleiner Uniformtafel 5 %, Einband 6,7 %. Eine farbige
  * Abbildung auf der Seite liegt also deutlich über `FARB_GRENZE`.
  */
-export function farbAnteil(bild: Pixel): number {
+export function farbAnteil(bild: Pixel, stich: (x: number, y: number) => [number, number] = farbstich(bild)): number {
   const { breite: w, hoehe: h, daten: d } = bild;
   const x0 = Math.floor(w * 0.1), x1 = Math.ceil(w * 0.9), y0 = Math.floor(h * 0.1), y1 = Math.ceil(h * 0.9);
   const schritt = Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 200000)));
@@ -373,19 +481,11 @@ export function farbAnteil(bild: Pixel): number {
     lum.push(d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11);
   }
   if (lum.length === 0) return 0;
-  const hell = [...lum].sort((a, b) => a - b)[Math.floor(lum.length * 0.9)];
-  let r = 0, g = 0, b = 0, n = 0;
-  for (let y = y0, k = 0; y < y1; y += schritt) for (let x = x0; x < x1; x += schritt, k++) {
-    if (lum[k] < hell) continue;
-    const i = (y * w + x) * 4;
-    r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
-  }
-  const mittel = (r + g + b) / (3 * n);
-  const fr = mittel / Math.max(1, r / n), fg = mittel / Math.max(1, g / n), fb = mittel / Math.max(1, b / n);
   let bunt = 0;
   for (let y = y0; y < y1; y += schritt) for (let x = x0; x < x1; x += schritt) {
     const i = (y * w + x) * 4;
-    const R = d[i] * fr, G = d[i + 1] * fg, B = d[i + 2] * fb;
+    const [fr, fb] = stich(x, y);
+    const R = d[i] * fr, G = d[i + 1], B = d[i + 2] * fb;
     if (Math.max(R, G, B) - Math.min(R, G, B) > 45) bunt++;
   }
   return bunt / lum.length;
@@ -466,7 +566,8 @@ export function geradeDrehen(bild: Pixel, grad: number): Pixel {
 
 /**
  * Dunkle Streifen am Rand entfernen: Scannerdeckel, Buchschnitt, ein
- * Streifen der Nachbarseite, schwarze Kanten nach dem Geradedrehen. Entfernt
+ * Streifen der Nachbarseite, schwarze Kanten nach dem Geradedrehen, die
+ * Unterlage rings um das Blatt. Entfernt
  * wird, was dunkel ist, den Bildrand berührt und ganz in einem schmalen
  * Band am Rand liegt (`band`, Anteil der kürzeren Seite) – eine Abbildung,
  * die bis an den Rand reicht, ragt weiter hinein und bleibt. Übermalt wird
@@ -518,7 +619,29 @@ export function randSaeubern(bild: Pixel, band = 0.06): number {
     const beruehrt = (links && x0 === 0) || (rechts && x1 === gw - 1) || (oben && y0 === 0) || (unten && y1 === gh - 1);
     const senkrecht = (links || rechts) && y1 - y0 + 1 >= gh * 0.15 && x1 - x0 + 1 <= Math.max(2, tief / 2);
     const waagrecht = (oben || unten) && x1 - x0 + 1 >= gw * 0.15 && y1 - y0 + 1 <= Math.max(2, tief / 2);
-    if (beruehrt || senkrecht || waagrecht) weg.push(...glied);
+    if (beruehrt || senkrecht || waagrecht) { weg.push(...glied); continue; }
+    // Ein Rahmen rund um die Seite (die Unterlage, wenn das Viereck etwas
+    // grösser ist als das Blatt – der Normalfall) hängt über die Ecken
+    // zusammen und liegt deshalb in keinem einzelnen Randband. Er wird
+    // Stelle für Stelle geprüft: Was vom Bildrand her dunkel ist und
+    // innerhalb des Bandes endet, ist Rand und fällt weg; was tiefer
+    // hineinreicht (eine Abbildung bis an den Rand), bleibt.
+    if (x0 > 0 && x1 < gw - 1 && y0 > 0 && y1 < gh - 1) continue;
+    const nr = teil - 1;
+    const lauf = (start: number, schritt: number) => {
+      const stueck: number[] = [];
+      for (let i = 0, k = start; i < tief; i++, k += schritt) {
+        if (marke[k] !== nr) { weg.push(...stueck); return; }
+        stueck.push(k);
+      }
+    };
+    // Die Ecken des Rahmens gehören zu zwei Bändern zugleich.
+    for (const k of glied) {
+      const x = k % gw, y = (k - x) / gw;
+      if ((x < tief || x >= gw - tief) && (y < tief || y >= gh - tief)) weg.push(k);
+    }
+    for (let x = 0; x < gw; x++) { lauf(x, gw); lauf((gh - 1) * gw + x, -gw); }
+    for (let y = 0; y < gh; y++) { lauf(y * gw, 1); lauf(y * gw + gw - 1, -1); }
   }
   if (!weg.length) return 0;
   // Übermalen, eine Zelle breiter (der helle Saum am Streifen).

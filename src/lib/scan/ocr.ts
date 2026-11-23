@@ -135,16 +135,38 @@ export interface LeseOptionen {
  * Lücken mitten im Absatz („eine breite Bor am (gen un len Auf“).
  */
 const UNSICHER_NOCHMAL = 8;
+/**
+ * … und zugleich mindestens dieser Anteil der Wörter: Auf einer vollen
+ * Seite (300 bis 500 Wörter) sind acht unsichere Wörter der Normalfall, und
+ * jede Seite dreimal zu lesen kostete das Dreifache an Zeit.
+ */
+const UNSICHER_ANTEIL = 0.04;
+
+/**
+ * Welche von zwei Lesungen ist besser? Die mit weniger unsicheren Wörtern –
+ * aber nur, wenn sie nicht merklich weniger Wörter hat: Eine Lesung, der
+ * eine Zeile oder ein Absatz fehlt, hat auch weniger unsichere Wörter und
+ * gewann vorher.
+ */
+export function bessereLesung<T extends { unsicher: number; woerter: number; sicherheit: number }>(alt: T, neu: T): T {
+  if (neu.woerter < alt.woerter * 0.95) return alt;
+  if (alt.woerter < neu.woerter * 0.95) return neu;
+  if (neu.unsicher !== alt.unsicher) return neu.unsicher < alt.unsicher ? neu : alt;
+  return neu.sicherheit > alt.sicherheit ? neu : alt;
+}
+
+/** Lohnt es, die Seite auch kleiner und grösser zu lesen? */
+export function nochmalLesen(unsicher: number, woerter: number): boolean {
+  return unsicher >= Math.max(UNSICHER_NOCHMAL, woerter * UNSICHER_ANTEIL);
+}
 
 /** Eine Seite lesen. `breite` ist die Breite des Bildes in Punkten. */
 export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen = {}): Promise<OcrErgebnis> {
-  let beste = await einmalLesen(bild, breite, schrift, o, 1);
-  if (beste.unsicher < UNSICHER_NOCHMAL) return beste.ergebnis;
-  for (const zusatz of [0.8, 1.2]) {
-    const r = await einmalLesen(bild, breite, schrift, o, zusatz);
-    if (r.unsicher < beste.unsicher || (r.unsicher === beste.unsicher && r.ergebnis.sicherheit > beste.ergebnis.sicherheit)) beste = r;
-  }
-  return beste.ergebnis;
+  const wert = (r: { ergebnis: OcrErgebnis; unsicher: number }) => ({ r, unsicher: r.unsicher, woerter: r.ergebnis.woerter.length, sicherheit: r.ergebnis.sicherheit });
+  let beste = wert(await einmalLesen(bild, breite, schrift, o, 1));
+  if (!nochmalLesen(beste.unsicher, beste.woerter)) return beste.r.ergebnis;
+  for (const zusatz of [0.8, 1.2]) beste = bessereLesung(beste, wert(await einmalLesen(bild, breite, schrift, o, zusatz)));
+  return beste.r.ergebnis;
 }
 
 async function einmalLesen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen, zusatz: number): Promise<{ ergebnis: OcrErgebnis; unsicher: number }> {

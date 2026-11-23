@@ -274,6 +274,42 @@ erkannte Wörter 1922 → 3080. S. 46 („Husaren") hat jetzt den ganzen ersten
 Absatz mit allen Zahlen, S. 14 liest „der Franzosen einige / Stunden lang".
 Sauvola-Binarisierung in Tesseract brachte danach nichts mehr.
 
+## Seiten im Schatten, Einbände
+
+Rückmeldung vom Handy (Gleba, Klosterleben): Gut ging nur eine weisse
+Einzelseite. Ein Buch auf dunklem Stoff, die linke Seite im warmen Schatten
+(bräunlich), dazu der farbige Einband – daran scheiterten mehrere Schritte,
+die alle „Papier ist hell und farblos“ voraussetzten:
+
+- **Buch finden** (`seitenFinden.ts`): Neben dem hellen Papier gibt es den
+  „Gegenstand“ – alles in der Bildmitte, was nicht die Farbe der Unterlage
+  hat. Einband: Gegenstand statt „Kein Buch erkannt“. Doppelseite: Der
+  Gegenstand, der das Papier enthält, ist das ganze Buch (vorher sass der
+  Rahmen mitten im Buch). Einzelseite: Liegt ein Teil der Seite im Schatten,
+  wird vom Papier aus bis zur nächsten scharfen Stufe der Helligkeit
+  erweitert (ein Schatten verläuft weich, der Bund nicht). Das Buch darf an
+  zwei Bildrändern anliegen.
+- **Farbstich des Lichts** (`aufbereitung.ts`, `farbstich`): eine glatte
+  Fläche durch die Papierfarbe der Felder. Erst nach ihrem Abzug wird
+  gefragt, ob etwas farbig ist. Vorher galt die Schattenseite als farbige
+  Bildseite (`farbAnteil` 34 %) und wurde nicht geweisst.
+- **Finger** (`finger.ts`): Papier im warmen Schatten hat Hautfarbe (Cr 149).
+  Vorher wurde einer solchen Seite – und dem Einband – der ganze Rand
+  übermalt. Jetzt: Farbstich abziehen, ein Finger muss röter sein als die
+  Seite, ein Fleck über mehr als 40 % einer Seitenlänge ist keiner, und auf
+  einer Seite mit viel Farbe (Einband, Tafel) bleibt alles, wie es ist.
+- **Dunkler Rand** (`randSaeubern`): Die Unterlage rings um das Blatt hängt
+  über die Ecken zusammen und fiel deshalb in kein einzelnes Randband – sie
+  blieb als schwarzer Rahmen stehen. Jetzt Stelle für Stelle vom Bildrand her.
+- **Texterkennung** (`ocr.ts`): Kleiner und grösser gelesen wird erst ab 4 %
+  unsicheren Wörtern (mindestens acht) – acht waren auf einer vollen Seite
+  der Normalfall, jede Seite wurde dreimal gelesen. Eine Lesung mit merklich
+  weniger Wörtern (eine Zeile fehlt) gewinnt nicht mehr.
+
+Geprüft an den vier Bildschirmfotos vom Handy und an einem nachgestellten
+Foto (Textseite, schräg, Trapez, Schatten, zwei Daumen): Seite ganz gefunden,
+Zeilen gerade, weiss, Daumen weg, 271 von 272 Wörtern richtig gelesen.
+
 ## Das PDF
 
 - **Textebene zeilenweise**, in der Reihenfolge, in der Tesseract liest

@@ -99,6 +99,25 @@ describe("Rand des Buches finden", () => {
     expect(v![3].y).toBeLessThan(0.74);
   });
 
+  it("Einzelseite: nimmt den Teil der Seite im Schatten mit (weicher Verlauf, keine Stufe)", () => {
+    // Die linken 40 % der Seite liegen im warmen Schatten, mit weichem Übergang.
+    const STOFF: Farbe = [34, 38, 62];
+    const buch = { x0: 0.15, y0: 0.15, x1: 0.85, y1: 0.85 };
+    const bild = szene(STOFF, buch);
+    for (let y = 0; y < 800; y++) for (let x = 0; x < 600; x++) {
+      if (!drin(buch, x, y, 600, 800)) continue;
+      const t = (x / 600 - buch.x0) / (buch.x1 - buch.x0);
+      const s = 1 / (1 + Math.exp((t - 0.4) * 14));
+      const i = (y * 600 + x) * 4;
+      bild.daten[i] *= 1 - 0.22 * s; bild.daten[i + 1] *= 1 - 0.33 * s; bild.daten[i + 2] *= 1 - 0.46 * s;
+    }
+    const v = seitenFinden(bild);
+    expect(v).not.toBeNull();
+    expect(v![0].x).toBeLessThan(0.18);
+    expect(v![0].x).toBeGreaterThan(0.1);
+    expect(v![1].x).toBeGreaterThan(0.82);
+  });
+
   it("meldet auf einem weissen Tisch nichts, statt eine Seite abzuschneiden", () => {
     expect(seitenFinden(szene(TISCH, { x0: 0.1, y0: 0.2, x1: 0.9, y1: 0.8 }))).toBeNull();
   });

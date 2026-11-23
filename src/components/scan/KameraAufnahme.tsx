@@ -202,6 +202,12 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
         const kann = (spur.getCapabilities?.() ?? {}) as Erweitert;
         const modi = Array.isArray(kann.focusMode) ? kann.focusMode : [];
         setFesthalten(modi.includes("manual") || modi.includes("single-shot") ? "aus" : "geht_nicht");
+        // Den Autofokus ausdrücklich einschalten: Manche Kameras bleiben im
+        // Videobetrieb sonst auf der letzten Entfernung stehen (etwa nach
+        // „Schärfe festhalten“ in einer früheren Sitzung).
+        if (modi.includes("continuous")) {
+          await spur.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => undefined);
+        }
       } catch (err) {
         if (!aktiv) return;
         // Das gemerkte Gerät gibt es nicht mehr: mit irgendeinem weiter.
@@ -414,6 +420,13 @@ export function KameraAufnahme({ zuschnitt, onZuschnitt, onAufnahme, seitenZahl,
       ? { exposureMode: an ? "manual" : "continuous" } : {};
     try {
       await spur.applyConstraints({ advanced: [{ ...vorgabe, ...belichtung } as MediaTrackConstraintSet] });
+      // Solche Wünsche darf die Kamera stillschweigend übergehen – also
+      // nachsehen, ob sie die Schärfe wirklich festhält.
+      const nun = ((spur.getSettings?.() ?? {}) as Erweitert).focusMode;
+      if (an && typeof nun === "string" && nun === "continuous") {
+        setFehler("Die Kamera hält die Schärfe nicht fest – der Autofokus bleibt an.");
+        return;
+      }
       setFesthalten(an ? "an" : "aus");
     } catch {
       setFehler("Die Kamera lässt sich Schärfe und Belichtung nicht vorschreiben.");

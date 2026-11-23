@@ -56,4 +56,36 @@ describe("Finger entfernen", () => {
     const b = seite(800, 1000, [{ x0: 0, y0: 100, x1: 6, y1: 106, farbe: HAUT }]);
     expect(fingerEntfernen(b).anteil).toBe(0);
   });
+
+  it("übermalt einer Seite im warmen Schatten nicht den Rand (Papier in Hautfarbe)", () => {
+    // Handyfoto: linke Seite bräunlich im Schatten, Cr 149 – vorher galt der ganze Rand als Finger.
+    const SCHATTEN: [number, number, number] = [200, 165, 120];
+    expect(istHaut(...SCHATTEN)).toBe(true); // für sich genommen ist das Hautfarbe
+    const b = seite(800, 1000, [{ x0: 0, y0: 0, x1: 800, y1: 1000, farbe: SCHATTEN }]);
+    expect(fingerEntfernen(b).anteil).toBe(0);
+    expect(farbe(b, 20, 500)).toEqual(SCHATTEN);
+  });
+
+  it("findet den Daumen auch auf einer Seite im warmen Schatten", () => {
+    const SCHATTEN: [number, number, number] = [200, 165, 120];
+    const DAUMEN: [number, number, number] = [150, 97, 70]; // Haut im selben Licht
+    const b = seite(800, 1000, [
+      { x0: 0, y0: 400, x1: 80, y1: 520, farbe: DAUMEN },
+      { x0: 0, y0: 0, x1: 800, y1: 1000, farbe: SCHATTEN },
+    ]);
+    expect(fingerEntfernen(b).anteil).toBeGreaterThan(0);
+    const [r, g] = farbe(b, 40, 460);
+    expect(Math.abs(r - SCHATTEN[0])).toBeLessThan(12);
+    expect(Math.abs(g - SCHATTEN[1])).toBeLessThan(12);
+  });
+
+  it("lässt einen farbigen Einband in Ruhe (die Farbe taugt dort nicht)", () => {
+    // Bunte Felder wie auf einem Gemälde, am Rand eines in Hautfarbe.
+    const farben: [number, number, number][] = [[170, 115, 85], [120, 135, 90], [70, 90, 140], [200, 180, 60], [150, 60, 50]];
+    const flecken = [{ x0: 0, y0: 300, x1: 90, y1: 420, farbe: [205, 150, 130] as [number, number, number] }];
+    for (let y = 0; y < 10; y++) for (let x = 0; x < 8; x++) flecken.push({ x0: x * 100, y0: y * 100, x1: x * 100 + 100, y1: y * 100 + 100, farbe: farben[(x * 3 + y * 2) % 5] });
+    const b = seite(800, 1000, flecken);
+    expect(fingerEntfernen(b).anteil).toBe(0);
+    expect(farbe(b, 40, 360)).toEqual([205, 150, 130]);
+  });
 });
