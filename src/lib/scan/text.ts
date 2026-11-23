@@ -251,7 +251,7 @@ export function textMasse(texte: string[]): { kennwoerter: number; vielfalt: num
  */
 export function wortartig(texte: string[]): { anteil: number; zahl: number } {
   // Zahlen (Jahre, Seiten, Nummern) sind kein Zeichensalat und zählen nicht mit.
-  const teile = texte.join(" ").split(/\s+/).filter((t) => t && !/^[\d.,;:()\[\]\-–\/]+$/.test(t)).slice(0, 5000);
+  const teile = texte.join(" ").split(/\s+/).filter((t) => t && !/^[\d.,;:()[\]\-–/]+$/.test(t)).slice(0, 5000);
   const gut = teile.filter((t) => /^[(„"»«']*[\p{L}ſ]{3,}[-.,;:!?)"“'»«]*$/u.test(t)).length;
   return { anteil: teile.length ? gut / teile.length : 0, zahl: teile.length };
 }
