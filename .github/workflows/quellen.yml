@@ -29,6 +29,10 @@ name: Quellen nachbearbeiten
 #            selbst durchsuchbar hat; quellen = Paare „txt-Kennung:pdf-Kennung“
 #   kopie-loeschen  Kopie eines PDFs (anders komprimiert) entfernen;
 #            quellen = Paare „kopie-Kennung:original-Kennung“
+#   aufraeumen  von uns bearbeitete PDFs nachbessern, ohne neue Erkennung:
+#            alte Textebene unter unserer entfernen (nie zwei), Titel ohne
+#            „.pdf“ und richtig kodiert, /Lang, keine leeren Seitenlabels;
+#            aufraeumen-probe legt die Ergebnisse nur als Artefakt ab
 #   angaben  Titel, Autor, Jahr, Thema und Seitenbeschriftung ins PDF der
 #            genannten Quelle schreiben (Seiten bleiben, neue Fassung)
 #   leeren   den Suchtext der genannten Quellen entfernen (Datei bleibt)
@@ -56,7 +60,7 @@ on:
       modus:
         description: "pruefen = nur nachsehen, text = durchsuchbar machen, probe = neue PDFs zum Ansehen, verbessern = PDFs ersetzen"
         type: choice
-        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen, txt-loeschen, kopie-loeschen, leeren, angaben]
+        options: [pruefen, text, probe, verbessern, zurueck, doppelt, austauschen-probe, austauschen, txt-pruefen, txt-loeschen, kopie-loeschen, leeren, angaben, aufraeumen-probe, aufraeumen]
         default: pruefen
       quellen:
         description: "Nur diese Quellen (Kennungen, durch Komma getrennt; leer = alle)"
@@ -158,7 +162,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Neue PDFs ablegen (probe)
-        if: always() && (inputs.modus == 'probe' || inputs.modus == 'austauschen-probe')
+        if: always() && (inputs.modus == 'probe' || inputs.modus == 'austauschen-probe' || inputs.modus == 'aufraeumen-probe')
         uses: actions/upload-artifact@v5
         with:
           name: quellen-neu

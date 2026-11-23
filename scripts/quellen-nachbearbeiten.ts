@@ -43,12 +43,13 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { createScheduler, createWorker, OEM, PSM, type Scheduler } from "tesseract.js";
 import jpeg from "jpeg-js";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName } from "pdf-lib";
 import { aufbereiten, seiteAufbereiten, vierteldrehen } from "../src/lib/scan/aufbereitung";
 import { kontrastStrecken, type Pixel } from "../src/lib/scan/geometrie";
-import { pdfBauen, seitenBeschriftung, textEbeneEinfuegen, verwaisteEntfernen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
+import { angabenVervollstaendigen, pdfBauen, seitenBeschriftung, textEbeneEinfuegen, verwaisteEntfernen, type PdfSeite, type TextFuerSeite, type Wort } from "../src/lib/scan/pdf";
 import { lesetext, seitentextAufraeumen } from "../src/lib/scan/text";
-import { besteSchrift, ZUR_SPRACHE } from "../src/lib/scan/ocr";
+import { ZUR_SPRACHE } from "../src/lib/scan/ocr";
+import { alteTextebeneEntfernen, schriftSchluessel } from "../src/lib/scan/textebeneEntfernen";
 import { fuerSalatPruefung, istZeichensalat, ohneWiederkehrendeZeilen, spracheRaten, textMasse, wortartig, zaehlungBereiche, zaehlungFinden, type Bereich } from "../src/lib/scan/text";
 
 const MODUS = (process.env.MODUS ?? "pruefen").trim();
@@ -179,7 +180,10 @@ function angabenFuer(datei: string, titel: string, epoche: string | null | undef
   const thema = teile ? teile[2].trim() : ohneEndung;
   const ep = epoche ? (epoche === "mittelalter" ? "Mittelalter" : epoche) : undefined;
   const stichwoerter = [ep, schrift ? SPRACHE_NAME[schrift] : undefined, "Quellensammlung"].filter((x): x is string => !!x);
-  return { autor, thema, stichwoerter, zaehlung: zaehlungFinden(texte), bereiche: zaehlungBereiche(texte) };
+  // Sprache aus dem Text des ganzen Werks (nicht aus Ordner oder Modell).
+  const stichprobe = texte.filter((t) => t.trim()).slice(0, 40).join("\n");
+  const sprache = ({ deu: "de-DE", lat: "la", fra: "fr", eng: "en", "lat+fra": "la" } as const)[spracheRaten(stichprobe) ?? "deu"];
+  return { titel: ohneEndung, autor, thema, stichwoerter, sprache, zaehlung: zaehlungFinden(texte), bereiche: zaehlungBereiche(texte) };
 }
 
 /** Anteil der Wörter (ab 3 Zeichen), deren Rahmen breiter als hoch ist; ohne solche 1. */
@@ -391,6 +395,24 @@ async function lesen(bild: Buffer, schrift: Schrift): Promise<Lesung> {
   return { text: data.text ?? "", sicherheit: data.confidence ?? 0, woerter, kopf: false, unsicher };
 }
 
+/**
+ * Antiqua oder Fraktur für eine Seite: Sicherheit allein täuscht bei
+ * verzerrten Fotos (dort liest das falsche Modell mit ähnlicher Sicherheit
+ * Bruchstücke). Es zählt die Sicherheit mal der Zahl echter Wörter; Fraktur
+ * braucht 10 % Vorsprung, wie `besteSchrift` sie bevorzugt Antiqua.
+ */
+function schriftWaehlen<T extends Lesung & { schrift: Schrift }>(antiqua: T, fraktur: T): T {
+  const wert = (l: Lesung) => l.sicherheit * echteWoerter(l.text);
+  return wert(fraktur) > wert(antiqua) * 1.1 ? fraktur : antiqua;
+}
+
+/** Die häufigste Wahl; bei Gleichstand die erste. */
+function mehrheit<T>(stimmen: T[]): T {
+  const zahl = new Map<T, number>();
+  for (const s of stimmen) zahl.set(s, (zahl.get(s) ?? 0) + 1);
+  return [...zahl].sort((a, b) => b[1] - a[1])[0][0];
+}
+
 /** Lesen, und wenn es schlecht aussieht, auch auf dem Kopf (wie in der App). */
 async function seiteLesen(bild: Pixel, schrift: Schrift): Promise<Lesung> {
   const r = await lesen(pgm(bild), schrift);
@@ -496,7 +518,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
     }
     if (schreiben && zuLesen.length) {
       // Antiqua oder Fraktur? An der ersten Seite mit Text beide versuchen.
-      const wahl: { schrift: Schrift | null; gewechselt?: number } = { schrift: null };
+      const wahl: { schrift: Schrift | null; gewechselt?: number; stimmen: Schrift[] } = { schrift: null, stimmen: [] };
       const parallel = Math.max(1, Math.min(4, cpus().length));
       // Sicherheit der Seiten mit Text: Ist schon der Anfang eines Werks
       // unlesbar (Handschrift, fremde Schrift), lohnt der Rest nicht.
@@ -554,17 +576,23 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           let { bild, pdfBild } = seite;
           let r: Lesung;
           if (!wahl.schrift) {
-            // Wie im Browser (ocr.ts, schriftErkennen): Antiqua gegen Fraktur,
-            // bei Antiqua die Sprache aus dem Text und dann das passende Modell.
+            // Antiqua gegen Fraktur, bei Antiqua die Sprache aus dem Text und
+            // dann das passende Modell – entschieden pro Werk an den ersten
+            // drei Seiten mit Text (Mehrheit), nicht an einer einzelnen: Beim
+            // gewölbten Handyfoto „Klosterleben im Mittelalter“ gewann auf der
+            // ersten Seite Fraktur, gedruckt ist es in Antiqua.
             const [a, f] = await Promise.all((["antiqua", "fraktur"] as const).map(async (s) => ({ schrift: s as Schrift, ...(await seiteLesen(bild, s)) })));
-            let beste = besteSchrift([a, f]);
+            let beste = schriftWaehlen(a, f);
             if (beste.schrift === "antiqua") {
               const sprache = spracheRaten(beste.text);
               const s = (sprache ? ZUR_SPRACHE[sprache] : "antiqua") as Schrift;
               if (s !== "antiqua") beste = { schrift: s, ...(await seiteLesen(bild, s)) };
             }
             r = beste;
-            if (r.text.trim().length >= 200 && !wahl.schrift) wahl.schrift = beste.schrift;
+            if (r.text.trim().length >= 200 && !wahl.schrift) {
+              wahl.stimmen.push(beste.schrift);
+              if (wahl.stimmen.length >= 3) wahl.schrift = mehrheit(wahl.stimmen);
+            }
           } else {
             r = await seiteLesen(bild, wahl.schrift);
             // Unsicher? Dann die andere deutsche Schrift auch – die erste
@@ -630,6 +658,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           for (const i of zuLesen) texte[i - 1] = imPdf[i - 1];
         }
       }
+      if (!wahl.schrift && wahl.stimmen.length) wahl.schrift = mehrheit(wahl.stimmen);
       bericht.schrift = wahl.schrift ?? "antiqua";
       if (weg && bericht.hinweis) bericht.ersetzen = "nein – nicht lesbar";
       if (weg === "textebene" && !bericht.hinweis) {
@@ -744,7 +773,7 @@ async function austauschen(q: Quelle, ordner: string): Promise<void> {
     let r: Lesung;
     if (!buchSchrift) {
       const [a, f] = await Promise.all((["antiqua", "fraktur"] as const).map(async (s) => ({ schrift: s as Schrift, ...(await seiteLesen(z.bild, s)) })));
-      let beste = besteSchrift([a, f]);
+      let beste = schriftWaehlen(a, f);
       if (beste.schrift === "antiqua") {
         const sprache = spracheRaten(beste.text);
         const s = (sprache ? ZUR_SPRACHE[sprache] : "antiqua") as Schrift;
@@ -883,6 +912,56 @@ async function main() {
     const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
     try { await austauschen(auswahl[0], ordner); }
     finally { rmSync(ordner, { recursive: true, force: true }); await Promise.all([...planer.values()].map(async (p) => (await p).terminate())); }
+    return;
+  }
+
+  if (MODUS === "aufraeumen" || MODUS === "aufraeumen-probe") {
+    // Von uns bearbeitete PDFs nachbessern, ohne neue Erkennung: Wo unsere
+    // Textebene liegt, kommt eine alte darunter weg (nie zwei Ebenen); Titel
+    // ohne „.pdf“ und richtig kodiert, /Lang, keine leeren Seitenlabels.
+    // Andere PDFs bleiben unberührt.
+    const ordner = mkdtempSync(join(tmpdir(), "quellen-"));
+    let geaendert = 0;
+    for (const [k, q] of auswahl.entries()) {
+      const datei = join(ordner, "alt.pdf");
+      try {
+        const r = await fetch((await werkstatt<{ url: string }>("download", { sourceId: q.id })).url);
+        await pipeline(Readable.fromWeb(r.body as never), createWriteStream(datei));
+        const pdf = await PDFDocument.load(readFileSync(datei), { updateMetadata: false });
+        const erzeuger = pdf.getCreator() ?? "";
+        if (!erzeuger.startsWith("DileHi")) { console.log(`[${k + 1}/${auswahl.length}] ${q.title}: nicht von uns bearbeitet – bleibt`); continue; }
+        let entfernt = 0;
+        for (const seite of pdf.getPages()) {
+          const unsere = schriftSchluessel(seite, /NotoSans/);
+          if (unsere.size) entfernt += alteTextebeneEntfernen(pdf, seite, (s) => s !== null && unsere.has(s)) ? 1 : 0;
+        }
+        const vorher = JSON.stringify([pdf.getTitle(), pdf.getAuthor(), pdf.getSubject(), String(pdf.catalog.get(PDFName.of("Lang")) ?? ""), String(pdf.catalog.get(PDFName.of("PageLabels")) ?? "")]);
+        const zahl = pdf.getPageCount();
+        const texte = Array.from({ length: zahl }, (_, i) => pdfText(datei, i + 1));
+        const a = angabenFuer(datei, q.title, q.epoch, texte);
+        angabenVervollstaendigen(pdf, { titel: a.titel, sprache: a.sprache, bereiche: a.bereiche, zaehlung: a.zaehlung });
+        const nachher = JSON.stringify([pdf.getTitle(), pdf.getAuthor(), pdf.getSubject(), String(pdf.catalog.get(PDFName.of("Lang")) ?? ""), String(pdf.catalog.get(PDFName.of("PageLabels")) ?? "")]);
+        if (!entfernt && vorher === nachher) { console.log(`[${k + 1}/${auswahl.length}] ${q.title}: in Ordnung`); continue; }
+        verwaisteEntfernen(pdf);
+        const bytes = await pdf.save();
+        console.log(`[${k + 1}/${auswahl.length}] ${q.title}: alte Textebene auf ${entfernt} Seiten entfernt; Angaben ${vorher === nachher ? "unverändert" : `${vorher} → ${nachher}`}; ${Math.round(readFileSync(datei).length / 1e5) / 10} → ${Math.round(bytes.length / 1e5) / 10} MB`);
+        if (MODUS === "aufraeumen-probe") {
+          mkdirSync("neu", { recursive: true });
+          writeFileSync(join("neu", `${q.title.replace(/[^\p{L}\p{N} ._-]/gu, "_").slice(0, 80)}.pdf`), bytes);
+        } else {
+          const { uploadUrl } = await werkstatt<{ uploadUrl: string }>("ersetzen-sitzung", { sourceId: q.id });
+          await hochladen(uploadUrl, bytes);
+          await werkstatt("ersetzt", { sourceId: q.id });
+        }
+        geaendert++;
+      } catch (err) {
+        console.log(`[${k + 1}/${auswahl.length}] ${q.title}: ⚠ ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        rmSync(datei, { force: true });
+      }
+    }
+    rmSync(ordner, { recursive: true, force: true });
+    console.log(`\n${geaendert} PDFs nachgebessert${MODUS === "aufraeumen" ? " (neue Fassung; die alte bleibt im Versionsverlauf)" : " (nur Probe)"}.`);
     return;
   }
 

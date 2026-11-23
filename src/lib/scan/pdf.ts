@@ -4,6 +4,7 @@ import {
   showText, type PDFFont,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { alteTextebeneEntfernen } from "./textebeneEntfernen";
 import { fuerSuche, type Bereich } from "./text";
 
 /**
@@ -68,6 +69,65 @@ export interface PdfAngaben {
   dpi?: number;
   /** Seitengrösse in Punkten vorgeben (Seiten in ein vorhandenes PDF einsetzen). */
   format?: { breite: number; hoehe: number };
+  /** Sprache des Textes (BCP 47, etwa „de-DE“, „la“); ohne: de-DE. */
+  sprache?: string;
+}
+
+/** Titel ohne Dateiendung („Klosterleben … .pdf“ → „Klosterleben …“). */
+export function titelOhneEndung(titel: string): string {
+  return titel.replace(/\.pdf$/i, "").trim();
+}
+
+/**
+ * Als Latin-1 gelesenes UTF-8 reparieren („GerÃ¤thschaften“ →
+ * „Geräthschaften“), sonst unverändert.
+ */
+export function utf8Reparieren(s: string): string {
+  if (!/[ÃÂ][\u0080-\u00bf]/.test(s)) return s;
+  const bytes = Uint8Array.from([...s].map((c) => c.charCodeAt(0)));
+  if (bytes.some((b) => b > 0xff)) return s;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return s;
+  }
+}
+
+/** Sind alle Einträge der Seitenbeschriftung leer (weder Stil noch Vorsatz)? Dann zeigt jeder Leser leere Labels. */
+export function seitenBeschriftungLeer(pdf: PDFDocument): boolean {
+  const labels = pdf.catalog.lookupMaybe(PDFName.of("PageLabels"), PDFDict);
+  if (!labels) return false;
+  const nums = labels.lookupMaybe(PDFName.of("Nums"), PDFArray);
+  if (!nums || nums.size() === 0) return true;
+  for (let i = 1; i < nums.size(); i += 2) {
+    const d = nums.lookup(i);
+    if (d instanceof PDFDict && (d.has(PDFName.of("S")) || d.has(PDFName.of("P")))) return false;
+  }
+  return true;
+}
+
+/**
+ * Angaben eines vorhandenen PDF vervollständigen: Titel (fehlt, endet auf
+ * „.pdf“ oder ist kaputt kodiert), Sprache (/Lang), Autor, Thema,
+ * Stichwörter; vorhandene gute Angaben bleiben. Alles als Unicode.
+ */
+export function angabenVervollstaendigen(pdf: PDFDocument, a: Partial<Omit<PdfAngaben, "schrift" | "dpi" | "format">>) {
+  const titel = pdf.getTitle();
+  const repariert = titel ? titelOhneEndung(utf8Reparieren(titel)) : "";
+  if (repariert) { if (repariert !== titel) pdf.setTitle(repariert); }
+  else if (a.titel) pdf.setTitle(titelOhneEndung(a.titel));
+  if (!pdf.catalog.has(PDFName.of("Lang"))) pdf.setLanguage(a.sprache ?? "de-DE");
+  const autor = pdf.getAuthor();
+  if (autor) { const r = utf8Reparieren(autor); if (r !== autor) pdf.setAuthor(r); }
+  else if (a.autor) pdf.setAuthor(a.autor);
+  const thema = pdf.getSubject();
+  if (thema) { const r = utf8Reparieren(thema); if (r !== thema) pdf.setSubject(r); }
+  else if (a.thema) pdf.setSubject(a.thema);
+  if (a.stichwoerter?.length && !pdf.getKeywords()) pdf.setKeywords([a.stichwoerter.join(", ")]);
+  const z = a.bereiche ?? a.zaehlung;
+  const leer = seitenBeschriftungLeer(pdf);
+  if (z && (leer || !pdf.catalog.has(PDFName.of("PageLabels")))) seitenBeschriftung(pdf, z);
+  else if (leer) pdf.catalog.delete(PDFName.of("PageLabels"));
 }
 
 /** Angenommene Auflösung, aus der sich die Seitengrösse ergibt. */
@@ -178,24 +238,22 @@ export async function textEbeneEinfuegen(
   original: Uint8Array,
   seiten: TextFuerSeite[],
   schrift: Uint8Array,
-  angaben: Omit<PdfAngaben, "titel" | "schrift" | "dpi"> = {}
-): Promise<{ bytes: Uint8Array; gesetzt: number; gedreht: number }> {
+  angaben: Partial<Omit<PdfAngaben, "schrift" | "dpi" | "format">> = {}
+): Promise<{ bytes: Uint8Array; gesetzt: number; gedreht: number; entfernt: number }> {
   const pdf = await PDFDocument.load(original, { updateMetadata: false });
-  // Angaben und Zählung nur ergänzen, wo das Original keine hat.
-  if (angaben.autor && !pdf.getAuthor()) pdf.setAuthor(angaben.autor);
-  if (angaben.thema && !pdf.getSubject()) pdf.setSubject(angaben.thema);
-  if (angaben.stichwoerter?.length && !pdf.getKeywords()) pdf.setKeywords([angaben.stichwoerter.join(", ")]);
-  const z = angaben.bereiche ?? angaben.zaehlung;
-  if (z && !pdf.catalog.has(PDFName.of("PageLabels"))) seitenBeschriftung(pdf, z);
+  // Angaben und Zählung nur ergänzen oder reparieren, gute bleiben.
+  angabenVervollstaendigen(pdf, angaben);
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(schrift, { subset: true });
   const zeichen = new Set(font.getCharacterSet());
   const alle = pdf.getPages();
-  let gesetzt = 0, gedreht = 0;
+  let gesetzt = 0, gedreht = 0, entfernt = 0;
   for (const t of seiten) {
     const page = alle[t.seite - 1];
     if (!page || !t.woerter.length) continue;
     if (page.getRotation().angle % 360 !== 0) { gedreht++; continue; }
+    // Nie zwei Textebenen: eine alte (schlechte) Erkennung kommt weg.
+    if (alteTextebeneEntfernen(pdf, page)) entfernt++;
     const box = page.getCropBox();
     const mass = box.width / t.bildBreite;
     const l: Lage = { mass, x: box.x, y: box.y, hoehe: t.bildHoehe * mass };
@@ -204,7 +262,8 @@ export async function textEbeneEinfuegen(
     gesetzt++;
   }
   pdf.setCreator("DileHi Quellensammlung (Textebene ergänzt)");
-  return { bytes: await pdf.save(), gesetzt, gedreht };
+  verwaisteEntfernen(pdf);
+  return { bytes: await pdf.save(), gesetzt, gedreht, entfernt };
 }
 
 /** Eine einheitliche Seitengrösse: Median der hochkanten Seiten. */
@@ -237,11 +296,11 @@ export async function pdfBauen(seiten: PdfSeite[], angaben: PdfAngaben | string)
   if (seiten.length === 0) throw new Error("Es gibt keine Seiten.");
   const a: PdfAngaben = typeof angaben === "string" ? { titel: angaben } : angaben;
   const pdf = await PDFDocument.create();
-  pdf.setTitle(a.titel);
+  pdf.setTitle(titelOhneEndung(a.titel));
   if (a.autor) pdf.setAuthor(a.autor);
   if (a.thema) pdf.setSubject(a.thema);
   if (a.stichwoerter?.length) pdf.setKeywords([a.stichwoerter.join(", ")]);
-  pdf.setLanguage("de-DE");
+  pdf.setLanguage(a.sprache ?? "de-DE");
   pdf.setCreator("DileHi Quellensammlung");
   pdf.setProducer("pdf-lib");
 
