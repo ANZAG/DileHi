@@ -13,6 +13,13 @@ import type { Pixel, Viereck } from "./geometrie";
  * Seiten. Bei einer Doppelseite kommt deshalb die Nachbarfläche jenseits
  * des Bundes dazu, wenn sie ähnlich gross ist und dicht daneben liegt.
  *
+ * Nicht alles am Buch ist helles Papier: ein farbiger Einband, eine Seite
+ * im Schatten oder im warmen Licht einer Lampe. Dafür gibt es einen zweiten
+ * Weg – der „Gegenstand": alles in der Bildmitte, was nicht die Farbe der
+ * Unterlage hat (die steht am Bildrand). Er gilt bei einer Einzelseite, wenn
+ * kein Papier zu finden ist (Einband), und bei einer Doppelseite, wenn er
+ * die Papierfläche enthält – dann ist er das ganze Buch.
+ *
  * Lieber nichts melden als falsch: Reicht die Fläche an drei Bildränder,
  * ist sie zerfranst (füllt ihr Viereck nicht) oder ist sie winzig, bleibt es
  * beim Viereck von Hand. Auf einem weissen Tisch verschwimmt das Papier mit
@@ -174,6 +181,55 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   for (let i = 0; i < 3; i++) m = schrumpfen(m, w, h);
   for (let i = 0; i < 3; i++) m = wachsen(m, w, h);
 
+  // Woran man die Unterlage erkennt, steht am Bildrand – dort liegt kein Buch.
+  const fach = (k: number) => ((farbe[k * 3] >> 4) << 8) | ((farbe[k * 3 + 1] >> 4) << 4) | (farbe[k * 3 + 2] >> 4);
+  // Nur ein schmaler Streifen, und nichts, was Papier ist: Ein Buch, das
+  // fast bis an den Bildrand reicht, soll nicht selbst als Unterlage zählen.
+  const breiteRand = 2;
+  const zaehler = new Uint32Array(4096);
+  let randZahl = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (x >= breiteRand && x < w - breiteRand && y >= breiteRand && y < h - breiteRand) continue;
+    if (geschlossen[y * w + x]) continue;
+    zaehler[fach(y * w + x)]++;
+    randZahl++;
+  }
+  const unterlage = new Uint8Array(4096);
+  // Ein Farbfach zählt erst ab 2 % des Randes: Ein kleiner Gegenstand am
+  // Bildrand in der Farbe des Buches machte sonst das Buch zur Unterlage.
+  const mindest = Math.max(2, randZahl * 0.02);
+  for (let f = 0; f < 4096; f++) {
+    if (zaehler[f] < mindest) continue;
+    // Benachbarte Farbfächer zählen mit: Licht und Schatten verschieben die Farbe etwas.
+    const r = f >> 8, g = (f >> 4) & 15, b = f & 15;
+    for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) {
+      const rr = r + dr, gg = g + dg, bb = b + db;
+      if (rr >= 0 && gg >= 0 && bb >= 0 && rr < 16 && gg < 16 && bb < 16) unterlage[(rr << 8) | (gg << 4) | bb] = 1;
+    }
+  }
+  /**
+   * Der Gegenstand in der Bildmitte: alles, was nicht die Farbe der
+   * Unterlage hat und zusammenhängt. Findet auch, was kein helles Papier
+   * ist – einen farbigen Einband, eine Seite im Schatten.
+   */
+  const gegenstand = (): number[] | null => {
+    let g: Uint8Array = new Uint8Array(w * h);
+    for (let k = 0; k < g.length; k++) g[k] = unterlage[fach(k)] ? 0 : 1;
+    for (let i = 0; i < 2; i++) g = wachsen(g, w, h);
+    for (let i = 0; i < 2; i++) g = schrumpfen(g, w, h);
+    for (let i = 0; i < 3; i++) g = schrumpfen(g, w, h);
+    for (let i = 0; i < 3; i++) g = wachsen(g, w, h);
+    const fl = flaechen(g, w, h);
+    const cx = w >> 1, cy = h >> 1;
+    for (let r = 0; r < Math.min(w, h) * 0.25; r++) {
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const nr = fl.marke[(cy + dy) * w + cx + dx];
+        if (nr >= 0) return fl.liste[nr].punkte;
+      }
+    }
+    return null;
+  };
+
   const { marke, liste } = flaechen(m, w, h);
   // Anfang: die Fläche in der Bildmitte, sonst die nächste in ihrer Nähe.
   const cx = w >> 1, cy = h >> 1;
@@ -186,7 +242,13 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   }
   const p = o.protokoll ?? (() => undefined);
   p(`Raster ${w}×${h}, Schwelle ${t}, Flächen ${liste.length}`);
-  if (start < 0) { p("keine Fläche in der Mitte"); return null; }
+  if (start < 0) {
+    p("kein Papier in der Mitte");
+    const ding = gegenstand();
+    if (!ding) return null;
+    o.flaeche?.(maskeAus(ding, w * h), w, h);
+    return viereckAusFeldern(ding, w, h, "Gegenstand", p);
+  }
 
   const gewaehlt = new Set([start]);
   if (o.doppel) {
@@ -213,26 +275,6 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   // hat, kommt dazu (nur in der Nähe der Papierfläche, damit nichts
   // davonläuft).
   {
-    const fach = (k: number) => ((farbe[k * 3] >> 4) << 8) | ((farbe[k * 3 + 1] >> 4) << 4) | (farbe[k * 3 + 2] >> 4);
-    const breiteRand = Math.max(2, Math.round(Math.min(w, h) * 0.04));
-    const zaehler = new Uint32Array(4096);
-    let randZahl = 0;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      if (x >= breiteRand && x < w - breiteRand && y >= breiteRand && y < h - breiteRand) continue;
-      zaehler[fach(y * w + x)]++;
-      randZahl++;
-    }
-    const unterlage = new Uint8Array(4096);
-    const mindest = Math.max(2, randZahl * 0.002);
-    for (let f = 0; f < 4096; f++) {
-      if (zaehler[f] < mindest) continue;
-      // Benachbarte Farbfächer zählen mit: Licht und Schatten verschieben die Farbe etwas.
-      const r = f >> 8, g = (f >> 4) & 15, b = f & 15;
-      for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) {
-        const rr = r + dr, gg = g + dg, bb = b + db;
-        if (rr >= 0 && gg >= 0 && bb >= 0 && rr < 16 && gg < 16 && bb < 16) unterlage[(rr << 8) | (gg << 4) | bb] = 1;
-      }
-    }
     let bx0 = w, by0 = h, bx1 = 0, by1 = 0;
     for (let k = 0; k < buch.length; k++) if (buch[k]) {
       const x = k % w, y = (k - x) / w;
@@ -299,23 +341,64 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
     if (punkte.length < vorher) o.flaeche?.((() => { const mm = new Uint8Array(w * h); for (const k of punkte) mm[k] = 1; return mm; })(), w, h);
   }
 
-  let zahl = 0, sx = 0, sy = 0;
-  const raender = new Set<string>();
-  {
-    for (const k of punkte) {
-      const x = k % w, y = (k - x) / w;
-      zahl++; sx += x; sy += y;
-      if (x === 0) raender.add("l");
-      if (x === w - 1) raender.add("r");
-      if (y === 0) raender.add("o");
-      if (y === h - 1) raender.add("u");
-    }
+  const papier = viereckAusFeldern(punkte, w, h, "Papier", p);
+  // Einzelseite: Das Papier genügt (die Nachbarseite soll draussen bleiben).
+  // Ohne Papier – ein Einband – gilt der Gegenstand auf der Unterlage.
+  if (!o.doppel) {
+    if (papier) return papier;
+    const ding = gegenstand();
+    if (!ding) return null;
+    o.flaeche?.(maskeAus(ding, w * h), w, h);
+    return viereckAusFeldern(ding, w, h, "Gegenstand", p);
   }
+  // Doppelseite: Liegt eine Seite im Schatten oder im warmen Licht einer
+  // Lampe, ist sie für die Schwelle oben kein Papier – der Rahmen sass dann
+  // mitten im Buch. Was sich von der Unterlage abhebt und die Papierfläche
+  // enthält, ist das ganze Buch. Es gilt, wenn es nicht viel grösser ist als
+  // zwei Seiten (sonst hängt etwas anderes daran).
+  const ding = gegenstand();
+  if (ding && ding.length >= punkte.length && ding.length <= Math.max(punkte.length * 3, w * h * 0.04)) {
+    const buchGanz = viereckAusFeldern(ding, w, h, "Gegenstand", p);
+    if (buchGanz) { o.flaeche?.(maskeAus(ding, w * h), w, h); return buchGanz; }
+  }
+  return papier;
+}
+
+function maskeAus(punkte: number[], n: number): Uint8Array {
+  const m = new Uint8Array(n);
+  for (const k of punkte) m[k] = 1;
+  return m;
+}
+
+/**
+ * Aus den Rasterfeldern einer Fläche das Viereck – oder null, wenn die
+ * Fläche kein glaubhaftes Buch ist (winzig, riesig, an zwei Bildrändern,
+ * zerfranst).
+ */
+function viereckAusFeldern(punkte: number[], w: number, h: number, name: string, p: (s: string) => void): Viereck | null {
+  let zahl = 0;
+  // Ein Bildrand gilt als berührt, wenn die Fläche auf mindestens 15 %
+  // seiner Länge an ihm liegt – eine einzelne Ecke oder ein Zipfel zählt nicht.
+  const am = { l: 0, r: 0, o: 0, u: 0 };
+  for (const k of punkte) {
+    const x = k % w, y = (k - x) / w;
+    zahl++;
+    if (x === 0) am.l++;
+    if (x === w - 1) am.r++;
+    if (y === 0) am.o++;
+    if (y === h - 1) am.u++;
+  }
+  const raender = new Set<string>();
+  if (am.l >= h * 0.15) raender.add("l");
+  if (am.r >= h * 0.15) raender.add("r");
+  if (am.o >= w * 0.15) raender.add("o");
+  if (am.u >= w * 0.15) raender.add("u");
   const anteil = zahl / (w * h);
-  // Zu klein: ein Lichtfleck. Zu gross oder an zwei Bildrändern: eher die
-  // Unterlage (oder das Buch ragt aus dem Bild) – dann lieber von Hand.
-  p(`gewählt ${[...gewaehlt].map((g) => liste[g].zahl).join("+")} (${zahl}), Anteil ${anteil.toFixed(2)}, Ränder ${[...raender].join("")}`);
-  if (anteil < 0.04 || anteil > 0.9 || raender.size >= 2) return null;
+  // Zu klein: ein Lichtfleck. Zu gross oder an drei Bildrändern: eher die
+  // Unterlage – dann lieber von Hand. An zwei Rändern darf das Buch liegen:
+  // Wer das Bild mit dem Buch füllt, stösst leicht links und rechts an.
+  p(`${name}: ${zahl} Felder, Anteil ${anteil.toFixed(2)}, Ränder ${[...raender].join("")}`);
+  if (anteil < 0.04 || anteil > 0.9 || raender.size >= 3) return null;
 
   // Die Ecken: Schnittpunkte der vier Kanten. Jede Kante ist eine Gerade
   // durch den Rand der Fläche (links: der linke Rand jeder Zeile …), robust
