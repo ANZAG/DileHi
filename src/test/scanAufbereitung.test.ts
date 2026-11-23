@@ -156,3 +156,41 @@ describe("Qualitätsprüfung", () => {
     expect(seitePruefen(befund({}), { sicherheit: 55, woerter: 200 }).gruende).toEqual(["Text unsicher (55 %)"]);
   });
 });
+
+describe("Seite im Schatten", () => {
+  // Textseite, deren linke 40 % im warmen Schatten liegen (weicher Übergang),
+  // optional mit dunkler Unterlage ringsum.
+  function schattenseite(w: number, h: number, rahmen = 0): Pixel {
+    const daten = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (x < rahmen || y < rahmen || x >= w - rahmen || y >= h - rahmen) { daten.set([36, 40, 64, 255], i); continue; }
+      const s = 1 / (1 + Math.exp((x / w - 0.4) * 14));
+      const schrift = y % 24 < 6 && (x * 7 + ((y / 24) | 0) * 13) % 37 < 25 && x > w * 0.12 && x < w * 0.88 && y > h * 0.1 && y < h * 0.9;
+      const v = schrift ? 35 : 238;
+      daten.set([v * (1 - 0.22 * s), v * 0.97 * (1 - 0.33 * s), v * 0.9 * (1 - 0.46 * s), 255], i);
+    }
+    return { breite: w, hoehe: h, daten };
+  }
+
+  it("zählt den Farbstich des Lichts nicht als Farbe", () => {
+    expect(farbAnteil(schattenseite(600, 800))).toBeLessThan(FARB_GRENZE);
+  });
+
+  it("weisst die Seite auch im Schatten, statt sie als Bildseite farbig zu lassen", () => {
+    const { bild, befund } = seiteAufbereiten(schattenseite(600, 800), { farbig: false });
+    expect(befund.bildseite).toBe(false);
+    for (const x of [40, 300, 560]) {
+      const i = (410 * bild.breite + x) * 4; // zwischen zwei Zeilen: Papier
+      expect(bild.daten[i]).toBeGreaterThan(240);
+      expect(bild.daten[i]).toBe(bild.daten[i + 2]);
+    }
+  });
+
+  it("entfernt die dunkle Unterlage rings um das Blatt", () => {
+    const { bild } = seiteAufbereiten(schattenseite(600, 800, 12), { farbig: false });
+    for (const [x, y] of [[3, 400], [596, 400], [300, 3], [300, 796], [3, 3], [596, 796]]) {
+      expect(bild.daten[(y * bild.breite + x) * 4]).toBeGreaterThan(200);
+    }
+  });
+});

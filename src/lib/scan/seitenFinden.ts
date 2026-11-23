@@ -338,15 +338,34 @@ export function seitenFinden(bild: Pixel, o: FindenOptionen = {}): Viereck | nul
   if (!o.doppel) {
     const vorher = punkte.length;
     einzelSeiteSchneiden(punkte, papierhaft, w, h, t, p);
-    if (punkte.length < vorher) o.flaeche?.((() => { const mm = new Uint8Array(w * h); for (const k of punkte) mm[k] = 1; return mm; })(), w, h);
+    if (punkte.length < vorher) o.flaeche?.(maskeAus(punkte, w * h), w, h);
   }
 
   const papier = viereckAusFeldern(punkte, w, h, "Papier", p);
   // Einzelseite: Das Papier genügt (die Nachbarseite soll draussen bleiben).
   // Ohne Papier – ein Einband – gilt der Gegenstand auf der Unterlage.
   if (!o.doppel) {
-    if (papier) return papier;
     const ding = gegenstand();
+    // Liegt ein Teil der Seite im Schatten, ist nur der helle Teil Papier –
+    // der Rahmen schnitt die Seite dann mittendurch. Der Gegenstand, der das
+    // Papier enthält, ist die ganze Seite. Die Nachbarseite jenseits des
+    // Bundes gehört nicht dazu: Dort springt die Helligkeit (ein Schatten
+    // auf der Seite verläuft weich), und an der Stufe wird abgeschnitten.
+    if (ding && punkte.length && ding.length > punkte.length * 1.15 && ding.length <= punkte.length * 3) {
+      const inDing = maskeAus(ding, w * h);
+      let gemeinsam = 0;
+      for (const k of punkte) gemeinsam += inDing[k];
+      if (gemeinsam >= punkte.length * 0.9) {
+        const hell = new Uint8Array(w * h);
+        for (let k = 0; k < hell.length; k++) hell[k] = (farbe[k * 3] * 77 + farbe[k * 3 + 1] * 150 + farbe[k * 3 + 2] * 29) >> 8;
+        const ganz = bisZurStufe(ding, punkte, hell, w, h, p);
+        if (ganz.length > punkte.length * 1.15) {
+          const v = viereckAusFeldern(ganz, w, h, "Gegenstand", p);
+          if (v) { o.flaeche?.(maskeAus(ganz, w * h), w, h); return v; }
+        }
+      }
+    }
+    if (papier) return papier;
     if (!ding) return null;
     o.flaeche?.(maskeAus(ding, w * h), w, h);
     return viereckAusFeldern(ding, w, h, "Gegenstand", p);
@@ -506,6 +525,54 @@ function einzelSeiteSchneiden(punkte: number[], papierhaft: Uint8Array, w: numbe
     if (x >= links && x <= rechts) punkte[j++] = k;
   }
   punkte.length = j;
+}
+
+/**
+ * Einzelseite im Schatten: Vom Papier (`kern`) aus nach aussen gehen, bis
+ * die Helligkeit springt – dort ist der Bund oder die Kante der Seite, und
+ * was jenseits liegt (Nachbarseite, Schnitt), fällt weg. Ein Schatten auf
+ * der Seite selbst verläuft weich und hält nicht auf. Geprüft wird in allen
+ * vier Richtungen, je in einem Band durch die Mitte des Papiers.
+ */
+function bisZurStufe(ding: number[], kern: number[], hell: Uint8Array, w: number, h: number, p: (s: string) => void): number[] {
+  const kasten = (liste: number[]) => {
+    let x0 = w, x1 = 0, y0 = h, y1 = 0;
+    for (const k of liste) {
+      const x = k % w, y = (k - x) / w;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    return { x0, x1, y0, y1 };
+  };
+  const d = kasten(ding), k = kasten(kern);
+  // Profil längs einer Achse: Mittel quer dazu, im mittleren Band des Papiers.
+  const profil = (laengs: "x" | "y") => {
+    const n = laengs === "x" ? w : h;
+    const a = laengs === "x" ? k.y0 + (k.y1 - k.y0) * 0.3 : k.x0 + (k.x1 - k.x0) * 0.3;
+    const b = laengs === "x" ? k.y0 + (k.y1 - k.y0) * 0.7 : k.x0 + (k.x1 - k.x0) * 0.7;
+    const aus = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0, z = 0;
+      for (let q = Math.round(a); q <= Math.round(b); q++) { s += laengs === "x" ? hell[q * w + i] : hell[i * w + q]; z++; }
+      aus[i] = z ? s / z : 0;
+    }
+    return aus;
+  };
+  // Von `von` nach aussen (Richtung `r`) bis `bis`: erste scharfe Stufe ins Dunklere.
+  const grenze = (pr: Float64Array, von: number, bis: number, r: 1 | -1) => {
+    for (let c = von; r > 0 ? c <= bis - 2 : c >= bis + 2; c += r) {
+      if (c - 2 * r < 0 || c - 2 * r >= pr.length) continue;
+      const innen = pr[c - 2 * r], aussen = pr[c + 2 * r];
+      // Dicht am Rand des Gegenstands ist die Stufe dessen eigene Kante –
+      // die ist schräg, wenn das Buch schräg liegt, und bleibt ganz.
+      if (innen - aussen > innen * 0.15) return Math.abs(c - bis) <= 5 ? bis : c;
+    }
+    return bis;
+  };
+  const px = profil("x"), py = profil("y");
+  const x0 = grenze(px, k.x0 + 2, d.x0, -1), x1 = grenze(px, k.x1 - 2, d.x1, 1);
+  const y0 = grenze(py, k.y0 + 2, d.y0, -1), y1 = grenze(py, k.y1 - 2, d.y1, 1);
+  p(`Einzelseite im Schatten: ${x0}…${x1} × ${y0}…${y1} (Gegenstand ${d.x0}…${d.x1} × ${d.y0}…${d.y1}, Papier ${k.x0}…${k.x1} × ${k.y0}…${k.y1})`);
+  return ding.filter((q) => { const x = q % w, y = (q - x) / w; return x >= x0 && x <= x1 && y >= y0 && y <= y1; });
 }
 
 interface Kante {

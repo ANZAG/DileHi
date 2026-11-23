@@ -151,3 +151,23 @@ describe("Zählung in Abschnitten", () => {
     ]);
   });
 });
+
+describe("Seite mehrmals lesen", () => {
+  it("liest eine volle Seite nicht wegen acht unsicherer Wörter dreimal", async () => {
+    const { nochmalLesen } = await import("@/lib/scan/ocr");
+    expect(nochmalLesen(8, 400)).toBe(false); // 2 % – der Normalfall
+    expect(nochmalLesen(29, 400)).toBe(true); // Stein S. 26
+    expect(nochmalLesen(8, 60)).toBe(true); // kurze Seite, viel unsicher
+    expect(nochmalLesen(5, 60)).toBe(false);
+  });
+
+  it("zieht eine Lesung mit Lücken nicht vor, nur weil sie weniger unsichere Wörter hat", async () => {
+    const { bessereLesung } = await import("@/lib/scan/ocr");
+    const voll = { unsicher: 12, woerter: 400, sicherheit: 85 };
+    const lueckig = { unsicher: 3, woerter: 330, sicherheit: 90 };
+    expect(bessereLesung(voll, lueckig)).toBe(voll);
+    expect(bessereLesung(lueckig, voll)).toBe(voll);
+    const besser = { unsicher: 4, woerter: 398, sicherheit: 88 };
+    expect(bessereLesung(voll, besser)).toBe(besser);
+  });
+});

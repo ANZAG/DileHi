@@ -1,3 +1,4 @@
+import { farbAnteil, farbstich } from "./aufbereitung";
 import type { Pixel } from "./geometrie";
 
 /**
@@ -33,12 +34,16 @@ const RAND_OBEN_UNTEN = 0.1;
 /** Kleinere Flecken sind kein Finger, sondern Rauschen oder ein roter Buchstabe. */
 const MINDEST_ANTEIL = 0.0015;
 const RASTER = 800;
+/** Ab diesem Rotanteil (Cr) ist es Haut – auf weissem Papier. */
+const HAUT_CR = 140;
+/** Ab diesem Anteil farbiger Punkte (aufbereitung.ts, `farbAnteil`) bleibt die Seite unangetastet. */
+const BILD_ANTEIL = 0.15;
 
 export function istHaut(r: number, g: number, b: number): boolean {
   const y = 0.299 * r + 0.587 * g + 0.114 * b;
   const cr = 128 + 0.5 * r - 0.4187 * g - 0.0813 * b;
   const cb = 128 - 0.1687 * r - 0.3313 * g + 0.5 * b;
-  return cr >= 140 && cr <= 185 && cb >= 80 && cb <= 135 && y >= 30 && r > g;
+  return cr >= HAUT_CR && cr <= 185 && cb >= 80 && cb <= 135 && y >= 30 && r > g;
 }
 
 /** Eine Maske um r Felder wachsen lassen (quadratisch). */
@@ -153,26 +158,67 @@ export function fingerEntfernen(bild: Pixel): FingerErgebnis {
     farbe[k * 3] /= anzahl[k]; farbe[k * 3 + 1] /= anzahl[k]; farbe[k * 3 + 2] /= anzahl[k];
   }
 
+  // Wie rot ist die Seite selbst? Im warmen Licht einer Lampe oder im
+  // Schatten ist Papier bräunlich und hat die Farbe von Haut (gemessen an
+  // einer Schattenseite vom Handy: Cr 149) – ebenso ein Einband mit einem
+  // Gemälde. Vorher wurde einer solchen Seite der ganze Rand übermalt.
+  // Deshalb wird erst der Farbstich des Lichts abgezogen (aufbereitung.ts,
+  // `farbstich`): Das Papier wird überall farblos, ein Finger bleibt rot –
+  // auch im Schatten. Dazu muss ein Finger deutlich röter sein als die
+  // Seite; und ist die Seite im Inneren selbst weithin hautfarben (Einband),
+  // taugt die Farbe nicht zum Unterscheiden – dann bleibt alles, wie es ist.
+  const stich = farbstich(bild);
+  // Viel Farbe auf der Seite (Einband, ganzseitige Tafel): Dort ist ein
+  // Stück Haut am Rand von der Abbildung nicht zu unterscheiden.
+  if (farbAnteil(bild, stich) > BILD_ANTEIL) return { anteil: 0 };
+  const ohneStich = new Float32Array(gw * gh * 3);
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    const k = y * gw + x;
+    const [fr, fb] = stich((x + 0.5) * schritt, (y + 0.5) * schritt);
+    ohneStich[k * 3] = Math.min(255, farbe[k * 3] * fr);
+    ohneStich[k * 3 + 1] = farbe[k * 3 + 1];
+    ohneStich[k * 3 + 2] = Math.min(255, farbe[k * 3 + 2] * fb);
+  }
+  const cr = (k: number) => 128 + 0.5 * ohneStich[k * 3] - 0.4187 * ohneStich[k * 3 + 1] - 0.0813 * ohneStich[k * 3 + 2];
+  const innen: number[] = [];
+  for (let y = randY; y < gh - randY; y += 2) for (let x = randX; x < gw - randX; x += 2) innen.push(cr(y * gw + x));
+  innen.sort((p, q) => p - q);
+  const seitenCr = innen[innen.length >> 1] ?? 128;
+  const grenze = Math.max(HAUT_CR, seitenCr + 8);
+  let innenHaut = 0;
+  for (const v of innen) if (v >= grenze) innenHaut++;
+  if (innen.length && innenHaut > innen.length * 0.2) return { anteil: 0 };
+
   // Haut im Randstreifen …
   const haut = new Uint8Array(gw * gh);
   for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
     const k = y * gw + x;
-    if (imRand(x, y) && istHaut(farbe[k * 3], farbe[k * 3 + 1], farbe[k * 3 + 2])) haut[k] = 1;
+    if (imRand(x, y) && cr(k) >= grenze && istHaut(ohneStich[k * 3], ohneStich[k * 3 + 1], ohneStich[k * 3 + 2])) haut[k] = 1;
   }
-  // … die vom Bildrand her zusammenhängend hereinragt.
+  // … die vom Bildrand her zusammenhängend hereinragt – Stück für Stück:
+  // Ein Finger ist ein Fleck. Was sich über mehr als 40 % einer Seitenlänge
+  // zieht, ist keiner (Schatten am Bund, farbiger Rand einer Abbildung).
   const finger = new Uint8Array(gw * gh);
-  const offen: number[] = [];
-  const anfang = (k: number) => { if (haut[k] && !finger[k]) { finger[k] = 1; offen.push(k); } };
-  for (let x = 0; x < gw; x++) { anfang(x); anfang((gh - 1) * gw + x); }
-  for (let y = 0; y < gh; y++) { anfang(y * gw); anfang(y * gw + gw - 1); }
-  while (offen.length) {
-    const k = offen.pop()!;
-    const x = k % gw, y = (k - x) / gw;
-    if (x > 0) anfang(k - 1);
-    if (x < gw - 1) anfang(k + 1);
-    if (y > 0) anfang(k - gw);
-    if (y < gh - 1) anfang(k + gw);
-  }
+  const gesehen = new Uint8Array(gw * gh);
+  const stueck = (start: number) => {
+    if (!haut[start] || gesehen[start]) return;
+    const offen = [start], glied: number[] = [];
+    gesehen[start] = 1;
+    let x0 = gw, x1 = -1, y0 = gh, y1 = -1;
+    while (offen.length) {
+      const k = offen.pop()!;
+      glied.push(k);
+      const x = k % gw, y = (k - x) / gw;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      for (const n of [x > 0 ? k - 1 : -1, x < gw - 1 ? k + 1 : -1, y > 0 ? k - gw : -1, y < gh - 1 ? k + gw : -1]) {
+        if (n >= 0 && haut[n] && !gesehen[n]) { gesehen[n] = 1; offen.push(n); }
+      }
+    }
+    if (x1 - x0 + 1 > gw * 0.4 || y1 - y0 + 1 > gh * 0.4) return;
+    for (const k of glied) finger[k] = 1;
+  };
+  for (let x = 0; x < gw; x++) { stueck(x); stueck((gh - 1) * gw + x); }
+  for (let y = 0; y < gh; y++) { stueck(y * gw); stueck(y * gw + gw - 1); }
   let zahl = 0;
   for (let k = 0; k < finger.length; k++) zahl += finger[k];
   if (zahl < gw * gh * MINDEST_ANTEIL) return { anteil: 0 };
