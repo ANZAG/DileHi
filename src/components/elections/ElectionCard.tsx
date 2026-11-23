@@ -11,6 +11,7 @@ import ErgebnisBildKnopf from "./ErgebnisBildKnopf";
 import { Link } from "react-router-dom";
 import { Gavel } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
+import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
 
 interface Props {
   election: Election;
@@ -149,33 +150,9 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
 
   const deleteElection = useMutation({
     mutationFn: async () => {
-      if (election.status === "closed") {
-        const snapshot = electionResults.map((r) => ({
-          candidate: r.candidate_name,
-          votes: r.vote_count,
-        }));
-        let groupTitle = null;
-        if (election.group_id) {
-          const { data } = await supabase
-            .from("election_groups")
-            .select("title")
-            .eq("id", election.group_id)
-            .single();
-          groupTitle = data?.title || null;
-        }
-        await supabase.from("election_audit_log").insert({
-          election_title: election.title,
-          election_description: election.description,
-          group_title: groupTitle,
-          result_snapshot: snapshot,
-          total_votes: totalVotes,
-          deleted_by: user!.id,
-        });
-      }
-      await supabase.from("votes").delete().eq("election_id", election.id);
-      await supabase.from("candidates").delete().eq("election_id", election.id);
-      const { error } = await supabase.from("elections").delete().eq("id", election.id);
-      if (error) throw error;
+      // Löschprotokoll und Löschen an einer Stelle – dieselbe wie beim Löschen
+      // eines ganzen Themas.
+      await loescheAbstimmungen([election], user!.id);
     },
     onSuccess: () => {
       invalidateAll();

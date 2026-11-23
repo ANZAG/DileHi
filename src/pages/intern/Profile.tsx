@@ -25,6 +25,7 @@ import { useModule } from "@/hooks/useModule";
 import { beitragseinzugZeigen, mitgliedsartZeigen } from "@/lib/profilabschnitte";
 import { useWoerter } from "@/hooks/useBranding";
 import { SEITE, ZWEISPALTIG } from "@/lib/layout";
+import { geocodeOrt } from "@/lib/geocode";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -202,29 +203,6 @@ const Profile = () => {
     },
   });
 
-  const geocodeCity = async (plz: string, ort: string): Promise<{ lat: number; lng: number } | null> => {
-    if (!plz && !ort) return null;
-    // Try progressively broader queries until one succeeds.
-    // No hardcoded country so it works for members outside Germany.
-    const candidates = [
-      [plz, ort].filter(Boolean).join(" "),          // "68159 Mannheim"
-      ort,                                            // "Mannheim" (city only)
-      plz,                                            // "68159" (zip only)
-    ].filter(Boolean);
-    for (const query of candidates) {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
-        );
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-        }
-      } catch (_e) { /* intentional — geocode failure is non-critical */ }
-    }
-    return null;
-  };
-
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
@@ -244,7 +222,9 @@ const Profile = () => {
         const missingCoords = mapLat == null || mapLng == null;
 
         if (addressChanged || missingCoords) {
-          const coords = await geocodeCity(form.zip, form.city);
+          // Eine Störung bei Nominatim zählt wie „nicht gefunden": Die
+          // bisherigen Koordinaten bleiben, und unten kommt der Hinweis.
+          const coords = await geocodeOrt(form.zip, form.city).catch(() => null);
           if (coords) {
             mapLat = coords.lat;
             mapLng = coords.lng;

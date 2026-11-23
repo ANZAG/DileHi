@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -13,6 +13,17 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { SEITE } from "@/lib/layout";
+import { geocodeAdresse, geocodeOrt, type Koordinaten } from "@/lib/geocode";
+
+type KartenMitglied = { id: string; display_name: string | null; city: string | null; zip: string | null; map_lat: number | null; map_lng: number | null };
+
+type KartenTermin = { id: string; title: string; location: string | null; start_date: string; end_date: string | null; all_day: boolean; location_lat: number | null; location_lng: number | null };
+
+// Feste Leerwerte: Ein neues [] oder {} bei jedem Rendern liesse die Karte
+// jedes Mal neu aufbauen.
+const KEINE_MITGLIEDER: KartenMitglied[] = [];
+const KEINE_TERMINE: KartenTermin[] = [];
+const NICHTS_NACHGESCHLAGEN: Record<string, Koordinaten> = {};
 
 // Fix default marker icon issue with bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -38,58 +49,71 @@ const MemberMap = () => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data: members = [], isLoading } = useQuery({
+  // Only map-relevant columns are exposed (RPC, no full profile row)
+  const { data: gespeichert = KEINE_MITGLIEDER, isLoading } = useQuery({
     queryKey: ["member-map"],
     queryFn: async () => {
-      // Fetch all opted-in active members, including those with missing coords.
-      // We attempt on-the-fly geocoding for members whose coordinates were lost
-      // due to a previous bug (Profile.tsx overwrote coords with null on failed save).
-      // Only map-relevant columns are exposed (RPC, no full profile row)
-      const { data: profiles } = await supabase.rpc("get_map_members");
-
-      if (!profiles || profiles.length === 0) return [];
-
-      // Geocode members who have city/zip but no stored coordinates
-      const missingCoords = profiles.filter(
-        (p) => (p.map_lat == null || p.map_lng == null) && (p.city || p.zip)
-      );
-
-      if (missingCoords.length > 0) {
-        await Promise.all(
-          missingCoords.map(async (p) => {
-            const q = [p.zip, p.city].filter(Boolean).join(" ");
-            try {
-              const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`
-              );
-              const geo = await res.json();
-              if (Array.isArray(geo) && geo.length > 0) {
-                const lat = parseFloat(geo[0].lat);
-                const lng = parseFloat(geo[0].lon);
-                p.map_lat = lat;
-                p.map_lng = lng;
-                // Persist back to DB so Profile.tsx doesn't need to re-geocode on next save
-                supabase.from("profiles").update({ map_lat: lat, map_lng: lng }).eq("id", p.id).then();
-              }
-            } catch (_e) { /* intentional — geocode failure is non-critical */ }
-          })
-        );
-      }
-
-      return profiles
-        .filter((p) => p.map_lat != null && p.map_lng != null)
-        .map((p) => ({
-          id: p.id,
-          display_name: p.display_name,
-          city: p.city || "–",
-          map_lat: p.map_lat as number,
-          map_lng: p.map_lng as number,
-        }));
+      const { data, error } = await supabase.rpc("get_map_members");
+      if (error) throw error;
+      // Die erzeugten Typen kennen hier kein null; die Spalten können aber leer sein.
+      return (data ?? []) as KartenMitglied[];
     },
   });
 
+  // Mitglieder, die auf die Karte wollen, aber keine gespeicherten Koordinaten
+  // haben (ein früherer Fehler im Profil hat sie mit null überschrieben).
+  const ohneKoordinaten = useMemo(
+    () => gespeichert.filter((p) => (p.map_lat == null || p.map_lng == null) && (p.city || p.zip)),
+    [gespeichert],
+  );
+
+  // Ihre Orte werden hier nachgeschlagen – in einer eigenen Abfrage, damit die
+  // Karte nicht darauf wartet: Nominatim erlaubt eine Anfrage je Sekunde, bei
+  // zwanzig Mitgliedern wären das über zwanzig Sekunden „Karte wird geladen".
+  //
+  // Das Ergebnis bleibt im Speicher dieser Sitzung. Früher sollte es ins Profil
+  // des jeweiligen Mitglieds zurückgeschrieben werden; das hat nie geklappt,
+  // weil jeder nur das eigene Profil ändern darf („Users can update own
+  // profile"). Die Datenbank meldete dabei keinen Fehler, und so gingen bei
+  // jedem Besuch wieder alle Anfragen hinaus – gleichzeitig.
+  const { data: nachgeschlagen = NICHTS_NACHGESCHLAGEN } = useQuery({
+    queryKey: ["member-map-nachgeschlagen", ohneKoordinaten.map((p) => `${p.id}|${p.zip ?? ""}|${p.city ?? ""}`)],
+    enabled: ohneKoordinaten.length > 0,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    // Scheitert eine Anfrage (kein Netz, 429), bricht der Durchlauf ab, statt
+    // weiterzufragen. Was bis dahin gefunden wurde, hat sich geocode gemerkt –
+    // der eine neue Versuch fängt also nicht von vorn an.
+    retry: 1,
+    queryFn: async ({ signal }) => {
+      const gefunden: Record<string, Koordinaten> = {};
+      for (const p of ohneKoordinaten) {
+        const punkt = await geocodeOrt(p.zip, p.city, signal);
+        if (!punkt) continue;
+        gefunden[p.id] = punkt;
+        // Das eigene Profil darf man ändern – dort die Lücke gleich schliessen.
+        if (p.id === user?.id) {
+          const { error } = await supabase.from("profiles").update({ map_lat: punkt.lat, map_lng: punkt.lng }).eq("id", p.id);
+          if (error) console.warn("Koordinaten konnten nicht im Profil gespeichert werden:", error.message);
+        }
+      }
+      return gefunden;
+    },
+  });
+
+  const members = useMemo(
+    () =>
+      gespeichert.flatMap((p) => {
+        const punkt = p.map_lat != null && p.map_lng != null ? { lat: p.map_lat, lng: p.map_lng } : nachgeschlagen[p.id];
+        return punkt
+          ? [{ id: p.id, display_name: p.display_name, city: p.city || "–", map_lat: punkt.lat, map_lng: punkt.lng }]
+          : [];
+      }),
+    [gespeichert, nachgeschlagen],
+  );
+
   // Fetch upcoming events with location (use cached lat/lng when available)
-  const { data: events = [] } = useQuery({
+  const { data: termine = KEINE_TERMINE } = useQuery({
     queryKey: ["member-map-events"],
     queryFn: async () => {
       // Start of today (local) — events disappear only the day AFTER they end,
@@ -97,7 +121,7 @@ const MemberMap = () => {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
       const cutoff = startOfToday.toISOString();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("events")
         .select("id, title, location, start_date, end_date, all_day, location_lat, location_lng")
         // Keep events whose end is today or later; for single-day events (no end_date)
@@ -106,148 +130,63 @@ const MemberMap = () => {
         .not("location", "is", null)
         .order("start_date", { ascending: true })
         .limit(20);
-
-      if (!data) return [];
-
-      type EventMarker = { id: string; title: string; location: string; start_date: string; end_date: string | null; all_day: boolean; lat: number; lng: number };
-      // Separate events with cached coords vs those needing geocoding
-      const cached: EventMarker[] = [];
-      const needsGeocoding: typeof data = [];
-
-      for (const e of data) {
-        if (e.location_lat != null && e.location_lng != null) {
-          cached.push({
-            id: e.id,
-            title: e.title,
-            location: e.location!,
-            start_date: e.start_date,
-            end_date: e.end_date,
-            all_day: e.all_day,
-            lat: e.location_lat,
-            lng: e.location_lng,
-          });
-        } else if (e.location) {
-          needsGeocoding.push(e);
-        }
-      }
-
-      if (needsGeocoding.length === 0) return cached;
-
-      // Geocode remaining locations
-      const uniqueLocations = [...new Set(needsGeocoding.map((e) => e.location!))];
-      const geoCache: Record<string, { lat: number; lng: number } | null> = {};
-
-      const FOREIGN_HINTS = /\b(österreich|austria|schweiz|switzerland|frankreich|france|belgien|belgium|niederlande|netherlands|italien|italy|polen|poland|tschechien|czech|luxemburg|luxembourg|dänemark|denmark)\b/i;
-
-      const buildLocationCandidates = (raw: string) => {
-        const normalized = raw.replace(/\s+/g, " ").trim();
-        const withoutParens = normalized
-          .replace(/\([^)]*\)/g, " ")
-          .replace(/\s+,/g, ",")
-          .replace(/,\s*,/g, ",")
-          .replace(/\s+/g, " ")
-          .trim();
-
-        const countryNormalized = withoutParens
-          .replace(/\bDeutschland\b/gi, "Germany")
-          .replace(/\bFrankreich\b/gi, "France")
-          .replace(/\bÖsterreich\b/gi, "Austria")
-          .replace(/\bSchweiz\b/gi, "Switzerland");
-
-        const parts = countryNormalized
-          .split(",")
-          .map((part) => part.trim())
-          .filter(Boolean);
-
-        const cityOrZipPart = parts.length >= 2 ? parts[parts.length - 2] : "";
-        const cityWithCountry = parts.length >= 2 ? parts.slice(-2).join(", ") : "";
-
-        // German postal code + nearest place name (e.g. "56305 Puderbach"),
-        // a very reliable query when the free-text location has extra detail.
-        const zipMatch = countryNormalized.match(/\b(\d{5})\b\s*([A-Za-zÄÖÜäöüß.\- ]+)?/);
-        const zipCandidate = zipMatch
-          ? `${zipMatch[1]} ${(zipMatch[2] || "").split(/[-(,]/)[0].trim()}`.trim()
-          : "";
-
-        return [...new Set([
-          countryNormalized,
-          withoutParens,
-          zipCandidate,
-          normalized,
-          cityWithCountry,
-          cityOrZipPart,
-        ].filter(Boolean))];
-      };
-
-      const geocode = async (query: string, restrictToGermany: boolean): Promise<{ lat: number; lng: number } | null> => {
-        // Bias to German-speaking region to avoid false matches abroad
-        // (e.g. "Burg Reichenstein" exists in both Germany and Austria).
-        const cc = restrictToGermany ? "&countrycodes=de" : "";
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=0${cc}`
-        );
-        if (!res.ok) return null;
-        const results = (await res.json()) as Array<{ lat: string; lon: string }>;
-        if (!Array.isArray(results) || results.length === 0) return null;
-        return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
-      };
-
-      await Promise.all(
-        uniqueLocations.map(async (loc) => {
-          const candidates = buildLocationCandidates(loc);
-          const hasForeignHint = FOREIGN_HINTS.test(loc);
-          try {
-            // First pass: restrict to Germany unless the text clearly names a foreign country.
-            if (!hasForeignHint) {
-              for (const candidate of candidates) {
-                const point = await geocode(candidate, true);
-                if (point) {
-                  geoCache[loc] = point;
-                  return;
-                }
-              }
-            }
-            // Fallback: worldwide search (for foreign or unresolved locations).
-            for (const candidate of candidates) {
-              const point = await geocode(candidate, false);
-              if (point) {
-                geoCache[loc] = point;
-                return;
-              }
-            }
-            geoCache[loc] = null;
-          } catch {
-            geoCache[loc] = null;
-          }
-        })
-      );
-
-      // Save geocoded results back to DB for caching
-      for (const e of needsGeocoding) {
-        const geo = e.location ? geoCache[e.location] : null;
-        if (geo) {
-          supabase.from("events").update({ location_lat: geo.lat, location_lng: geo.lng }).eq("id", e.id).then();
-        }
-      }
-
-      
-
-      const geocoded = needsGeocoding
-        .filter((e) => e.location && geoCache[e.location!])
-        .map((e) => ({
-          id: e.id,
-          title: e.title,
-          location: e.location!,
-          start_date: e.start_date,
-          end_date: e.end_date,
-          all_day: e.all_day,
-          lat: geoCache[e.location!]!.lat,
-          lng: geoCache[e.location!]!.lng,
-        }));
-
-      return [...cached, ...geocoded];
+      if (error) throw error;
+      return (data ?? []) as KartenTermin[];
     },
   });
+
+  // Veranstaltungen, deren Ort noch keine gespeicherten Koordinaten hat.
+  const termineOhneKoordinaten = useMemo(
+    () => termine.filter((e) => (e.location_lat == null || e.location_lng == null) && e.location),
+    [termine],
+  );
+
+  // Wie bei den Mitgliedern: nachschlagen in einer eigenen Abfrage, damit die
+  // Veranstaltungen mit gespeicherten Koordinaten sofort auf der Karte stehen.
+  const { data: orte = NICHTS_NACHGESCHLAGEN } = useQuery({
+    queryKey: ["member-map-orte", [...new Set(termineOhneKoordinaten.map((e) => e.location!))]],
+    enabled: termineOhneKoordinaten.length > 0,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    queryFn: async ({ signal }) => {
+      const gefunden: Record<string, Koordinaten> = {};
+      for (const e of termineOhneKoordinaten) {
+        const ort = e.location!;
+        // Derselbe Ort bei mehreren Veranstaltungen: geocode merkt sich die
+        // Antwort, die zweite Frage geht nicht mehr hinaus.
+        const punkt = await geocodeAdresse(ort, signal);
+        if (!punkt) continue;
+        gefunden[ort] = punkt;
+        // Save geocoded results back to DB for caching. Das gelingt nur, wer
+        // die Veranstaltung ändern darf (angelegt hat oder events.moderate);
+        // bei allen anderen ändert die Datenbank nichts und meldet auch
+        // keinen Fehler – für sie bleibt es beim Ergebnis dieser Sitzung.
+        const { error } = await supabase
+          .from("events")
+          .update({ location_lat: punkt.lat, location_lng: punkt.lng })
+          .eq("id", e.id);
+        if (error) console.warn("Koordinaten der Veranstaltung konnten nicht gespeichert werden:", error.message);
+      }
+      return gefunden;
+    },
+  });
+
+  const events = useMemo(
+    () =>
+      termine.flatMap((e) => {
+        const punkt =
+          e.location_lat != null && e.location_lng != null
+            ? { lat: e.location_lat, lng: e.location_lng }
+            : e.location
+              ? orte[e.location]
+              : undefined;
+        return punkt && e.location
+          ? [{ id: e.id, title: e.title, location: e.location, start_date: e.start_date, end_date: e.end_date, all_day: e.all_day, lat: punkt.lat, lng: punkt.lng }]
+          : [];
+      }),
+    [termine, orte],
+  );
 
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
