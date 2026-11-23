@@ -180,6 +180,11 @@ wie auf dem iPhone. Voraussetzung ist die Dateiablage in SharePoint
    Scan aus dem Kopierer. Danach steht der Text auch in der Datenbank und
    ist in der Quellensammlung durchsuchbar.
 
+   Hat eine Seite viele unsichere Wörter (ab 8), liest die App sie auch
+   ×0,8 und ×1,2 vergrössert; die Lesung mit den wenigsten unsicheren
+   Wörtern gilt. Tesseract findet die Zeilen leicht gewölbter Seiten je
+   nach Bildgrösse verschieden gut (Stein S. 26).
+
    Unter *Angaben fürs PDF* (freiwillig): Titel (wie auf dem Titelblatt,
    statt des kurzen Namens fürs Ablegen), Autor (voller Name), Jahr und die
    Seitenzählung – „PDF-Seite 3 ist Seite 1 im Buch"; die Seiten davor

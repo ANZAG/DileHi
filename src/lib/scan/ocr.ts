@@ -98,9 +98,9 @@ function arbeiterFuer(schrift: Schrift): Promise<Worker> {
 }
 
 /** Ein Bild auf eine Breite bringen, mit der die Erkennung zurechtkommt. */
-async function vorbereiten(bild: Blob, breite: number, aufhellen: boolean): Promise<{ bild: Blob; faktor: number }> {
-  if (breite >= MINDESTBREITE && !aufhellen) return { bild, faktor: 1 };
-  const faktor = breite >= MINDESTBREITE ? 1 : Math.min(2, MINDESTBREITE / breite);
+async function vorbereiten(bild: Blob, breite: number, aufhellen: boolean, zusatz = 1): Promise<{ bild: Blob; faktor: number }> {
+  if (breite >= MINDESTBREITE && !aufhellen && zusatz === 1) return { bild, faktor: 1 };
+  const faktor = (breite >= MINDESTBREITE ? 1 : Math.min(2, MINDESTBREITE / breite)) * zusatz;
   const bitmap = await createImageBitmap(bild);
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * faktor);
@@ -127,17 +127,38 @@ export interface LeseOptionen {
   aufhellen?: boolean;
 }
 
+/**
+ * Ab so vielen unsicheren Wörtern (unter 60 %) wird eine Seite auch etwas
+ * kleiner und grösser gelesen. Tesseract findet die Zeilen einer leicht
+ * gewölbten Seite je nach Bildgrösse verschieden gut: Stein S. 26 las es
+ * bei 1540 Punkten Breite mit 4 unsicheren Wörtern, bei 1600 mit 29 und
+ * Lücken mitten im Absatz („eine breite Bor am (gen un len Auf“).
+ */
+const UNSICHER_NOCHMAL = 8;
+
 /** Eine Seite lesen. `breite` ist die Breite des Bildes in Punkten. */
 export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen = {}): Promise<OcrErgebnis> {
+  let beste = await einmalLesen(bild, breite, schrift, o, 1);
+  if (beste.unsicher < UNSICHER_NOCHMAL) return beste.ergebnis;
+  for (const zusatz of [0.8, 1.2]) {
+    const r = await einmalLesen(bild, breite, schrift, o, zusatz);
+    if (r.unsicher < beste.unsicher || (r.unsicher === beste.unsicher && r.ergebnis.sicherheit > beste.ergebnis.sicherheit)) beste = r;
+  }
+  return beste.ergebnis;
+}
+
+async function einmalLesen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen, zusatz: number): Promise<{ ergebnis: OcrErgebnis; unsicher: number }> {
   const worker = await arbeiterFuer(schrift);
-  const { bild: eingabe, faktor } = await vorbereiten(bild, breite, o.aufhellen === true);
+  const { bild: eingabe, faktor } = await vorbereiten(bild, breite, o.aufhellen === true, zusatz);
   const { data } = await worker.recognize(eingabe, {}, { text: true, blocks: true });
+  let unsicher = 0;
   const woerter: Wort[] = [];
   for (const block of data.blocks ?? []) {
     for (const absatz of block.paragraphs) {
       for (const zeile of absatz.lines) {
         for (const w of zeile.words) {
           if (!w.text.trim()) continue;
+          if (w.confidence < 60) unsicher++;
           woerter.push({
             text: w.text,
             x0: w.bbox.x0 / faktor,
@@ -149,7 +170,7 @@ export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: 
       }
     }
   }
-  return { text: seitentextAufraeumen(data.text ?? ""), woerter, sicherheit: data.confidence ?? 0, schrift };
+  return { ergebnis: { text: seitentextAufraeumen(data.text ?? ""), woerter, sicherheit: data.confidence ?? 0, schrift }, unsicher };
 }
 
 /**
