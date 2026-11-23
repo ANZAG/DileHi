@@ -12,8 +12,9 @@ import { zwischenspeicherLeeren } from "./recovery";
  */
 const RETRY_KEY = "chunk-retry";
 
-export const lazyPage = <P extends object>(load: () => Promise<{ default: React.ComponentType<P> }>) =>
-  lazy(() =>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- wie React.lazy selbst: jede Komponente, ihre Eigenschaften bleiben erhalten
+export const lazyPage = <T extends React.ComponentType<any>>(load: () => Promise<{ default: T }>) =>
+  lazy<T>(() =>
     load()
       .then((mod) => {
         // Erst der ERFOLG hebt die Sperre auf. Vorher stand hier ein

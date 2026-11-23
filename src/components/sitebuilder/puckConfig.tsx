@@ -13,6 +13,15 @@ import { DARSTELLUNGEN_EINLEITUNG } from "@/components/PublicPersonasSection";
 import BildFeld from "./BildFeld";
 import QuelltextFeld from "./QuelltextFeld";
 import { bildAuswahl, kategorieAuswahl, galerieAuswahl, mitBestehendem, seitenAuswahl } from "./auswahl";
+
+/**
+ * Der Seitenbaukasten verlangt von `render` immer ein Element. Bausteine,
+ * die ohne Inhalt nichts zeigen (`return null`), werden deshalb als
+ * Komponente eingehängt statt als Funktion übergeben – das Element ist dann
+ * immer da, auch wenn es nichts zeichnet.
+ */
+const alsBaustein = <P extends object>(Baustein: (props: P) => JSX.Element | null) =>
+  (props: P) => <Baustein {...props} />;
 import {
   ABSTAENDE, BREITEN, FLAECHEN, HINTERGRUENDE, TEXTFARBEN,
   type Abstand, type Breite, type Flaeche, type Hintergrund, type Textfarbe,
@@ -779,7 +788,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         breite: "breit" as Breite,
         abstandOben: "normal" as Abstand, abstandUnten: "normal" as Abstand,
       },
-      render: Personenbilder,
+      render: alsBaustein(Personenbilder),
     },
 
     Kennzahlen: {
@@ -805,7 +814,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         abstandOben: "klein", abstandUnten: "klein",
         hintergrund: "karte",
       },
-      render: Kennzahlen,
+      render: alsBaustein(Kennzahlen),
     },
 
     Einzelbild: {
@@ -867,7 +876,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...gemeinsameVorgaben,
         breite: "breit",
       },
-      render: Karten,
+      render: alsBaustein(Karten),
     },
 
     Knopf: {
@@ -1030,7 +1039,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         ...layoutFelder,
       }),
       defaultProps: { ...layoutVorgaben, breite: "breit", ueberschrift: "", logos: [], groesse: "mittel" },
-      render: Logos,
+      render: alsBaustein(Logos),
     },
 
     Darstellungen: {
@@ -1092,7 +1101,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         abstandOben: "weit",
         abstandUnten: "weit",
       },
-      render: Termine,
+      render: alsBaustein(Termine),
     },
 
     Kontaktformular: {
@@ -1178,7 +1187,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         eintraege: [{ symbol: "kalender", text: "Seit", hervorgehoben: "2011 aktiv" }],
         abstandOben: "klein", abstandUnten: "klein",
       },
-      render: Eckdaten,
+      render: alsBaustein(Eckdaten),
     },
 
     Zeitstrahl: {
@@ -1210,7 +1219,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         };
       },
       defaultProps: { ueberschrift: "Unsere Darstellungen", punkte: [], hintergrund: "karte", abstandOben: "weit", abstandUnten: "weit" },
-      render: Zeitstrahl,
+      render: alsBaustein(Zeitstrahl),
     },
 
     Aktionskaesten: {
@@ -1244,7 +1253,7 @@ export const puckConfig: Config<{ components: Bausteine }> = {
         };
       },
       defaultProps: { kaesten: [], hintergrund: "karte", abstandOben: "weit", abstandUnten: "weit" },
-      render: Aktionskaesten,
+      render: alsBaustein(Aktionskaesten),
     },
 
     Hinweiskasten: {

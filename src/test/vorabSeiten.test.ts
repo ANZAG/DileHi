@@ -8,6 +8,7 @@ import {
   bildAdressen, dokument, fehlerDokument, gegenstueck, hauptadressePruefen, mitModulVorladen, mitVorab,
   mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand, sichererSlug, titelbild, vorladeModule,
   vorladeZeile,
+// @ts-expect-error -- Bauskript ohne Typangaben
 } from "../../scripts/vorabSeiten.mjs";
 
 /**
@@ -268,7 +269,7 @@ describe("modulepreload für die Programmteile einer Seite", () => {
     // Die Galerie lädt nur, wer eine auf der Seite hat.
     expect(dateien).not.toContain("assets/Galerie-IIII.js");
     // Nur Programm, kein CSS: Ein Stylesheet ist kein Modul.
-    expect(dateien.every((d) => d.endsWith(".js"))).toBe(true);
+    expect(dateien.every((d: string) => d.endsWith(".js"))).toBe(true);
   });
 
   it("gibt bei einer unbrauchbaren Liste nichts zurück, statt zu scheitern", () => {
