@@ -185,14 +185,21 @@ async function einmalLesen(bild: Blob, breite: number, schrift: Schrift, o: Lese
   const worker = await arbeiterFuer(schrift, o.platz ?? 0);
   const { bild: eingabe, faktor } = await vorbereiten(bild, breite, o.aufhellen === true, zusatz);
   const { data } = await worker.recognize(eingabe, {}, { text: true, blocks: true });
-  let unsicher = 0;
+  let unsicher = 0, gezaehlt = 0, summe = 0;
   const woerter: Wort[] = [];
   for (const block of data.blocks ?? []) {
     for (const absatz of block.paragraphs) {
       for (const zeile of absatz.lines) {
         for (const w of zeile.words) {
           if (!w.text.trim()) continue;
-          if (w.confidence < 60) unsicher++;
+          // Sicher oder unsicher zählt nur, was Buchstaben oder Ziffern hat:
+          // Die Punktreihen eines Inhaltsverzeichnisses („. . . . . 15") liest
+          // die Erkennung immer unsicher – eine tadellose Seite hiess dann
+          // „Text unsicher (67 %)".
+          if (/[\p{L}\p{N}]/u.test(w.text)) {
+            gezaehlt++; summe += w.confidence;
+            if (w.confidence < 60) unsicher++;
+          }
           woerter.push({
             text: w.text,
             x0: w.bbox.x0 / faktor,
@@ -204,7 +211,7 @@ async function einmalLesen(bild: Blob, breite: number, schrift: Schrift, o: Lese
       }
     }
   }
-  return { ergebnis: { text: seitentextAufraeumen(data.text ?? ""), woerter, sicherheit: data.confidence ?? 0, schrift }, unsicher };
+  return { ergebnis: { text: seitentextAufraeumen(data.text ?? ""), woerter, sicherheit: gezaehlt ? summe / gezaehlt : data.confidence ?? 0, schrift }, unsicher };
 }
 
 /**
