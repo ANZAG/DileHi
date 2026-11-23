@@ -9,10 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe, heuteIso, plusMonate, tageBis } from "@/lib/datum";
 
-const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 type Kategorie = "tax" | "register" | "assembly" | "insurance" | "other";
 
@@ -123,7 +119,7 @@ export default function FristenAdmin() {
   const { data: fristen = [], isLoading } = useQuery({
     queryKey: ["fristen"],
     queryFn: async (): Promise<Frist[]> => {
-      const { data, error } = await db.from("club_deadlines").select("*").order("due_date");
+      const { data, error } = await supabase.from("club_deadlines").select("*").order("due_date");
       if (error) throw new Error(error.message);
       return (data ?? []) as Frist[];
     },
@@ -132,7 +128,7 @@ export default function FristenAdmin() {
   const { data: rollen = [] } = useQuery({
     queryKey: ["rollen-katalog"],
     queryFn: async (): Promise<{ key: string; label: string }[]> => {
-      const { data } = await db.rpc("get_role_catalog");
+      const { data } = await supabase.rpc("get_role_catalog");
       return (data ?? []) as { key: string; label: string }[];
     },
   });
@@ -140,7 +136,7 @@ export default function FristenAdmin() {
   const { data: bescheid } = useQuery({
     queryKey: ["bescheid"],
     queryFn: async (): Promise<Bescheid> => {
-      const { data } = await db.from("app_settings").select("exemption_notice_kind, exemption_notice_date").maybeSingle();
+      const { data } = await supabase.from("app_settings").select("exemption_notice_kind, exemption_notice_date").maybeSingle();
       return (data ?? { exemption_notice_kind: null, exemption_notice_date: null }) as Bescheid;
     },
   });
@@ -159,8 +155,8 @@ export default function FristenAdmin() {
         note: f.note?.trim() || null,
       };
       const { error } = f.id
-        ? await db.from("club_deadlines").update(daten).eq("id", f.id)
-        : await db.from("club_deadlines").insert(daten);
+        ? await supabase.from("club_deadlines").update(daten).eq("id", f.id)
+        : await supabase.from("club_deadlines").insert(daten);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -173,7 +169,7 @@ export default function FristenAdmin() {
 
   const erledigen = useMutation({
     mutationFn: async ({ id, erledigt }: { id: string; erledigt: boolean }) => {
-      const { error } = await db.from("club_deadlines")
+      const { error } = await supabase.from("club_deadlines")
         .update({ done_at: erledigt ? new Date().toISOString() : null }).eq("id", id);
       if (error) throw new Error(error.message);
     },
@@ -186,7 +182,7 @@ export default function FristenAdmin() {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("club_deadlines").delete().eq("id", id);
+      const { error } = await supabase.from("club_deadlines").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: erneuern,

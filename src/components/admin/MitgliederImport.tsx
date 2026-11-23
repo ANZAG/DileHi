@@ -49,7 +49,7 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
   const { data: mitgliedsarten = [] } = useQuery({
     queryKey: ["import", "mitgliedsarten"],
     queryFn: async () => {
-      const { data } = await (supabase as unknown as { from: (t: string) => any })
+      const { data } = await supabase
         .from("contribution_categories").select("key, label").eq("is_active", true).order("sort_order");
       return (data ?? []) as { key: string; label: string }[];
     },

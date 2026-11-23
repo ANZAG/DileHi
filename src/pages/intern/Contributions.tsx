@@ -33,7 +33,7 @@ function useVereinskonto() {
   const { data } = useQuery({
     queryKey: ["vereinskonto"],
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
+      const { data, error } = await supabase
         .from("app_settings")
         .select("org_name, bank_recipient, bank_iban, bank_bic")
         .maybeSingle();

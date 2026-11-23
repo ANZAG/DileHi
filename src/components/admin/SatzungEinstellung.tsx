@@ -27,7 +27,6 @@ interface Stand {
   statutes_category: string | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function SatzungEinstellung() {
   const { toast } = useToast();
@@ -38,7 +37,7 @@ export default function SatzungEinstellung() {
   const { data } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
       return data as Stand;
     },
@@ -71,7 +70,7 @@ export default function SatzungEinstellung() {
 
   const speichern = useMutation({
     mutationFn: async (werte: Stand) => {
-      const { error } = await db.from("app_settings").update(werte).eq("id", true);
+      const { error } = await supabase.from("app_settings").update(werte).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

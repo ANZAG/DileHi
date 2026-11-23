@@ -24,7 +24,6 @@ interface Eintrag {
   area: MenuBereich | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die beiden Listen, die eine Vereinsseite braucht. Mehr Bereiche wären
@@ -87,7 +86,7 @@ export default function MenueAdmin() {
   const { data: alle = [], isLoading } = useQuery({
     queryKey: ["site-menu-admin"],
     queryFn: async () => {
-      const { data, error } = await db.from("site_menu").select("*").order("sort_order");
+      const { data, error } = await supabase.from("site_menu").select("*").order("sort_order");
       if (error) throw new Error(error.message);
       return (data ?? []) as Eintrag[];
     },
@@ -106,7 +105,7 @@ export default function MenueAdmin() {
 
   const aendern = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Eintrag> }) => {
-      const { error } = await db.from("site_menu").update(patch).eq("id", id);
+      const { error } = await supabase.from("site_menu").update(patch).eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: frisch,
@@ -119,7 +118,7 @@ export default function MenueAdmin() {
       // die Prüfbedingung in der Datenbank lässt nichts anderes zu.
       const istSeite = neuZiel.startsWith("seite:");
       const oben = eintraege.filter((e) => !e.parent_id);
-      const { error } = await db.from("site_menu").insert({
+      const { error } = await supabase.from("site_menu").insert({
         label: neuLabel.trim(),
         page_id: istSeite ? neuZiel.slice(6) : null,
         href: istSeite ? null : neuZiel.trim(),
@@ -142,7 +141,7 @@ export default function MenueAdmin() {
 
   const entfernen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("site_menu").delete().eq("id", id);
+      const { error } = await supabase.from("site_menu").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: frisch,
@@ -328,7 +327,7 @@ function FussUeberschrift({ spalte, hinweis }: {
   const { data } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
       return data as Record<string, string | null>;
     },
@@ -339,7 +338,7 @@ function FussUeberschrift({ spalte, hinweis }: {
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("app_settings").update({ [spalte]: wert.trim() }).eq("id", true);
+      const { error } = await supabase.from("app_settings").update({ [spalte]: wert.trim() }).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

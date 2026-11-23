@@ -22,13 +22,12 @@ export const ANTRAG_FELDTYPEN = [
   "section", "text", "textarea", "number", "date", "select", "multi_select", "checkbox",
 ];
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export function useAntragsfelder() {
   return useQuery({
     queryKey: ["application-fields"],
     queryFn: async (): Promise<Antragsfeld[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("application_fields").select("*").order("sort_order");
       if (error) throw new Error(error.message);
       return ((data ?? []) as Antragsfeld[]).map((f) => ({

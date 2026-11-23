@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe } from "@/lib/datum";
 import {
-  db, istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type EinwilligungsArt, type Notfallkontakt,
+  istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type EinwilligungsArt, type Notfallkontakt,
 } from "@/hooks/useEinwilligungen";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Mitglied {
   id: string;
@@ -33,7 +34,7 @@ export default function EinwilligungenAdmin() {
   const { data: mitglieder = [] } = useQuery({
     queryKey: ["einwilligungen", "mitglieder"],
     queryFn: async (): Promise<Mitglied[]> => {
-      const { data, error } = await db.from("profiles").select("id, display_name, birthdate").eq("is_active", true).order("display_name");
+      const { data, error } = await supabase.from("profiles").select("id, display_name, birthdate").eq("is_active", true).order("display_name");
       if (error) throw new Error(error.message);
       return (data ?? []) as Mitglied[];
     },
@@ -42,7 +43,7 @@ export default function EinwilligungenAdmin() {
   const { data: entscheidungen = [] } = useQuery({
     queryKey: ["einwilligungen", "alle"],
     queryFn: async (): Promise<Einwilligung[]> => {
-      const { data, error } = await db.from("member_consents").select("*");
+      const { data, error } = await supabase.from("member_consents").select("*");
       if (error) throw new Error(error.message);
       return (data ?? []) as Einwilligung[];
     },
@@ -51,7 +52,7 @@ export default function EinwilligungenAdmin() {
   const { data: kontakte = [] } = useQuery({
     queryKey: ["einwilligungen", "alle-kontakte"],
     queryFn: async (): Promise<Notfallkontakt[]> => {
-      const { data, error } = await db.from("member_emergency_contacts").select("*");
+      const { data, error } = await supabase.from("member_emergency_contacts").select("*");
       if (error) throw new Error(error.message);
       return (data ?? []) as Notfallkontakt[];
     },
@@ -181,7 +182,7 @@ function Arten({ arten }: { arten: EinwilligungsArt[] }) {
 
   const speichern = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("consent_types").update(aenderungen[id]).eq("id", id);
+      const { error } = await supabase.from("consent_types").update(aenderungen[id]).eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: (_, id) => {
@@ -199,7 +200,7 @@ function Arten({ arten }: { arten: EinwilligungsArt[] }) {
   const anlegen = useMutation({
     mutationFn: async () => {
       const letzte = arten[arten.length - 1]?.sort_order ?? 0;
-      const { error } = await db.from("consent_types").insert({ label: neu!.label.trim(), text: neu!.text.trim(), sort_order: letzte + 10 });
+      const { error } = await supabase.from("consent_types").insert({ label: neu!.label.trim(), text: neu!.text.trim(), sort_order: letzte + 10 });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

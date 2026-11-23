@@ -50,7 +50,6 @@ export interface Aufgabe extends Schritt {
   fertig: boolean;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export function useOnboarding() {
   const { user, permissions, permissionsLoaded, hasPermission } = useAuth();
@@ -60,7 +59,7 @@ export function useOnboarding() {
   const schritteQuery = useQuery({
     queryKey: ["onboarding-schritte"],
     queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("onboarding_steps")
         .select("*")
         .eq("is_active", true)

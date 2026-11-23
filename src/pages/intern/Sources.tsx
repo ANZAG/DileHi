@@ -97,7 +97,7 @@ const Sources = () => {
   const { data: fileStorage = "supabase" } = useQuery({
     queryKey: ["file-storage"],
     queryFn: async () => {
-      const { data } = await (supabase as unknown as { from: (t: string) => any })
+      const { data } = await supabase
         .from("app_settings").select("file_storage").maybeSingle();
       return ((data?.file_storage as string | undefined) ?? "supabase") as "supabase" | "sharepoint";
     },

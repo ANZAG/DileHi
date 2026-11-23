@@ -41,13 +41,12 @@ export interface BeitragsstufeStatus extends Beitragsstufe {
   deletable_from: number | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export function useBeitragsstufen() {
   const { data } = useQuery({
     queryKey: ["beitragsstufen"],
     queryFn: async (): Promise<Beitragsstufe[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("contribution_categories")
         .select("key, label, description, sort_order, is_active, removed_from")
         .order("sort_order");

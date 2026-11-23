@@ -59,11 +59,6 @@ export const PAUSCHALE: Record<PauschalArt, { label: string; paragraf: string }>
 /** Vorgaben, falls die Einstellungen nicht lesbar sind. Stand 2026. */
 export const FREIBETRAG_VORGABE: Record<PauschalArt, number> = { volunteer: 960, trainer: 3300 };
 
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-  storage: typeof supabase.storage;
-};
 
 export function euro(betrag: number): string {
   return Number(betrag).toLocaleString("de-DE", { style: "currency", currency: "EUR" });

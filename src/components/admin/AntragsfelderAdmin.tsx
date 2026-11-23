@@ -11,7 +11,6 @@ import {
   useAntragsfelder, ANTRAG_FELDTYPEN, istKernfeld, type Antragsfeld,
 } from "@/hooks/useAntragsfelder";
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die Felder des Aufnahmeantrags.
@@ -53,7 +52,7 @@ export default function AntragsfelderAdmin() {
       // Liste laesst tragende gar nicht erst loeschen.
       const entfernt = [...vorher.keys()].filter((id) => !jetzt.has(id));
       if (entfernt.length > 0) {
-        const { error } = await db.from("application_fields").delete().in("id", entfernt);
+        const { error } = await supabase.from("application_fields").delete().in("id", entfernt);
         if (error) throw new Error(error.message);
       }
 
@@ -68,12 +67,12 @@ export default function AntragsfelderAdmin() {
           settings: feld.settings ?? {},
         };
         if (vorher.has(feld.id)) {
-          const { error } = await db.from("application_fields").update(daten).eq("id", feld.id);
+          const { error } = await supabase.from("application_fields").update(daten).eq("id", feld.id);
           if (error) throw new Error(error.message);
         } else {
           // Neue Felder sind immer Zusatzfelder – ein tragendes entsteht nur
           // zusammen mit einer Spalte, und die legt eine Migration an.
-          const { error } = await db.from("application_fields")
+          const { error } = await supabase.from("application_fields")
             .insert({ ...daten, column_name: null });
           if (error) throw new Error(error.message);
         }

@@ -8,10 +8,11 @@ import {
   BildAnsicht, KartenZeile, Rahmen, RechteAbzeichen, Text,
 } from "@/components/bibliothek/Bausteine";
 import {
-  db, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen, useVerweise, type Bild,
+  useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen, useVerweise, type Bild,
 } from "@/hooks/useBibliothek";
 import { useBibliotheksrechte } from "@/hooks/useBibliothek";
 import { DATIERUNG, LAGE, RECHTE, type Rechte } from "@/lib/bibliothek";
+import { supabase } from "@/integrations/supabase/client";
 
 const KRUMEN = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }];
 const ALLE = "__alle__";
@@ -180,21 +181,21 @@ function Verbindungen({ quelle }: { quelle: { id: string; collection_source_id: 
   const { data: sammlung = [] } = useQuery({
     queryKey: ["bibliothek", "quellensammlung"],
     queryFn: async () => {
-      const { data } = await db.from("sources").select("id, title, epoch").order("title");
+      const { data } = await supabase.from("sources").select("id, title, epoch").order("title");
       return (data ?? []) as { id: string; title: string; epoch: string }[];
     },
   });
   const { data: oeffentlich = [] } = useQuery({
     queryKey: ["bibliothek", "epochenquellen"],
     queryFn: async () => {
-      const { data } = await db.from("epoch_sources").select("id, text, epoch").order("sort_order");
+      const { data } = await supabase.from("epoch_sources").select("id, text, epoch").order("sort_order");
       return (data ?? []) as { id: string; text: string; epoch: string }[];
     },
   });
 
   const setzen = useMutation({
     mutationFn: async (werte: Record<string, string | null>) => {
-      const { error } = await db.from("library_sources").update(werte).eq("id", quelle.id);
+      const { error } = await supabase.from("library_sources").update(werte).eq("id", quelle.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bibliothek", "quellen"] }),

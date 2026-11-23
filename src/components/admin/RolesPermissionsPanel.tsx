@@ -49,14 +49,13 @@ const RolesPermissionsPanel = () => {
       // Aufzaehlungstyp – der ist in der Datenbank inzwischen weg. Bis zur
       // naechsten Neugenerierung der Typen die Zusicherung, sonst lehnt der
       // Compiler jede selbst angelegte Rolle ab.
-      const db = supabase as unknown as { from: (t: string) => any };
       if (granted) {
-        const { error } = await db
+        const { error } = await supabase
           .from("role_permissions")
           .insert({ role, permission, granted: true });
         if (error) throw error;
       } else {
-        const { error } = await db
+        const { error } = await supabase
           .from("role_permissions")
           .delete()
           .eq("role", role)

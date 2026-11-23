@@ -53,7 +53,7 @@ export default function Beitragsstufen() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = stufen[stufen.length - 1]?.sort_order ?? 0;
-      const { error } = await (supabase as unknown as { from: (t: string) => any })
+      const { error } = await supabase
         .from("contribution_categories")
         .insert({ key, label, sort_order: letzte + 10 });
       if (error) throw new Error(error.message);

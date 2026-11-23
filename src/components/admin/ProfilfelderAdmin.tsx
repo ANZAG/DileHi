@@ -13,7 +13,6 @@ import type { FormField } from "@/components/event-forms/types";
 import { useProfilfelder, PROFIL_FELDTYPEN, type Profilfeld } from "@/hooks/useProfilfelder";
 import { useAntragsfelder } from "@/hooks/useAntragsfelder";
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Was im Mitgliederprofil steht.
@@ -47,7 +46,7 @@ export default function ProfilfelderAdmin() {
 
   const bereichSchalten = useMutation({
     mutationFn: async (feld: Profilfeld) => {
-      const { error } = await db.from("profile_fields")
+      const { error } = await supabase.from("profile_fields")
         .update({ is_active: !feld.is_active }).eq("id", feld.id);
       if (error) throw new Error(error.message);
     },
@@ -63,7 +62,7 @@ export default function ProfilfelderAdmin() {
 
       const entfernt = [...vorher.keys()].filter((id) => !jetzt.has(id));
       if (entfernt.length > 0) {
-        const { error } = await db.from("profile_fields").delete().in("id", entfernt);
+        const { error } = await supabase.from("profile_fields").delete().in("id", entfernt);
         if (error) throw new Error(error.message);
       }
 
@@ -80,10 +79,10 @@ export default function ProfilfelderAdmin() {
           settings: feld.settings ?? {},
         };
         if (vorher.has(feld.id)) {
-          const { error } = await db.from("profile_fields").update(daten).eq("id", feld.id);
+          const { error } = await supabase.from("profile_fields").update(daten).eq("id", feld.id);
           if (error) throw new Error(error.message);
         } else {
-          const { error } = await db.from("profile_fields")
+          const { error } = await supabase.from("profile_fields")
             .insert({ ...daten, block_key: null });
           if (error) throw new Error(error.message);
         }

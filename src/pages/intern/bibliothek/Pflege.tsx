@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Rahmen, StatusAbzeichen } from "@/components/bibliothek/Bausteine";
 import {
-  db, useBibliotheksrechte, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen,
+  useBibliotheksrechte, useBilder, useDarstellungen, useKarten, useQuellen, useSeiten, useTafeln, useThemen,
   useVerweise, type Bild,
 } from "@/hooks/useBibliothek";
 import {
@@ -19,6 +19,7 @@ import {
 import { themenDerKarte } from "@/lib/bibliothek";
 import { invokeFunction } from "@/lib/functionError";
 import { inStuecken } from "@/lib/alleZeilen";
+import { supabase } from "@/integrations/supabase/client";
 
 const ART_LABEL: Record<Art, string> = {
   darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", thema: "Themenseiten",
@@ -76,7 +77,7 @@ export default function BibliothekPflege() {
     queryKey: ["bibliothek", "verlauf"],
     enabled: pflegen,
     queryFn: async () => {
-      const { data } = await db.from("library_history")
+      const { data } = await supabase.from("library_history")
         .select("id, table_name, entry_id, operation, changed_at").order("id", { ascending: false }).limit(25);
       return (data ?? []) as { id: number; table_name: string; entry_id: string; operation: string; changed_at: string }[];
     },
@@ -128,7 +129,7 @@ export default function BibliothekPflege() {
       const gesamt = eintraege.length + 1;
       for (const [i, e] of eintraege.entries()) {
         setSchritt({ fertig: i, gesamt, was: e.datei });
-        const { error } = await db.rpc("library_import", { _art: e.art, _d: e.daten, _text: e.text });
+        const { error } = await supabase.rpc("library_import", { _art: e.art, _d: e.daten, _text: e.text });
         if (error) fehler.push({ datei: e.datei, meldung: error.message });
         else eingespielt++;
       }
@@ -138,11 +139,11 @@ export default function BibliothekPflege() {
       setSchritt({ fertig: eintraege.length, gesamt, was: "Bilder werden verzeichnet …" });
       let verzeichnet = 0;
       if (zeilen.length) {
-        const { error } = await db.from("library_images").upsert(zeilen);
+        const { error } = await supabase.from("library_images").upsert(zeilen);
         if (!error) verzeichnet = zeilen.length;
         else {
           for (const z of zeilen) {
-            const { error: einzeln } = await db.from("library_images").upsert(z);
+            const { error: einzeln } = await supabase.from("library_images").upsert(z);
             if (einzeln) fehler.push({ datei: `bilder/${z.path}`, meldung: einzeln.message });
             else verzeichnet++;
           }
@@ -152,7 +153,7 @@ export default function BibliothekPflege() {
       const weg = [...bilder.keys()].filter((p) => !imOrdner.has(p));
       // In Stücken: Die Pfade stehen in der Adresse der Anfrage.
       for (const stueck of inStuecken(weg, 100)) {
-        const { error } = await db.from("library_images").delete().in("path", stueck);
+        const { error } = await supabase.from("library_images").delete().in("path", stueck);
         if (error) fehler.push({ datei: "bilder/", meldung: `Austragen nicht mehr vorhandener Bilder: ${error.message}` });
       }
 
@@ -181,7 +182,7 @@ export default function BibliothekPflege() {
     const fehler: Meldung[] = [];
     for (const v of [...liste].sort((a, b) => REIHENFOLGE.indexOf(b.art) - REIHENFOLGE.indexOf(a.art))) {
       const { tabelle, spalte } = TABELLE[v.art];
-      const { error } = await db.from(tabelle).delete().eq(spalte, v.id);
+      const { error } = await supabase.from(tabelle).delete().eq(spalte, v.id);
       if (error) fehler.push({ datei: v.id, meldung: error.message });
     }
     qc.invalidateQueries({ queryKey: ["bibliothek"] });
@@ -357,7 +358,7 @@ function Ablage() {
   const { data: einstellung } = useQuery({
     queryKey: ["bibliothek", "ablage"],
     queryFn: async () => {
-      const { data } = await db.from("library_settings").select("site_url, folder").maybeSingle();
+      const { data } = await supabase.from("library_settings").select("site_url, folder").maybeSingle();
       return (data ?? { site_url: null, folder: "Bibliothek" }) as { site_url: string | null; folder: string };
     },
   });
@@ -375,7 +376,7 @@ function Ablage() {
   const geaendert = !!einstellung && (site !== (einstellung.site_url ?? "") || ordner !== einstellung.folder);
 
   const speichern = async () => {
-    const { error } = await db.from("library_settings")
+    const { error } = await supabase.from("library_settings")
       .update({ site_url: site.trim() || null, folder: ordner.trim().replace(/^\/+|\/+$/g, "") || "Bibliothek" })
       .eq("id", true);
     if (error) toast({ title: "Nicht gespeichert", description: error.message, variant: "destructive" });

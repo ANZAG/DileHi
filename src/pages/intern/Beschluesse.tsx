@@ -16,10 +16,6 @@ import { datumDe, heuteIso } from "@/lib/datum";
 import { ergebnisVon, stimmen } from "@/lib/ergebnisBild";
 import type { Election, ElectionResult } from "@/components/elections/types";
 
-const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 type Gremium = "assembly" | "board" | "other";
 type Ausgang = "adopted" | "rejected";
@@ -66,7 +62,7 @@ export default function Beschluesse() {
   const { data: beschluesse = [], isLoading } = useQuery({
     queryKey: ["beschluesse"],
     queryFn: async (): Promise<Beschluss[]> => {
-      const { data, error } = await db.from("resolutions").select("*").order("decided_on", { ascending: false }).order("number", { ascending: false });
+      const { data, error } = await supabase.from("resolutions").select("*").order("decided_on", { ascending: false }).order("number", { ascending: false });
       if (error) throw new Error(error.message);
       return (data ?? []) as Beschluss[];
     },
@@ -75,7 +71,7 @@ export default function Beschluesse() {
   const { data: dokumente = [] } = useQuery({
     queryKey: ["beschluesse", "dokumente"],
     queryFn: async (): Promise<{ id: string; title: string }[]> => {
-      const { data } = await db.from("documents").select("id, title").order("created_at", { ascending: false }).limit(200);
+      const { data } = await supabase.from("documents").select("id, title").order("created_at", { ascending: false }).limit(200);
       return (data ?? []) as { id: string; title: string }[];
     },
   });
@@ -232,12 +228,12 @@ export default function Beschluesse() {
  * Nein: 0 Stimmen (11 von 17 möglichen Stimmen)".
  */
 async function beschlussAusAbstimmung(electionId: string): Promise<Partial<Beschluss> | null> {
-  const { data: wahl } = await db.from("elections").select("*, candidates(*)").eq("id", electionId).maybeSingle();
+  const { data: wahl } = await supabase.from("elections").select("*, candidates(*)").eq("id", electionId).maybeSingle();
   if (!wahl || wahl.status !== "closed") return null;
-  const { data: ergebnisse } = await db.rpc("get_election_results");
+  const { data: ergebnisse } = await supabase.rpc("get_election_results");
   let moeglich: number | null = null;
   if (wahl.group_id) {
-    const { data: mitglieder } = await db.from("group_members").select("vote_count").eq("group_id", wahl.group_id);
+    const { data: mitglieder } = await supabase.from("group_members").select("vote_count").eq("group_id", wahl.group_id);
     moeglich = ((mitglieder ?? []) as { vote_count: number }[]).reduce((s, m) => s + m.vote_count, 0) || null;
   }
   const e = ergebnisVon(wahl as Election, (ergebnisse ?? []) as ElectionResult[], moeglich);
@@ -284,8 +280,8 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
         note: b.note?.trim() || null,
       };
       const { error } = b.id
-        ? await db.from("resolutions").update(daten).eq("id", b.id)
-        : await db.from("resolutions").insert(daten);
+        ? await supabase.from("resolutions").update(daten).eq("id", b.id)
+        : await supabase.from("resolutions").insert(daten);
       if (error) {
         throw new Error(error.message.includes("resolutions_number_key") ? `Die Nummer ${daten.number} ist schon vergeben.` : error.message);
       }
@@ -300,7 +296,7 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
 
   const loeschen = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("resolutions").delete().eq("id", b.id);
+      const { error } = await supabase.from("resolutions").delete().eq("id", b.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

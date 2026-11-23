@@ -31,7 +31,6 @@ import OrganisationsformWahl from "./OrganisationsformWahl";
  * Browser: Es ist die Einrichtung der Organisation, nicht die eines Geräts.
  */
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function Einrichtungsprozess({
   oeffne,
@@ -62,7 +61,7 @@ export default function Einrichtungsprozess({
     try {
       const patch: Record<string, unknown> = { setup_step: bis };
       if (fertig) patch.setup_done_at = new Date().toISOString();
-      const { error } = await db.from("app_settings").update(patch).eq("id", true);
+      const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
       if (error) throw new Error(error.message);
       await refetch();
       queryClient.invalidateQueries({ queryKey: ["branding"] });

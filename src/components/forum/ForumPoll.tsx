@@ -8,10 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 export interface PollOption { key: string; label: string }
 
@@ -53,7 +49,7 @@ export default function ForumPoll({
   const { data: results = [] } = useQuery({
     queryKey: ["forum-poll", postId],
     queryFn: async () => {
-      const { data } = await db.rpc("forum_poll_results", { _post_id: postId });
+      const { data } = await supabase.rpc("forum_poll_results", { _post_id: postId });
       return (data ?? []) as Result[];
     },
   });
@@ -61,7 +57,7 @@ export default function ForumPoll({
   const { data: own = [] } = useQuery({
     queryKey: ["forum-poll-own", postId, user?.id],
     queryFn: async () => {
-      const { data } = await db
+      const { data } = await supabase
         .from("forum_poll_votes")
         .select("option_key")
         .eq("post_id", postId)
@@ -75,7 +71,7 @@ export default function ForumPoll({
     mutationFn: async (optionKey: string) => {
       const chosen = own.includes(optionKey);
       if (chosen) {
-        const { error } = await db
+        const { error } = await supabase
           .from("forum_poll_votes").delete()
           .eq("post_id", postId).eq("user_id", user!.id).eq("option_key", optionKey);
         if (error) throw new Error(error.message);
@@ -83,9 +79,9 @@ export default function ForumPoll({
       }
       // Bei Einfachauswahl die vorherige Stimme ersetzen, statt zwei zu zählen.
       if (!payload.mehrfach && own.length > 0) {
-        await db.from("forum_poll_votes").delete().eq("post_id", postId).eq("user_id", user!.id);
+        await supabase.from("forum_poll_votes").delete().eq("post_id", postId).eq("user_id", user!.id);
       }
-      const { error } = await db
+      const { error } = await supabase
         .from("forum_poll_votes")
         .insert({ post_id: postId, user_id: user!.id, option_key: optionKey });
       if (error) throw new Error(error.message);

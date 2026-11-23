@@ -66,7 +66,6 @@ interface Einstellungen {
   bank_bic: string | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die Felder, die diese Maske pflegt — und nur die.
@@ -126,7 +125,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
   const { data, isLoading } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
       return data as Einstellungen;
     },
@@ -158,7 +157,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
         FELDER.filter((f) => f !== "file_storage" && f !== "sharepoint_site_url")
           .map((f) => [f, (rest as Einstellungen)[f]])
       );
-      const { error } = await db.from("app_settings").update(patch).eq("id", true);
+      const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -209,7 +208,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // fand die Datei im Speicher, den Verweis darauf aber nirgends. Genau
       // eine Spalte wird geschrieben, damit andere offene Änderungen im
       // Formular davon unberührt bleiben.
-      const { error: speicherFehler } = await db
+      const { error: speicherFehler } = await supabase
         .from("app_settings").update({ [spalte]: pfad }).eq("id", true);
       if (speicherFehler) throw new Error(speicherFehler.message);
 
@@ -232,7 +231,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     if (!entwurf) return;
     const spalte = art === "logo" ? "logo_path" : "favicon_path";
     setEntwurf({ ...entwurf, [spalte]: null });
-    const { error } = await db.from("app_settings").update({ [spalte]: null }).eq("id", true);
+    const { error } = await supabase.from("app_settings").update({ [spalte]: null }).eq("id", true);
     if (error) {
       toast({ title: "Nicht entfernt", description: error.message, variant: "destructive" });
       return;

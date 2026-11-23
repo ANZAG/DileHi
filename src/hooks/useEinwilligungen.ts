@@ -37,16 +37,12 @@ export interface Notfallkontakt {
   relation: string | null;
 }
 
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 export function useEinwilligungsArten() {
   return useQuery({
     queryKey: ["einwilligungen", "arten"],
     queryFn: async (): Promise<EinwilligungsArt[]> => {
-      const { data, error } = await db.from("consent_types").select("*").order("sort_order").order("label");
+      const { data, error } = await supabase.from("consent_types").select("*").order("sort_order").order("label");
       if (error) throw new Error(error.message);
       return (data ?? []) as EinwilligungsArt[];
     },

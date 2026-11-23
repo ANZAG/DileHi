@@ -40,7 +40,6 @@ interface Role {
   permission_count: number;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function RollenAdmin() {
   const woerter = useWoerter();
@@ -69,7 +68,7 @@ export default function RollenAdmin() {
 
   const aendern = useMutation({
     mutationFn: async ({ key, werte }: { key: string; werte: Partial<Role> }) => {
-      const { error } = await db.from("role_catalog").update(werte).eq("key", key);
+      const { error } = await supabase.from("role_catalog").update(werte).eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: erneuern,
@@ -79,7 +78,7 @@ export default function RollenAdmin() {
 
   const standardSetzen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("app_settings").update({ default_role: key }).eq("id", true);
+      const { error } = await supabase.from("app_settings").update({ default_role: key }).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -99,7 +98,7 @@ export default function RollenAdmin() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = rollen[rollen.length - 1]?.sort_order ?? 0;
-      const { error } = await db
+      const { error } = await supabase
         .from("role_catalog")
         .insert({ key, label, sort_order: letzte + 10 });
       if (error) throw new Error(error.message);
@@ -119,7 +118,7 @@ export default function RollenAdmin() {
 
   const loeschen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("role_catalog").delete().eq("key", key);
+      const { error } = await supabase.from("role_catalog").delete().eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

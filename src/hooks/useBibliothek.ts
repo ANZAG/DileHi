@@ -167,10 +167,6 @@ export function useBibliotheksrechte() {
 }
 
 // Die Tabellen stehen noch nicht in den erzeugten Typen.
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 const holen = async <T>(abfrage: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T> => {
   const { data, error } = await abfrage;
@@ -184,7 +180,7 @@ const holen = async <T>(abfrage: PromiseLike<{ data: unknown; error: { message: 
  * keine Zeile zwischen zwei Seiten verloren geht.
  */
 const alle = <T>(tabelle: string, spalten: string, sortieren: (q: any) => any) =>
-  alleZeilen<T>((von, bis) => sortieren(db.from(tabelle).select(spalten, { count: "exact" })).range(von, bis));
+  alleZeilen<T>((von, bis) => sortieren(supabase.from(tabelle).select(spalten, { count: "exact" })).range(von, bis));
 
 export const useDarstellungen = () =>
   useQuery({
@@ -223,8 +219,8 @@ export const useKarte = (id: string | undefined) =>
     enabled: !!id,
     queryFn: async () => {
       const [karte, fundstellen] = await Promise.all([
-        holen<Karte | null>(db.from("library_cards").select("*").eq("id", id).maybeSingle()),
-        holen<Fundstelle[]>(db.from("library_findings").select("*").eq("card_id", id).order("position")),
+        holen<Karte | null>(supabase.from("library_cards").select("*").eq("id", id).maybeSingle()),
+        holen<Fundstelle[]>(supabase.from("library_findings").select("*").eq("card_id", id).order("position")),
       ]);
       return { karte, fundstellen };
     },
@@ -265,7 +261,7 @@ export const useSuche = (begriff: string) =>
   useQuery({
     queryKey: ["bibliothek", "suche", begriff],
     enabled: begriff.trim().length >= 2,
-    queryFn: () => holen<Treffer[]>(db.rpc("library_search", { _q: begriff })),
+    queryFn: () => holen<Treffer[]>(supabase.rpc("library_search", { _q: begriff })),
     placeholderData: (vorher) => vorher,
   });
 
