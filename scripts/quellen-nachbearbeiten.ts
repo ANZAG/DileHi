@@ -160,6 +160,25 @@ export function textBrauchbar(text: string): boolean {
   return woerter.length / teile.length >= 0.65 && kurz / teile.length < 0.35;
 }
 
+/** Alte Erkennung, der man nicht trauen sollte: unter 75 % wortartig. */
+function fragwuerdig(text: string): boolean {
+  const w = wortartig([text]);
+  return w.zahl > 0 && w.anteil < 0.75;
+}
+
+/**
+ * Ist die neue Lesung einer Seite besser als ihre alte Textebene? Es
+ * entscheidet der Anteil echter Wörter; bei gleichem Anteil die Menge
+ * (mindestens 10 % mehr echte Wörter).
+ */
+export function besserAlsAlt(neu: string, alt: string): boolean {
+  if (!alt.trim()) return true;
+  const n = wortartig([neu]), a = wortartig([alt]);
+  const en = echteWoerter(neu), ea = echteWoerter(alt);
+  if (n.anteil >= a.anteil + 0.05 && en >= ea * 0.8) return true;
+  return n.anteil >= a.anteil - 0.02 && en > ea * 1.1;
+}
+
 const SPRACHE_NAME: Record<Schrift, string> = {
   antiqua: "Deutsch", fraktur: "Deutsch (Fraktur)", latein: "Latein", franzoesisch: "Französisch", englisch: "Englisch", latein_franzoesisch: "Latein, Französisch",
 };
@@ -181,7 +200,10 @@ function angabenFuer(datei: string, titel: string, epoche: string | null | undef
   const ep = epoche ? (epoche === "mittelalter" ? "Mittelalter" : epoche) : undefined;
   const stichwoerter = [ep, schrift ? SPRACHE_NAME[schrift] : undefined, "Quellensammlung"].filter((x): x is string => !!x);
   // Sprache aus dem Text des ganzen Werks (nicht aus Ordner oder Modell).
-  const stichprobe = texte.filter((t) => t.trim()).slice(0, 40).join("\n");
+  // Über das ganze Werk verteilt: Canivez hat eine deutsche Einleitung, der Text ist Latein.
+  const mitText = texte.filter((t) => t.trim());
+  const schritt = Math.max(1, Math.floor(mitText.length / 60));
+  const stichprobe = mitText.filter((_, i) => i % schritt === 0).join("\n");
   const sprache = ({ deu: "de-DE", lat: "la", fra: "fr", eng: "en", "lat+fra": "la" } as const)[spracheRaten(stichprobe) ?? "deu"];
   return { titel: ohneEndung, autor, thema, stichwoerter, sprache, zaehlung: zaehlungFinden(texte), bereiche: zaehlungBereiche(texte) };
 }
@@ -495,15 +517,22 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
     // sonst eine Textebene auf die Seiten, die noch keinen Text haben.
     // Schon von uns gebaut oder ergänzt (Stufe 2)? Dann nicht noch einmal:
     // Neu bauen aus schon komprimierten Bildern verlöre bei jedem Lauf.
-    const schonBearbeitet = NEU_BAUEN && dokument(datei).erzeuger.startsWith("DileHi Quellensammlung");
+    // Nur um eine Textebene ergänzt? Dann geht das noch einmal (die Bilder
+    // sind die alten), aber nie ein Neubau.
+    const erzeuger = dokument(datei).erzeuger;
+    const ergaenzt = erzeuger.startsWith("DileHi Quellensammlung (Textebene");
+    const schonBearbeitet = NEU_BAUEN && erzeuger.startsWith("DileHi Quellensammlung") && !ergaenzt;
     if (schonBearbeitet) bericht.ersetzen = "nein – schon bearbeitet";
     // WEG=textebene: auch Handyfotos nur um eine Textebene ergänzen – für
     // PDFs, deren Neubau grösser würde (die Bilder bleiben, der Text kommt dazu).
     const weg = NEU_BAUEN && !schonBearbeitet
-      ? (nurTextebene ? "textebene" : wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0))
+      ? (nurTextebene || ergaenzt ? "textebene" : wegFuer(datei, zahl, zuLesen.length === zahl && zahl > 0))
       : null;
     const bauen = weg === "neu";
-    const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1]) : []);
+    // Textebene auf Seiten ohne Text – und auf Seiten, deren alte Erkennung
+    // fragwürdig ist (Becker 06, S. 11: „(Erad^t eines (5 eiid?tsboten“ galt
+    // als brauchbar). Dort gilt hinterher die bessere Lesung (siehe besserAlsAlt).
+    const ebene = new Set(weg === "textebene" ? zuLesen.filter((i) => !imPdf[i - 1] || fragwuerdig(imPdf[i - 1])) : []);
     if (weg) bericht.weg = weg === "neu" ? "neu gebaut" : `Textebene auf ${ebene.size} Seiten`;
     const pdfSeiten: (PdfSeite & { dpi: number })[] = new Array(zahl);
     const textSeiten: TextFuerSeite[] = [];
@@ -635,15 +664,15 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           // Kein Text, sondern Muster (marmoriertes Vorsatzpapier, Einband):
           // Hunderte „Zeichen“, kaum etwas Wortartiges (Studien 1893, S. 3–4).
           else if (fuerSalatPruefung([text]).length === 0) { text = ""; bericht.unlesbar = (bericht.unlesbar ?? 0) + 1; }
-          // Hatte die alte Textebene mehr echte Wörter, bleibt sie.
-          if (echteWoerter(imPdf[i - 1]) > echteWoerter(text) * 1.1) { text = imPdf[i - 1]; bericht.ausPdf++; }
+          // War die alte Textebene besser, bleibt sie.
+          if (imPdf[i - 1] && !besserAlsAlt(text, imPdf[i - 1])) { text = imPdf[i - 1]; bericht.ausPdf++; }
           else bericht.gelesen++;
           texte[i - 1] = text;
           if (text.split(/\s+/).filter(Boolean).length < 5) bericht.leer++;
           else if (r.sicherheit < 70) bericht.unsicher++;
           if (bauen) pdfSeiten[i - 1] = fuersPdf(r.kopf ? vierteldrehen(vierteldrehen(pdfBild)) : pdfBild, r.woerter, dpi, scanPpi(datei, i));
           // Textebene: nur aufrecht gelesene Seiten mit Text (sonst lägen die Wörter falsch).
-          if (ebene.has(i) && !r.kopf && text) textSeiten.push({ seite: i, woerter: r.woerter, bildBreite: bild.breite, bildHoehe: bild.hoehe });
+          if (ebene.has(i) && !r.kopf && text && text !== imPdf[i - 1]) textSeiten.push({ seite: i, woerter: r.woerter, bildBreite: bild.breite, bildHoehe: bild.hoehe });
         }));
         process.stdout.write(`  ${Math.min(k + parallel, zuLesen.length)}/${zuLesen.length} Seiten gelesen\r`);
       }
@@ -666,7 +695,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         else {
           const r = await textEbeneEinfuegen(new Uint8Array(readFileSync(datei)), textSeiten, new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))), angabenFuer(datei, titel, epoche, texte, wahl.schrift));
           pdf = r.bytes;
-          bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.gedreht ? ` (${r.gedreht} gedreht, ohne)` : ""}`;
+          bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.entfernt ? `, alte auf ${r.entfernt} ersetzt` : ""}${r.gedreht ? ` (${r.gedreht} gedreht, ohne)` : ""}`;
           bericht.neuMegabyte = Math.round((pdf.length / 1e6) * 10) / 10;
           bericht.alteWoerter = alteWoerter;
           const neu = join(ordner, "neu.pdf");
@@ -674,7 +703,9 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           bericht.neueWoerter = echteWoerter(lauf("pdftotext", ["-enc", "UTF-8", neu, "-"]).toString());
           // Besser: mehr echter Text, und höchstens wenig grösser (die Schrift, der Text).
           const groesser = bericht.neuMegabyte > bericht.megabyte * 1.15 + 2;
-          bericht.ersetzen = bericht.neueWoerter <= alteWoerter * 1.02 ? "nein – kein Gewinn an Text" : groesser ? "nein – grösser" : "ja";
+          // Ersetzte alte Ebenen sind ein Gewinn, auch wenn ihr Müll „Wörter“ zählte.
+          const gewinn = bericht.neueWoerter > alteWoerter * 1.02 || r.entfernt > 0;
+          bericht.ersetzen = !gewinn ? "nein – kein Gewinn an Text" : groesser ? "nein – grösser" : "ja";
         }
       }
       if (bauen && !bericht.hinweis) {

@@ -97,11 +97,17 @@ export function utf8Reparieren(s: string): string {
 export function seitenBeschriftungLeer(pdf: PDFDocument): boolean {
   const labels = pdf.catalog.lookupMaybe(PDFName.of("PageLabels"), PDFDict);
   if (!labels) return false;
-  const nums = labels.lookupMaybe(PDFName.of("Nums"), PDFArray);
-  if (!nums || nums.size() === 0) return true;
-  for (let i = 1; i < nums.size(); i += 2) {
-    const d = nums.lookup(i);
-    if (d instanceof PDFDict && (d.has(PDFName.of("S")) || d.has(PDFName.of("P")))) return false;
+  // Zahlenbaum: Einträge in /Nums, oder verteilt auf /Kids.
+  const offen: PDFDict[] = [labels];
+  while (offen.length) {
+    const knoten = offen.pop()!;
+    const nums = knoten.lookupMaybe(PDFName.of("Nums"), PDFArray);
+    if (nums) for (let i = 1; i < nums.size(); i += 2) {
+      const d = nums.lookup(i);
+      if (d instanceof PDFDict && (d.has(PDFName.of("S")) || d.has(PDFName.of("P")))) return false;
+    }
+    const kids = knoten.lookupMaybe(PDFName.of("Kids"), PDFArray);
+    if (kids) for (let i = 0; i < kids.size(); i++) { const k = kids.lookup(i); if (k instanceof PDFDict) offen.push(k); }
   }
   return true;
 }
