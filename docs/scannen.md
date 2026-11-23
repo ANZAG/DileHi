@@ -372,10 +372,32 @@ nachbearbeiten → Run workflow.
   anzufassen. Seiten, die am Rechner entstanden sind, behalten ihren Text.
   Scan-Seiten (ein grosses Bild füllt die Seite) werden mit 300 dpi
   gerendert, wie ein Scan aufbereitet (Beleuchtung, Lage, Schräglage) und
-  gelesen – Antiqua oder Fraktur entscheidet die erste Seite; steht eine
-  Seite auf dem Kopf, wird sie gedreht gelesen. Hatte das PDF schon eine
-  Textebene mit mehr echten Wörtern, bleibt diese. Der Text kommt in die
-  Suche (`source_pages`).
+  gelesen – Antiqua oder Fraktur entscheidet die Mehrheit der ersten drei
+  Seiten mit Text (Sicherheit mal echte Wörter), die Sprache der Text
+  selbst; steht eine Seite auf dem Kopf, wird sie gedreht gelesen. Hatte
+  das PDF schon eine Textebene, gilt die bessere Lesung (`besserAlsAlt`:
+  Anteil echter Wörter, bei gleichem Anteil die Menge). Der Text kommt in
+  die Suche (`source_pages`).
+
+**Regeln für die Textebene im PDF** (aus der Prüfung einer Stichprobe):
+
+1. **Nie stapeln.** Bekommt eine Seite unsere Textebene, kommt eine alte
+   darunter weg (Textblöcke fremder Schriften; Bilder bleiben). Seiten mit
+   fragwürdiger alter Erkennung (unter 75 % wortartig) werden mitgelesen
+   und ersetzt, wenn unsere Lesung besser ist. Becker/Hefner 06 hatte die
+   Fraktur-Erkennung von archive.org und unsere übereinander.
+2. **Sprache und Schrift pro Werk erkennen**, nie aus dem Ordner; /Lang aus
+   Stichproben über das ganze Werk (Canivez: deutsche Einleitung, Latein).
+3. **Saubere Angaben:** Titel ohne „.pdf“ und als Unicode (kaputt kodierte
+   wie „GerÃ¤thschaften“ werden repariert), /Lang auch bei übernommenen
+   Ebenen, keine leeren Seitenlabels.
+
+Gewölbte Handyfotos ohne Glätten („Klosterleben im Mittelalter“) liest
+auch die beste Erkennung schlecht: neu und flach mit der App fotografieren.
+
+- **aufraeumen:** von uns bearbeitete PDFs nach diesen Regeln nachbessern,
+  ohne neue Erkennung (alte Ebene unter unserer entfernen, Angaben
+  reparieren). *aufraeumen-probe* legt die Ergebnisse nur als Artefakt ab.
 
 - **Stufe 2 wählt den Weg je PDF:** Handyfotos (JPEG, über 120 KB je
   Seite, nur Scan-Seiten) werden *neu gebaut* – aufbereitet und als JPEG
