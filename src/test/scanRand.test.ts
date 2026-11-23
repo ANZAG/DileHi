@@ -71,6 +71,34 @@ describe("Rand des Buches finden", () => {
     expect(doppelt === null || doppelt[1].x > 0.95).toBe(true);
   });
 
+  it("findet einen farbigen Einband ohne Papier (Gegenstand auf der Unterlage)", () => {
+    // Rückmeldung vom Handy: Einband auf dunklem Stoff – „Kein Buch erkannt".
+    const STOFF: Farbe = [34, 38, 62];
+    const buch = { x0: 0.12, y0: 0.2, x1: 0.8, y1: 0.85 };
+    const bild = szene(STOFF, buch, 600, 800, { r: buch, farbe: [150, 105, 70] });
+    const v = seitenFinden(bild);
+    expect(v).not.toBeNull();
+    expect(v![0].x).toBeGreaterThan(0.07);
+    expect(v![0].x).toBeLessThan(0.14);
+    expect(v![2].x).toBeGreaterThan(0.78);
+    expect(v![2].x).toBeLessThan(0.85);
+    expect(v![2].y).toBeGreaterThan(0.83);
+  });
+
+  it("Doppelseite: nimmt die Seite im Schatten mit (warmes Licht, kein helles Papier)", () => {
+    // Rückmeldung vom Handy: linke Seite bräunlich im Schatten – der Rahmen
+    // sass mitten im Buch und fasste nur die helle rechte Seite.
+    const STOFF: Farbe = [34, 38, 62];
+    const buch = { x0: 0.08, y0: 0.3, x1: 0.92, y1: 0.7 };
+    const bild = szene(STOFF, buch, 600, 800, { r: { x0: 0.08, y0: 0.3, x1: 0.5, y1: 0.7 }, farbe: [172, 138, 104] });
+    const v = seitenFinden(bild, { doppel: true });
+    expect(v).not.toBeNull();
+    expect(v![0].x).toBeLessThan(0.11);
+    expect(v![1].x).toBeGreaterThan(0.89);
+    expect(v![0].y).toBeGreaterThan(0.26);
+    expect(v![3].y).toBeLessThan(0.74);
+  });
+
   it("meldet auf einem weissen Tisch nichts, statt eine Seite abzuschneiden", () => {
     expect(seitenFinden(szene(TISCH, { x0: 0.1, y0: 0.2, x1: 0.9, y1: 0.8 }))).toBeNull();
   });
