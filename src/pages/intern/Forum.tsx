@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import {
   ArrowLeft, MessageSquare, Plus, Megaphone, CalendarDays, Wrench, BookOpen,
   Users, Lightbulb, Shield, Swords, Target, Hammer, Tent, Coins, CircleDot,
@@ -95,7 +95,7 @@ export default function Forum() {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Brotkrumen
           teile={nurUngelesen
             ? [{ label: "Mitgliederbereich", to: "/intern" }, { label: "Forum", to: "/intern/forum" }, { label: "Ungelesen" }]
@@ -254,7 +254,7 @@ export default function Forum() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

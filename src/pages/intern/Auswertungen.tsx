@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { EINBLENDEN, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,11 +76,7 @@ const Auswertungen = () => {
   };
 
   const EventCard = ({ event, i }: { event: any; i: number }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.05 }}
-    >
+    <div className={EINBLENDEN} style={{ animationDelay: `${i * 50}ms` }}>
       <Link
         to={`/intern/veranstaltungen/${event.id}/${event.hasForm ? "auswertung" : "formular"}`}
         state={{ from: "/intern/auswertungen" }}
@@ -104,12 +100,12 @@ const Auswertungen = () => {
           {event.hasForm ? "Anmeldungen ansehen →" : "Formular anlegen →"}
         </span>
       </Link>
-    </motion.div>
+    </div>
   );
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <div className={EINBLENDEN_SEITE}>
         <div className="flex items-center gap-3 mb-8">
           <Button variant="ghost" size="icon" asChild>
             <Link to="/intern"><ArrowLeft size={20} /></Link>
@@ -196,7 +192,7 @@ const Auswertungen = () => {
             )}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };

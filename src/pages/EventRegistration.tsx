@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/
 import FormFieldRenderer, { isFieldVisible } from "@/components/event-forms/FormFieldRenderer";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
-import { motion } from "framer-motion";
+import { EINBLENDEN_KARTE, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { Calendar, MapPin, CheckCircle2, ArrowLeft } from "lucide-react";
 import SEO from "@/components/SEO";
 import type { FormField } from "@/components/event-forms/types";
@@ -336,7 +336,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
     return (
       <div className="container py-20 max-w-lg text-center">
         {!internal && <SEO title="Anmeldung erfolgreich" description="Deine Anmeldung wurde gespeichert." />}
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+        <div className={EINBLENDEN_KARTE}>
           <CheckCircle2 size={64} className="mx-auto text-primary mb-4" />
           <h1 className="text-2xl font-serif font-bold mb-2">
             {isEditMode ? "Änderungen gespeichert!" : "Vielen Dank!"}
@@ -355,7 +355,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
           <Button variant="outline" className="mt-4" onClick={() => window.history.back()}>
             Zurück
           </Button>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -380,7 +380,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
           <ArrowLeft size={16} /> Zurück zu den Veranstaltungen
         </Link>
       )}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         {/* Event info */}
         <Card className="mb-6">
           <CardHeader>
@@ -442,7 +442,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
             {submitting ? "Wird gespeichert..." : isEditMode ? "Änderungen speichern" : "Anmeldung absenden"}
           </Button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

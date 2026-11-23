@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { EINBLENDEN } from "@/lib/einblenden";
 import { Lock, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -115,7 +115,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+      <div className={`${EINBLENDEN} w-full max-w-sm`}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
             <Lock size={24} />
@@ -156,7 +156,7 @@ const ResetPassword = () => {
             Passwort ändern
           </button>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 };

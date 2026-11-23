@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Download, Tent, Plus, Trash2, MessageCircle, Link as LinkIcon, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
 import { useFormSettings } from "@/components/event-forms/formSettings";
@@ -590,7 +590,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
       <>{children}</>
     ) : (
       <div className={SEITE}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div className={EINBLENDEN_SEITE}>
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={handleBack}><ArrowLeft size={20} /></Button>
             <div className="flex-1 min-w-0">
@@ -599,7 +599,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
             </div>
           </div>
           {children}
-        </motion.div>
+        </div>
       </div>
     );
 

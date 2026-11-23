@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -494,7 +494,7 @@ const Sources = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
@@ -715,7 +715,7 @@ const Sources = () => {
             )}
           </DialogContent>
         </Dialog>
-      </motion.div>
+      </div>
     </div>
   );
 };

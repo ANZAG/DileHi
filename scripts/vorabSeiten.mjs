@@ -132,6 +132,75 @@ export function vorladeZeile(bild) {
   return `<link rel="preload" as="image" href="${html(bild.src)}"${auswahl} fetchpriority="high" />`;
 }
 
+/** Wo Vite beim Bauen festhält, welcher Programmteil welche anderen braucht. */
+export const MANIFEST_DATEI = ".vite/manifest.json";
+/** Die Programmteile, mit denen eine fertige Seite beginnt (src/App.tsx). */
+export const QUELLE_SEITE = "src/pages/SeiteAnzeigen.tsx";
+export const QUELLE_KONTAKT = "src/pages/Kontakt.tsx";
+
+/**
+ * Die Programmteile, die eine Seite über das Hauptprogramm hinaus braucht.
+ *
+ * `manifest` ist Vites Liste (build.manifest), `quelle` die Datei, die
+ * App.tsx für die Seite nachlädt. Zurück kommen ihr Programmteil und alles,
+ * was er fest einbindet, auch über mehrere Stufen. Was schon das
+ * Hauptprogramm einbindet, fehlt: Dafür setzt Vite die Hinweise selbst. Was
+ * erst bei Bedarf nachgeladen wird (dynamicImports), fehlt ebenfalls – das
+ * braucht nicht jede Seite.
+ *
+ * Passt etwas nicht (keine Liste, Quelle unbekannt, kein Hauptprogramm),
+ * kommt eine leere Liste zurück: lieber kein Hinweis als ein falscher.
+ */
+export function vorladeModule(manifest, quelle) {
+  if (!manifest || typeof manifest !== "object" || !manifest[quelle]?.file) return [];
+  const huelle = (schluessel, gesehen = new Set()) => {
+    const eintrag = manifest[schluessel];
+    if (!eintrag || gesehen.has(schluessel)) return gesehen;
+    gesehen.add(schluessel);
+    for (const naechster of Array.isArray(eintrag.imports) ? eintrag.imports : []) huelle(naechster, gesehen);
+    return gesehen;
+  };
+  const einstiege = Object.keys(manifest).filter((k) => manifest[k]?.isEntry);
+  if (einstiege.length === 0) return [];
+  const schonDa = new Set();
+  for (const e of einstiege) huelle(e, schonDa);
+  const dateien = [...huelle(quelle)]
+    .filter((k) => !schonDa.has(k))
+    .map((k) => manifest[k].file)
+    .filter((d) => typeof d === "string" && /^[\w./-]+\.js$/.test(d) && !d.includes(".."));
+  return [...new Set(dateien)];
+}
+
+/**
+ * Die Programmteile einer Seite schon mit dem HTML ankündigen.
+ *
+ * Die Anwendung lädt die Seite erst nach (src/App.tsx, lazyPage). Der Browser
+ * erfuhr davon, als das Hauptprogramm lief – eine Runde zum Server später als
+ * nötig, und dann erst von den Teilen, die jener Teil seinerseits braucht.
+ * Mit `modulepreload` holt er sie neben dem Hauptprogramm.
+ *
+ * Die Adresse wird vom Hauptprogramm in der Vorlage abgeschaut (samt
+ * `crossorigin`, sonst lädt der Browser doppelt). Steht es dort nicht unter
+ * dem Namen aus der Liste, gehört die Liste nicht zu diesem Bau, und die
+ * Vorlage bleibt, wie sie ist.
+ */
+export function mitModulVorladen(vorlage, manifest, quelle) {
+  const dateien = vorladeModule(manifest, quelle);
+  if (dateien.length === 0) return vorlage;
+  const haupt = Object.values(manifest).find((e) => e?.isEntry && typeof e.file === "string")?.file;
+  const stelle = haupt ? vorlage.indexOf(`${haupt}"`) : -1;
+  if (stelle < 0) return vorlage;
+  // Alles zwischen dem Anführungszeichen und dem Dateinamen: „/" oder die
+  // Basisadresse, unter der die Seite liegt.
+  const basis = vorlage.slice(vorlage.lastIndexOf('"', stelle) + 1, stelle);
+  if (!/^[\w./:-]*$/.test(basis)) return vorlage;
+  const zeilen = dateien
+    .filter((d) => !vorlage.includes(`"${basis}${d}"`))
+    .map((d) => `    <link rel="modulepreload" crossorigin href="${basis}${d}">`);
+  if (zeilen.length === 0) return vorlage;
+  return vorlage.replace(/<\/head>/, () => `${zeilen.join("\n")}\n  </head>`);
+}
+
 /** Die Seite so, wie die Anwendung sie abfragt – für den sofortigen Start. */
 export function seitenStand(seite) {
   const { slug, title, content, seo_title, seo_description, seo_type, noindex } = seite;

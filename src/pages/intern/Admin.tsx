@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { Suspense, useEffect, useState } from "react";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
@@ -14,37 +14,61 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
-import GalleryAdmin from "@/components/admin/GalleryAdmin";
-import SourcesAdmin from "@/components/admin/SourcesAdmin";
-import VisitorHighlightsAdmin from "@/components/admin/VisitorHighlightsAdmin";
-import MemberRegistry from "@/components/admin/MemberRegistry";
-import ContactMessages from "@/components/admin/ContactMessages";
-import RolesPermissionsPanel from "@/components/admin/RolesPermissionsPanel";
-import AuditLogPanel from "@/components/admin/AuditLogPanel";
-import MemberApplicationsAdmin from "@/components/admin/MemberApplicationsAdmin";
-import FormTemplateAdmin from "@/components/admin/FormTemplateAdmin";
-import PersonaPublishAdmin from "@/components/admin/PersonaPublishAdmin";
-import EmbedAdmin from "@/components/admin/EmbedAdmin";
-import FileStorageAdmin from "@/components/admin/FileStorageAdmin";
-import NachweiseAdmin from "@/components/admin/NachweiseAdmin";
-import FristenAdmin from "@/components/admin/FristenAdmin";
-import EinwilligungenAdmin from "@/components/admin/EinwilligungenAdmin";
-import ForumCategoriesAdmin from "@/components/admin/ForumCategoriesAdmin";
-import DokumentkategorienAdmin from "@/components/admin/DokumentkategorienAdmin";
-import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
-import ErscheinungsbildAdmin from "@/components/admin/ErscheinungsbildAdmin";
-import VorlagenAdmin from "@/components/admin/VorlagenAdmin";
-import AufnahmeantragAdmin from "@/components/admin/AufnahmeantragAdmin";
-import ProfilfelderAdmin from "@/components/admin/ProfilfelderAdmin";
-import ModuleAdmin from "@/components/admin/ModuleAdmin";
-import Einrichtungsassistent from "@/components/admin/Einrichtungsassistent";
 import { useModule, onlyActive } from "@/hooks/useModule";
-import MenueAdmin from "@/components/admin/MenueAdmin";
-import KategorienAdmin from "@/components/admin/KategorienAdmin";
-import OnboardingAdmin from "@/components/admin/OnboardingAdmin";
-import RollenAdmin from "@/components/admin/RollenAdmin";
 import { SEITE } from "@/lib/layout";
+import { lazyPage } from "@/lib/nachladen";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
+
+/*
+ * Jeder Baustein der Verwaltung ist ein eigener Programmteil.
+ *
+ * Vorher hingen alle 28 fest an dieser Seite: Wer nur die Mitgliederliste
+ * öffnete, lud auch den Seitenbaukasten, die Rechteverwaltung und den
+ * Eingangskorb mit – zusammen gut 1,2 MB. Jetzt kommt nur, was der offene
+ * Reiter zeigt; der Rest folgt beim ersten Klick auf seine Kachel.
+ */
+const GalleryAdmin = lazyPage(() => import("@/components/admin/GalleryAdmin"));
+const SourcesAdmin = lazyPage(() => import("@/components/admin/SourcesAdmin"));
+const VisitorHighlightsAdmin = lazyPage(() => import("@/components/admin/VisitorHighlightsAdmin"));
+const MemberRegistry = lazyPage(() => import("@/components/admin/MemberRegistry"));
+const ContactMessages = lazyPage(() => import("@/components/admin/ContactMessages"));
+const RolesPermissionsPanel = lazyPage(() => import("@/components/admin/RolesPermissionsPanel"));
+const AuditLogPanel = lazyPage(() => import("@/components/admin/AuditLogPanel"));
+const MemberApplicationsAdmin = lazyPage(() => import("@/components/admin/MemberApplicationsAdmin"));
+const FormTemplateAdmin = lazyPage(() => import("@/components/admin/FormTemplateAdmin"));
+const PersonaPublishAdmin = lazyPage(() => import("@/components/admin/PersonaPublishAdmin"));
+const EmbedAdmin = lazyPage(() => import("@/components/admin/EmbedAdmin"));
+const FileStorageAdmin = lazyPage(() => import("@/components/admin/FileStorageAdmin"));
+const NachweiseAdmin = lazyPage(() => import("@/components/admin/NachweiseAdmin"));
+const FristenAdmin = lazyPage(() => import("@/components/admin/FristenAdmin"));
+const EinwilligungenAdmin = lazyPage(() => import("@/components/admin/EinwilligungenAdmin"));
+const ForumCategoriesAdmin = lazyPage(() => import("@/components/admin/ForumCategoriesAdmin"));
+const DokumentkategorienAdmin = lazyPage(() => import("@/components/admin/DokumentkategorienAdmin"));
+const SitePagesAdmin = lazyPage(() => import("@/components/admin/SitePagesAdmin"));
+const ErscheinungsbildAdmin = lazyPage(() => import("@/components/admin/ErscheinungsbildAdmin"));
+const VorlagenAdmin = lazyPage(() => import("@/components/admin/VorlagenAdmin"));
+const AufnahmeantragAdmin = lazyPage(() => import("@/components/admin/AufnahmeantragAdmin"));
+const ProfilfelderAdmin = lazyPage(() => import("@/components/admin/ProfilfelderAdmin"));
+const ModuleAdmin = lazyPage(() => import("@/components/admin/ModuleAdmin"));
+const Einrichtungsassistent = lazyPage(() => import("@/components/admin/Einrichtungsassistent"));
+const MenueAdmin = lazyPage(() => import("@/components/admin/MenueAdmin"));
+const KategorienAdmin = lazyPage(() => import("@/components/admin/KategorienAdmin"));
+const OnboardingAdmin = lazyPage(() => import("@/components/admin/OnboardingAdmin"));
+const RollenAdmin = lazyPage(() => import("@/components/admin/RollenAdmin"));
+
+/**
+ * Platzhalter, bis der Baustein eines Reiters geladen ist: ein paar graue
+ * Zeilen wie in der Mitgliederliste, damit der Rahmen nicht leer zuckt.
+ */
+const ReiterLaedt = () => (
+  <div className="space-y-3" role="status">
+    <div className="h-6 w-1/3 rounded bg-muted animate-pulse" />
+    <div className="h-4 w-5/6 rounded bg-muted animate-pulse" />
+    <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+    <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
+    <span className="sr-only">Wird geladen …</span>
+  </div>
+);
 
 type AdminTab = "members" | "applications" | "gallery" | "sources" | "visitor" | "messages" | "permissions" | "audit" | "formtemplate" | "personas" | "embed" | "forum" | "sitepages" | "menue" | "kategorien" | "erscheinungsbild" | "vorlagen" | "aufnahmeantrag" | "profilfelder" | "module" | "erstesschritte" | "rollen" | "ablage" | "beitraege" | "nachweise" | "fristen" | "einwilligungen" | "einrichtung" | "dokumentablagen";
 
@@ -244,7 +268,7 @@ const Admin = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <div className="flex items-center gap-4 mb-6">
           <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={16} /> Zurück
@@ -315,6 +339,9 @@ const Admin = () => {
         </div>
 
         <div className={EIGENE_KARTEN.has(activeTab) ? "" : "p-5 rounded-lg border bg-card"}>
+          {/* Die Grenze liegt im Rahmen: Reiter und Kacheln bleiben stehen,
+              während der Baustein kommt. */}
+          <Suspense fallback={<ReiterLaedt />}>
           {activeTab === "members" && canMembers && <MemberRegistry />}
           {activeTab === "applications" && canMembers && <MemberApplicationsAdmin />}
           {activeTab === "messages" && <ContactMessages />}
@@ -346,9 +373,9 @@ const Admin = () => {
           {activeTab === "permissions" && canRoles && <RolesPermissionsPanel />}
           {activeTab === "audit" && canAudit && <AuditLogPanel />}
           {activeTab === "formtemplate" && hasPermission("events.moderate") && <FormTemplateAdmin />}
-
+          </Suspense>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

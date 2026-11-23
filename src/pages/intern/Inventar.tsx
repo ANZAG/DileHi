@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowLeft, CalendarDays, Loader2, MapPin, Package, Pencil, Plus, Trash2, Undo2, User,
@@ -79,7 +79,7 @@ export default function Inventar() {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
@@ -258,7 +258,7 @@ export default function Inventar() {
             ))}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

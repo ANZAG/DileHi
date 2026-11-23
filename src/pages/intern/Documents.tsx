@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Upload, Trash2, FileText, Download, FolderOpen } from "lucide-react";
 import {
@@ -150,7 +150,7 @@ const Documents = () => {
 
   return (
     <div className={SEITE}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={EINBLENDEN_SEITE}>
         <Link to="/intern" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft size={16} /> Zurück
         </Link>
@@ -249,7 +249,7 @@ const Documents = () => {
             ))}
           </Accordion>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };
