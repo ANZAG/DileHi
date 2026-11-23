@@ -513,6 +513,11 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
           salatGeprueft = true;
           const sauber = ohneWiederkehrendeZeilen(bisher);
           console.log(`\n  Zeichensalat-Prüfung nach ${k} Seiten: ${JSON.stringify({ ...textMasse(sauber), wortartig: wortartig(sauber) })}`);
+          // Je Seite, zum Nachjustieren: Anteil wortartiger Wörter und Anfang.
+          zuLesen.slice(0, k).forEach((i, j) => {
+            const w = wortartig([sauber[j]]);
+            if (w.zahl) console.log(`    S${i}: ${Math.round(w.anteil * 100)} % von ${w.zahl} | ${sauber[j].replace(/\s+/g, " ").slice(0, 90)}`);
+          });
           if (istZeichensalat(bisher)) {
             bericht.hinweis = `nicht lesbar (Handschrift?) – Zeichensalat, nach ${k} Seiten aufgehört`;
             for (const i of zuLesen.slice(0, k)) texte[i - 1] = imPdf[i - 1];
