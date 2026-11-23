@@ -244,12 +244,22 @@ export function fingerEntfernen(bild: Pixel): FingerErgebnis {
   const auslauf = Math.max(2, r >> 1);
   const deckung = weich(wachsen(maske, gw, gh, auslauf), gw, gh, auslauf);
 
+  // Nur dort rechnen, wo die Füllung hinreicht: Ein Daumen bedeckt ein paar
+  // Prozent der Seite, und vorher lief die Mischung über jeden Bildpunkt.
+  let gx0 = gw, gx1 = -1, gy0 = gh, gy1 = -1;
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    if (deckung[gy * gw + gx] <= 0.001) continue;
+    if (gx < gx0) gx0 = gx; if (gx > gx1) gx1 = gx; if (gy < gy0) gy0 = gy; if (gy > gy1) gy1 = gy;
+  }
+  const px0 = Math.max(0, (gx0 - 1) * schritt), px1 = Math.min(w, (gx1 + 2) * schritt);
+  const py0 = Math.max(0, (gy0 - 1) * schritt), py1 = Math.min(h, (gy1 + 2) * schritt);
+
   let gefuellt = 0;
-  for (let y = 0; y < h; y++) {
+  for (let y = py0; y < py1; y++) {
     // Feldmitte als Stützstelle, dazwischen bilinear – keine Kästchen.
     const fy = Math.min(gh - 1, Math.max(0, (y + 0.5) / schritt - 0.5));
     const y0 = fy | 0, y1 = Math.min(gh - 1, y0 + 1), ay = fy - y0;
-    for (let x = 0; x < w; x++) {
+    for (let x = px0; x < px1; x++) {
       const fx = Math.min(gw - 1, Math.max(0, (x + 0.5) / schritt - 0.5));
       const x0 = fx | 0, x1 = Math.min(gw - 1, x0 + 1), ax = fx - x0;
       const k00 = y0 * gw + x0, k01 = y0 * gw + x1, k10 = y1 * gw + x0, k11 = y1 * gw + x1;
