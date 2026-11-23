@@ -319,9 +319,9 @@ function wegFuer(datei: string, zahl: number, nurScans: boolean): "neu" | "texte
 /** Längste Seite eines Bildes im neuen PDF (gut 300 ppi bei A5), wie beim Scannen. */
 const PDF_MAX = 2400;
 
-/** Verkleinern (bilinear, mit 2 × 2 Stichproben je Punkt). */
-function skalieren(bild: Pixel, f: number): Pixel {
-  if (f >= 0.999) return bild;
+/** Verkleinern (bilinear, mit 2 × 2 Stichproben je Punkt; vergrössern nur mit `auch`). */
+function skalieren(bild: Pixel, f: number, auch = false): Pixel {
+  if (Math.abs(f - 1) < 0.001 || (f > 1 && !auch)) return bild;
   const b = Math.max(1, Math.round(bild.breite * f)), h = Math.max(1, Math.round(bild.hoehe * f));
   const aus = new Uint8ClampedArray(b * h * 4);
   const w = bild.breite, d = bild.daten;
@@ -376,16 +376,19 @@ function planerFuer(schrift: Schrift): Promise<Scheduler> {
   return p;
 }
 
-interface Lesung { text: string; sicherheit: number; woerter: Wort[]; kopf: boolean }
+interface Lesung { text: string; sicherheit: number; woerter: Wort[]; kopf: boolean; /** Wörter unter 60 % Sicherheit (nur mit NEU_BAUEN gezählt). */ unsicher: number }
 
 async function lesen(bild: Buffer, schrift: Schrift): Promise<Lesung> {
   const s = await planerFuer(schrift);
   const { data } = await s.addJob("recognize", bild, {}, { text: true, blocks: NEU_BAUEN });
   const woerter: Wort[] = [];
+  let unsicher = 0;
   for (const b of data.blocks ?? []) for (const a of b.paragraphs) for (const z of a.lines) for (const w of z.words) {
-    if (w.text.trim()) woerter.push({ text: w.text, x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 });
+    if (!w.text.trim()) continue;
+    woerter.push({ text: w.text, x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 });
+    if (w.confidence < 60) unsicher++;
   }
-  return { text: data.text ?? "", sicherheit: data.confidence ?? 0, woerter, kopf: false };
+  return { text: data.text ?? "", sicherheit: data.confidence ?? 0, woerter, kopf: false, unsicher };
 }
 
 /** Lesen, und wenn es schlecht aussieht, auch auf dem Kopf (wie in der App). */
@@ -397,6 +400,26 @@ async function seiteLesen(bild: Pixel, schrift: Schrift): Promise<Lesung> {
   // mit kurzer Unterschrift las Tesseract kopfüber „sicherer“ (Pivka S. 35).
   const ew = echteWoerter(r.text), ek = echteWoerter(kopf.text);
   return kopf.sicherheit >= 50 && kopf.sicherheit >= r.sicherheit + 15 && ek >= 20 && ek >= ew * 1.5 + 5 ? { ...kopf, kopf: true } : r;
+}
+
+/**
+ * Für einzeln ausgetauschte Seiten: Hat die Lesung unsichere Wörter, auch
+ * etwas kleiner und grösser lesen; es gilt die Lesung mit den wenigsten
+ * unsicheren Wörtern. Tesseract findet die Zeilen einer leicht gewölbten
+ * Seite je nach Grösse verschieden gut – Stein S. 26 las es bei 1500, 1700
+ * und 1900 Punkten Breite fehlerfrei, bei 1540 und 2118 mit Lücken.
+ */
+async function sorgfaeltigLesen(bild: Pixel, schrift: Schrift): Promise<Lesung> {
+  let beste = await seiteLesen(bild, schrift);
+  if (beste.unsicher < 3) return beste;
+  for (const f of [0.8, 1.2]) {
+    const r = await seiteLesen(skalieren(bild, f, true), schrift);
+    console.log(`    Grösse ×${f}: ${r.unsicher} unsichere Wörter (vorher ${beste.unsicher})`);
+    if (r.unsicher < beste.unsicher || (r.unsicher === beste.unsicher && r.sicherheit > beste.sicherheit)) {
+      beste = { ...r, woerter: r.woerter.map((w) => ({ ...w, x0: w.x0 / f, y0: w.y0 / f, x1: w.x1 / f, y1: w.y1 / f })) };
+    }
+  }
+  return beste;
 }
 
 // ── Eine Quelle ─────────────────────────────────────────────────────────────
@@ -718,9 +741,9 @@ async function austauschen(q: Quelle, ordner: string): Promise<void> {
         const s = (sprache ? ZUR_SPRACHE[sprache] : "antiqua") as Schrift;
         if (s !== "antiqua") beste = { schrift: s, ...(await seiteLesen(z.bild, s)) };
       }
-      r = beste;
-      if (r.text.trim().length >= 200) buchSchrift = beste.schrift;
-    } else r = await seiteLesen(z.bild, buchSchrift);
+      r = await sorgfaeltigLesen(z.bild, beste.schrift);
+      if (beste.text.trim().length >= 200) buchSchrift = beste.schrift;
+    } else r = await sorgfaeltigLesen(z.bild, buchSchrift);
     const { dpi: _dpi, ...seite } = fuersPdf(r.kopf ? vierteldrehen(vierteldrehen(z.pdfBild)) : z.pdfBild, r.woerter, roh.dpi, scanPpi(neuDatei, k + 1));
     const groesse = alt.getPage(n - 1).getSize();
     const einzel = await PDFDocument.load(await pdfBauen([seite], { titel: q.title, schrift, format: { breite: groesse.width, hoehe: groesse.height } }));
