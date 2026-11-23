@@ -169,10 +169,16 @@ export function farbstich(bild: Pixel): (x: number, y: number) => [number, numbe
     return c;
   };
   const cr = anpassen(rg), cb = anpassen(bg);
+  // Ausgeschrieben statt über `merkmale`: Die Funktion läuft je Rasterfeld
+  // und je Stichprobe, und ein Feld je Aufruf anzulegen kostete auf einer
+  // Seite einige hundert Millisekunden.
+  const [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9] = cr;
+  const [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9] = cb;
   return (x, y) => {
-    const m = merkmale(Math.min(1, Math.max(0, x / w)) - 0.5, Math.min(1, Math.max(0, y / h)) - 0.5);
-    let r = 0, b = 0;
-    for (let i = 0; i < M; i++) { r += m[i] * cr[i]; b += m[i] * cb[i]; }
+    const u = (x < 0 ? 0 : x > w ? 1 : x / w) - 0.5, v = (y < 0 ? 0 : y > h ? 1 : y / h) - 0.5;
+    const uu = u * u, uv = u * v, vv = v * v;
+    const r = r0 + r1 * u + r2 * v + r3 * uu + r4 * uv + r5 * vv + r6 * uu * u + r7 * uu * v + r8 * u * vv + r9 * vv * v;
+    const b = b0 + b1 * u + b2 * v + b3 * uu + b4 * uv + b5 * vv + b6 * uu * u + b7 * uu * v + b8 * u * vv + b9 * vv * v;
     return [Math.exp(-r), Math.exp(-b)];
   };
 }
@@ -401,6 +407,30 @@ export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: bool
     }
   }
   const flaeche = o.farbig ? beleuchtungsFlaeche(hg) : null;
+  if (!o.farbig) {
+    // Der häufige Fall, einmal je Bildpunkt: Die Papierhelligkeit wird wie
+    // in `hellAn` zwischen den Feldmitten gemittelt, aber die Lage in x
+    // steht für alle Zeilen fest und wird nur einmal gerechnet.
+    const { gw, gh, feld, hell } = hg;
+    const xi = new Int32Array(w), xj = new Int32Array(w), xa = new Float32Array(w);
+    for (let x = 0; x < w; x++) {
+      const fx = Math.min(gw - 1, Math.max(0, x / feld - 0.5));
+      xi[x] = fx | 0; xj[x] = Math.min(gw - 1, xi[x] + 1); xa[x] = fx - xi[x];
+    }
+    const faktor = 1023 / 1.25;
+    for (let y = 0, i = 0; y < h; y++) {
+      const fy = Math.min(gh - 1, Math.max(0, y / feld - 0.5));
+      const y0 = (fy | 0) * gw, y1 = Math.min(gh - 1, (fy | 0) + 1) * gw, ay = fy - (fy | 0);
+      for (let x = 0; x < w; x++, i += 4) {
+        const ax = xa[x], a = xi[x], b = xj[x];
+        const p = (hell[y0 + a] * (1 - ax) + hell[y0 + b] * ax) * (1 - ay) + (hell[y1 + a] * (1 - ax) + hell[y1 + b] * ax) * ay;
+        const l = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) / 256;
+        const k = Math.round((l / (p < 8 ? 8 : p)) * faktor);
+        d[i] = d[i + 1] = d[i + 2] = tabelle[k > 1023 ? 1023 : k];
+      }
+    }
+    return { dunkel, buntAnteil: hg.buntAnteil };
+  }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4;
     const p = Math.max(8, flaeche ? flaeche(x, y) : hellAn(hg, x, y));
@@ -686,18 +716,28 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
   const { dunkel, buntAnteil } = aufbereiten(probe, { farbig: false });
   let lage = dunkel ? { tinte: 0, schraeg: 0, quer: false, zeilen: 0 } : textLage(probe);
   if (lage.quer && o.nichtVierteln) lage = { ...lage, quer: false, schraeg: 0 };
+  let fertig = probe;
   if (lage.quer) {
     bild = vierteldrehen(bild);
-    const p2 = vierteldrehen(probe);
-    lage = { ...textLage(p2), quer: true };
+    fertig = vierteldrehen(probe);
+    lage = { ...textLage(fertig), quer: true };
   }
-  if (Math.abs(lage.schraeg) >= 0.3) bild = geradeDrehen(bild, -lage.schraeg);
   // Bildseite: dunkel (Einband), kaum Zeilen bei viel Tinte (Karte), viel
   // getöntes Papier, oder eine farbige Abbildung (Uniformtafel – auch wenn
   // sie nur einen Teil der Seite füllt und eine Bildunterschrift hat). Sie
   // bleibt farbig.
   const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15 || farbe > FARB_GRENZE;
-  aufbereiten(bild, { farbig: o.farbig || bildseite });
+  if (o.farbig || bildseite) {
+    if (Math.abs(lage.schraeg) >= 0.3) bild = geradeDrehen(bild, -lage.schraeg);
+    aufbereiten(bild, { farbig: true });
+  } else {
+    // Eine graue Textseite – der Normalfall: Die Probe, an der die Lage
+    // gemessen wurde, IST schon die aufbereitete Seite. Vorher wurde das
+    // Bild ein zweites Mal aufbereitet (die halbe Rechenzeit je Seite). Ist
+    // die Seite schräg, wird die fertige Probe gedreht; die Ecken werden
+    // dabei weiss wie das Papier.
+    bild = Math.abs(lage.schraeg) >= 0.3 ? geradeDrehen(fertig, -lage.schraeg) : fertig;
+  }
   if (!dunkel) randSaeubern(bild);
   const sm = schaerfeMessen(bild);
   return {

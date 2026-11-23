@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ausrichtungFinden, erkennenMitGegenprobe, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
+import { ausrichtungFinden, erkennenMitGegenprobe, LESER, schriftErkennen, type Schrift } from "@/lib/scan/ocr";
 import { dateiLaden, textLaden, textLoeschen, textSpeichern, type Sitzung } from "@/lib/scan/speicher";
 import { seitenInReihenfolge } from "@/lib/scan/abschluss";
 
@@ -28,7 +28,12 @@ export function useTexterkennung(
   onKopfstand?: (aufnahmeId: string, grad: 90 | 180 | 270) => void
 ) {
   const [stand, setStand] = useState<Record<string, OcrZustand>>({});
-  const laeuft = useRef(false);
+  /**
+   * Welche Seite gerade auf welchem Leser liegt (lib/scan/ocr.ts, LESER).
+   * Solange die Schrift des Buches nicht feststeht, liest nur einer – die
+   * erste Seite entscheidet sie für alle.
+   */
+  const inArbeit = useRef(new Map<string, number>());
   const aktuell = useRef(sitzung);
   aktuell.current = sitzung;
   const [runde, setRunde] = useState(0);
@@ -38,10 +43,15 @@ export function useTexterkennung(
     sitzung?.schriftWahl && sitzung.schriftWahl !== "auto" ? sitzung.schriftWahl : sitzung?.schrift ?? null;
 
   useEffect(() => {
-    if (laeuft.current || !sitzung) return;
-    const naechste = seiten.find((s) => !stand[s.id] || stand[s.id].zustand === "wartet");
+    if (!sitzung) return;
+    const zugleich = schrift ? LESER : 1;
+    if (inArbeit.current.size >= zugleich) return;
+    const naechste = seiten.find((s) => !inArbeit.current.has(s.id) && (!stand[s.id] || stand[s.id].zustand === "wartet"));
     if (!naechste) return;
-    laeuft.current = true;
+    const belegt = new Set(inArbeit.current.values());
+    let platz = 0;
+    while (belegt.has(platz)) platz++;
+    inArbeit.current.set(naechste.id, platz);
     const setze = (z: OcrZustand) => setStand((alt) => ({ ...alt, [naechste.id]: z }));
     (async () => {
       try {
@@ -59,7 +69,7 @@ export function useTexterkennung(
         if (!bild) throw new Error("Bild fehlt im Zwischenspeicher.");
         // Farbig gespeichert (Bildseite oder „Farbig“): zum Lesen grau und ausgeglichen.
         const b = naechste.befund;
-        const lesen = { aufhellen: !!b && !!(b.farbig ?? b.bildseite) && !b.dunkel };
+        const lesen = { aufhellen: !!b && !!(b.farbig ?? b.bildseite) && !b.dunkel, platz };
         const ergebnis = schrift
           ? await erkennenMitGegenprobe(bild, naechste.breite, schrift, lesen)
           : await schriftErkennen(bild, naechste.breite, lesen);
@@ -81,7 +91,7 @@ export function useTexterkennung(
       } catch (err) {
         setze({ zustand: "fehler", fehler: err instanceof Error ? err.message : String(err) });
       } finally {
-        laeuft.current = false;
+        inArbeit.current.delete(naechste.id);
         setRunde((r) => r + 1);
       }
     })();

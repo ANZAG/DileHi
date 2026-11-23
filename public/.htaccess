@@ -103,4 +103,18 @@
   #   (Mitgliederkarte).
   Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
   Header set Permissions-Policy "camera=(self), microphone=(), payment=(), geolocation=(self)"
+  # - Content-Security-Policy, erster Teil (gilt): keine Plugins, kein
+  #   fremdes <base>, Einrahmen nur durch die Seite selbst. Das bricht nichts,
+  #   was die Seite tut.
+  # - Zweiter Teil, vorerst NUR ZUR BEOBACHTUNG (Report-Only): Skripte nur
+  #   von der eigenen Adresse. Der Browser meldet Verstoesse in seiner
+  #   Konsole, sperrt aber nichts. Scharf geschaltet wuerde diese Regel die
+  #   kleinen eingebetteten Skripte der vorab gebauten Seiten sperren
+  #   (window.__VORAB, die Klasse "mit-js") -- die brauchen erst je Seite
+  #   eine Pruefsumme, die der Bau (scripts/vorabzug.mjs) eintraegt. Bis
+  #   dahin zeigt die Konsole, was sonst noch betroffen waere (eingebundene
+  #   Inhalte aus dem Seitenbaukasten).
+  #   'wasm-unsafe-eval': Texterkennung und Glaetten laufen als WebAssembly.
+  Header set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+  Header set Content-Security-Policy-Report-Only "script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:"
 </IfModule>

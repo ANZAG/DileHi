@@ -1,4 +1,6 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendeMail, vereinsAdresse } from "../_shared/mail.ts";
+import { absenderAdresse, anfrageErlaubt } from "../_shared/konto.ts";
 import { baueMail, escapeHtml } from "../_shared/vorlagen.ts";
 
 const corsHeaders = {
@@ -16,6 +18,16 @@ Deno.serve(async (req) => {
 
     if (!name || !email || !message) {
       throw new Error("Name, E-Mail und Nachricht erforderlich");
+    }
+
+    // Jeder Aufruf schickt dem Verein eine Mail – also Grenzen für Umfang
+    // und Häufigkeit (die Nachricht selbst liegt schon in contact_messages).
+    if (String(name).length > 200 || String(email).length > 320 || String(message).length > 10000) {
+      throw new Error("Nachricht zu lang");
+    }
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await anfrageErlaubt(admin, "kontakt-mail", absenderAdresse(req), 5))) {
+      throw new Error("Zu viele Nachrichten in kurzer Zeit – bitte später noch einmal versuchen");
     }
 
     // Wohin die Anfrage geht: aus den Vereinsangaben, nicht aus einer

@@ -70,10 +70,20 @@ export interface OcrErgebnis {
  */
 const MINDESTBREITE = 2400;
 
-const arbeiter = new Map<Schrift, Promise<Worker>>();
+/**
+ * Wie viele Seiten zugleich gelesen werden. Jeder Leser ist ein eigener
+ * Web Worker mit eigenem Rechenkern; zwei lesen ein Buch fast doppelt so
+ * schnell (gemessen: 4 Seiten in 9,2 statt 17,1 s). Mehr als zwei lohnt
+ * kaum und kostet je Leser rund 150 MB Arbeitsspeicher – auf einem Handy
+ * mit wenig Kernen bleibt es bei einem.
+ */
+export const LESER: number = typeof navigator !== "undefined" && (navigator.hardwareConcurrency ?? 2) >= 4 ? 2 : 1;
 
-function arbeiterFuer(schrift: Schrift): Promise<Worker> {
-  let w = arbeiter.get(schrift);
+const arbeiter = new Map<string, Promise<Worker>>();
+
+function arbeiterFuer(schrift: Schrift, platz = 0): Promise<Worker> {
+  const fach = `${schrift}#${platz}`;
+  let w = arbeiter.get(fach);
   if (!w) {
     const basis = `${window.location.origin}/ocr`;
     w = createWorker(MODELL[schrift], OEM.LSTM_ONLY, {
@@ -91,8 +101,8 @@ function arbeiterFuer(schrift: Schrift): Promise<Worker> {
       });
       return worker;
     });
-    w.catch(() => arbeiter.delete(schrift));
-    arbeiter.set(schrift, w);
+    w.catch(() => arbeiter.delete(fach));
+    arbeiter.set(fach, w);
   }
   return w;
 }
@@ -125,6 +135,8 @@ async function vorbereiten(bild: Blob, breite: number, aufhellen: boolean, zusat
 export interface LeseOptionen {
   /** Eine farbige Bildseite: vor dem Lesen grau machen und Beleuchtung ausgleichen. */
   aufhellen?: boolean;
+  /** Welcher Leser (0 … LESER − 1), wenn mehrere Seiten zugleich gelesen werden. */
+  platz?: number;
 }
 
 /**
@@ -170,7 +182,7 @@ export async function erkennen(bild: Blob, breite: number, schrift: Schrift, o: 
 }
 
 async function einmalLesen(bild: Blob, breite: number, schrift: Schrift, o: LeseOptionen, zusatz: number): Promise<{ ergebnis: OcrErgebnis; unsicher: number }> {
-  const worker = await arbeiterFuer(schrift);
+  const worker = await arbeiterFuer(schrift, o.platz ?? 0);
   const { bild: eingabe, faktor } = await vorbereiten(bild, breite, o.aufhellen === true, zusatz);
   const { data } = await worker.recognize(eingabe, {}, { text: true, blocks: true });
   let unsicher = 0;
