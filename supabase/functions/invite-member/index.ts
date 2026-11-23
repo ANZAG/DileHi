@@ -4,6 +4,7 @@ import { sendeMail, vereinsAdresse, seitenAdresse } from "../_shared/mail.ts";
 import { baueMail, pdfText } from "../_shared/vorlagen.ts";
 import { marke, type Marke } from "../_shared/einstellungen.ts";
 import { requirePermission, requireValidRole } from "../_shared/authz.ts";
+import { heuteInDeutschland, kontoZurAdresse } from "../_shared/konto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -509,8 +510,7 @@ Deno.serve(async (req) => {
     }
 
     // Check if user already exists by email
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u) => u.email === email);
+    const existingUser = await kontoZurAdresse(adminClient, email);
 
     let userId: string;
     let isNewUser = false;
@@ -544,7 +544,7 @@ Deno.serve(async (req) => {
     // If we have an application, pre-fill the profile and attach the generated PDF
     if (app) {
       // Profile update
-      const today = new Date().toISOString().slice(0, 10);
+      const today = heuteInDeutschland();
       await adminClient.from("profiles").update({
         display_name: `${app.first_name} ${app.last_name}`,
         salutation: app.salutation,

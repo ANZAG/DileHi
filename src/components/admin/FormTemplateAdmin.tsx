@@ -12,6 +12,7 @@ import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate, saveDefaultTemplate } from "@/components/event-forms/templateStore";
 import { DEFAULT_TEMPLATE_FIELDS } from "@/components/event-forms/defaultTemplate";
 import type { FormField } from "@/components/event-forms/types";
+import { alsIso, heuteIso } from "@/lib/datum";
 
 /** Verwaltung → Umfrage-Vorlage: Standardvorlage für Veranstaltungsformulare pflegen */
 export default function FormTemplateAdmin() {
@@ -134,8 +135,8 @@ export default function FormTemplateAdmin() {
             title={title}
             description={description}
             fields={fields}
-            eventStartDate={new Date().toISOString().slice(0, 10)}
-            eventEndDate={new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10)}
+            eventStartDate={heuteIso()}
+            eventEndDate={alsIso(new Date(Date.now() + 2 * 86400000))}
             highlightFieldId={activeId}
           />
         </div>
