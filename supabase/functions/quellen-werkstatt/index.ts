@@ -34,6 +34,11 @@ import { deleteFile, fileInFolder, graph, graphJson, graphReason, INBOX, isInFol
  *                     eine ältere mit gleichem Titel und gleicher Grösse
  *                     gibt. Die Datei geht in den Papierkorb der Website
  *                     (93 Tage wiederherstellbar).
+ *   txt-loeschen      Eine Textdatei (fertige OCR, .txt) entfernen, deren
+ *                     Inhalt das PDF (pdfId) jetzt selbst durchsuchbar hat –
+ *                     nur, wenn das PDF mindestens 100 Seiten und mindestens
+ *                     die Hälfte seiner Seiten mit Text in der Suche hat.
+ *                     Die Datei geht in den Papierkorb der Website.
  */
 
 const corsHeaders = {
@@ -198,6 +203,24 @@ Deno.serve(async (req) => {
         if (error) throw error;
         await deleteFile(await target(), q.drive_item_id);
         return json(200, { geloescht: q.id, bleibt: bleibt.id });
+      }
+
+      case "txt-loeschen": {
+        const q = await quelle();
+        if (!/\.txt$/i.test(q.file_name ?? q.title)) throw new Error("Das ist keine Textdatei (.txt) – nicht gelöscht.");
+        const { data: pdf } = await admin.from("sources").select("id, title, drive_item_id, file_name")
+          .eq("id", String(body.pdfId ?? "")).maybeSingle();
+        if (!pdf?.drive_item_id || !/\.pdf$/i.test((pdf.file_name as string | null) ?? (pdf.title as string))) throw new Error("pdfId ist kein PDF der Sammlung – nicht gelöscht.");
+        const { count: alle } = await admin.from("source_pages").select("*", { count: "exact", head: true }).eq("file_key", pdf.drive_item_id);
+        const { count: mitText } = await admin.from("source_pages").select("*", { count: "exact", head: true }).eq("file_key", pdf.drive_item_id).neq("body", "");
+        if ((mitText ?? 0) < 100 || (mitText ?? 0) < (alle ?? 0) / 2) throw new Error(`Das PDF hat erst ${mitText ?? 0} von ${alle ?? 0} Seiten mit Text – nicht gelöscht.`);
+        const { count } = await admin.from("library_sources").select("*", { count: "exact", head: true }).eq("collection_source_id", q.id);
+        if (count) throw new Error("Auf diese Quelle wird verwiesen – nicht gelöscht.");
+        await admin.from("source_pages").delete().eq("file_key", q.drive_item_id);
+        const { error } = await admin.from("sources").delete().eq("id", q.id);
+        if (error) throw error;
+        await deleteFile(await target(), q.drive_item_id);
+        return json(200, { geloescht: q.id, pdf: pdf.id, seitenMitText: mitText });
       }
 
       default:

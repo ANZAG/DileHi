@@ -882,6 +882,24 @@ async function main() {
     return;
   }
 
+  if (MODUS === "txt-loeschen") {
+    // Textdateien entfernen, deren Inhalt das PDF jetzt selbst durchsuchbar
+    // hat. QUELLEN: Paare „txt-Kennung:pdf-Kennung“ (die Werkstatt prüft,
+    // dass das PDF genug Text in der Suche hat).
+    for (const paar of WAHL) {
+      const [txt, pdf] = paar.split(":");
+      if (!txt || !pdf) throw new Error(`Kein Paar txt:pdf: „${paar}“`);
+      const t = quellen.find((q) => q.id === txt);
+      try {
+        const r = await werkstatt<{ seitenMitText: number }>("txt-loeschen", { sourceId: txt, pdfId: pdf });
+        console.log(`${t?.title ?? txt}: gelöscht (PDF hat ${r.seitenMitText} Seiten mit Text)`);
+      } catch (err) {
+        console.log(`${t?.title ?? txt}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    return;
+  }
+
   if (MODUS === "txt-pruefen") {
     // Textdateien (fertige OCR) in der Sammlung: Wie sind sie aufgebaut, zu
     // welchem PDF gehören sie? Schreibt nichts.
