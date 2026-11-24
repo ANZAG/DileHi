@@ -30,7 +30,9 @@ const TEXTSEITE = 2;
 export function seitePruefen(befund: Befund | undefined, lesung: Lesung | undefined): Pruefung {
   if (befund?.leer && (!lesung || lesung.woerter < 10)) return { art: "leer", gruende: [], textseite: false };
   const gruende: string[] = [];
-  const textseite = befund ? !befund.dunkel && befund.zeilen >= TEXTSEITE : (lesung?.woerter ?? 0) >= 30;
+  // Eine Bildseite (Einband, Tafel, Foto) ist keine Textseite, auch wenn ihr
+  // Titel in Zeilen steht – sonst hiess es am Einband „wenig Text erkannt“.
+  const textseite = befund ? !befund.dunkel && !befund.bildseite && befund.zeilen >= TEXTSEITE : (lesung?.woerter ?? 0) >= 30;
   if (befund && !befund.dunkel && !befund.leer && (befund.schaerfeFelder ?? 99) >= 20) {
     const bildseite = befund.bildseite === true;
     // Ältere Aufnahmen (vor der feldweisen Messung) haben für Bildseiten

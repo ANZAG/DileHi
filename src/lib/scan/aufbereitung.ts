@@ -203,6 +203,17 @@ interface Hintergrund {
   roh: Float32Array;
   /** Feld ist Papier (hell genug, nicht bunt). */
   istPapier: Uint8Array;
+  /**
+   * Wie sehr ein Feld Abbildung ist (0 = Papier und Schrift, 1 = Bild),
+   * weich an den Rändern. Dort bleibt das Bild, wie es ist; alles andere
+   * wird geweisst.
+   */
+  bild: Float32Array;
+  /** Anteil der Bildfelder an der Seite. */
+  bildAnteil: number;
+  /** Farbstich je Feld (Faktoren für Rot und Blau). */
+  stichR: Float32Array;
+  stichB: Float32Array;
 }
 
 function hintergrundSchaetzen(bild: Pixel): Hintergrund {
@@ -212,6 +223,8 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
   const p90 = new Float32Array(gw * gh);
   const farbe = new Float32Array(gw * gh * 3);
   const bunt = new Float32Array(gw * gh);
+  const mitte = new Float32Array(gw * gh);
+  const stichRFeld = new Float32Array(gw * gh), stichBFeld = new Float32Array(gw * gh);
   const gesamt = new Uint32Array(64);
   const verteilung = new Uint32Array(64);
   const stich = farbstich(bild);
@@ -228,6 +241,10 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
     // Hellstes Zehntel: Papier, nicht Schrift.
     let s = 0, b = 63;
     for (; b > 0; b--) { s += verteilung[b]; if (s >= n * 0.1) break; }
+    // Mitteltöne: Punkte zwischen Tinte und Papier des Feldes. Schrift ist
+    // schwarz auf weiss (wenig dazwischen), eine Abbildung fast nur dazwischen.
+    let mt = 0;
+    for (let q = Math.ceil(b * 0.45); q <= Math.floor(b * 0.8); q++) mt += verteilung[q];
     let m = 0, sr = 0, sg = 0, sb = 0, sc = 0;
     const [stichR, stichB] = stich((fx + 0.5) * feld, (fy + 0.5) * feld);
     for (let y = fy * feld; y < y1; y += 2) for (let x = fx * feld; x < x1; x += 2) {
@@ -243,6 +260,8 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
     p90[k] = b * 4 + 2;
     farbe[k * 3] = sr / (m || 1); farbe[k * 3 + 1] = sg / (m || 1); farbe[k * 3 + 2] = sb / (m || 1);
     bunt[k] = sc / (m || 1);
+    mitte[k] = mt / (n || 1);
+    stichRFeld[k] = stichR; stichBFeld[k] = stichB;
   }
   let alle = 0;
   for (const v of gesamt) alle += v;
@@ -285,7 +304,64 @@ function hintergrundSchaetzen(bild: Pixel): Hintergrund {
   }
   const istPapier = new Uint8Array(gw * gh);
   for (let k = 0; k < gw * gh; k++) istPapier[k] = gewicht[k] > 0 ? 1 : 0;
-  return { hell, gw, gh, feld, papier, papierAnteil: zahl / (gw * gh), median: median * 4 + 2, papierHell, buntAnteil: buntZahl / (gw * gh), roh: p90, istPapier };
+  const hg: Hintergrund = {
+    hell, gw, gh, feld, papier, papierAnteil: zahl / (gw * gh), median: median * 4 + 2, papierHell, buntAnteil: buntZahl / (gw * gh), roh: p90, istPapier,
+    bild: new Float32Array(gw * gh), bildAnteil: 0, stichR: stichRFeld, stichB: stichBFeld,
+  };
+  // Bildfelder: bunt, dunkel, voller Mitteltöne – oder deutlich dunkler als
+  // das Papier an dieser Stelle sein müsste. Das Letzte ist das Wichtigste:
+  // Der helle Himmel eines Schwarzweissfotos und der graue Grund eines
+  // Rückumschlags mit weisser Schrift sind glatt und hell und sähen sonst
+  // aus wie Papier – sie würden weiss gewaschen. Was das Papier „sein
+  // müsste", sagt die glatte Beleuchtungsfläche durch die hellen Felder; ein
+  // weicher Schatten auf der Seite folgt ihr und bleibt Papier.
+  const sollHell = beleuchtungsFlaeche(hg);
+  const roh01 = new Uint8Array(gw * gh);
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    const k = y * gw + x;
+    const zuDunkel = sollHell ? p90[k] < sollHell((x + 0.5) * feld, (y + 0.5) * feld) * 0.88 : false;
+    roh01[k] = bunt[k] >= 48 || p90[k] < papierHell * 0.42 || mitte[k] > 0.4 || zuDunkel ? 1 : 0;
+  }
+  // Nur, wo mehrere beisammenliegen: Ein einzelnes Feld ist eher eine fette
+  // Überschrift oder unscharfe Schrift als eine Abbildung.
+  const bildFeld = new Uint8Array(gw * gh);
+  let bildZahl = 0;
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    if (!roh01[y * gw + x]) continue;
+    let nachbarn = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if ((dx || dy) && xx >= 0 && yy >= 0 && xx < gw && yy < gh && roh01[yy * gw + xx]) nachbarn++;
+    }
+    if (nachbarn >= 4) { bildFeld[y * gw + x] = 1; bildZahl++; }
+  }
+  // Die Bildfelder ein Feld weiter fassen (der Rand der Abbildung) und weich
+  // auslaufen lassen.
+  let bildWeich = new Float32Array(gw * gh);
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    let an = 0;
+    for (let dy = -1; dy <= 1 && !an; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < gw && yy < gh && bildFeld[yy * gw + xx]) { an = 1; break; }
+    }
+    bildWeich[y * gw + x] = an;
+  }
+  {
+    const neu = new Float32Array(gw * gh);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+      let sm = 0, nn = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= gw || yy >= gh) continue;
+        sm += bildWeich[yy * gw + xx]; nn++;
+      }
+      neu[y * gw + x] = sm / nn;
+    }
+    bildWeich = neu;
+  }
+  hg.bild = bildWeich;
+  hg.bildAnteil = bildZahl / (gw * gh);
+  return hg;
 }
 
 /**
@@ -373,18 +449,18 @@ export interface AufbereitenOptionen {
  * Ändert das Bild selbst: Beleuchtung ausgleichen, grau (oder farbig mit
  * Weissabgleich). Eine dunkle Seite (Einband) bleibt, wie sie ist.
  */
-export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: boolean; buntAnteil: number } {
+export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: boolean; buntAnteil: number; bildAnteil: number } {
   const hg = hintergrundSchaetzen(bild);
   // Ein dunkler Einband: Die meisten Punkte sind viel dunkler als das
   // Helle der Seite (helle Schrift, Abbildung).
   const dunkel = hg.median < 95 || hg.median < hg.papierHell * 0.6 || hg.papierAnteil < 0.2;
-  if (dunkel) return { dunkel, buntAnteil: hg.buntAnteil };
+  if (dunkel) return { dunkel, buntAnteil: hg.buntAnteil, bildAnteil: hg.bildAnteil };
   const { breite: w, hoehe: h, daten: d } = bild;
   const pl = (hg.papier[0] * 77 + hg.papier[1] * 150 + hg.papier[2] * 29) / 256;
   // Weissabgleich: das Papier soll neutral sein.
   const wb = hg.papier.map((c) => pl / Math.max(1, c));
   const tabelle = new Uint8ClampedArray(1024);
-  if (!o.farbig) {
+  {
     // Wie dunkel ist die Schrift (relativ zum Papier)? Das dunkelste
     // Prozent wird schwarz – auf einer blassen, unscharfen Seite liegt es
     // bei 0,5, auf einer guten bei 0,15.
@@ -429,22 +505,54 @@ export function aufbereiten(bild: Pixel, o: AufbereitenOptionen): { dunkel: bool
         d[i] = d[i + 1] = d[i + 2] = tabelle[k > 1023 ? 1023 : k];
       }
     }
-    return { dunkel, buntAnteil: hg.buntAnteil };
+    return { dunkel, buntAnteil: hg.buntAnteil, bildAnteil: hg.bildAnteil };
   }
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const i = (y * w + x) * 4;
-    const p = Math.max(8, flaeche ? flaeche(x, y) : hellAn(hg, x, y));
-    if (o.farbig) {
-      // Sanft: Papier knapp weiss, Farben behalten.
-      const f = 245 / p;
-      d[i] = d[i] * wb[0] * f; d[i + 1] = d[i + 1] * wb[1] * f; d[i + 2] = d[i + 2] * wb[2] * f;
-    } else {
-      const v = lum(d, i) / p;
-      const g = tabelle[Math.min(1023, Math.round((v / 1.25) * 1023))];
-      d[i] = d[i + 1] = d[i + 2] = g;
+  // Farbig: Das PAPIER wird geweisst wie auf einer grauen Seite – Schrift
+  // kräftig, Schatten, Dunst und Durchscheinendes weg –, nur bleibt die
+  // Farbe erhalten (rote Überschriften bleiben rot). Die ABBILDUNGEN bleiben,
+  // wie sie sind: dort nur der sanfte Ausgleich der Beleuchtung. Vorher
+  // wurde eine Seite mit einer einzigen roten Überschrift ganz wie ein Bild
+  // behandelt und blieb grau und dunstig.
+  {
+    const { gw, gh, feld, hell, bild: bildFeld, stichR, stichB } = hg;
+    const xi = new Int32Array(w), xj = new Int32Array(w), xa = new Float32Array(w);
+    for (let x = 0; x < w; x++) {
+      const fx = Math.min(gw - 1, Math.max(0, x / feld - 0.5));
+      xi[x] = fx | 0; xj[x] = Math.min(gw - 1, xi[x] + 1); xa[x] = fx - xi[x];
+    }
+    const faktor = 1023 / 1.25;
+    for (let y = 0, i = 0; y < h; y++) {
+      const fy = Math.min(gh - 1, Math.max(0, y / feld - 0.5));
+      const y0 = (fy | 0) * gw, y1 = Math.min(gh - 1, (fy | 0) + 1) * gw, ay = fy - (fy | 0);
+      for (let x = 0; x < w; x++, i += 4) {
+        const ax = xa[x], a = xi[x], b = xj[x];
+        const m = (bildFeld[y0 + a] * (1 - ax) + bildFeld[y0 + b] * ax) * (1 - ay) + (bildFeld[y1 + a] * (1 - ax) + bildFeld[y1 + b] * ax) * ay;
+        let r = d[i], g = d[i + 1], bl = d[i + 2];
+        let wr = 0, wg = 0, wb2 = 0;
+        if (m < 0.999) {
+          // Papier und Schrift: Helligkeit über die Kurve, Farbe bleibt.
+          const p = (hell[y0 + a] * (1 - ax) + hell[y0 + b] * ax) * (1 - ay) + (hell[y1 + a] * (1 - ax) + hell[y1 + b] * ax) * ay;
+          const R = r * stichR[y0 + a], B = bl * stichB[y0 + a];
+          const l = (R * 77 + g * 150 + B * 29) / 256;
+          const k = Math.round(((r * 77 + g * 150 + bl * 29) / 256 / (p < 8 ? 8 : p)) * faktor);
+          const ziel = tabelle[k > 1023 ? 1023 : k];
+          if (ziel >= 250) { wr = wg = wb2 = 255; } else {
+            const f = ziel / (l < 1 ? 1 : l);
+            wr = R * f; wg = g * f; wb2 = B * f;
+          }
+        }
+        if (m > 0.001) {
+          // Abbildung: sanft, Papier knapp weiss, Farben behalten.
+          const f = 245 / Math.max(8, flaeche ? flaeche(x, y) : hellAn(hg, x, y));
+          r = r * wb[0] * f; g = g * wb[1] * f; bl = bl * wb[2] * f;
+          d[i] = r * m + wr * (1 - m); d[i + 1] = g * m + wg * (1 - m); d[i + 2] = bl * m + wb2 * (1 - m);
+        } else {
+          d[i] = wr; d[i + 1] = wg; d[i + 2] = wb2;
+        }
+      }
     }
   }
-  return { dunkel, buntAnteil: hg.buntAnteil };
+  return { dunkel, buntAnteil: hg.buntAnteil, bildAnteil: hg.bildAnteil };
 }
 
 /**
@@ -693,6 +801,35 @@ export function randSaeubern(bild: Pixel, band = 0.06): number {
   return zahl / (w * h);
 }
 
+/**
+ * Schwarze Streifen am Rand einer Bildseite abschneiden: Unter einem Einband
+ * liegt der Schatten des Buches oder die Unterlage als schwarzer Balken.
+ * `randSaeubern` kann ihn dort nicht übermalen – auf einem dunklen Einband
+ * hängt er mit dem Bild zusammen, und „Papierfarbe" gibt es keine. Also
+ * wird abgeschnitten: Zeilen und Spalten vom Rand her, solange sie weit
+ * überwiegend schwarz sind (80 % der Punkte unter 32), höchstens 8 % je Seite.
+ */
+export function schwarzenRandAbschneiden(bild: Pixel): Pixel {
+  const { breite: w, hoehe: h, daten: d } = bild;
+  const schwarz = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8 < 32;
+  };
+  const zeileSchwarz = (y: number) => { let n = 0; for (let x = 0; x < w; x += 4) if (schwarz(x, y)) n++; return n >= (w / 4) * 0.8; };
+  const spalteSchwarz = (x: number) => { let n = 0; for (let y = 0; y < h; y += 4) if (schwarz(x, y)) n++; return n >= (h / 4) * 0.8; };
+  const hoechstY = Math.floor(h * 0.08), hoechstX = Math.floor(w * 0.08);
+  let oben = 0, unten = 0, links = 0, rechts = 0;
+  while (oben < hoechstY && zeileSchwarz(oben)) oben++;
+  while (unten < hoechstY && zeileSchwarz(h - 1 - unten)) unten++;
+  while (links < hoechstX && spalteSchwarz(links)) links++;
+  while (rechts < hoechstX && spalteSchwarz(w - 1 - rechts)) rechts++;
+  if (!oben && !unten && !links && !rechts) return bild;
+  const nw = w - links - rechts, nh = h - oben - unten;
+  const aus = new Uint8ClampedArray(nw * nh * 4);
+  for (let y = 0; y < nh; y++) aus.set(d.subarray(((y + oben) * w + links) * 4, ((y + oben) * w + links + nw) * 4), y * nw * 4);
+  return { breite: nw, hoehe: nh, daten: aus };
+}
+
 /** Um 90° im Uhrzeigersinn drehen. */
 export function vierteldrehen(bild: Pixel): Pixel {
   const { breite: w, hoehe: h, daten: d } = bild;
@@ -713,7 +850,7 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
   // Lage auf einer aufbereiteten Kopie messen (auf dem Foto stört der Schatten).
   const probe = { breite: bild.breite, hoehe: bild.hoehe, daten: new Uint8ClampedArray(bild.daten) };
   const farbe = farbAnteil(eingang);
-  const { dunkel, buntAnteil } = aufbereiten(probe, { farbig: false });
+  const { dunkel, buntAnteil, bildAnteil } = aufbereiten(probe, { farbig: false });
   let lage = dunkel ? { tinte: 0, schraeg: 0, quer: false, zeilen: 0 } : textLage(probe);
   if (lage.quer && o.nichtVierteln) lage = { ...lage, quer: false, schraeg: 0 };
   let fertig = probe;
@@ -722,13 +859,17 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
     fertig = vierteldrehen(probe);
     lage = { ...textLage(fertig), quer: true };
   }
-  // Bildseite: dunkel (Einband), kaum Zeilen bei viel Tinte (Karte), viel
-  // getöntes Papier, oder eine farbige Abbildung (Uniformtafel – auch wenn
-  // sie nur einen Teil der Seite füllt und eine Bildunterschrift hat). Sie
-  // bleibt farbig.
-  const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15 || farbe > FARB_GRENZE;
-  if (o.farbig || bildseite) {
+  // Bildseite: dunkel (Einband), kaum Zeilen bei viel Tinte (Karte), oder
+  // zu einem guten Teil Abbildung (Tafel, Foto). Für sie gelten die
+  // Warnungen zur Texterkennung nicht.
+  const bildseite = dunkel || (lage.zeilen < 2 && lage.tinte > 0.02) || buntAnteil > 0.15 || bildAnteil > 0.3;
+  // Farbig gespeichert wird mehr: auch eine Textseite mit etwas Farbe
+  // (rote Überschrift, kleine farbige Abbildung). Ihr Papier wird trotzdem
+  // geweisst (siehe `aufbereiten`).
+  const farbig = o.farbig || bildseite || farbe > FARB_GRENZE;
+  if (farbig) {
     if (Math.abs(lage.schraeg) >= 0.3) bild = geradeDrehen(bild, -lage.schraeg);
+    if (bildseite) bild = schwarzenRandAbschneiden(bild);
     aufbereiten(bild, { farbig: true });
   } else {
     // Eine graue Textseite – der Normalfall: Die Probe, an der die Lage
@@ -738,13 +879,16 @@ export function seiteAufbereiten(eingang: Pixel, o: AufbereitenOptionen): { bild
     // dabei weiss wie das Papier.
     bild = Math.abs(lage.schraeg) >= 0.3 ? geradeDrehen(fertig, -lage.schraeg) : fertig;
   }
-  if (!dunkel) randSaeubern(bild);
+  // Nicht auf einer Seite, die fast ganz Bild ist (Einband): Dort gibt es
+  // kein Papier, mit dessen Farbe sich ein Rand übermalen liesse – es
+  // entstanden helle Flecken in den Ecken.
+  if (!dunkel && bildAnteil <= 0.6) randSaeubern(bild);
   const sm = schaerfeMessen(bild);
   return {
     bild,
     befund: {
       dunkel, leer: !dunkel && lage.tinte < 0.004, tinte: lage.tinte, schaerfe: sm.text, schaerfeBild: sm.bild, schaerfeFelder: sm.felder,
-      schraeg: lage.schraeg, quer: lage.quer, zeilen: lage.zeilen, bildseite, farbig: o.farbig || bildseite,
+      schraeg: lage.schraeg, quer: lage.quer, zeilen: lage.zeilen, bildseite, farbig,
     },
   };
 }

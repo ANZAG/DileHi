@@ -52,7 +52,12 @@ export function WeicheWahl({ vorgabe, epochVorgabe, ordnerVorgabe, onWahl }: Pro
   const aktiveEpoche = epoch || kategorien[0]?.value || "";
 
   const { data: ordnerListe = [] } = useQuery({
-    queryKey: ["source_folders", aktiveEpoche],
+    // Eigener Schlüssel: Die Quellensammlung legt unter ["source_folders",
+    // Epoche] die rohen Ordner ab, hier liegt die Liste mit Weg. Unter
+    // demselben Schlüssel las die Quellensammlung nach dem Scannen diese
+    // Liste und zeigte Ordner ohne Namen. Der gemeinsame Anfang bleibt,
+    // damit ein neuer oder gelöschter Ordner beide Listen erneuert.
+    queryKey: ["source_folders", "mit-weg", aktiveEpoche],
     enabled: art === "neu" && !!aktiveEpoche,
     queryFn: async () => {
       const { data, error } = await supabase.from("source_folders").select("id, name, parent_id").eq("epoch", aktiveEpoche);
