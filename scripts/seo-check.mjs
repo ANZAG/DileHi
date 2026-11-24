@@ -85,6 +85,23 @@ if (!/application\/ld\+json/.test(lies("src/components/SEO.tsx"))) {
   fehler.push("src/components/SEO.tsx: keine strukturierten Daten (JSON-LD)");
 }
 
+// ── 3a. Sprachfassungen ─────────────────────────────────────────────────────
+//
+// Die Seite gibt es auf Deutsch, Englisch und Französisch. Ohne `lang` am
+// Dokument und ohne hreflang-Angaben hält eine Suchmaschine die Fassungen für
+// Dopplungen – oder zeigt die falsche. Beides muss an drei Stellen stehen:
+// in der Anwendung, im Vorab-HTML und in der Sitemap.
+{
+  const seo = lies("src/components/SEO.tsx");
+  if (!/<html lang=/.test(seo)) fehler.push("src/components/SEO.tsx: setzt die Sprache des Dokuments nicht (<html lang>)");
+  if (!/hrefLang=/.test(seo)) fehler.push("src/components/SEO.tsx: keine hreflang-Angaben für die Sprachfassungen");
+  const vorab = lies("scripts/vorabSeiten.mjs");
+  if (!/rel="alternate" hreflang=/.test(vorab)) fehler.push("scripts/vorabSeiten.mjs: Vorab-HTML ohne hreflang-Angaben");
+  if (gibt("supabase/functions/sitemap/index.ts") && !/hreflang=/.test(lies("supabase/functions/sitemap/index.ts"))) {
+    fehler.push("supabase/functions/sitemap/index.ts: Sitemap ohne Sprachfassungen (xhtml:link hreflang)");
+  }
+}
+
 // ── 4. robots.txt, Sitemap, llms.txt ────────────────────────────────────────
 if (!gibt("public/robots.txt")) {
   fehler.push("public/robots.txt fehlt");

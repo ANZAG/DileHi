@@ -15,6 +15,10 @@
 // Serverregeln: welche Adresse es gibt, welche nicht (404), und welche
 // Schreibweise der Domain die richtige ist.
 //
+// Seit November 2026 dasselbe je Sprache: Für jede übersetzte Seite eine
+// Datei unter _vorab/en/ bzw. _vorab/fr/ und die Regeln für /en/… und /fr/….
+// Ohne Übersetzungen – oder ohne die Tabellen dafür – ändert sich nichts.
+//
 // Fehlt die Adresse der Datenbank oder antwortet sie nicht, bleibt die
 // index.html unverändert: Die Seite funktioniert dann wie vorher, sie
 // beginnt nur mit den Vorgaben. Der Bau scheitert daran nicht. Dasselbe gilt
@@ -26,8 +30,8 @@ import path from "node:path";
 import {
   MANIFEST_DATEI, QUELLE_KONTAKT, QUELLE_SEITE,
   apacheHauptadresse, apacheSeiten, bildAdressen, dateiVon, fehlerDokument, hauptadressePruefen,
-  kontaktDokument, mitModulVorladen, mitVorab, mitVorverbindung, redirectsSeiten, seitenDokument, seitenStand,
-  shellDokument, sichererSlug,
+  kontaktDokument, mitModulVorladen, mitVorab, mitVorverbindung, redirectsSeiten, seiteInSprache, seitenDokument,
+  seitenStand, shellDokument, sichererSlug, sprachstand,
 } from "./vorabSeiten.mjs";
 
 const DIST = "dist";
@@ -135,7 +139,7 @@ async function main() {
   }
   try {
     seiten = await holen(
-      "site_pages?select=slug,title,content,seo_title,seo_description,seo_type,noindex&is_published=eq.true&order=slug"
+      "site_pages?select=id,slug,title,content,seo_title,seo_description,seo_type,noindex&is_published=eq.true&order=slug"
     );
     if (!Array.isArray(seiten)) seiten = null;
   } catch (e) {
@@ -146,6 +150,23 @@ async function main() {
   } catch (e) {
     melden(`Bildliste nicht erreichbar (${e.message}) – die Anwendung fragt sie wie bisher selbst ab.`);
   }
+  // Die Übersetzungen. Scheitert die Abfrage – die Migration ist noch nicht
+  // eingespielt, oder es gibt schlicht keine –, bleibt die Seite einsprachig.
+  let sprachen = sprachstand([], [], []);
+  if (seiten) {
+    try {
+      const uebersetzungen = await holen("site_page_translations?select=page_id,lang,title,content,seo_title,seo_description&content=not.is.null");
+      let texte = [];
+      try {
+        texte = await holen("site_text_translations?select=kind,ref,lang,value");
+      } catch (e) {
+        melden(`Übersetzte Menüpunkte nicht erreichbar (${e.message}) – das Menü bleibt im Vorab-HTML deutsch.`);
+      }
+      sprachen = sprachstand(seiten, uebersetzungen, texte);
+    } catch (e) {
+      melden(`Übersetzungen nicht erreichbar (${e.message}) – nur Deutsch.`);
+    }
+  }
   if (!branding && !menue) {
     melden("nichts abgeholt – index.html bleibt, wie sie ist.");
     return;
@@ -154,7 +175,12 @@ async function main() {
   // Die gebaute index.html ohne alles, was hier dazukommt. Jede Datei bekommt
   // ihren eigenen Vorabstand: die Seiten zusätzlich sich selbst.
   const roh = mitVorverbindung(readFileSync(DATEI, "utf8"), url);
-  const gemeinsam = { branding, menue, ...(bilder ? { bilder } : {}) };
+  const gemeinsam = {
+    branding, menue, ...(bilder ? { bilder } : {}),
+    // Welche Sprachen es gibt und wie Menü und Rahmen in ihnen heissen – für
+    // Sprachwahl und Menü, bevor die erste Abfrage beantwortet ist.
+    ...(sprachen.aktiv.length ? { sprachen: sprachen.aktiv, texte: sprachen.texte } : {}),
+  };
   const vorlage = mitVorab(roh, gemeinsam);
 
   // Die index.html bleibt die Hülle für die Adressen der Anwendung
@@ -171,28 +197,50 @@ async function main() {
   // ── Fertiges HTML je Seite ──
   const vorlageSeite = shellDokument(vorlage, { marke: branding });
   const fertig = [];
+  // Je Sprache die Seiten mit eigener Datei – für die Serverregeln.
+  const uebersetzt = Object.fromEntries(sprachen.aktiv.map((s) => [s, []]));
+  const seitenDatei = (seite, optionen) => {
+    const eigene = shellDokument(mitVorab(roh, { ...gemeinsam, seite: seitenStand(seite, optionen) }), { marke: branding });
+    return seitenDokument(mitModulVorladen(eigene, manifest, QUELLE_SEITE), {
+      seite, marke: branding, menue, bilder, ...optionen, texte: sprachen.texte[optionen.sprache],
+    });
+  };
   for (const seite of seiten) {
     if (!sichererSlug(seite.slug)) {
       warnen(`Seite „${seite.slug}": Adresse mit Sonderzeichen – ohne Vorab-HTML. Ohne Umlaute und Leerzeichen benennen.`);
       continue;
     }
     if (seite.slug === "kontakt") continue; // die feste Kontaktseite hat Vorrang (src/App.tsx)
-    const eigene = shellDokument(mitVorab(roh, { ...gemeinsam, seite: seitenStand(seite) }), { marke: branding });
-    schreiben(dateiVon(seite.slug), seitenDokument(mitModulVorladen(eigene, manifest, QUELLE_SEITE), { seite, marke: branding, menue, bilder }));
+    const vorhanden = sprachen.aktiv.filter((s) => sprachen.seiten[s][seite.id]);
+    schreiben(dateiVon(seite.slug), seitenDatei(seite, { sprache: "de", sprachen: vorhanden }));
     fertig.push(seite.slug);
+    for (const s of vorhanden) {
+      schreiben(dateiVon(seite.slug, s), seitenDatei(seiteInSprache(seite, sprachen.seiten[s][seite.id]), { sprache: s, sprachen: vorhanden }));
+      uebersetzt[s].push(seite.slug);
+    }
   }
-  schreiben(dateiVon("kontakt"), kontaktDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_KONTAKT), { marke: branding, menue }));
+  schreiben(dateiVon("kontakt"), kontaktDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_KONTAKT), { marke: branding, menue, sprachen: sprachen.aktiv }));
   fertig.push("kontakt");
+  for (const s of sprachen.aktiv) {
+    schreiben(dateiVon("kontakt", s), kontaktDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_KONTAKT), {
+      marke: branding, menue, sprache: s, sprachen: sprachen.aktiv, texte: sprachen.texte[s],
+    }));
+    uebersetzt[s].push("kontakt");
+  }
   // Auch die Fehlerseite zeigt SeiteAnzeigen (Sammelroute in src/App.tsx).
   schreiben("404.html", fehlerDokument(mitModulVorladen(vorlageSeite, manifest, QUELLE_SEITE), { marke: branding }));
   melden(`Vorab-HTML für ${fertig.length} Seiten: ${fertig.join(", ")}.`);
+  for (const s of sprachen.aktiv) {
+    const fehlt = fertig.filter((slug) => !uebersetzt[s].includes(slug));
+    melden(`Sprache ${s}: ${uebersetzt[s].length} Seiten übersetzt${fehlt.length ? `, ${fehlt.length} nur deutsch (${fehlt.join(", ")})` : ""}.`);
+  }
 
   // Seiten mit Sonderzeichen im Namen bekämen von den Regeln ein 404. Dann
   // lieber gar keins – wie bisher.
   const mit404 = seiten.every((s) => sichererSlug(s.slug));
   if (!mit404) warnen("Unbekannte Adressen bekommen weiter 200 statt 404, solange eine Seite Sonderzeichen in der Adresse hat.");
-  einsetzen(".htaccess", MARKE_SEITEN, apacheSeiten(fertig, { mit404 }));
-  einsetzen("_redirects", MARKE_SEITEN, redirectsSeiten(fertig));
+  einsetzen(".htaccess", MARKE_SEITEN, apacheSeiten(fertig, { mit404, sprachen: uebersetzt }));
+  einsetzen("_redirects", MARKE_SEITEN, redirectsSeiten(fertig, { sprachen: uebersetzt }));
 
   // ── Eine Adresse für die Seite ──
   if (!branding.website_url?.trim()) {
