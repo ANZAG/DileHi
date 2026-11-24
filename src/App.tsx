@@ -35,6 +35,7 @@ const SeiteAnzeigen        = lazyPage(() => import("./pages/SeiteAnzeigen"));
 
 const Dashboard            = lazyPage(() => import("./pages/intern/Dashboard"));
 const SeitenEditor         = lazyPage(() => import("./pages/intern/SeitenEditor"));
+const UebersetzungsEditor  = lazyPage(() => import("./pages/intern/UebersetzungsEditor"));
 const Forum                = lazyPage(() => import("./pages/intern/Forum"));
 const ForumCategory        = lazyPage(() => import("./pages/intern/ForumCategory"));
 const ForumThread          = lazyPage(() => import("./pages/intern/ForumThread"));
@@ -189,6 +190,8 @@ const App = () => (
                 <Route path="/intern/verwaltung/protokoll" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
                 <Route path="/intern/verwaltung/berechtigungen" element={<ProtectedRoute><RolesPermissions /></ProtectedRoute>} />
                 <Route path="/intern/seiten/:pageId" element={<ProtectedRoute><SeitenEditor /></ProtectedRoute>} />
+                {/* Dieselbe Seite in einer anderen Sprache (en, fr) – derselbe Baukasten. */}
+                <Route path="/intern/seiten/:pageId/:sprache" element={<ProtectedRoute><UebersetzungsEditor /></ProtectedRoute>} />
                 <Route path="/intern/dokumente" element={<ModuleRoute k="documents"><ProtectedRoute><Documents /></ProtectedRoute></ModuleRoute>} />
 
                 <Route path="/intern/beitraege" element={<ModuleRoute k="contributions"><ProtectedRoute><Contributions /></ProtectedRoute></ModuleRoute>} />

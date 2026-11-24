@@ -16,6 +16,9 @@ import { Hilfe } from "@/components/Hilfe";
 import {
   createPage, deletePage, fetchPages, slugify, updatePageMeta, type SitePage,
 } from "@/components/sitebuilder/api";
+import { fetchSprachstaende } from "@/components/sitebuilder/uebersetzungen";
+import SprachfassungenZeile from "./SprachfassungenZeile";
+import RahmentexteAdmin from "./RahmentexteAdmin";
 
 /**
  * Übersicht der selbst gebauten Seiten.
@@ -38,6 +41,12 @@ export default function SitePagesAdmin() {
   const { data: seiten = [], isLoading } = useQuery({
     queryKey: ["site-pages"],
     queryFn: fetchPages,
+  });
+
+  // Der Stand der Sprachfassungen (en, fr) je Seite – siehe SprachfassungenZeile.
+  const { data: sprachstaende = [] } = useQuery({
+    queryKey: ["site-page-translations"],
+    queryFn: fetchSprachstaende,
   });
 
   const frisch = () => queryClient.invalidateQueries({ queryKey: ["site-pages"] });
@@ -149,6 +158,7 @@ export default function SitePagesAdmin() {
                   )}
                 </span>
                 <span className="block text-xs text-muted-foreground break-all">/{s.slug}</span>
+                <SprachfassungenZeile seitenId={s.id} staende={sprachstaende} />
               </span>
 
               {s.is_published && (
@@ -206,6 +216,8 @@ export default function SitePagesAdmin() {
           ))}
         </ul>
       )}
+
+      {darfLayout && <RahmentexteAdmin />}
     </div>
   );
 }
