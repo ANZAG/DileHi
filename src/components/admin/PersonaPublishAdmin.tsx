@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Globe, Loader2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { darstellungSchluessel, ladeSteckbriefeZurFreigabe, setzeSteckbriefOeffentlich } from "@/daten/darstellungen";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,24 +37,8 @@ export default function PersonaPublishAdmin() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const { data: personas = [], isLoading } = useQuery({
-    queryKey: ["personas-publish"],
-    queryFn: async () => {
-      const [{ data: rows, error }, { data: profiles }] = await Promise.all([
-        supabase.from("member_personas").select("*").order("period"),
-        supabase.from("profiles").select("id, display_name, first_name, last_name"),
-      ]);
-      if (error) throw error;
-      const nameById = new Map(
-        (profiles ?? []).map((p) => [
-          p.id,
-          [p.first_name, p.last_name].filter(Boolean).join(" ") || p.display_name || "Unbekannt",
-        ])
-      );
-      return (rows ?? []).map((r) => ({
-        ...r,
-        owner: nameById.get(r.user_id) ?? "Unbekannt",
-      }));
-    },
+    queryKey: darstellungSchluessel.freigabe(),
+    queryFn: ladeSteckbriefeZurFreigabe,
   });
 
   /**
@@ -81,17 +66,14 @@ export default function PersonaPublishAdmin() {
         if (old.length > 0) await supabase.storage.from("gallery").remove(old);
       }
 
-      const { error } = await supabase.rpc("set_persona_public", {
-        _persona_id: persona.id,
-        _is_public: next,
-        _public_images: publicPaths,
-      });
-      if (error) throw new Error(error.message);
+      await setzeSteckbriefOeffentlich(persona.id, next, publicPaths);
     },
     onMutate: ({ persona }) => setBusy(persona.id),
     onSettled: () => {
       setBusy(null);
-      queryClient.invalidateQueries({ queryKey: ["personas-publish"] });
+      // Auch was öffentlich steht, hat sich damit geändert.
+      queryClient.invalidateQueries({ queryKey: darstellungSchluessel.freigabe() });
+      queryClient.invalidateQueries({ queryKey: darstellungSchluessel.oeffentlich() });
     },
     onSuccess: (_d, { next }) =>
       toast({ title: next ? "Darstellung ist öffentlich" : "Darstellung nicht mehr öffentlich" }),

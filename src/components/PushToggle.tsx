@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BellRing, BellOff, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { loeschePushAbo, speicherePushAbo } from "@/daten/benachrichtigungen";
 import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -73,18 +73,14 @@ export default function PushToggle() {
       if (!endpoint || !keys?.p256dh || !keys.auth) {
         throw new Error("Der Browser hat kein vollständiges Abo geliefert.");
       }
-      const { error: saveError } = await supabase.from("push_subscriptions").upsert(
-        {
-          endpoint,
-          user_id: user!.id,
-          p256dh: keys.p256dh,
-          auth: keys.auth,
-          user_agent: navigator.userAgent.slice(0, 200),
-          failure_count: 0,
-        },
-        { onConflict: "endpoint" }
-      );
-      if (saveError) throw new Error(saveError.message);
+      await speicherePushAbo({
+        endpoint,
+        user_id: user!.id,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        user_agent: navigator.userAgent.slice(0, 200),
+        failure_count: 0,
+      });
 
       setState("an");
       toast({ title: "Benachrichtigungen aktiv", description: "Auf diesem Gerät." });
@@ -105,11 +101,13 @@ export default function PushToggle() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        await loeschePushAbo(sub.endpoint);
         await sub.unsubscribe();
       }
       setState("aus");
       toast({ title: "Benachrichtigungen aus", description: "Auf diesem Gerät." });
+    } catch (err) {
+      toast({ title: "Hat nicht geklappt", description: (err as Error).message, variant: "destructive" });
     } finally {
       setBusy(false);
     }

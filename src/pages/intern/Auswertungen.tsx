@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { EINBLENDEN, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeAuswertungsTermine, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, ClipboardList, CalendarDays, Archive, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,24 +20,8 @@ const Auswertungen = () => {
   // wer sich fragte "wo sehe ich, wer kommt?", fand den Termin nicht und
   // erfuhr auch nicht, warum.
   const { data: eventsWithForms = [], isLoading } = useQuery({
-    queryKey: ["auswertungen-list", user?.id, isVorstand],
-    queryFn: async () => {
-      if (!user) return [];
-
-      const [{ data: events, error }, { data: forms }] = await Promise.all([
-        supabase
-          .from("events")
-          .select("id, title, start_date, end_date, created_by")
-          .order("start_date", { ascending: false }),
-        supabase.from("event_forms").select("event_id"),
-      ]);
-      if (error || !events) return [];
-
-      const withForm = new Set((forms ?? []).map((f) => f.event_id));
-      return events
-        .filter((e) => isVorstand || e.created_by === user.id || withForm.has(e.id))
-        .map((e) => ({ ...e, hasForm: withForm.has(e.id) }));
-    },
+    queryKey: veranstaltungSchluessel.auswertungen(user?.id, isVorstand),
+    queryFn: () => ladeAuswertungsTermine(user!.id, isVorstand),
     enabled: !!user,
   });
 

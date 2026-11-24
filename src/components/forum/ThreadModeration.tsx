@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forumSchluessel } from "@/daten/forum";
 import { useNavigate } from "react-router-dom";
 import { Pin, Lock, LockOpen, Archive, ArchiveRestore, Pencil, Trash2, FolderInput, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,14 @@ export default function ThreadModeration({ thread }: { thread: ForumThread }) {
   const [titel, setTitel] = useState(thread.title);
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["forum-categories"],
+    queryKey: forumSchluessel.rubriken(),
     queryFn: fetchCategories,
   });
 
   const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["forum-thread", thread.id] });
-    queryClient.invalidateQueries({ queryKey: ["forum-threads"] });
-    queryClient.invalidateQueries({ queryKey: ["forum-category-stats"] });
+    queryClient.invalidateQueries({ queryKey: forumSchluessel.thema(thread.id) });
+    queryClient.invalidateQueries({ queryKey: forumSchluessel.themen() });
+    queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });
   };
 
   const aendern = useMutation({

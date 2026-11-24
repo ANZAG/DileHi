@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dokumentSchluessel, ladeAblagen } from "@/daten/dokumente";
 import { useWoerter } from "@/hooks/useBranding";
 import { einsetzen } from "@/lib/organisationsform";
 
@@ -32,19 +32,13 @@ export function useDokumentkategorien() {
   const woerter = useWoerter();
 
   return useQuery({
-    queryKey: ["document-categories", woerter.satzung],
-    queryFn: async (): Promise<Dokumentkategorie[]> => {
-      const { data, error } = await supabase
-        .from("document_categories")
-        .select("key, label, sort_order, required_permission")
-        .order("sort_order");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((k: Omit<Dokumentkategorie, "rohLabel">) => ({
+    queryKey: dokumentSchluessel.ablagenMit(woerter.satzung),
+    queryFn: async (): Promise<Dokumentkategorie[]> =>
+      (await ladeAblagen()).map((k) => ({
         ...k,
         rohLabel: k.label,
         label: einsetzen(k.label, woerter),
-      }));
-    },
+      })),
   });
 }
 

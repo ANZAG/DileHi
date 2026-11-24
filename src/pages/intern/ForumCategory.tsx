@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentProps } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { createThread, fetchCategories, fetchReadState, fetchThreads, istUngelesen } from "@/components/forum/api";
-import { supabase } from "@/integrations/supabase/client";
+import { forumSchluessel } from "@/daten/forum";
+import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 import { SEITE } from "@/lib/layout";
 import Brotkrumen from "@/components/forum/Brotkrumen";
 
@@ -37,38 +38,35 @@ export default function ForumCategory() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  const { data: categories = [] } = useQuery({ queryKey: ["forum-categories"], queryFn: fetchCategories });
+  const { data: categories = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories });
   const category = categories.find((c) => c.slug === slug);
 
   const { data: threads = [], isLoading } = useQuery({
-    queryKey: ["forum-threads", category?.id],
+    queryKey: forumSchluessel.themenIn(category?.id),
     queryFn: () => fetchThreads(category!.id),
     enabled: !!category?.id,
   });
 
   const { data: gelesen = {} } = useQuery({
-    queryKey: ["forum-read-state", user?.id],
+    queryKey: forumSchluessel.lesestand(user?.id),
     queryFn: () => fetchReadState(user!.id),
     enabled: !!user,
   });
 
   // Wer im Forum liest, kennt die Namen – hier reicht eine schlanke Liste.
-  const { data: names = {} } = useQuery({
-    queryKey: ["forum-names"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_member_directory");
-      const map: Record<string, string> = {};
-      (data ?? []).forEach((m) => { map[m.id] = m.display_name; });
-      return map;
-    },
-  });
+  const { data: verzeichnis } = useMitgliederverzeichnis();
+  const names = useMemo(() => {
+    const map: Record<string, string> = {};
+    (verzeichnis ?? []).forEach((m) => { map[m.id] = m.display_name; });
+    return map;
+  }, [verzeichnis]);
 
   const create = useMutation({
     mutationFn: () =>
       createThread({ categoryId: category!.id, title, body, userId: user!.id }),
     onSuccess: (thread) => {
-      queryClient.invalidateQueries({ queryKey: ["forum-threads", category?.id] });
-      queryClient.invalidateQueries({ queryKey: ["forum-category-stats"] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.themenIn(category?.id) });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });
       setComposing(false); setTitle(""); setBody("");
       navigate(`/intern/forum/thema/${thread.id}`);
     },

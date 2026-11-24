@@ -1,11 +1,18 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ankuendigungSchluessel } from "@/daten/ankuendigungen";
 import { auslagenSchluessel } from "@/daten/auslagen";
+import { beitragsstufenSchluessel } from "@/daten/beitragsstufen";
+import { benachrichtigungSchluessel } from "@/daten/benachrichtigungen";
 import { beschlussSchluessel } from "@/daten/beschluesse";
 import { bibliothekSchluessel } from "@/daten/bibliothek";
+import { darstellungSchluessel } from "@/daten/darstellungen";
+import { dokumentSchluessel } from "@/daten/dokumente";
+import { einfuehrungSchluessel } from "@/daten/einfuehrung";
 import { einstellungSchluessel } from "@/daten/einstellungen";
 import { epochenSchluessel } from "@/daten/epochen";
+import { forumSchluessel } from "@/daten/forum";
 import { einwilligungSchluessel } from "@/daten/einwilligungen";
 import { inventarSchluessel } from "@/daten/inventar";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
@@ -47,6 +54,7 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       ...quelltexte("src/components/events"),
       ...quelltexte("src/components/event-forms"),
       ...quelltexte("src/components/evaluation"),
+      "src/pages/intern/Auswertungen.tsx",
     ],
   },
   {
@@ -148,6 +156,64 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     name: "einstellungen",
     schluessel: einstellungSchluessel,
     dateien: ["src/pages/intern/Admin.tsx"],
+  },
+  {
+    name: "ankuendigungen",
+    schluessel: ankuendigungSchluessel,
+    dateien: ["src/pages/intern/Announcements.tsx"],
+  },
+  {
+    // Ohne components/forum/api.ts: Das ist die Stelle, an der das Forum mit
+    // der Datenbank spricht – älter als src/daten und gleich gebaut. Ihre
+    // Schlüssel kommen aus daten/forum.ts wie alle anderen.
+    name: "forum",
+    schluessel: forumSchluessel,
+    dateien: [
+      ...quelltexte("src/pages/intern").filter((pfad) => /\/Forum[^/]*\.tsx$/.test(pfad)),
+      ...quelltexte("src/components/forum").filter((pfad) => !pfad.endsWith("/api.ts")),
+      "src/components/admin/ForumCategoriesAdmin.tsx",
+    ],
+  },
+  {
+    name: "benachrichtigungen",
+    schluessel: benachrichtigungSchluessel,
+    dateien: ["src/components/NotificationBell.tsx", "src/components/PushToggle.tsx"],
+  },
+  {
+    name: "dokumente",
+    schluessel: dokumentSchluessel,
+    dateien: [
+      "src/pages/intern/Documents.tsx",
+      "src/hooks/useDokumentkategorien.ts",
+      "src/components/admin/DokumentkategorienAdmin.tsx",
+    ],
+  },
+  {
+    name: "einfuehrung",
+    schluessel: einfuehrungSchluessel,
+    dateien: [
+      "src/components/Hilfe.tsx",
+      "src/components/admin/OnboardingAdmin.tsx",
+      ...quelltexte("src/components/onboarding"),
+    ],
+  },
+  {
+    name: "darstellungen",
+    schluessel: darstellungSchluessel,
+    dateien: [
+      "src/components/PublicPersonasSection.tsx",
+      "src/components/admin/PersonaPublishAdmin.tsx",
+      ...quelltexte("src/components/personas"),
+    ],
+  },
+  {
+    name: "beitragsstufen",
+    schluessel: beitragsstufenSchluessel,
+    dateien: [
+      "src/hooks/useBeitragsstufen.ts",
+      "src/hooks/useBeitragsmodell.ts",
+      ...quelltexte("src/components/beitraege"),
+    ],
   },
 ];
 

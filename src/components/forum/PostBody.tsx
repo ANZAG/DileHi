@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { forumSchluessel } from "@/daten/forum";
 import { sanitizePostHtml } from "./sanitize";
 import { signForumImages } from "./forumImages";
 import "./forum-content.css";
@@ -26,7 +27,7 @@ export default function PostBody({ html, className = "" }: { html: string; class
   // Die Bildadressen laufen nach einer Stunde ab; deshalb werden sie beim
   // Anzeigen erzeugt und eine halbe Stunde lang wiederverwendet.
   const { data: signed } = useQuery({
-    queryKey: ["forum-images", paths],
+    queryKey: forumSchluessel.bilder(paths),
     queryFn: () => signForumImages(paths),
     enabled: paths.length > 0,
     staleTime: 30 * 60 * 1000,

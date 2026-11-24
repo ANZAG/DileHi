@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereSteckbrief, darstellungSchluessel, ladeMeineSteckbriefe, legeSteckbriefAn, loescheSteckbrief,
+} from "@/daten/darstellungen";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -50,27 +53,17 @@ const PersonaEditor = () => {
   const [saving, setSaving] = useState(false);
 
   const { data: personas = [] } = useQuery({
-    queryKey: ["my-personas", user?.id],
+    queryKey: darstellungSchluessel.meine(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("member_personas")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("sort_order")
-        .order("created_at");
-  const zeilen: MemberPersona[] = data ?? [];
-  return zeilen;
-    },
+    queryFn: (): Promise<MemberPersona[]> => ladeMeineSteckbriefe(user!.id),
   });
 
   const allPaths = [...personas.flatMap((p) => p.images), ...(draft?.images ?? [])];
   const signed = useSignedImages(allPaths);
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["my-personas"] });
-    queryClient.invalidateQueries({ queryKey: ["member-personas"] });
-    queryClient.invalidateQueries({ queryKey: ["persona-owners"] });
+    // Die eigenen, die Liste zur Freigabe und was öffentlich steht.
+    queryClient.invalidateQueries({ queryKey: darstellungSchluessel.alle });
   };
 
   const handleUpload = async (file: File) => {
@@ -112,13 +105,14 @@ const PersonaEditor = () => {
       show_name: draft.showName,
       images: draft.images,
     };
-    const { error } = draft.id
-      ? await supabase.from("member_personas").update(payload).eq("id", draft.id)
-      : await supabase.from("member_personas").insert({ ...payload, sort_order: personas.length });
-    setSaving(false);
-    if (error) {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    try {
+      if (draft.id) await aendereSteckbrief(draft.id, payload);
+      else await legeSteckbriefAn({ ...payload, sort_order: personas.length });
+    } catch (err) {
+      toast({ title: "Fehler", description: (err as Error).message, variant: "destructive" });
       return;
+    } finally {
+      setSaving(false);
     }
     setDraft(null);
     refresh();
@@ -126,9 +120,10 @@ const PersonaEditor = () => {
   };
 
   const deletePersona = async (persona: MemberPersona) => {
-    const { error } = await supabase.from("member_personas").delete().eq("id", persona.id);
-    if (error) {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    try {
+      await loescheSteckbrief(persona.id);
+    } catch (err) {
+      toast({ title: "Fehler", description: (err as Error).message, variant: "destructive" });
       return;
     }
     if (persona.images.length > 0) {

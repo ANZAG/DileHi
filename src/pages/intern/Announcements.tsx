@@ -4,6 +4,10 @@ import MarkdownContent from "@/components/markdown/MarkdownContent";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ankuendigungSchluessel, ladeAnkuendigungen, ladeAntworten, ladeVerfasser, legeAnkuendigungAn, legeAntwortAn,
+  loescheAnkuendigung, trageAnhangEin,
+} from "@/daten/ankuendigungen";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Trash2, Paperclip, ChevronDown, ChevronRight, Send, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -24,27 +28,13 @@ const Announcements = () => {
   const newContentRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: announcements = [], isLoading } = useQuery({
-    queryKey: ["announcements"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("announcements")
-        .select("*, announcement_files(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: ankuendigungSchluessel.liste(),
+    queryFn: ladeAnkuendigungen,
   });
 
   const { data: replies = [] } = useQuery({
-    queryKey: ["announcement_replies"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("announcement_replies")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: ankuendigungSchluessel.antworten(),
+    queryFn: ladeAntworten,
   });
 
   // Collect unique author IDs from announcements + replies to fetch only what's needed.
@@ -57,12 +47,8 @@ const Announcements = () => {
   ];
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles_subset", authorIds.slice().sort().join(",")],
-    queryFn: async () => {
-      if (authorIds.length === 0) return [];
-      const { data } = await supabase.from("profiles").select("id, display_name").in("id", authorIds);
-      return data || [];
-    },
+    queryKey: ankuendigungSchluessel.verfasser(authorIds),
+    queryFn: () => ladeVerfasser(authorIds),
     enabled: authorIds.length > 0,
   });
 
@@ -96,16 +82,9 @@ const Announcements = () => {
   };
 
   const addAnnouncement = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("announcements").insert({
-        title: form.title,
-        content: form.content,
-        created_by: user!.id,
-      });
-      if (error) throw error;
-    },
+    mutationFn: () => legeAnkuendigungAn({ title: form.title, content: form.content, created_by: user!.id }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      queryClient.invalidateQueries({ queryKey: ankuendigungSchluessel.liste() });
       setShowForm(false);
       setForm({ title: "", content: "" });
       toast({ title: "Ankündigung erstellt" });
@@ -114,12 +93,9 @@ const Announcements = () => {
   });
 
   const deleteAnnouncement = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("announcements").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: loescheAnkuendigung,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      queryClient.invalidateQueries({ queryKey: ankuendigungSchluessel.liste() });
       toast({ title: "Gelöscht" });
     },
   });
@@ -128,15 +104,10 @@ const Announcements = () => {
     mutationFn: async (announcementId: string) => {
       const text = replyTexts[announcementId]?.trim();
       if (!text) return;
-      const { error } = await supabase.from("announcement_replies").insert({
-        announcement_id: announcementId,
-        content: text,
-        created_by: user!.id,
-      });
-      if (error) throw error;
+      await legeAntwortAn({ announcement_id: announcementId, content: text, created_by: user!.id });
     },
     onSuccess: (_, announcementId) => {
-      queryClient.invalidateQueries({ queryKey: ["announcement_replies"] });
+      queryClient.invalidateQueries({ queryKey: ankuendigungSchluessel.antworten() });
       setReplyTexts((prev) => ({ ...prev, [announcementId]: "" }));
     },
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
@@ -152,14 +123,9 @@ const Announcements = () => {
         .upload(path, file);
       if (uploadError) throw uploadError;
 
-      const { error: dbError } = await supabase.from("announcement_files").insert({
-        announcement_id: announcementId,
-        name: file.name,
-        storage_path: path,
-      });
-      if (dbError) throw dbError;
+      await trageAnhangEin({ announcement_id: announcementId, name: file.name, storage_path: path });
 
-      queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      queryClient.invalidateQueries({ queryKey: ankuendigungSchluessel.liste() });
       toast({ title: "Datei hochgeladen" });
     } catch (err: any) {
       toast({ title: "Upload-Fehler", description: err.message, variant: "destructive" });

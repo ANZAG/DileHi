@@ -2,7 +2,9 @@ import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useModule, moduleOn } from "@/hooks/useModule";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  einfuehrungSchluessel, ladeAktiveSchritte, ladeErledigteAufgaben, ladeMerkzettel, merkeGesehen,
+} from "@/daten/einfuehrung";
 
 /**
  * Die Einführung im Mitgliederbereich.
@@ -57,27 +59,15 @@ export function useOnboarding() {
   const queryClient = useQueryClient();
 
   const schritteQuery = useQuery({
-    queryKey: ["onboarding-schritte"],
-    queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await supabase
-        .from("onboarding_steps")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einfuehrungSchluessel.aktiveSchritte(),
+    queryFn: (): Promise<Schritt[]> => ladeAktiveSchritte(),
     enabled: !!user,
     staleTime: 10 * 60 * 1000,
   });
 
   const erledigtQuery = useQuery({
-    queryKey: ["onboarding-erledigt", user?.id],
-    queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("onboarding_completed_tasks");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einfuehrungSchluessel.erledigt(user?.id),
+    queryFn: ladeErledigteAufgaben,
     enabled: !!user,
     // Kurz, damit ein gerade ausgefülltes Profil beim nächsten Blick abgehakt
     // ist und nicht erst nach dem Neuladen.
@@ -85,16 +75,8 @@ export function useOnboarding() {
   });
 
   const merkzettelQuery = useQuery({
-    queryKey: ["user_tours", user?.id],
-    queryFn: async (): Promise<string[]> => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from("user_tours")
-        .select("tour_key")
-        .eq("user_id", user.id);
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((d) => d.tour_key);
-    },
+    queryKey: einfuehrungSchluessel.merkzettel(user?.id),
+    queryFn: (): Promise<string[]> => (user ? ladeMerkzettel(user.id) : Promise.resolve([])),
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
@@ -156,11 +138,10 @@ export function useOnboarding() {
   const merken = useCallback(
     async (keys: string[]) => {
       if (!user || keys.length === 0) return;
-      await supabase.from("user_tours").upsert(
-        keys.map((k) => ({ user_id: user.id, tour_key: k })),
-        { onConflict: "user_id,tour_key", ignoreDuplicates: true }
-      );
-      queryClient.invalidateQueries({ queryKey: ["user_tours", user.id] });
+      // Lässt sich das nicht merken, erscheint der Hinweis beim nächsten Mal
+      // noch einmal – das ist kein Grund, die Seite mit einem Fehler zu stören.
+      await merkeGesehen(user.id, keys).catch((err) => console.warn("Einführung: Merken fehlgeschlagen:", err));
+      queryClient.invalidateQueries({ queryKey: einfuehrungSchluessel.merkzettel(user.id) });
     },
     [user, queryClient]
   );

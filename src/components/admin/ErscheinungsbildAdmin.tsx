@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { beitragsstufenSchluessel } from "@/daten/beitragsstufen";
 import { einstellungSchluessel } from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
@@ -178,7 +179,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       queryClient.invalidateQueries({ queryKey: ["branding"] });
       // Die Aufbewahrungsfrist bestimmt, ab wann eine Beitragsstufe endgueltig
       // weg darf – die Verwaltung zeigt diese Jahreszahl an.
-      queryClient.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
+      queryClient.invalidateQueries({ queryKey: beitragsstufenSchluessel.status() });
       // Quellensammlung und Eingangskorb fragen die Dateiablage getrennt ab.
       queryClient.invalidateQueries({ queryKey: einstellungSchluessel.alle });
       // Die Gemeinnützigkeit schaltet Bereiche frei oder ab.
