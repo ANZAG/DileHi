@@ -24,7 +24,7 @@ const OHNE_ANMELDUNG = [
   "has_permission", "is_member", "module_enabled", "module_status",
   "public_branding", "public_contribution_settings",
   "remove_contribution_category", "restore_contribution_category",
-  "seo_organization_pages", "setup_needed", "statutes_options",
+  "seo_organization_pages", "setup_needed", "site_languages", "statutes_options",
   "submit_form_response", "update_response_by_edit_token",
 ].sort();
 
