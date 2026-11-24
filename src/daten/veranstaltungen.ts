@@ -63,6 +63,8 @@ export const veranstaltungSchluessel = {
   /** Laufende und kommende Termine mit Formular, die jemand auswerten darf – für die Startseite. */
   meineAuswertungen: (userId: string | undefined, alle: boolean) =>
     ["veranstaltungen", "meine-auswertungen", userId, alle] as const,
+  /** Die öffentlichen Termine auf der Website, je Jahr und Rückschau. */
+  oeffentliche: (jahr: number, zurueck: number) => ["veranstaltungen", "oeffentliche", jahr, zurueck] as const,
   /** Die Standardvorlage für Anmeldeformulare. */
   formularvorlage: () => ["veranstaltungen", "formularvorlage"] as const,
   /** Die Termine, deren Auswertung jemand sehen darf – je Mitglied und danach, ob es alle sieht. */
@@ -637,4 +639,26 @@ export async function ladeMeineAuswertungsTermine(userId: string, alle: boolean)
   const { data, error } = alle ? await abfrage : await abfrage.eq("created_by", userId);
   if (error) throw error;
   return data || [];
+}
+
+export type OeffentlicherTermin = Pick<
+  Veranstaltung,
+  "id" | "title" | "start_date" | "end_date" | "location" | "all_day"
+>;
+
+/**
+ * Die öffentlichen Termine bis Ende des nächsten Jahres, früheste zuerst.
+ * Ohne Rückschau nur, was noch kommt oder läuft; mit Rückschau alles ab dem
+ * Jahr, das so viele Jahre zurückliegt.
+ */
+export async function ladeOeffentlicheTermine(jahr: number, zurueck: number): Promise<OeffentlicherTermin[]> {
+  const abfrage = supabase
+    .from("events")
+    .select("id, title, start_date, end_date, location, all_day")
+    .eq("is_public", true)
+    .lte("start_date", `${jahr + 1}-12-31`);
+  const gefiltert = zurueck > 0 ? abfrage.gte("start_date", `${jahr - zurueck}-01-01`) : abfrage.or(nochAktuellFilter());
+  const { data, error } = await gefiltert.order("start_date", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
 }

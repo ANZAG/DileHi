@@ -14,8 +14,8 @@ import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { Hilfe } from "@/components/Hilfe";
 import {
-  createPage, deletePage, fetchPages, slugify, updatePageMeta, type SitePage,
-} from "@/components/sitebuilder/api";
+  legeSeiteAn, loescheSeite, ladeSeiten, slugify, aendereSeitenangaben, type SitePage,
+} from "@/daten/seiten";
 import { ladeSprachstaende, sprachSchluessel } from "@/daten/sprachen";
 import SprachfassungenZeile from "./SprachfassungenZeile";
 import RahmentexteAdmin from "./RahmentexteAdmin";
@@ -40,7 +40,7 @@ export default function SitePagesAdmin() {
 
   const { data: seiten = [], isLoading } = useQuery({
     queryKey: websiteSchluessel.seiten(),
-    queryFn: fetchPages,
+    queryFn: ladeSeiten,
   });
 
   // Der Stand der Sprachfassungen (en, fr) je Seite – siehe SprachfassungenZeile.
@@ -55,7 +55,7 @@ export default function SitePagesAdmin() {
   const frisch = () => queryClient.invalidateQueries({ queryKey: websiteSchluessel.seiten() });
 
   const neu = useMutation({
-    mutationFn: () => createPage({ title: titel.trim(), slug: adresse.trim() || slugify(titel) }),
+    mutationFn: () => legeSeiteAn({ title: titel.trim(), slug: adresse.trim() || slugify(titel) }),
     onSuccess: () => {
       setAnlegen(false);
       setTitel("");
@@ -67,15 +67,15 @@ export default function SitePagesAdmin() {
   });
 
   const entfernen = useMutation({
-    mutationFn: (id: string) => deletePage(id),
+    mutationFn: (id: string) => loescheSeite(id),
     onSuccess: frisch,
     onError: (err: Error) =>
       toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
   const meta = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updatePageMeta>[1] }) =>
-      updatePageMeta(id, patch),
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof aendereSeitenangaben>[1] }) =>
+      aendereSeitenangaben(id, patch),
     onSuccess: () => { setEinstellungen(null); frisch(); },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -269,7 +269,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
   seite: SitePage;
   pending: boolean;
   onAbbrechen: () => void;
-  onSpeichern: (patch: Parameters<typeof updatePageMeta>[1]) => void;
+  onSpeichern: (patch: Parameters<typeof aendereSeitenangaben>[1]) => void;
 }) {
   const woerter = useWoerter();
   const [titel, setTitel] = useState(seite.title);

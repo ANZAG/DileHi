@@ -17,12 +17,7 @@ export type Seitenbild = Tables<"site_images">;
 export type Kontaktnachricht = Tables<"contact_messages">;
 export type Kontaktantwort = Tables<"contact_replies">;
 
-/**
- * Die Schlüssel beginnen mit „website" – bis auf die Galerie der Bausteine:
- * `components/sitebuilder/bausteine.tsx` liest sie noch selbst unter
- * `["gallery_images", epoche]`. Solange der Baukasten nicht umgezogen ist,
- * bleibt es bei diesem Anfang, damit ein neues Bild auch dort ankommt.
- */
+/** Die Schlüssel für den Zwischenspeicher – alle beginnen mit „website". */
 export const websiteSchluessel = {
   alle: ["website"] as const,
 
@@ -44,7 +39,9 @@ export const websiteSchluessel = {
   /** Alle Bilder der Galerie mit Adresse – für die Verwaltung. */
   galerie: () => ["website", "galerie"] as const,
   /** Präfix für die Galerien der Bausteine, je Kategorie. */
-  galerieDerBausteine: () => ["gallery_images"] as const,
+  galerieDerBausteine: () => ["website", "galerie-bausteine"] as const,
+  /** Die Bilder einer Kategorie, wie der Galerie-Baustein sie zeigt. */
+  galerieIn: (kategorie: string) => ["website", "galerie-bausteine", kategorie] as const,
 
   nachrichten: () => ["website", "nachrichten"] as const,
   antworten: () => ["website", "nachricht-antworten"] as const,
@@ -96,6 +93,52 @@ export async function ladeSeitenbilder(): Promise<Seitenbild[]> {
   const { data, error } = await supabase.from("site_images").select("*");
   if (error) throw error;
   return data;
+}
+
+/** Die Plätze der Bilder mit Namen, Seite und Datei – für die Auswahl im Baukasten. */
+export async function ladeBildplaetze(): Promise<Pick<Seitenbild, "slot" | "label" | "page" | "storage_path">[]> {
+  const { data, error } = await supabase
+    .from("site_images")
+    .select("slot, label, page, storage_path")
+    .order("page")
+    .order("label");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function ladeAlternativtext(platz: string): Promise<string> {
+  const { data, error } = await supabase.from("site_images").select("alt_text").eq("slot", platz).maybeSingle();
+  if (error) throw error;
+  return data?.alt_text ?? "";
+}
+
+export async function aendereAlternativtext(platz: string, text: string): Promise<void> {
+  const { error } = await supabase.from("site_images").update({ alt_text: text }).eq("slot", platz);
+  if (error) throw error;
+}
+
+/** Trägt ein schon hochgeladenes Bild als neuen Platz ein. */
+export async function legeBildplatzAn(platz: TablesInsert<"site_images">): Promise<void> {
+  const { error } = await supabase.from("site_images").insert(platz);
+  if (error) throw error;
+}
+
+/** Die Bilder einer Kategorie, neueste zuerst. */
+export async function ladeGalerieVon(kategorie: string): Promise<Galeriebild[]> {
+  const { data, error } = await supabase
+    .from("gallery_images")
+    .select("*")
+    .eq("epoch", kategorie)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+/** Welche Kategorien in der Galerie tatsächlich vorkommen, sortiert. */
+export async function ladeGalerieKategorien(): Promise<string[]> {
+  const { data, error } = await supabase.from("gallery_images").select("epoch");
+  if (error) throw error;
+  return [...new Set((data ?? []).map((g) => g.epoch).filter((e): e is string => !!e))].sort();
 }
 
 /** Alle Bilder der Galerie, neueste zuerst. */

@@ -27,6 +27,13 @@ export async function ladeKategorien(): Promise<Kategoriezeile[]> {
   return data ?? [];
 }
 
+/** Die gepflegten Kategorien als Wert und Beschriftung, in ihrer Reihenfolge. */
+export async function ladeKategorieAuswahl(): Promise<{ value: string; label: string }[]> {
+  const { data, error } = await supabase.from("site_categories").select("key, label").order("sort_order");
+  if (error) throw error;
+  return (data ?? []).map((k) => ({ value: k.key, label: k.label }));
+}
+
 /**
  * Wie oft eine Kategorie benutzt wird: in Galerie, Quellenangaben und
  * Besucherpunkten. Ohne diese Zahl löscht jemand die Kategorie, an der drei

@@ -11,7 +11,8 @@ import { format, parseISO } from "date-fns";
 import { de, enGB, fr } from "date-fns/locale";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";
 import { mitWerten } from "@/lib/texte";
-import { nochAktuellFilter } from "@/components/events/nochAktuell";
+import { ladeOeffentlicheTermine, veranstaltungSchluessel, type OeffentlicherTermin } from "@/daten/veranstaltungen";
+import { ladeGalerieVon, websiteSchluessel } from "@/daten/website";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
 import { SpeicherBild } from "@/components/SpeicherBild";
@@ -1739,14 +1740,9 @@ export function Galerie({
   const uebersetzt = useRahmentexte();
 
   const { data: roh = [] } = useQuery({
-    queryKey: ["gallery_images", epoche],
+    queryKey: websiteSchluessel.galerieIn(epoche),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_images")
-        .select("*")
-        .eq("epoch", epoche)
-        .order("created_at", { ascending: false });
-      if (error) return [];
+      const data = await ladeGalerieVon(epoche);
       return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return {
@@ -1958,15 +1954,6 @@ export function Darstellungen({
 
 // ── Nächste Veranstaltungen ─────────────────────────────────────────────────
 
-interface OeffentlicherTermin {
-  id: string;
-  title: string;
-  start_date: string;
-  end_date: string | null;
-  location: string | null;
-  all_day: boolean;
-}
-
 /**
  * Die öffentlichen Termine.
  *
@@ -1993,26 +1980,10 @@ export function Termine({
   const zurueck = Math.max(0, Math.min(20, rueckschau ?? 0));
 
   const { data: termine = [], isLoading } = useQuery({
-    queryKey: ["public-events", jahr, zurueck],
-    queryFn: async () => {
-      const abfrage = supabase
-        .from("events")
-        .select("id, title, start_date, end_date, location, all_day")
-        .eq("is_public", true)
-        .lte("start_date", `${jahr + 1}-12-31`);
-
-      // Ohne Rückschau nur, was noch kommt oder noch läuft – das ist der Normalfall. Mit
-      // Rückschau alles ab dem gewählten Jahr, absteigend, damit das Nächste
-      // oben steht und die Archivjahre darunter.
-      const gefiltert = zurueck > 0
-        ? abfrage.gte("start_date", `${jahr - zurueck}-01-01`)
-        : abfrage.or(nochAktuellFilter());
-
-      const { data, error } = await gefiltert.order("start_date", { ascending: true });
-      if (error) throw error;
-      const zeilen: OeffentlicherTermin[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: veranstaltungSchluessel.oeffentliche(jahr, zurueck),
+    // Ohne Rückschau nur, was noch kommt oder noch läuft – das ist der
+    // Normalfall. Mit Rückschau alles ab dem gewählten Jahr.
+    queryFn: () => ladeOeffentlicheTermine(jahr, zurueck),
   });
 
   // Wie bisher: Steht nichts an, steht auch kein leerer Abschnitt da.

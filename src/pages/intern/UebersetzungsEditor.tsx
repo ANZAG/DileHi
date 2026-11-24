@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
 import { WOERTERBUCH } from "@/components/sitebuilder/woerterbuch";
-import { fetchPageById, LEERE_SEITE } from "@/components/sitebuilder/api";
+import { ladeSeite, LEERE_SEITE } from "@/daten/seiten";
 import {
   ladeUebersetzung, loescheUebersetzung, sichereUebersetzung, sprachSchluessel, sprachstand, SPRACHSTAND_WORTE,
 } from "@/daten/sprachen";
@@ -49,7 +49,7 @@ export default function UebersetzungsEditor() {
 
   const { data: page, isLoading: seiteLaedt } = useQuery({
     queryKey: sprachSchluessel.original(pageId),
-    queryFn: () => fetchPageById(pageId!),
+    queryFn: () => ladeSeite(pageId!),
     enabled: !!pageId && darf,
   });
   const { data: fassung, isLoading: fassungLaedt } = useQuery({

@@ -4,7 +4,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { alsJson, ausJson } from "@/lib/json";
 import type { Rahmenart, Rahmenstand } from "@/lib/rahmentexte";
 import { ZUSATZSPRACHEN, type Sprache, type Zusatzsprache } from "@/lib/sprachen.mjs";
-import { fetchPageBySlug, type SitePage } from "@/components/sitebuilder/api";
+import { ladeSeiteNachAdresse, type SitePage } from "@/daten/seiten";
 import { ladeAlleBesucherpunkte, ladeAlleEpochenquellen } from "@/daten/epochen";
 import { ladeGalerie, ladeMenuezeilen, ladeSeitenbilder } from "@/daten/website";
 
@@ -113,7 +113,7 @@ export function mitUebersetzung(page: SitePage, u: Pick<SeitenUebersetzung, "tit
  * Seite nicht mitreissen.
  */
 export async function ladeSeiteInSprache(slug: string, sprache: Sprache): Promise<SeiteInSprache | null> {
-  const page = await fetchPageBySlug(slug);
+  const page = await ladeSeiteNachAdresse(slug);
   if (!page) return null;
 
   const [vorhanden, eigene] = await Promise.all([
