@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { supabase } from "@/integrations/supabase/client";
 import { alsJson } from "@/lib/json";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
@@ -59,6 +60,9 @@ export const veranstaltungSchluessel = {
   anmeldungen: (formId: string | undefined) => ["veranstaltungen", "anmeldungen", formId] as const,
   meineAnmeldungen: () => ["veranstaltungen", "meine-anmeldungen"] as const,
   meineAnmeldungenVon: (userId: string | undefined) => ["veranstaltungen", "meine-anmeldungen", userId] as const,
+  /** Laufende und kommende Termine mit Formular, die jemand auswerten darf – für die Startseite. */
+  meineAuswertungen: (userId: string | undefined, alle: boolean) =>
+    ["veranstaltungen", "meine-auswertungen", userId, alle] as const,
   /** Die Standardvorlage für Anmeldeformulare. */
   formularvorlage: () => ["veranstaltungen", "formularvorlage"] as const,
   /** Die Termine, deren Auswertung jemand sehen darf – je Mitglied und danach, ob es alle sieht. */
@@ -506,4 +510,131 @@ export function useFormularFelder(formId: string | undefined) {
     queryFn: () => ladeFelder(formId!),
     enabled: !!formId,
   });
+}
+
+// ── Die Anmeldeseite ────────────────────────────────────────────────────────
+
+/** Eine Antwort, wie die Datenbankfunktionen sie annehmen. */
+export type AntwortEingabe = { field_id: string; value: Json };
+
+/** Formular, Veranstaltung und Felder zu einem öffentlichen Zugangsschlüssel – als JSON der Funktion. */
+export async function ladeFormularMitSchluessel(token: string): Promise<Json | null> {
+  const { data, error } = await supabase.rpc("get_form_by_token", { _token: token });
+  if (error) throw error;
+  return data ?? null;
+}
+
+/** Dasselbe mit der eigenen Anmeldung dazu – für Gäste, die über ihren Link ändern. */
+export async function ladeAnmeldungZumAendern(aenderungsSchluessel: string): Promise<Json | null> {
+  const { data, error } = await supabase.rpc("get_response_by_edit_token", { _edit_token: aenderungsSchluessel });
+  if (error) throw error;
+  return data ?? null;
+}
+
+/** Die Anmeldung eines Mitglieds zu einem Formular, falls es schon eine gibt. */
+export async function ladeEigeneAnmeldung(
+  formId: string,
+  userId: string,
+): Promise<Pick<Tables<"event_form_responses">, "id" | "respondent_name" | "respondent_email"> | null> {
+  const { data, error } = await supabase
+    .from("event_form_responses")
+    .select("id, respondent_name, respondent_email")
+    .eq("form_id", formId)
+    .eq("user_id", userId)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export async function ladeAntwortenVon(
+  responseId: string,
+): Promise<Pick<Tables<"event_form_answers">, "field_id" | "value">[]> {
+  const { data, error } = await supabase.from("event_form_answers").select("field_id, value").eq("response_id", responseId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Reicht eine neue Anmeldung ein; zurück kommt der Schlüssel, mit dem sie sich später ändern lässt. */
+export async function reicheAnmeldungEin(eingabe: {
+  token: string;
+  name: string;
+  email: string | null;
+  antworten: AntwortEingabe[];
+}): Promise<string> {
+  const { data, error } = await supabase.rpc("submit_form_response", {
+    _token: eingabe.token,
+    _name: eingabe.name,
+    // Die Funktion nimmt eine leere Adresse als NULL; die erzeugten Typen kennen nur „text“.
+    _email: eingabe.email as string,
+    _answers: eingabe.antworten,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Ändert die Anmeldung eines Gastes über seinen Schlüssel. */
+export async function aendereAnmeldungAlsGast(eingabe: {
+  aenderungsSchluessel: string;
+  name: string;
+  email: string | null;
+  antworten: AntwortEingabe[];
+}): Promise<void> {
+  const { error } = await supabase.rpc("update_response_by_edit_token", {
+    _edit_token: eingabe.aenderungsSchluessel,
+    _name: eingabe.name,
+    _email: eingabe.email as string,
+    _answers: eingabe.antworten,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Ändert die Anmeldung eines Mitglieds: Name und Adresse, dann die Antworten
+ * – die alten weg, die neuen hinein. Lassen sich die alten nicht entfernen,
+ * kommen keine neuen dazu; sonst stünde jede Antwort doppelt da.
+ */
+export async function aendereAnmeldungMitAntworten(
+  responseId: string,
+  kopf: { name: string; email: string | null },
+  antworten: AntwortEingabe[],
+): Promise<void> {
+  const { error: kopfFehler } = await supabase
+    .from("event_form_responses")
+    .update({ respondent_name: kopf.name, respondent_email: kopf.email })
+    .eq("id", responseId);
+  if (kopfFehler) throw kopfFehler;
+
+  const { error: loeschFehler } = await supabase.from("event_form_answers").delete().eq("response_id", responseId);
+  if (loeschFehler) throw loeschFehler;
+
+  if (antworten.length === 0) return;
+  const { error } = await supabase
+    .from("event_form_answers")
+    .insert(antworten.map((a) => ({ response_id: responseId, ...a })));
+  if (error) throw error;
+}
+
+/** Trägt die Zusage ein; wer schon zugesagt hat, bleibt, wie er ist. */
+export async function sageZu(eventId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("event_attendees")
+    .upsert({ event_id: eventId, user_id: userId }, { onConflict: "event_id,user_id", ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+/**
+ * Laufende und kommende Termine mit Formular, die nächsten zehn. Wer nicht
+ * alle auswerten darf, bekommt nur die selbst angelegten.
+ */
+export async function ladeMeineAuswertungsTermine(userId: string, alle: boolean) {
+  // Nur Events mit existierendem event_form (inner join via select)
+  const abfrage = supabase
+    .from("events")
+    .select("id, title, start_date, end_date, created_by, event_forms!inner(id)")
+    .or(nochAktuellFilter())
+    .order("start_date", { ascending: true })
+    .limit(10);
+  const { data, error } = alle ? await abfrage : await abfrage.eq("created_by", userId);
+  if (error) throw error;
+  return data || [];
 }

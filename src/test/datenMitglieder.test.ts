@@ -40,12 +40,14 @@ describe("Die Schlüssel der Mitglieder", () => {
   });
 
   it("machen mit den Zelten auch die der Anmeldeseite ungültig", () => {
-    // Die öffentliche Anmeldeseite liest noch selbst unter ["member_tents", id].
+    // Profil und Anmeldeseite lesen die Zelte unter demselben Schlüssel.
     const qc = new QueryClient();
-    qc.setQueryData(["member_tents", "anna"], []);
+    qc.setQueryData(mitgliedSchluessel.zelteVon("anna"), []);
     qc.setQueryData(mitgliedSchluessel.alleZelte(), []);
     qc.invalidateQueries({ queryKey: mitgliedSchluessel.zelte() });
-    expect(qc.getQueryState(["member_tents", "anna"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(mitgliedSchluessel.zelteVon("anna"))?.isInvalidated).toBe(true);
+    // Ein Mitglied, dessen Kennung wie die Gesamtliste heisst, trifft sie nicht.
+    expect(mitgliedSchluessel.zelteVon("alle")).not.toEqual(mitgliedSchluessel.alleZelte());
     expect(qc.getQueryState(mitgliedSchluessel.alleZelte())?.isInvalidated).toBe(true);
   });
 

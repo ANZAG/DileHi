@@ -308,18 +308,11 @@ function wurzeln(schluessel: Schluesselsatz): string[] {
 /**
  * Wo ein Schlüssel doch noch von Hand steht – jede Ausnahme mit Grund.
  *
- * Die öffentliche Anmeldeseite liest die Zelte des Mitglieds selbst, mit
- * derselben Abfrage wie `ladeZelte`. Sie wird gerade an anderer Stelle
- * umgebaut; bis sie umzieht, teilt sie sich den Eintrag mit dem Profil.
- *
  * Der Galerie-Baustein liest seine Bilder je Kategorie selbst. Der Baukasten
  * ist noch nicht umgezogen; die Galerieverwaltung macht seine Listen über
  * denselben Anfang ungültig.
  */
-const AUSNAHMEN = [
-  "src/components/sitebuilder/bausteine.tsx: gallery_images",
-  "src/pages/EventRegistration.tsx: member_tents",
-];
+const AUSNAHMEN = ["src/components/sitebuilder/bausteine.tsx: gallery_images"];
 
 describe.each(BEREICHE)("Bereich $name", ({ schluessel, dateien }) => {
   it("nennt Dateien, die es gibt", () => {

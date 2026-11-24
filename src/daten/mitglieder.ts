@@ -56,10 +56,8 @@ export type Beitragszahler = Pick<
 
 /**
  * Schlüssel für den Zwischenspeicher. Sie stehen nur hier und beginnen mit
- * „mitglieder" – bis auf die Zelte: Die öffentliche Anmeldeseite
- * (`pages/EventRegistration.tsx`) liest die Zelte des Mitglieds noch selbst
- * unter `["member_tents", userId]`. Solange sie nicht umgezogen ist, bleibt es
- * bei diesem Anfang, damit ein neues Zelt im Profil auch dort ankommt.
+ * „mitglieder". Profil und Anmeldeseite lesen die Zelte eines Mitglieds unter
+ * demselben Schlüssel.
  */
 export const mitgliedSchluessel = {
   alle: ["mitglieder"] as const,
@@ -80,9 +78,11 @@ export const mitgliedSchluessel = {
   eintritt: (userId: string | undefined) => ["mitglieder", "eintritt", userId] as const,
 
   /** Präfix für alle Zelte: die eines Mitglieds und die Liste aller. */
-  zelte: () => ["member_tents"] as const,
-  zelteVon: (userId: string | undefined) => ["member_tents", userId] as const,
-  alleZelte: () => ["member_tents", "alle"] as const,
+  zelte: () => ["mitglieder", "zelte"] as const,
+  zelteVon: (userId: string | undefined) => ["mitglieder", "zelte", "von", userId] as const,
+  alleZelte: () => ["mitglieder", "zelte", "alle"] as const,
+  /** Wer in den nächsten Tagen Geburtstag hat – für den Hinweis auf der Startseite. */
+  geburtstage: () => ["mitglieder", "geburtstage"] as const,
 
   karte: () => ["mitglieder", "karte"] as const,
   /** Nachgeschlagene Wohnorte; `wer` beschreibt, für wen gesucht wurde. */
@@ -121,6 +121,36 @@ export function useMitgliederverzeichnis(optionen: { enabled?: boolean } = {}) {
     queryFn: ladeMitgliederverzeichnis,
     enabled: optionen.enabled ?? true,
   });
+}
+
+// ── Geburtstage und Vorgaben ────────────────────────────────────────────────
+
+/** Name und Geburtsdatum aller aktiven Mitglieder, die eines angegeben haben. */
+export async function ladeGeburtsdaten(): Promise<Pick<Tables<"profiles">, "display_name" | "birthdate">[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name, birthdate")
+    .eq("is_active", true)
+    .not("birthdate", "is", null);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Was eine Anmeldung aus dem Profil vorbefüllt: Name, Ernährung, Allergien. */
+export async function ladeAnmeldeVorgaben(
+  userId: string,
+): Promise<Pick<Tables<"profiles">, "display_name" | "diet" | "allergies">> {
+  const { data, error } = await supabase.from("profiles").select("display_name, diet, allergies").eq("id", userId).single();
+  if (error) throw error;
+  return data;
+}
+
+/** Der Jahresbeitrag, der gerade gilt – für den Aufnahmeantrag. Ohne brauchbaren Satz: nichts. */
+export async function ladeAktuellenBeitragssatz(): Promise<number | null> {
+  const { data, error } = await supabase.rpc("get_current_contribution_rate");
+  if (error) throw error;
+  const n = typeof data === "number" ? data : Number(data);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 // ── Zelte ───────────────────────────────────────────────────────────────────

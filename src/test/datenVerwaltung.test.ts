@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { aufnahmeSchluessel, entscheideAntrag, ladeAntragstexte, speichereAntragsfelder } from "@/daten/aufnahme";
 import { ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
+import { ladeAktuellenBeitragssatz } from "@/daten/mitglieder";
+import { ladeEinrichtungNoetig } from "@/daten/einstellungen";
 import { aendereEinstellungen, einstellungSchluessel, ladeErscheinungsbild, schalteModule } from "@/daten/einstellungen";
 import { fristSchluessel, ladeBescheidangaben, setzeFristErledigt, speichereFrist } from "@/daten/fristen";
 import { kategorieSchluessel, legeKategorieAn, zaehleKategorieVerwendung } from "@/daten/kategorien";
@@ -269,5 +271,22 @@ describe("Ein Aufnahmeantrag", () => {
   it("liefert seine Texte nach Kennung", async () => {
     datenbank({ "select pdf_texts": { data: [{ key: "datenschutz", title: "Datenschutz", body: "…" }] } });
     expect(await ladeAntragstexte()).toEqual({ datenschutz: { title: "Datenschutz", body: "…" } });
+  });
+});
+
+describe("Ob die Einrichtung noch nötig ist", () => {
+  it("wird bei einem Fehler nicht als „nein“ beantwortet", async () => {
+    // Vorher legte die Anmeldeseite bei einem Fehler `false` unter denselben
+    // Schlüssel, unter dem die Einrichtungsseite liest – die leitete dann weg.
+    datenbank({ "rpc setup_needed": [{ data: true }, { data: null, error: { message: "weg" } }] });
+    expect(await ladeEinrichtungNoetig()).toBe(true);
+    await expect(ladeEinrichtungNoetig()).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("gilt beim Beitragssatz nur eine brauchbare Zahl", async () => {
+    datenbank({ "rpc get_current_contribution_rate": [{ data: "48.00" }, { data: 0 }, { data: null }] });
+    expect(await ladeAktuellenBeitragssatz()).toBe(48);
+    expect(await ladeAktuellenBeitragssatz()).toBeNull();
+    expect(await ladeAktuellenBeitragssatz()).toBeNull();
   });
 });

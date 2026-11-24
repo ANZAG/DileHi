@@ -29,6 +29,8 @@ export const einstellungSchluessel = {
   satzungAuswahl: (ablage: string | null | undefined) => ["einstellungen", "satzung-auswahl", ablage] as const,
   /** Der Stand der Einrichtung – liefert die Edge Function `einrichtung-status`. */
   einrichtung: () => ["einstellungen", "einrichtung"] as const,
+  /** Ob die Installation noch ihren ersten Zugang braucht. */
+  einrichtungNoetig: () => ["einstellungen", "einrichtung-noetig"] as const,
 };
 
 /** Wohin neue Dateien gehen. Ohne Angabe: in den Speicher von Supabase. */
@@ -94,6 +96,13 @@ export async function ladeSatzungAuswahl() {
   const { data, error } = await supabase.rpc("statutes_options");
   if (error) throw error;
   return data ?? [];
+}
+
+/** Ob noch niemand einen Zugang hat – dann gehört die Einrichtungsseite gezeigt. */
+export async function ladeEinrichtungNoetig(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("setup_needed");
+  if (error) throw error;
+  return data;
 }
 
 // ── Module ──────────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendeKontaktnachricht } from "@/daten/website";
 import { useToast } from "@/hooks/use-toast";
 import { useSprache } from "@/hooks/useSprache";
 import { Input } from "@/components/ui/input";
@@ -72,11 +73,11 @@ export default function VeranstalterFelder() {
       form.message ? `Nachricht: ${form.message}` : null,
     ].filter(Boolean).join("\n");
 
-    const { error } = await supabase.from("contact_messages").insert({
+    const error = await sendeKontaktnachricht({
       name: form.name.trim().slice(0, 100),
       email: form.email.trim().slice(0, 255),
       message: messageText.slice(0, 5000),
-    });
+    }).then(() => null, (err: unknown) => err);
     // Ohne Warten: Die Anfrage steht bereits in der Datenbank und ist in der
     // Verwaltung sichtbar, auch wenn die Mail scheitert.
     supabase.functions.invoke("notify-contact", {

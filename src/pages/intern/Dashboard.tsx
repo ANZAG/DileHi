@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
 import { EINBLENDEN, EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery } from "@tanstack/react-query";
-import { nochAktuellFilter } from "@/components/events/nochAktuell";
+import { ladeMeineAuswertungsTermine, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import {
   BookOpen, Megaphone, Vote, LogOut, Settings, User, CalendarDays, MessagesSquare,
   FileText, Coins, MapPin, ClipboardList, ScrollText, Package, Gavel, Receipt, HandCoins,
@@ -46,25 +45,8 @@ const Dashboard = () => {
 
   // Veranstaltungs-Auswertungen: zeigen, wenn Vorstand ODER Organisator eines aktuellen/zukünftigen Events
   const { data: organizedEvents = [] } = useQuery({
-    queryKey: ["my-organized-events", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      // Nur Events mit existierendem event_form (inner join via select)
-      const query = supabase
-        .from("events")
-        .select("id, title, start_date, end_date, created_by, event_forms!inner(id)")
-        .or(nochAktuellFilter())
-        .order("start_date", { ascending: true })
-        .limit(10);
-
-      const canModerateEvents = hasPermission("events.moderate");
-      const { data, error } = canModerateEvents
-        ? await query
-        : await query.eq("created_by", user.id);
-
-      if (error) return [];
-      return data || [];
-    },
+    queryKey: veranstaltungSchluessel.meineAuswertungen(user?.id, hasPermission("events.moderate")),
+    queryFn: () => ladeMeineAuswertungsTermine(user!.id, hasPermission("events.moderate")),
     enabled: !!user,
   });
 

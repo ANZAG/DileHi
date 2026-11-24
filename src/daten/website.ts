@@ -124,6 +124,12 @@ export async function loescheGaleriebild(bildId: string): Promise<void> {
 
 // ── Kontaktformular ─────────────────────────────────────────────────────────
 
+/** Legt eine Nachricht aus einem der öffentlichen Formulare ab. */
+export async function sendeKontaktnachricht(nachricht: TablesInsert<"contact_messages">): Promise<void> {
+  const { error } = await supabase.from("contact_messages").insert(nachricht);
+  if (error) throw error;
+}
+
 /** Die Nachrichten aus dem Kontaktformular, neueste zuerst. */
 export async function ladeKontaktnachrichten(): Promise<Kontaktnachricht[]> {
   const { data, error } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
