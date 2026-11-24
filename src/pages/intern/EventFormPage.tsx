@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { ArrowLeft, FileText, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeVeranstaltungKopf, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import EventFormBuilder from "./EventFormBuilder";
 import EventFormEvaluation from "./EventFormEvaluation";
 import { SEITE } from "@/lib/layout";
@@ -52,16 +52,8 @@ export default function EventFormPage({ initialTab }: { initialTab: Tab }) {
   }, [tab, eventId, navigate]);
 
   const { data: event } = useQuery({
-    queryKey: ["event", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, start_date")
-        .eq("id", eventId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryKey: veranstaltungSchluessel.kopf(eventId),
+    queryFn: () => ladeVeranstaltungKopf(eventId!),
     enabled: !!eventId,
   });
 

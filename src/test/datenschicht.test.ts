@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { mitgliedSchluessel } from "@/daten/mitglieder";
+import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
 
 /**
@@ -23,6 +25,23 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     name: "wahlen",
     schluessel: wahlSchluessel,
     dateien: ["src/pages/intern/Elections.tsx", ...quelltexte("src/components/elections")],
+  },
+  {
+    // Ohne die öffentliche Anmeldeseite (pages/EventRegistration.tsx): Sie
+    // liest für Gäste über einen eigenen Weg und ist noch nicht umgezogen.
+    name: "veranstaltungen",
+    schluessel: veranstaltungSchluessel,
+    dateien: [
+      ...quelltexte("src/pages/intern").filter((pfad) => /\/Event[^/]*\.tsx$/.test(pfad)),
+      ...quelltexte("src/components/events"),
+      ...quelltexte("src/components/event-forms"),
+      ...quelltexte("src/components/evaluation"),
+    ],
+  },
+  {
+    name: "mitglieder",
+    schluessel: mitgliedSchluessel,
+    dateien: [],
   },
 ];
 

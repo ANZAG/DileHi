@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import { aktiveNachName, useMitgliederverzeichnis } from "@/daten/mitglieder";
 import { Hilfe } from "@/components/Hilfe";
 
 interface Props {
@@ -33,14 +33,8 @@ export default function EventFormDialog({
   canSetPublic, isEdit, wantForumThread, setWantForumThread,
   organizerId, setOrganizerId, canChangeOrganizer,
 }: Props) {
-  const { data: members = [] } = useQuery({
-    queryKey: ["member_directory"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_member_directory");
-      return (data || []).filter((m) => m.is_active).sort((a, b) => a.display_name.localeCompare(b.display_name));
-    },
-    enabled: !!canChangeOrganizer && isEdit,
-  });
+  const { data: verzeichnis } = useMitgliederverzeichnis({ enabled: !!canChangeOrganizer && isEdit });
+  const members = useMemo(() => aktiveNachName(verzeichnis ?? []), [verzeichnis]);
 
   return (
     <div className="space-y-4">

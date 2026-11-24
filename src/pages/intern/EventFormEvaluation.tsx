@@ -1,7 +1,15 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  ladeAnmeldungen,
+  loescheAnmeldung,
+  useFormular,
+  useFormularFelder,
+  useVeranstaltung,
+  veranstaltungSchluessel,
+} from "@/daten/veranstaltungen";
+import { ladeAlleZelte, mitgliedSchluessel, useMitgliederverzeichnis } from "@/daten/mitglieder";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +35,6 @@ import {
   calcTentArea,
   calcClubTentArea,
   getClubTentDimensions,
-  alsFormField,
   type FormField,
   type FormResponse,
   type FormAnswer,
@@ -97,29 +104,8 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
   const [groupLink, setGroupLink] = useState("");
   const [layoutVersion, setLayoutVersion] = useState(0);
 
-  const { data: event } = useQuery({
-    queryKey: ["event", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("events").select("*").eq("id", eventId!).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!eventId,
-  });
-
-  const { data: form } = useQuery({
-    queryKey: ["event_form", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_forms")
-        .select("*")
-        .eq("event_id", eventId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!eventId,
-  });
+  const { data: event } = useVeranstaltung(eventId);
+  const { data: form } = useFormular(eventId);
 
   // Sync local state from form settings whenever form data is available (including from cache)
   const formSettingsKey = form?.id;
@@ -139,65 +125,20 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     setGroupLink(s.group_link ?? s.whatsapp_link ?? "");
   }, [formSettingsKey, form]);
 
-  const { data: fields = [] } = useQuery({
-    queryKey: ["event_form_fields", form?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_form_fields")
-        .select("*")
-        .eq("form_id", form!.id)
-        .order("sort_order");
-      if (error) throw error;
-      return data.map(alsFormField);
-    },
-    enabled: !!form?.id,
-  });
+  const { data: fields = [] } = useFormularFelder(form?.id);
 
   const { data: responses = [] } = useQuery({
-    queryKey: ["event_form_responses", form?.id],
-    queryFn: async () => {
-      const { data: respData, error } = await supabase
-        .from("event_form_responses")
-        .select("*")
-        .eq("form_id", form!.id)
-        .order("created_at");
-      if (error) throw error;
-
-      const responseIds = respData.map((r) => r.id);
-      if (responseIds.length === 0) return [];
-
-      const { data: ansData } = await supabase
-        .from("event_form_answers")
-        .select("*")
-        .in("response_id", responseIds);
-
-      return respData.map((r) => ({
-        ...r,
-        answers: (ansData || []).filter((a) => a.response_id === r.id),
-      })) as (FormResponse & { answers: FormAnswer[] })[];
-    },
+    queryKey: veranstaltungSchluessel.anmeldungen(form?.id),
+    queryFn: () => ladeAnmeldungen(form!.id),
     enabled: !!form?.id,
   });
 
   const { data: allMemberTents = [] } = useQuery({
-    queryKey: ["all_member_tents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("member_tents")
-        .select("*, profiles!member_tents_user_id_fkey(display_name)")
-        .order("created_at");
-      if (error) { console.error("member_tents error:", error); return []; }
-      return data;
-    },
+    queryKey: mitgliedSchluessel.alleZelte(),
+    queryFn: ladeAlleZelte,
   });
 
-  const { data: members = [] } = useQuery({
-    queryKey: ["member_directory"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_member_directory");
-      return data || [];
-    },
-  });
+  const { data: members = [] } = useMitgliederverzeichnis();
 
   // Gemeinsamer Schreibweg mit dem Formular-Baukasten: Es wird nur die
   // Änderung gesendet, nicht der ganze settings-Blob aus dem Browser-Cache.
@@ -549,11 +490,8 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
 
   // Delete a single response (board / event organizer)
   const deleteResponse = useMutation({
-    mutationFn: async (responseId: string) => {
-      const { error } = await supabase.from("event_form_responses").delete().eq("id", responseId);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form_responses", form?.id] }),
+    mutationFn: (responseId: string) => loescheAnmeldung(responseId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.anmeldungen(form?.id) }),
   });
 
   const addProgramItem = () => {

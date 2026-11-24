@@ -15,7 +15,7 @@ import {
 import { Trash2, UserCheck, UserPlus, Check, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { ordneAnmeldungZu, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { FormField, FormResponse, FormAnswer, HelperTask } from "@/components/event-forms/types";
@@ -92,17 +92,10 @@ export default function EvalResponsesTable({
   const qc = useQueryClient();
 
   const assign = useMutation({
-    mutationFn: async ({ responseId, userId }: { responseId: string; userId: string | null }) => {
-      const { error } = await supabase.rpc("assign_response_to_member", {
-        _response_id: responseId,
-        // null hebt die Zuordnung auf. Die Funktion nimmt das an; der erzeugte Typ
-        // kennt bei Funktionsargumenten kein null.
-        _user_id: userId as string,
-      });
-      if (error) throw error;
-    },
+    mutationFn: ({ responseId, userId }: { responseId: string; userId: string | null }) =>
+      ordneAnmeldungZu(responseId, userId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["event_form_responses", formId] });
+      qc.invalidateQueries({ queryKey: veranstaltungSchluessel.anmeldungen(formId) });
       toast({ title: "Zuordnung gespeichert" });
       setOpenAssignId(null);
     },

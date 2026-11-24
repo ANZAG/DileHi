@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,12 +13,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Trash2, Copy, Link as LinkIcon, FileText, Settings, Save, RotateCcw } from "lucide-react";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
-import { alsFormField, type FormField } from "@/components/event-forms/types";
+import type { FormField } from "@/components/event-forms/types";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
 import { readFormSettings, useFormSettings } from "@/components/event-forms/formSettings";
 import { SEITE } from "@/lib/layout";
+import {
+  aendereFormular,
+  legeFormularAn,
+  loescheFormular,
+  speichereFelder,
+  useFormular,
+  useFormularFelder,
+  useVeranstaltung,
+  veranstaltungSchluessel,
+} from "@/daten/veranstaltungen";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 /** Stabile Referenz – siehe Kommentar am Entwurfs-Effekt. */
@@ -40,43 +49,9 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  const { data: event } = useQuery({
-    queryKey: ["event", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("events").select("*").eq("id", eventId!).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!eventId,
-  });
-
-  const { data: form, isLoading: formLoading } = useQuery({
-    queryKey: ["event_form", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_forms")
-        .select("*")
-        .eq("event_id", eventId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!eventId,
-  });
-
-  const { data: fields = EMPTY_FIELDS } = useQuery({
-    queryKey: ["event_form_fields", form?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_form_fields")
-        .select("*")
-        .eq("form_id", form!.id)
-        .order("sort_order");
-      if (error) throw error;
-      return data.map(alsFormField);
-    },
-    enabled: !!form?.id,
-  });
+  const { data: event } = useVeranstaltung(eventId);
+  const { data: form, isLoading: formLoading } = useFormular(eventId);
+  const { data: fields = EMPTY_FIELDS } = useFormularFelder(form?.id);
 
   // Serverzustand in den Entwurf übernehmen (nur wenn nichts Ungespeichertes offen ist).
   //
@@ -92,21 +67,9 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   }, [fields, form?.id]);
 
   const createForm = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("event_forms")
-        .insert({
-          event_id: eventId!,
-          title: event?.title || "Anmeldeformular",
-          created_by: user!.id,
-          settings: { spacing_m: 0, club_tents: [], group_link: "" },
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
+    mutationFn: () =>
+      legeFormularAn({ eventId: eventId!, titel: event?.title || "Anmeldeformular", userId: user!.id }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.formular(eventId) }),
     onError: (err: Error) =>
       toast({ title: "Formular konnte nicht angelegt werden", description: err.message, variant: "destructive" }),
   });
@@ -132,55 +95,11 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   const saveFields = useMutation({
     mutationFn: async () => {
       if (!form) return;
-      const keptIds = draft.filter((f) => !f.id.startsWith("new-")).map((f) => f.id);
-      const removed = fields.filter((f) => !keptIds.includes(f.id));
-      if (removed.length > 0) {
-        const { error } = await supabase
-          .from("event_form_fields")
-          .delete()
-          .in("id", removed.map((f) => f.id));
-        if (error) throw error;
-      }
-
-      const inserts = draft
-        .map((f, i) => ({ f, i }))
-        .filter(({ f }) => f.id.startsWith("new-"))
-        .map(({ f, i }) => ({
-          form_id: form.id,
-          type: f.type,
-          label: f.label,
-          description: f.description,
-          required: f.required,
-          sort_order: i,
-          options: f.options || [],
-          settings: f.settings || {},
-        }));
-      if (inserts.length > 0) {
-        const { error } = await supabase.from("event_form_fields").insert(inserts);
-        if (error) throw error;
-      }
-
-      const updates = draft
-        .map((f, i) => ({ f, i }))
-        .filter(({ f }) => !f.id.startsWith("new-"))
-        .map(({ f, i }) =>
-          supabase
-            .from("event_form_fields")
-            .update({
-              label: f.label,
-              description: f.description,
-              required: f.required,
-              options: f.options || [],
-              settings: f.settings || {},
-              sort_order: i,
-            })
-            .eq("id", f.id)
-        );
-      await Promise.all(updates);
+      await speichereFelder(form.id, fields.map((f) => f.id), draft);
     },
     onSuccess: () => {
       setDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.felder() });
       toast({ title: "Formular gespeichert" });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
@@ -189,29 +108,23 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   const deleteForm = useMutation({
     mutationFn: async () => {
       if (!form) return;
-      await supabase.from("event_form_answers").delete().in(
-        "response_id",
-        (await supabase.from("event_form_responses").select("id").eq("form_id", form.id)).data?.map((r) => r.id) || []
-      );
-      await supabase.from("event_form_responses").delete().eq("form_id", form.id);
-      await supabase.from("event_form_fields").delete().eq("form_id", form.id);
-      const { error } = await supabase.from("event_forms").delete().eq("id", form.id);
-      if (error) throw error;
+      await loescheFormular(form.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.formular(eventId) });
       setDirty(false);
       toast({ title: "Formular gelöscht" });
     },
+    // Ohne das blieb ein gescheitertes Löschen stumm.
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const updateForm = useMutation({
     mutationFn: async (updates: { title?: string; description?: string | null; is_open?: boolean; settings?: Json }) => {
       if (!form) return;
-      const { error } = await supabase.from("event_forms").update(updates).eq("id", form.id);
-      if (error) throw error;
+      await aendereFormular(form.id, updates);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event_form", eventId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.formular(eventId) }),
   });
 
   // Auto-Schließung: Anmeldeschluss überschritten → Formular schließen
