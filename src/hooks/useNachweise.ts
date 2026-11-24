@@ -59,6 +59,7 @@ export function useMeineNachweise(userId: string | undefined) {
   return useQuery({
     queryKey: ["nachweise", "meine", userId],
     queryFn: async (): Promise<Nachweis[]> => {
+      if (!userId) return [];
       const { data, error } = await supabase.from("member_certificates").select("*").eq("user_id", userId);
       if (error) throw new Error(error.message);
       return (data ?? []) as Nachweis[];

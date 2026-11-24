@@ -472,6 +472,7 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
 
   const loeschen = useMutation({
     mutationFn: async () => {
+      if (!werte.id) throw new Error("Der Gegenstand ist noch nicht gespeichert.");
       const { error } = await supabase.from("inventory_items").delete().eq("id", werte.id);
       if (error) throw new Error(error.message);
     },

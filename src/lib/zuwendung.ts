@@ -1,4 +1,6 @@
 import { datumDe, plusMonate } from "@/lib/datum";
+import type { Tables } from "@/integrations/supabase/types";
+import { ausJson } from "@/lib/json";
 
 /**
  * Zuwendungsbestätigung nach amtlichem Muster.
@@ -50,6 +52,17 @@ export interface Bestaetigung {
   cancelled_at: string | null;
   cancel_reason: string | null;
 }
+
+/**
+ * Eine Zeile aus `donation_receipts` als Bestätigung. Die Art ist dort Text
+ * mit festem Wertevorrat, die Momentaufnahme eine JSON-Spalte – beides kennt
+ * der erzeugte Typ nur allgemein.
+ */
+export const alsBestaetigung = (z: Tables<"donation_receipts">): Bestaetigung => ({
+  ...z,
+  kind: z.kind as Bestaetigung["kind"],
+  snapshot: ausJson<Momentaufnahme>(z.snapshot),
+});
 
 /** Bis zu welchem Tag der Bescheid für Bestätigungen reicht (§ 63 Abs. 5 AO). */
 export function bescheidReichtBis(art: BescheidArt, datum: string): string {

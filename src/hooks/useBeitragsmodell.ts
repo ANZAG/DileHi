@@ -34,7 +34,7 @@ export function useBeitragsmodell(): Beitragseinstellungen {
   const { data } = useQuery({
     queryKey: ["beitragsmodell"],
     queryFn: async (): Promise<Beitragseinstellungen> => {
-      const { data, error } = await supabase.rpc("public_contribution_settings" as never);
+      const { data, error } = await supabase.rpc("public_contribution_settings");
       if (error) throw new Error(error.message);
       const zeile = (data as { model: string; options: unknown }[] | null)?.[0];
       if (!zeile) return VORGABE;

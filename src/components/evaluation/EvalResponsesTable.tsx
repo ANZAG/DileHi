@@ -93,9 +93,11 @@ export default function EvalResponsesTable({
 
   const assign = useMutation({
     mutationFn: async ({ responseId, userId }: { responseId: string; userId: string | null }) => {
-      const { error } = await (supabase.rpc as any)("assign_response_to_member", {
+      const { error } = await supabase.rpc("assign_response_to_member", {
         _response_id: responseId,
-        _user_id: userId,
+        // null hebt die Zuordnung auf. Die Funktion nimmt das an; der erzeugte Typ
+        // kennt bei Funktionsargumenten kein null.
+        _user_id: userId as string,
       });
       if (error) throw error;
     },

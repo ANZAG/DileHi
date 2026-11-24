@@ -41,7 +41,7 @@ export function useModule() {
   return useQuery({
     queryKey: ["module"],
     queryFn: async (): Promise<ModuleState[]> => {
-      const { data, error } = await supabase.rpc("module_status" as never);
+      const { data, error } = await supabase.rpc("module_status");
       if (error) throw new Error(error.message);
       return (data ?? []) as ModuleState[];
     },

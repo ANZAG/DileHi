@@ -23,21 +23,21 @@ const SourcesAdmin = () => {
     queryKey: ["epoch_sources_admin", selectedEpoch],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("epoch_sources" as any)
+        .from("epoch_sources")
         .select("*")
         .eq("epoch", selectedEpoch)
         .order("sort_order", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const maxOrder = sources.length > 0 ? Math.max(...sources.map((s: any) => s.sort_order)) + 1 : 1;
+      const maxOrder = sources.length > 0 ? Math.max(...sources.map((s) => s.sort_order)) + 1 : 1;
       const { error } = await supabase
-        .from("epoch_sources" as any)
-        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id } as any);
+        .from("epoch_sources")
+        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -50,7 +50,7 @@ const SourcesAdmin = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("epoch_sources" as any).delete().eq("id", id);
+      const { error } = await supabase.from("epoch_sources").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -61,7 +61,7 @@ const SourcesAdmin = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, text }: { id: string; text: string }) => {
-      const { error } = await supabase.from("epoch_sources" as any).update({ text } as any).eq("id", id);
+      const { error } = await supabase.from("epoch_sources").update({ text }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -77,8 +77,8 @@ const SourcesAdmin = () => {
       // Update each item's sort_order
       for (const item of reordered) {
         const { error } = await supabase
-          .from("epoch_sources" as any)
-          .update({ sort_order: item.sort_order } as any)
+          .from("epoch_sources")
+          .update({ sort_order: item.sort_order })
           .eq("id", item.id);
         if (error) throw error;
       }
@@ -99,13 +99,13 @@ const SourcesAdmin = () => {
     const items = Array.from(sources);
     const [moved] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, moved);
-    const reordered = items.map((item: any, idx: number) => ({ id: item.id, sort_order: idx + 1 }));
+    const reordered = items.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }));
     // Optimistic update
-    queryClient.setQueryData(["epoch_sources_admin", selectedEpoch], items.map((item: any, idx: number) => ({ ...item, sort_order: idx + 1 })));
+    queryClient.setQueryData(["epoch_sources_admin", selectedEpoch], items.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
     reorderMutation.mutate(reordered);
   };
 
-  const startEdit = (s: any) => {
+  const startEdit = (s: { id: string; text: string }) => {
     setEditingId(s.id);
     setEditText(s.text);
   };
@@ -162,7 +162,7 @@ const SourcesAdmin = () => {
           <Droppable droppableId="sources-list">
             {(provided) => (
               <ul className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
-                {sources.map((s: any, index: number) => (
+                {sources.map((s, index) => (
                   <Draggable key={s.id} draggableId={s.id} index={index}>
                     {(provided, snapshot) => (
                       <li

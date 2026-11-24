@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, differenceInCalendarDays } from "date-fns";
@@ -71,11 +72,11 @@ export function useEvents() {
   const { data: eventThreads = [] } = useQuery({
     queryKey: ["event_threads"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as unknown as (t: string) => {
-        select: (c: string) => { not: (a: string, b: string, c: null) => Promise<{ data: unknown; error: unknown }> };
-      })("forum_threads").select("id, event_id, post_count").not("event_id", "is", null);
+      const { data, error } = await supabase
+        .from("forum_threads").select("id, event_id, post_count").not("event_id", "is", null);
       if (error) return [];
-      return (data ?? []) as { id: string; event_id: string; post_count: number }[];
+      // Die Abfrage schließt Themen ohne Veranstaltung aus; der Typ weiß das nicht.
+      return (data ?? []).flatMap((t) => (t.event_id ? [{ ...t, event_id: t.event_id }] : []));
     },
   });
 
@@ -151,7 +152,7 @@ export function useEvents() {
         // Der Thread entsteht per Trigger; ob das Haekchen ueberhaupt gilt,
         // entscheidet app_settings.forum_event_thread.
         forum_thread_wanted: wantForumThread,
-      } as never);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -173,7 +174,7 @@ export function useEvents() {
       const end = endDate
         ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
         : null;
-      const updateData: any = {
+      const updateData: TablesUpdate<"events"> = {
         title, description: description || null, location: location || null,
         start_date: start, end_date: end, all_day: allDay, is_public: isPublic,
       };

@@ -62,7 +62,7 @@ export default function SatzungEinstellung() {
     // Dokumente, die dort liegen.
     queryKey: ["satzung-auswahl", entwurf?.statutes_category],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("statutes_options" as never);
+      const { data, error } = await supabase.rpc("statutes_options");
       if (error) throw new Error(error.message);
       return (data ?? []) as { id: string; title: string; created_at: string }[];
     },

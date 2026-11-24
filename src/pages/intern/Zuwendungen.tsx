@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
 import { datumDe, heuteIso, tageBis } from "@/lib/datum";
-import { bescheidReichtBis, bestaetigungHtml, drucken, euro, type BescheidArt, type Bestaetigung } from "@/lib/zuwendung";
+import { bescheidReichtBis, bestaetigungHtml, alsBestaetigung, drucken, euro, type BescheidArt, type Bestaetigung } from "@/lib/zuwendung";
 
 
 interface Zuwendung {
@@ -112,7 +112,7 @@ function MeineBestaetigungen() {
       const { data, error } = await supabase.from("donation_receipts").select("*")
         .eq("donor_user_id", user!.id).is("cancelled_at", null).order("issued_on", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Bestaetigung[];
+      return (data ?? []).map(alsBestaetigung);
     },
     enabled: !!user,
   });
@@ -220,7 +220,7 @@ function Spenden() {
       if (error) throw new Error(error.message);
       const { data: beleg, error: lesen } = await supabase.from("donation_receipts").select("*").eq("id", data).single();
       if (lesen) throw new Error(lesen.message);
-      return beleg as Bestaetigung;
+      return alsBestaetigung(beleg);
     },
     onSuccess: (beleg) => {
       setAuswahl(new Set());
@@ -462,7 +462,7 @@ function Bestaetigungen() {
       const { data, error } = await supabase.from("donation_receipts").select("*")
         .gte("issued_on", `${jahr}-01-01`).lte("issued_on", `${jahr}-12-31`).order("number", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Bestaetigung[];
+      return (data ?? []).map(alsBestaetigung);
     },
   });
 

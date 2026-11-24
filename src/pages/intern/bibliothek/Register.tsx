@@ -13,6 +13,7 @@ import {
 import { useBibliotheksrechte } from "@/hooks/useBibliothek";
 import { DATIERUNG, LAGE, RECHTE, type Rechte } from "@/lib/bibliothek";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 const KRUMEN = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }];
 const ALLE = "__alle__";
@@ -194,7 +195,7 @@ function Verbindungen({ quelle }: { quelle: { id: string; collection_source_id: 
   });
 
   const setzen = useMutation({
-    mutationFn: async (werte: Record<string, string | null>) => {
+    mutationFn: async (werte: Pick<TablesUpdate<"library_sources">, "collection_source_id" | "public_source_id">) => {
       const { error } = await supabase.from("library_sources").update(werte).eq("id", quelle.id);
       if (error) throw new Error(error.message);
     },

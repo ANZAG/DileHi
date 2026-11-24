@@ -1,12 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import { alsJson } from "@/lib/json";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 /**
  * Datenzugriff fürs Forum.
  *
- * Die Forum-Tabellen stehen noch nicht in der erzeugten types.ts – die entsteht
- * erst bei der nächsten Neugenerierung. Damit die Zusicherungen nicht durch alle
- * Komponenten wandern, stehen sie gebündelt hier. Nach der Neugenerierung fällt
- * `db` ersatzlos weg, die Aufrufe bleiben.
+ * Alle Abfragen des Forums stehen gebündelt hier, damit die Komponenten die
+ * Tabellen nicht kennen müssen.
  */
 
 export type CategoryStatus = "vorgeschlagen" | "aktiv" | "archiviert";
@@ -216,10 +216,17 @@ export async function saveCategory(category: Partial<ForumCategory> & { id?: str
     sort_order: category.sort_order ?? 0,
     status: category.status ?? "vorgeschlagen",
   };
-  const query = category.id
-    ? supabase.from("forum_categories").update(payload).eq("id", category.id)
-    : supabase.from("forum_categories").insert({ ...payload, created_by: category.created_by });
-  const { error } = await query;
+  if (category.id) {
+    const { error } = await supabase.from("forum_categories").update(payload).eq("id", category.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  // Eine neue Rubrik ohne Namen lehnt die Datenbank ohnehin ab.
+  const { name } = payload;
+  if (!name) throw new Error("Die Rubrik braucht einen Namen.");
+  const { error } = await supabase
+    .from("forum_categories")
+    .insert({ ...payload, name, created_by: category.created_by });
   if (error) throw new Error(error.message);
 }
 
@@ -265,7 +272,7 @@ export async function createPollPost(input: {
     thread_id: input.threadId,
     kind: input.kind,
     body: "",
-    payload: input.payload,
+    payload: alsJson(input.payload),
     created_by: input.userId,
   });
   if (error) throw new Error(error.message);
@@ -285,7 +292,7 @@ export interface ThreadPatch {
 }
 
 export async function updateThread(id: string, patch: ThreadPatch) {
-  const daten: Record<string, unknown> = { ...patch };
+  const daten: TablesUpdate<"forum_threads"> = { ...patch };
   // Der Titel bestimmt die Adresse mit – sonst zeigt der Link auf den alten.
   if (patch.title !== undefined) {
     daten.title = patch.title.trim();

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export default function RollenAdmin() {
   const { data: rollen = [], isLoading } = useQuery({
     queryKey: ["role-status"],
     queryFn: async (): Promise<Role[]> => {
-      const { data, error } = await supabase.rpc("role_status" as never);
+      const { data, error } = await supabase.rpc("role_status");
       if (error) throw new Error(error.message);
       return (data ?? []) as Role[];
     },
@@ -67,7 +68,7 @@ export default function RollenAdmin() {
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ key, werte }: { key: string; werte: Partial<Role> }) => {
+    mutationFn: async ({ key, werte }: { key: string; werte: TablesUpdate<"role_catalog"> }) => {
       const { error } = await supabase.from("role_catalog").update(werte).eq("key", key);
       if (error) throw new Error(error.message);
     },

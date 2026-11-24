@@ -81,9 +81,7 @@ export default function PersonaPublishAdmin() {
         if (old.length > 0) await supabase.storage.from("gallery").remove(old);
       }
 
-      const { error } = await (supabase.rpc as unknown as (
-        fn: string, args: Record<string, unknown>
-      ) => Promise<{ error: { message: string } | null }>)("set_persona_public", {
+      const { error } = await supabase.rpc("set_persona_public", {
         _persona_id: persona.id,
         _is_public: next,
         _public_images: publicPaths,

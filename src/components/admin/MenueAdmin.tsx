@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
 import { einsetzen } from "@/lib/organisationsform";
@@ -104,7 +105,7 @@ export default function MenueAdmin() {
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Eintrag> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<"site_menu"> }) => {
       const { error } = await supabase.from("site_menu").update(patch).eq("id", id);
       if (error) throw new Error(error.message);
     },
@@ -329,16 +330,19 @@ function FussUeberschrift({ spalte, hinweis }: {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Record<string, string | null>;
+      return data;
     },
   });
 
-  const gespeichert = (data?.[spalte] as string | null) ?? "";
+  const gespeichert = data?.[spalte] ?? "";
   useEffect(() => setWert(gespeichert), [gespeichert, spalte]);
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("app_settings").update({ [spalte]: wert.trim() }).eq("id", true);
+      const text = wert.trim();
+      const { error } = await supabase.from("app_settings")
+        .update(spalte === "footer_navigation_label" ? { footer_navigation_label: text } : { footer_legal_label: text })
+        .eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

@@ -11,12 +11,12 @@ const EpochSources = ({ epoch }: EpochSourcesProps) => {
     queryKey: ["epoch_sources", epoch],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("epoch_sources" as any)
+        .from("epoch_sources")
         .select("*")
         .eq("epoch", epoch)
         .order("sort_order", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
@@ -29,7 +29,7 @@ const EpochSources = ({ epoch }: EpochSourcesProps) => {
         </p>
         {sources.length > 0 ? (
           <ul className="space-y-3 ml-1 text-sm">
-            {sources.map((s: any) => (
+            {sources.map((s) => (
               <li key={s.id} className="flex items-start gap-2">
                 <span className="text-primary mt-1">•</span>
                 <span dangerouslySetInnerHTML={{ __html: betonung(s.text) }} />

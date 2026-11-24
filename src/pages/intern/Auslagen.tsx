@@ -16,6 +16,7 @@ import {
   type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
 } from "@/hooks/useAuslagen";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 interface Mitglied { id: string; display_name: string }
 interface Termin { id: string; title: string; start_date: string }
@@ -323,7 +324,7 @@ function Pruefen() {
 
   const aendern = useMutation({
     mutationFn: async ({ id, status, notiz }: { id: string; status: Auslage["status"]; notiz?: string | null }) => {
-      const patch: Record<string, unknown> = { status };
+      const patch: TablesUpdate<"expense_claims"> = { status };
       if (notiz !== undefined) patch.decision_note = notiz;
       const { error } = await supabase.from("expense_claims").update(patch).eq("id", id);
       if (error) throw new Error(error.message);

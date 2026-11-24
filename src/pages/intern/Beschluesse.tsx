@@ -265,6 +265,8 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
 
   const speichern = useMutation({
     mutationFn: async () => {
+      // Der Knopf ist ohne Datum gesperrt; hier nur, damit es auch der Typ weiß.
+      if (!b.decided_on) throw new Error("Das Datum des Beschlusses fehlt.");
       const daten = {
         number: b.number?.trim() || null,
         decided_on: b.decided_on,
@@ -296,6 +298,7 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
 
   const loeschen = useMutation({
     mutationFn: async () => {
+      if (!b.id) throw new Error("Der Beschluss ist noch nicht gespeichert.");
       const { error } = await supabase.from("resolutions").delete().eq("id", b.id);
       if (error) throw new Error(error.message);
     },

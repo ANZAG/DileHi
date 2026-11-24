@@ -145,6 +145,8 @@ export default function FristenAdmin() {
 
   const speichern = useMutation({
     mutationFn: async (f: Partial<Frist>) => {
+      // Der Knopf ist ohne Datum gesperrt; hier nur, damit es auch der Typ weiß.
+      if (!f.due_date) throw new Error("Das Datum fehlt.");
       const daten = {
         title: (f.title ?? "").trim(),
         category: f.category ?? "other",

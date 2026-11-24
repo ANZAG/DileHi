@@ -72,7 +72,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
     enabled: !!user?.id && election.status === "active",
     queryFn: async () => {
       const { count, error } = await supabase
-        .from("votes" as any)
+        .from("votes")
         .select("id", { count: "exact", head: true })
         .eq("election_id", election.id)
         .eq("voter_id", user!.id);

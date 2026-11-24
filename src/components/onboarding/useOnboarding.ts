@@ -74,7 +74,7 @@ export function useOnboarding() {
   const erledigtQuery = useQuery({
     queryKey: ["onboarding-erledigt", user?.id],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("onboarding_completed_tasks" as never);
+      const { data, error } = await supabase.rpc("onboarding_completed_tasks");
       if (error) throw new Error(error.message);
       return (data ?? []) as string[];
     },

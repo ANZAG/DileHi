@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, CheckCircle2, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
 import type { Findings } from "@/lib/einrichtung";
@@ -59,7 +60,7 @@ export default function Einrichtungsprozess({
   const merken = async (bis: number, fertig = false) => {
     setLaeuft(true);
     try {
-      const patch: Record<string, unknown> = { setup_step: bis };
+      const patch: TablesUpdate<"app_settings"> = { setup_step: bis };
       if (fertig) patch.setup_done_at = new Date().toISOString();
       const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
       if (error) throw new Error(error.message);

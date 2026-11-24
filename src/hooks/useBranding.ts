@@ -126,7 +126,7 @@ export function useBranding() {
   const { data } = useQuery({
     queryKey: ["branding"],
     queryFn: async (): Promise<Branding> => {
-      const { data, error } = await supabase.rpc("public_branding" as never);
+      const { data, error } = await supabase.rpc("public_branding");
       if (error) throw new Error(error.message);
       const row = (data as Branding[] | null)?.[0];
       return row ? { ...VORGABE, ...row } : VORGABE;

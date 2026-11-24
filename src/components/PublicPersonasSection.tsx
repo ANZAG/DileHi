@@ -56,9 +56,7 @@ export default function PublicPersonasSection({
   const { data: personas = [] } = useQuery({
     queryKey: ["public-personas"],
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as unknown as (
-        fn: string
-      ) => Promise<{ data: PublicPersona[] | null; error: unknown }>)("get_public_personas");
+      const { data, error } = await supabase.rpc("get_public_personas");
       if (error) return [];
       return data ?? [];
     },

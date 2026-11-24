@@ -20,18 +20,23 @@ import { themenDerKarte } from "@/lib/bibliothek";
 import { invokeFunction } from "@/lib/functionError";
 import { inStuecken } from "@/lib/alleZeilen";
 import { supabase } from "@/integrations/supabase/client";
+import { alsJson } from "@/lib/json";
 
 const ART_LABEL: Record<Art, string> = {
   darstellung: "Darstellungen", seite: "Seiten", quelle: "Quellen", bild: "Bildtafeln", thema: "Themenseiten",
   karte: "Karten",
 };
-const TABELLE: Record<Art, { tabelle: string; spalte: string }> = {
-  darstellung: { tabelle: "library_presentations", spalte: "id" },
-  seite: { tabelle: "library_pages", spalte: "slug" },
-  quelle: { tabelle: "library_sources", spalte: "id" },
-  bild: { tabelle: "library_plates", spalte: "id" },
-  thema: { tabelle: "library_topics", spalte: "id" },
-  karte: { tabelle: "library_cards", spalte: "id" },
+/**
+ * Einen Eintrag aus seiner Tabelle löschen. Je Art eine eigene Zeile statt
+ * Tabelle und Spalte als Text: Nur so prüft der Compiler beide Namen.
+ */
+const LOESCHEN: Record<Art, (id: string) => PromiseLike<{ error: { message: string } | null }>> = {
+  darstellung: (id) => supabase.from("library_presentations").delete().eq("id", id),
+  seite: (id) => supabase.from("library_pages").delete().eq("slug", id),
+  quelle: (id) => supabase.from("library_sources").delete().eq("id", id),
+  bild: (id) => supabase.from("library_plates").delete().eq("id", id),
+  thema: (id) => supabase.from("library_topics").delete().eq("id", id),
+  karte: (id) => supabase.from("library_cards").delete().eq("id", id),
 };
 
 interface Ergebnis {
@@ -129,7 +134,8 @@ export default function BibliothekPflege() {
       const gesamt = eintraege.length + 1;
       for (const [i, e] of eintraege.entries()) {
         setSchritt({ fertig: i, gesamt, was: e.datei });
-        const { error } = await supabase.rpc("library_import", { _art: e.art, _d: e.daten, _text: e.text });
+        // Ohne Text bleibt das Argument weg; die Funktion setzt dann selbst null ein.
+        const { error } = await supabase.rpc("library_import", { _art: e.art, _d: alsJson(e.daten), _text: e.text ?? undefined });
         if (error) fehler.push({ datei: e.datei, meldung: error.message });
         else eingespielt++;
       }
@@ -181,8 +187,7 @@ export default function BibliothekPflege() {
   const entfernen = async (liste: { art: Art; id: string }[]) => {
     const fehler: Meldung[] = [];
     for (const v of [...liste].sort((a, b) => REIHENFOLGE.indexOf(b.art) - REIHENFOLGE.indexOf(a.art))) {
-      const { tabelle, spalte } = TABELLE[v.art];
-      const { error } = await supabase.from(tabelle).delete().eq(spalte, v.id);
+      const { error } = await LOESCHEN[v.art](v.id);
       if (error) fehler.push({ datei: v.id, meldung: error.message });
     }
     qc.invalidateQueries({ queryKey: ["bibliothek"] });

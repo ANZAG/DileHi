@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, RotateCcw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +72,7 @@ export default function OnboardingAdmin() {
     queryFn: async (): Promise<Schritt[]> => {
       const { data, error } = await supabase.from("onboarding_steps").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []).map((s) => ({ ...s, defaults: ausJson<Schritt["defaults"]>(s.defaults) }));
     },
   });
 
@@ -80,7 +81,7 @@ export default function OnboardingAdmin() {
     queryFn: async (): Promise<Hilfetext[]> => {
       const { data, error } = await supabase.from("onboarding_help").select("*").order("key");
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []).map((h) => ({ ...h, defaults: ausJson<Hilfetext["defaults"]>(h.defaults) }));
     },
   });
 
