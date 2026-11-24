@@ -80,6 +80,7 @@ dann der Reiter „Secrets"):
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Push-Benachrichtigungen | nein |
 | `DIGEST_SECRET` | Die abendliche Zusammenfassung | nein |
 | `BACKUP_TOKEN` | Automatische Sicherung | empfohlen |
+| `DEEPL_API_KEY` | Maschinelle Übersetzung der öffentlichen Seite (Englisch, Französisch), siehe [mehrsprachig.md](mehrsprachig.md) | nein |
 
 Absenderadresse und Absendername stehen **nicht** hier, sondern im
 Mitgliederbereich unter Verwaltung → Erscheinungsbild. Dort gibt es auch einen
