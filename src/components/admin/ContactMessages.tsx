@@ -126,7 +126,7 @@ const ContactMessages = () => {
         const detailFields = isStructured
           ? parsed.fields.filter((f) => f.label !== "Name" && f.label !== "Organisation")
           : [];
-        const replies = allReplies.filter((r: any) => r.contact_message_id === msg.id);
+        const replies = allReplies.filter((r) => r.contact_message_id === msg.id);
 
         return (
           <div key={msg.id} className="p-3 rounded-lg border bg-background">

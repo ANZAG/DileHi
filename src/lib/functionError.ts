@@ -50,5 +50,6 @@ export async function invokeFunction<T = unknown>(
   if (error) throw new Error(await readFunctionError(error));
   const reported = (data as { error?: unknown } | null)?.error;
   if (typeof reported === "string" && reported) throw new Error(reported);
-  return data as T;
+  const zeile: T = data;
+  return zeile;
 }

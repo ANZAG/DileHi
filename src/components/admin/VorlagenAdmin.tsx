@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import ForumEditor from "@/components/forum/ForumEditor";
 
@@ -35,7 +36,6 @@ interface PdfVorlage {
   sort_order: number;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /** Welche Felder eine Mailvorlage hat und wie sie erklärt werden. */
 const MAILFELDER: { feld: keyof MailVorlage; label: string; hinweis: string }[] = [
@@ -96,9 +96,10 @@ function Mailvorlagen() {
   const { data: vorlagen = [], isLoading } = useQuery({
     queryKey: ["mail-templates"],
     queryFn: async () => {
-      const { data, error } = await db.from("mail_templates").select("*").order("sort_order");
+      const { data, error } = await supabase.from("mail_templates").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as MailVorlage[];
+      const zeilen: MailVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<MailVorlage["defaults"]>(v.defaults) }));
+      return zeilen;
     },
   });
 
@@ -113,7 +114,7 @@ function Mailvorlagen() {
 
   const speichern = useMutation({
     mutationFn: async (v: MailVorlage) => {
-      const { error } = await db.from("mail_templates").update({
+      const { error } = await supabase.from("mail_templates").update({
         subject: v.subject, eyebrow: v.eyebrow, heading: v.heading,
         body: v.body, button_label: v.button_label, footnote: v.footnote,
       }).eq("key", v.key);
@@ -213,9 +214,10 @@ export function Antragstexte() {
   const { data: texte = [], isLoading } = useQuery({
     queryKey: ["pdf-texts"],
     queryFn: async () => {
-      const { data, error } = await db.from("pdf_texts").select("*").order("sort_order");
+      const { data, error } = await supabase.from("pdf_texts").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as PdfVorlage[];
+      const zeilen: PdfVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<PdfVorlage["defaults"]>(v.defaults) }));
+      return zeilen;
     },
   });
 
@@ -230,7 +232,7 @@ export function Antragstexte() {
 
   const speichern = useMutation({
     mutationFn: async (t: PdfVorlage) => {
-      const { error } = await db.from("pdf_texts")
+      const { error } = await supabase.from("pdf_texts")
         .update({ title: t.title, body: t.body }).eq("key", t.key);
       if (error) throw new Error(error.message);
     },

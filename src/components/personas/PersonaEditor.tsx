@@ -59,7 +59,8 @@ const PersonaEditor = () => {
         .eq("user_id", user!.id)
         .order("sort_order")
         .order("created_at");
-  return (data ?? []) as MemberPersona[];
+  const zeilen: MemberPersona[] = data ?? [];
+  return zeilen;
     },
   });
 
@@ -111,12 +112,9 @@ const PersonaEditor = () => {
       show_name: draft.showName,
       images: draft.images,
     };
-    // show_name steht noch nicht in der erzeugten types.ts – die entsteht erst
-    // bei der naechsten Neugenerierung. Danach kann die Zusicherung weg.
-    const db = supabase as unknown as { from: (t: string) => any };
     const { error } = draft.id
-      ? await db.from("member_personas").update(payload).eq("id", draft.id)
-      : await db.from("member_personas").insert({ ...payload, sort_order: personas.length });
+      ? await supabase.from("member_personas").update(payload).eq("id", draft.id)
+      : await supabase.from("member_personas").insert({ ...payload, sort_order: personas.length });
     setSaving(false);
     if (error) {
       toast({ title: "Fehler", description: error.message, variant: "destructive" });

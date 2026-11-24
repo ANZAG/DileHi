@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -53,13 +54,18 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
   useEffect(() => {
     if (!editToken) return;
     (async () => {
-      const { data, error } = await (supabase.rpc as any)("get_response_by_edit_token", { _edit_token: editToken });
+      const { data, error } = await supabase.rpc("get_response_by_edit_token", { _edit_token: editToken });
       if (error || !data) {
         // Fall back to normal token load
         setGuestEditToken(null);
         return;
       }
-      const d = data as any;
+      // Die Funktion antwortet mit JSON: das Formular wie beim öffentlichen
+      // Aufruf, dazu die eigene Anmeldung und ihre Antworten.
+      const d = ausJson<FormData & {
+        response: { id: string; respondent_name: string; respondent_email: string | null };
+        answers: { field_id: string; value: unknown }[] | null;
+      }>(data);
       setFormData({
         form: d.form,
         event: d.event,
@@ -72,7 +78,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
 
       // Load answers
       const answerMap: Record<string, any> = {};
-      (d.answers || []).forEach((a: any) => {
+      (d.answers || []).forEach((a) => {
         answerMap[a.field_id] = a.value;
       });
       setAnswers(answerMap);
@@ -88,7 +94,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
         setLoading(false);
         return;
       }
-      setFormData(data as unknown as FormData);
+      setFormData(ausJson<FormData>(data));
       setLoading(false);
     });
   }, [token, editToken]);
@@ -214,12 +220,12 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
           .filter((f) => answers[f.id] !== undefined)
           .map((f) => ({ field_id: f.id, value: answers[f.id] }));
 
-        const { error } = await (supabase.rpc as any)("update_response_by_edit_token", {
+        const { error } = await supabase.rpc("update_response_by_edit_token", {
           _edit_token: guestEditToken,
           _name: name.trim(),
           // Die Funktion nimmt eine leere Adresse als NULL; die erzeugten Typen kennen nur „text“.
           _email: (email.trim() || null) as string,
-          _answers: answerArray as any,
+          _answers: answerArray,
         });
         if (error) throw error;
         setSubmitted(true);
@@ -267,7 +273,7 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
           _token: token!,
           _name: name.trim(),
           _email: (email.trim() || null) as string,
-          _answers: answerArray as any,
+          _answers: answerArray,
         });
 
         if (error) throw error;

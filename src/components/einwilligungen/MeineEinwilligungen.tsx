@@ -8,8 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe } from "@/lib/datum";
 import {
-  db, istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type Notfallkontakt,
+  istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type Notfallkontakt,
 } from "@/hooks/useEinwilligungen";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * „Einwilligungen und Notfallkontakt" im Profil.
@@ -28,7 +29,7 @@ export default function MeineEinwilligungen() {
   const { data: geburtsdatum } = useQuery({
     queryKey: ["einwilligungen", "geburtsdatum", user?.id],
     queryFn: async (): Promise<string | null> => {
-      const { data } = await db.from("profiles").select("birthdate").eq("id", user!.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("birthdate").eq("id", user!.id).maybeSingle();
       return (data?.birthdate as string | null) ?? null;
     },
     enabled: !!user,
@@ -37,9 +38,9 @@ export default function MeineEinwilligungen() {
   const { data: meine = [] } = useQuery({
     queryKey: ["einwilligungen", "meine", user?.id],
     queryFn: async (): Promise<Einwilligung[]> => {
-      const { data, error } = await db.from("member_consents").select("*").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("member_consents").select("*").eq("user_id", user!.id);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Einwilligung[];
+      return data ?? [];
     },
     enabled: !!user,
   });
@@ -47,9 +48,9 @@ export default function MeineEinwilligungen() {
   const { data: kontakte = [] } = useQuery({
     queryKey: ["einwilligungen", "kontakte", user?.id],
     queryFn: async (): Promise<Notfallkontakt[]> => {
-      const { data, error } = await db.from("member_emergency_contacts").select("*").eq("user_id", user!.id).order("created_at");
+      const { data, error } = await supabase.from("member_emergency_contacts").select("*").eq("user_id", user!.id).order("created_at");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Notfallkontakt[];
+      return data ?? [];
     },
     enabled: !!user,
   });
@@ -60,7 +61,7 @@ export default function MeineEinwilligungen() {
 
   const entscheiden = useMutation({
     mutationFn: async ({ typeId, granted }: { typeId: string; granted: boolean }) => {
-      const { error } = await db.from("member_consents").upsert(
+      const { error } = await supabase.from("member_consents").upsert(
         {
           user_id: user!.id,
           type_id: typeId,
@@ -77,7 +78,7 @@ export default function MeineEinwilligungen() {
 
   const kontaktSpeichern = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("member_emergency_contacts").insert({
+      const { error } = await supabase.from("member_emergency_contacts").insert({
         user_id: user!.id,
         name: neuerKontakt!.name.trim(),
         phone: neuerKontakt!.phone.trim(),
@@ -94,7 +95,7 @@ export default function MeineEinwilligungen() {
 
   const kontaktLoeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("member_emergency_contacts").delete().eq("id", id);
+      const { error } = await supabase.from("member_emergency_contacts").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["einwilligungen", "kontakte"] }),

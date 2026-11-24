@@ -12,9 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
 import { datumDe, heuteIso } from "@/lib/datum";
 import {
-  belegPfad, db, euro, FREIBETRAG_VORGABE, KATEGORIE, PAUSCHALE, pauschaleStand, STATUS,
-  type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
+  belegPfad, euro, FREIBETRAG_VORGABE, KATEGORIE, PAUSCHALE, pauschaleStand, STATUS,
+  alsAuslage, type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
 } from "@/hooks/useAuslagen";
+import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 interface Mitglied { id: string; display_name: string }
 interface Termin { id: string; title: string; start_date: string }
@@ -36,7 +38,7 @@ export default function Auslagen() {
   const { data: offen = 0 } = useQuery({
     queryKey: ["auslagen", "zu-pruefen-anzahl"],
     queryFn: async (): Promise<number> => {
-      const { count } = await db.from("expense_claims").select("id", { count: "exact", head: true }).in("status", ["submitted", "approved"]);
+      const { count } = await supabase.from("expense_claims").select("id", { count: "exact", head: true }).in("status", ["submitted", "approved"]);
       return count ?? 0;
     },
     enabled: kasse,
@@ -86,8 +88,8 @@ function useTermine() {
     queryKey: ["auslagen", "termine"],
     queryFn: async (): Promise<Termin[]> => {
       const vorEinemJahr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await db.from("events").select("id, title, start_date").gte("start_date", vorEinemJahr).order("start_date", { ascending: false }).limit(60);
-      return (data ?? []) as Termin[];
+      const { data } = await supabase.from("events").select("id, title, start_date").gte("start_date", vorEinemJahr).order("start_date", { ascending: false }).limit(60);
+      return data ?? [];
     },
   });
 }
@@ -96,8 +98,9 @@ function useMitglieder(enabled = true) {
   return useQuery({
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await db.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const { data } = await supabase.rpc("get_member_directory");
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
     enabled,
   });
@@ -105,7 +108,7 @@ function useMitglieder(enabled = true) {
 
 /** Beleg in einem neuen Tab öffnen – über eine Adresse, die nur kurz gilt. */
 async function belegOeffnen(pfad: string) {
-  const { data, error } = await db.storage.from("receipts").createSignedUrl(pfad, 120);
+  const { data, error } = await supabase.storage.from("receipts").createSignedUrl(pfad, 120);
   if (error || !data?.signedUrl) throw new Error(error?.message ?? "Der Beleg ließ sich nicht öffnen.");
   window.open(data.signedUrl, "_blank", "noopener");
 }
@@ -120,18 +123,18 @@ function MeineAuslagen() {
   const { data: meine = [], isLoading } = useQuery({
     queryKey: ["auslagen", "meine", user?.id],
     queryFn: async (): Promise<Auslage[]> => {
-      const { data, error } = await db.from("expense_claims").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("expense_claims").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Auslage[];
+      return (data ?? []).map(alsAuslage);
     },
     enabled: !!user,
   });
 
   const zurueckziehen = useMutation({
     mutationFn: async (a: Auslage) => {
-      const { error } = await db.from("expense_claims").delete().eq("id", a.id);
+      const { error } = await supabase.from("expense_claims").delete().eq("id", a.id);
       if (error) throw new Error(error.message);
-      if (a.receipt_path) await db.storage.from("receipts").remove([a.receipt_path]);
+      if (a.receipt_path) await supabase.storage.from("receipts").remove([a.receipt_path]);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen"] }),
     onError: (err: Error) => toast({ title: "Nicht zurückgezogen", description: err.message, variant: "destructive" }),
@@ -215,9 +218,9 @@ function Einreichen({ termine, onFertig }: { termine: Termin[]; onFertig: () => 
       // Erst der Beleg, dann die Auslage. Scheitert die Auslage, wird der
       // Beleg wieder entfernt – sonst läge ein Foto ohne Zweck im Speicher.
       const pfad = belegPfad(user!.id, beleg!.name);
-      const { error: hochladen } = await db.storage.from("receipts").upload(pfad, beleg!, { contentType: beleg!.type || undefined });
+      const { error: hochladen } = await supabase.storage.from("receipts").upload(pfad, beleg!, { contentType: beleg!.type || undefined });
       if (hochladen) throw new Error(`Beleg nicht hochgeladen: ${hochladen.message}`);
-      const { error } = await db.from("expense_claims").insert({
+      const { error } = await supabase.from("expense_claims").insert({
         user_id: user!.id,
         title: titel.trim(),
         category: kategorie,
@@ -228,7 +231,7 @@ function Einreichen({ termine, onFertig }: { termine: Termin[]; onFertig: () => 
         receipt_path: pfad,
       });
       if (error) {
-        await db.storage.from("receipts").remove([pfad]);
+        await supabase.storage.from("receipts").remove([pfad]);
         throw new Error(error.message);
       }
     },
@@ -314,17 +317,17 @@ function Pruefen() {
   const { data: auslagen = [], isLoading } = useQuery({
     queryKey: ["auslagen", "alle"],
     queryFn: async (): Promise<Auslage[]> => {
-      const { data, error } = await db.from("expense_claims").select("*").order("created_at", { ascending: true });
+      const { data, error } = await supabase.from("expense_claims").select("*").order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Auslage[];
+      return (data ?? []).map(alsAuslage);
     },
   });
 
   const aendern = useMutation({
     mutationFn: async ({ id, status, notiz }: { id: string; status: Auslage["status"]; notiz?: string | null }) => {
-      const patch: Record<string, unknown> = { status };
+      const patch: TablesUpdate<"expense_claims"> = { status };
       if (notiz !== undefined) patch.decision_note = notiz;
-      const { error } = await db.from("expense_claims").update(patch).eq("id", id);
+      const { error } = await supabase.from("expense_claims").update(patch).eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen"] }),
@@ -433,7 +436,7 @@ function Pauschalen() {
   const { data: freibetrag = FREIBETRAG_VORGABE } = useQuery({
     queryKey: ["auslagen", "freibetraege"],
     queryFn: async (): Promise<Record<PauschalArt, number>> => {
-      const { data } = await db.from("app_settings").select("volunteer_allowance, trainer_allowance").maybeSingle();
+      const { data } = await supabase.from("app_settings").select("volunteer_allowance, trainer_allowance").maybeSingle();
       if (!data) return FREIBETRAG_VORGABE;
       return { volunteer: Number(data.volunteer_allowance), trainer: Number(data.trainer_allowance) };
     },
@@ -442,15 +445,15 @@ function Pauschalen() {
   const { data: zahlungen = [] } = useQuery({
     queryKey: ["auslagen", "pauschalen"],
     queryFn: async (): Promise<Pauschalzahlung[]> => {
-      const { data, error } = await db.from("volunteer_payments").select("*").order("paid_on", { ascending: false });
+      const { data, error } = await supabase.from("volunteer_payments").select("*").order("paid_on", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Pauschalzahlung[];
+      return (data ?? []).map((z) => ({ ...z, kind: z.kind as PauschalArt }));
     },
   });
 
   const eintragen = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("volunteer_payments").insert({
+      const { error } = await supabase.from("volunteer_payments").insert({
         user_id: neu!.user_id,
         kind: neu!.kind,
         amount: Math.round(Number(neu!.amount.replace(",", ".")) * 100) / 100,
@@ -468,7 +471,7 @@ function Pauschalen() {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("volunteer_payments").delete().eq("id", id);
+      const { error } = await supabase.from("volunteer_payments").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen", "pauschalen"] }),

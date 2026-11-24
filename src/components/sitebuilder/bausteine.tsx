@@ -1992,7 +1992,8 @@ export function Termine({
 
       const { data, error } = await gefiltert.order("start_date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as OeffentlicherTermin[];
+      const zeilen: OeffentlicherTermin[] = data ?? [];
+      return zeilen;
     },
   });
 

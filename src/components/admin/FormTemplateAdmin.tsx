@@ -51,7 +51,7 @@ export default function FormTemplateAdmin() {
       setDirty(false);
       toast({ title: "Vorlage gespeichert", description: "Neue Formulare übernehmen diese Vorlage." });
     },
-    onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const resetToBuiltIn = () => {

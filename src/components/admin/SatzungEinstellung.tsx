@@ -27,7 +27,6 @@ interface Stand {
   statutes_category: string | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function SatzungEinstellung() {
   const { toast } = useToast();
@@ -38,9 +37,10 @@ export default function SatzungEinstellung() {
   const { data } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Stand;
+      const zeile: Stand | null = data;
+      return zeile;
     },
   });
 
@@ -63,15 +63,15 @@ export default function SatzungEinstellung() {
     // Dokumente, die dort liegen.
     queryKey: ["satzung-auswahl", entwurf?.statutes_category],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("statutes_options" as never);
+      const { data, error } = await supabase.rpc("statutes_options");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; title: string; created_at: string }[];
+      return data ?? [];
     },
   });
 
   const speichern = useMutation({
     mutationFn: async (werte: Stand) => {
-      const { error } = await db.from("app_settings").update(werte).eq("id", true);
+      const { error } = await supabase.from("app_settings").update(werte).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

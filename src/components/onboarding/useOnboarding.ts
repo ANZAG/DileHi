@@ -50,7 +50,6 @@ export interface Aufgabe extends Schritt {
   fertig: boolean;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export function useOnboarding() {
   const { user, permissions, permissionsLoaded, hasPermission } = useAuth();
@@ -60,13 +59,13 @@ export function useOnboarding() {
   const schritteQuery = useQuery({
     queryKey: ["onboarding-schritte"],
     queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("onboarding_steps")
         .select("*")
         .eq("is_active", true)
         .order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Schritt[];
+      return data ?? [];
     },
     enabled: !!user,
     staleTime: 10 * 60 * 1000,
@@ -75,9 +74,9 @@ export function useOnboarding() {
   const erledigtQuery = useQuery({
     queryKey: ["onboarding-erledigt", user?.id],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.rpc("onboarding_completed_tasks" as never);
+      const { data, error } = await supabase.rpc("onboarding_completed_tasks");
       if (error) throw new Error(error.message);
-      return (data ?? []) as string[];
+      return data ?? [];
     },
     enabled: !!user,
     // Kurz, damit ein gerade ausgefülltes Profil beim nächsten Blick abgehakt

@@ -56,7 +56,8 @@ const MemberMap = () => {
       const { data, error } = await supabase.rpc("get_map_members");
       if (error) throw error;
       // Die erzeugten Typen kennen hier kein null; die Spalten können aber leer sein.
-      return (data ?? []) as KartenMitglied[];
+      const zeilen: KartenMitglied[] = data ?? [];
+      return zeilen;
     },
   });
 
@@ -131,7 +132,8 @@ const MemberMap = () => {
         .order("start_date", { ascending: true })
         .limit(20);
       if (error) throw error;
-      return (data ?? []) as KartenTermin[];
+      const zeilen: KartenTermin[] = data ?? [];
+      return zeilen;
     },
   });
 

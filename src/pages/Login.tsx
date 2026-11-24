@@ -40,9 +40,9 @@ const Login = () => {
   const { data: einrichtungNoetig } = useQuery({
     queryKey: ["setup-needed"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("setup_needed" as never);
+      const { data, error } = await supabase.rpc("setup_needed");
       if (error) return false;
-      return data as unknown as boolean;
+      return data;
     },
     retry: false,
     staleTime: 5 * 60 * 1000,

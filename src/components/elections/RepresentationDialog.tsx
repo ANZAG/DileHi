@@ -29,12 +29,12 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
     queryKey: ["group_members", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("group_members" as any)
+        .from("group_members")
         .select("*")
         .eq("group_id", groupId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as unknown as GroupMember[];
+      return data;
     },
   });
 
@@ -51,12 +51,12 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
     queryKey: ["representation_log", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("representation_log" as any)
+        .from("representation_log")
         .select("*")
         .eq("group_id", groupId)
         .order("changed_at", { ascending: false });
       if (error) return [];
-      return data as unknown as RepresentationLogEntry[];
+      return data;
     },
   });
 
@@ -106,7 +106,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
 
       // Update the represented user
       await supabase
-        .from("group_members" as any)
+        .from("group_members")
         .update({
           represented_by: representativeId,
           vote_count: representativeId ? 0 : 1,
@@ -119,7 +119,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
         const oldRep = members.find((m) => m.user_id === oldRepresentative);
         if (oldRep) {
           await supabase
-            .from("group_members" as any)
+            .from("group_members")
             .update({ vote_count: Math.max(1, oldRep.vote_count - 1) })
             .eq("group_id", groupId)
             .eq("user_id", oldRepresentative);
@@ -131,7 +131,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
         const newRep = members.find((m) => m.user_id === representativeId);
         if (newRep) {
           await supabase
-            .from("group_members" as any)
+            .from("group_members")
             .update({ vote_count: newRep.vote_count + 1 })
             .eq("group_id", groupId)
             .eq("user_id", representativeId);
@@ -146,7 +146,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
           ? `${getName(representativeId)} vertritt jetzt ${representedName}`
           : `Vertretung für ${representedName} wurde entfernt (vorher: ${oldRepresentative ? getName(oldRepresentative) : "-"})`;
 
-        await supabase.from("representation_log" as any).insert({
+        await supabase.from("representation_log").insert({
           group_id: groupId,
           action,
           details,
@@ -178,14 +178,14 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
           const rep = members.find((m) => m.user_id === member.represented_by);
           if (rep) {
             await supabase
-              .from("group_members" as any)
+              .from("group_members")
               .update({ vote_count: Math.max(1, rep.vote_count - 1) })
               .eq("group_id", groupId)
               .eq("user_id", member.represented_by);
           }
         }
         await supabase
-          .from("group_members" as any)
+          .from("group_members")
           .update({ vote_count: 1, represented_by: null })
           .eq("group_id", groupId)
           .eq("user_id", memberId);
@@ -195,19 +195,19 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
           const rep = members.find((m) => m.user_id === member.represented_by);
           if (rep) {
             await supabase
-              .from("group_members" as any)
+              .from("group_members")
               .update({ vote_count: Math.max(1, rep.vote_count - 1) })
               .eq("group_id", groupId)
               .eq("user_id", member.represented_by);
           }
           await supabase
-            .from("group_members" as any)
+            .from("group_members")
             .update({ represented_by: null, vote_count: 0 })
             .eq("group_id", groupId)
             .eq("user_id", memberId);
         } else {
           await supabase
-            .from("group_members" as any)
+            .from("group_members")
             .update({ vote_count: 0 })
             .eq("group_id", groupId)
             .eq("user_id", memberId);
@@ -215,7 +215,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
       }
 
       if (hasVotes) {
-        await supabase.from("representation_log" as any).insert({
+        await supabase.from("representation_log").insert({
           group_id: groupId,
           action: currentlyAbsent ? "Anwesenheit wiederhergestellt" : "Mitglied ausgetragen",
           details: currentlyAbsent

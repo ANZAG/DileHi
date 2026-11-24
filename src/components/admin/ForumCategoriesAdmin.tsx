@@ -53,7 +53,7 @@ export default function ForumCategoriesAdmin() {
     queryKey: ["role_catalog_admin"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
+      return data ?? [];
     },
   });
 

@@ -17,14 +17,13 @@ export function useDefaultRole(): string {
   const { data } = useQuery({
     queryKey: ["default-role"],
     queryFn: async (): Promise<string> => {
-      const db = supabase as unknown as { from: (t: string) => any };
-      const { data: einstellung } = await db
+      const { data: einstellung } = await supabase
         .from("app_settings")
         .select("default_role")
         .maybeSingle();
       if (einstellung?.default_role) return einstellung.default_role as string;
 
-      const { data: katalog } = await db
+      const { data: katalog } = await supabase
         .from("role_catalog")
         .select("key")
         .order("sort_order", { ascending: false })

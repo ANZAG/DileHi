@@ -29,11 +29,11 @@ export function Hilfe({ k }: { k: string }) {
   const { data } = useQuery({
     queryKey: ["onboarding-hilfe"],
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as { from: (t: string) => any })
+      const { data, error } = await supabase
         .from("onboarding_help")
         .select("key, title, text");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { key: string; title: string | null; text: string }[];
+      return data ?? [];
     },
     staleTime: 60 * 60 * 1000,
     retry: 1,

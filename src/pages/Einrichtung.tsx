@@ -38,9 +38,9 @@ export default function Einrichtung() {
   const { data: noetig, isLoading } = useQuery({
     queryKey: ["setup-needed"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("setup_needed" as never);
+      const { data, error } = await supabase.rpc("setup_needed");
       if (error) throw new Error(error.message);
-      return data as unknown as boolean;
+      return data;
     },
     retry: false,
   });

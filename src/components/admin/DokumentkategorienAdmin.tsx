@@ -16,7 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
 import { useDokumentkategorien, type Dokumentkategorie } from "@/hooks/useDokumentkategorien";
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die Ablagen der Dokumente.
@@ -100,7 +99,7 @@ export default function DokumentkategorienAdmin() {
       if (error) throw new Error(error.message);
       const zaehler: Record<string, number> = {};
       for (const zeile of data ?? []) {
-        const k = (zeile as { category?: string }).category;
+        const k = zeile.category;
         if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
       }
       return zaehler;
@@ -120,7 +119,7 @@ export default function DokumentkategorienAdmin() {
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
       if (!key) throw new Error("Bitte einen Namen eingeben.");
       const letzte = kategorien[kategorien.length - 1]?.sort_order ?? 0;
-      const { error } = await db.from("document_categories").insert({
+      const { error } = await supabase.from("document_categories").insert({
         key,
         label: neuLabel.trim(),
         sort_order: letzte + 10,
@@ -141,7 +140,7 @@ export default function DokumentkategorienAdmin() {
 
   const umbenennen = useMutation({
     mutationFn: async ({ key, label }: { key: string; label: string }) => {
-      const { error } = await db.from("document_categories").update({ label }).eq("key", key);
+      const { error } = await supabase.from("document_categories").update({ label }).eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => { setBearbeitet(null); frisch(); },
@@ -151,7 +150,7 @@ export default function DokumentkategorienAdmin() {
 
   const stufeSetzen = useMutation({
     mutationFn: async ({ key, stufe }: { key: string; stufe: string }) => {
-      const { error } = await db
+      const { error } = await supabase
         .from("document_categories")
         .update({ required_permission: STUFEN.find((s) => s.value === stufe)?.recht ?? null })
         .eq("key", key);
@@ -164,7 +163,7 @@ export default function DokumentkategorienAdmin() {
 
   const entfernen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("document_categories").delete().eq("key", key);
+      const { error } = await supabase.from("document_categories").delete().eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: frisch,

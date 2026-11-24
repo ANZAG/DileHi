@@ -13,12 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
 import { datumDe, heuteIso, tageBis } from "@/lib/datum";
-import { bescheidReichtBis, bestaetigungHtml, drucken, euro, type BescheidArt, type Bestaetigung } from "@/lib/zuwendung";
+import { bescheidReichtBis, bestaetigungHtml, alsBestaetigung, drucken, euro, type BescheidArt, type Bestaetigung } from "@/lib/zuwendung";
 
-const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 interface Zuwendung {
   id: string;
@@ -113,10 +109,10 @@ function MeineBestaetigungen() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["zuwendungen", "meine", user?.id],
     queryFn: async (): Promise<Bestaetigung[]> => {
-      const { data, error } = await db.from("donation_receipts").select("*")
+      const { data, error } = await supabase.from("donation_receipts").select("*")
         .eq("donor_user_id", user!.id).is("cancelled_at", null).order("issued_on", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Bestaetigung[];
+      return (data ?? []).map(alsBestaetigung);
     },
     enabled: !!user,
   });
@@ -151,10 +147,10 @@ function useSteuerangaben() {
   return useQuery({
     queryKey: ["zuwendungen", "steuerangaben"],
     queryFn: async (): Promise<Steuerangaben | null> => {
-      const { data } = await db.from("app_settings")
+      const { data } = await supabase.from("app_settings")
         .select("tax_office, tax_number, tax_purposes, exemption_notice_kind, exemption_notice_date, exemption_notice_period, fees_deductible")
         .maybeSingle();
-      return data as Steuerangaben | null;
+      return data && { ...data, exemption_notice_kind: data.exemption_notice_kind as BescheidArt | null };
     },
   });
 }
@@ -187,17 +183,18 @@ function Spenden() {
   const { data: mitglieder = [] } = useQuery({
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await db.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const { data } = await supabase.rpc("get_member_directory");
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
   });
 
   const { data: offen = [], isLoading } = useQuery({
     queryKey: ["zuwendungen", "offen"],
     queryFn: async (): Promise<Zuwendung[]> => {
-      const { data, error } = await db.from("donations").select("*").is("receipt_id", null).order("received_on");
+      const { data, error } = await supabase.from("donations").select("*").is("receipt_id", null).order("received_on");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Zuwendung[];
+      return (data ?? []).map((z) => ({ ...z, kind: z.kind as Zuwendung["kind"] }));
     },
   });
 
@@ -220,11 +217,11 @@ function Spenden() {
 
   const ausstellen = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { data, error } = await db.rpc("issue_donation_receipt", { _donation_ids: ids });
+      const { data, error } = await supabase.rpc("issue_donation_receipt", { _donation_ids: ids });
       if (error) throw new Error(error.message);
-      const { data: beleg, error: lesen } = await db.from("donation_receipts").select("*").eq("id", data).single();
+      const { data: beleg, error: lesen } = await supabase.from("donation_receipts").select("*").eq("id", data).single();
       if (lesen) throw new Error(lesen.message);
-      return beleg as Bestaetigung;
+      return alsBestaetigung(beleg);
     },
     onSuccess: (beleg) => {
       setAuswahl(new Set());
@@ -237,7 +234,7 @@ function Spenden() {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("donations").delete().eq("id", id);
+      const { error } = await supabase.from("donations").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: neuLaden,
@@ -246,9 +243,10 @@ function Spenden() {
 
   const uebernehmen = useMutation({
     mutationFn: async () => {
-      const { data, error } = await db.rpc("import_paid_contributions", { _year: beitragsjahr });
+      const { data, error } = await supabase.rpc("import_paid_contributions", { _year: beitragsjahr });
       if (error) throw new Error(error.message);
-      return data as number;
+      const zeile: number = data;
+      return zeile;
     },
     onSuccess: (n) => {
       neuLaden();
@@ -363,7 +361,7 @@ function SpendeErfassen({ mitglieder, beitraegeAbziehbar, onFertig }: { mitglied
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("donations").insert({
+      const { error } = await supabase.from("donations").insert({
         donor_user_id: aussen ? null : wer,
         donor_name: aussen ? name.trim() : null,
         donor_address: aussen ? anschrift.trim() : null,
@@ -463,16 +461,16 @@ function Bestaetigungen() {
   const { data = [], isLoading } = useQuery({
     queryKey: ["zuwendungen", "bestaetigungen", jahr],
     queryFn: async (): Promise<Bestaetigung[]> => {
-      const { data, error } = await db.from("donation_receipts").select("*")
+      const { data, error } = await supabase.from("donation_receipts").select("*")
         .gte("issued_on", `${jahr}-01-01`).lte("issued_on", `${jahr}-12-31`).order("number", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Bestaetigung[];
+      return (data ?? []).map(alsBestaetigung);
     },
   });
 
   const zuruecknehmen = useMutation({
     mutationFn: async ({ id, grund }: { id: string; grund: string }) => {
-      const { error } = await db.rpc("cancel_donation_receipt", { _receipt_id: id, _reason: grund });
+      const { error } = await supabase.rpc("cancel_donation_receipt", { _receipt_id: id, _reason: grund });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["zuwendungen"] }),

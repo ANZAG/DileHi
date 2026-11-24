@@ -58,7 +58,7 @@ export default function ForumCategory() {
     queryFn: async () => {
       const { data } = await supabase.rpc("get_member_directory");
       const map: Record<string, string> = {};
-      ((data ?? []) as { id: string; display_name: string }[]).forEach((m) => { map[m.id] = m.display_name; });
+      (data ?? []).forEach((m) => { map[m.id] = m.display_name; });
       return map;
     },
   });

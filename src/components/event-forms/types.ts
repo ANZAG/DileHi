@@ -1,3 +1,5 @@
+import type { Tables } from "@/integrations/supabase/types";
+import { ausJson } from "@/lib/json";
 export interface FormField {
   id: string;
   form_id?: string;
@@ -9,6 +11,13 @@ export interface FormField {
   options: string[];
   settings: Record<string, any>;
 }
+
+/** Eine Zeile aus `event_form_fields`; Auswahl und Einstellungen sind JSON-Spalten. */
+export const alsFormField = (z: Tables<"event_form_fields">): FormField => ({
+  ...z,
+  options: ausJson<string[]>(z.options),
+  settings: ausJson<FormField["settings"]>(z.settings),
+});
 
 export interface EventForm {
   id: string;

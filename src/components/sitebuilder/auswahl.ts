@@ -131,13 +131,7 @@ export function galerieAuswahl(): Promise<Auswahl[]> {
  */
 export function kategorieAuswahl(): Promise<Auswahl[]> {
   return gemerkt("kategorien", async () => {
-    const { data, error } = await (supabase as unknown as {
-      from: (t: string) => {
-        select: (c: string) => {
-          order: (c: string) => Promise<{ data: { key: string; label: string }[] | null; error: { message: string } | null }>;
-        };
-      };
-    })
+    const { data, error } = await supabase
       .from("site_categories")
       .select("key, label")
       .order("sort_order");
@@ -154,13 +148,7 @@ export function kategorieAuswahl(): Promise<Auswahl[]> {
 /** Die im Editor gebauten Seiten – für Verweise aus Knöpfen und Karten. */
 export function seitenAuswahl(): Promise<Auswahl[]> {
   return gemerkt("seiten", async () => {
-    const { data, error } = await (supabase as unknown as {
-      from: (t: string) => {
-        select: (c: string) => {
-          order: (c: string) => Promise<{ data: { slug: string; title: string }[] | null; error: { message: string } | null }>;
-        };
-      };
-    })
+    const { data, error } = await supabase
       .from("site_pages")
       .select("slug, title")
       .order("title");

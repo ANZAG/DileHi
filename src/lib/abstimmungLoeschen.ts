@@ -75,7 +75,7 @@ export async function loescheAbstimmungen(abstimmungen: Abstimmung[], geloeschtV
       geschlossene.map((a) =>
         loeschprotokollZeile(
           a,
-          (ergebnisse ?? []) as unknown as ElectionResult[],
+          ergebnisse ?? [],
           (a.group_id && themen.get(a.group_id)) || null,
           geloeschtVon,
         ),
