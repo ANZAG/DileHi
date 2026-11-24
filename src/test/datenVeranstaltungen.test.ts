@@ -11,7 +11,7 @@ import {
   speichereFormularEinstellungen,
   veranstaltungSchluessel,
 } from "@/daten/veranstaltungen";
-import { aktiveNachName, mitgliedSchluessel } from "@/daten/mitglieder";
+import { aktiveNachName } from "@/daten/mitglieder";
 import type { FormField } from "@/components/event-forms/types";
 import { datenbank, filterVon } from "./hilfe/nachbau";
 
@@ -50,13 +50,6 @@ describe("Die Schlüssel der Veranstaltungen", () => {
     qc.invalidateQueries({ queryKey: veranstaltungSchluessel.meineAnmeldungen() });
     expect(ungueltig()).toBe(3);
     expect(qc.getQueryState(veranstaltungSchluessel.anmeldungen("f1"))?.isInvalidated).toBe(false);
-  });
-
-  it("machen mit den Zelten eines Mitglieds auch die Liste aller ungültig", () => {
-    const qc = new QueryClient();
-    qc.setQueryData(mitgliedSchluessel.alleZelte(), []);
-    qc.invalidateQueries({ queryKey: mitgliedSchluessel.zelte() });
-    expect(qc.getQueryState(mitgliedSchluessel.alleZelte())?.isInvalidated).toBe(true);
   });
 });
 

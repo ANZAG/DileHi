@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRollenkatalog } from "@/daten/mitglieder";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -22,13 +23,7 @@ const RolesPermissionsPanel = () => {
     },
   });
 
-  const { data: roleCatalog = [], isLoading: rcLoading } = useQuery({
-    queryKey: ["role_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return data ?? [];
-    },
-  });
+  const { data: roleCatalog = [], isLoading: rcLoading } = useRollenkatalog();
 
   const { data: permCatalog = [], isLoading: pcLoading } = useQuery({
     queryKey: ["permission_catalog"],

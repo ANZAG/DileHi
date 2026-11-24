@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { mitgliedSchluessel } from "@/daten/mitglieder";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
@@ -62,9 +63,9 @@ export default function RollenAdmin() {
   const erneuern = () => {
     qc.invalidateQueries({ queryKey: ["role-status"] });
     qc.invalidateQueries({ queryKey: ["app-settings"] });
-    qc.invalidateQueries({ queryKey: ["role_catalog"] });
+    qc.invalidateQueries({ queryKey: mitgliedSchluessel.rollenkatalog() });
     qc.invalidateQueries({ queryKey: ["role_permissions"] });
-    qc.invalidateQueries({ queryKey: ["members"] });
+    qc.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
   };
 
   const aendern = useMutation({
