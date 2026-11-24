@@ -27,19 +27,24 @@ import {
 } from "@/components/ui/dialog";
 import { useBeitragsstufenStatus, stufenFuerJahr } from "@/hooks/useBeitragsstufen";
 import { SEITE } from "@/lib/layout";
+import {
+  beitragsZeile,
+  ladeBeitraege,
+  ladeBeitragssaetze,
+  ladeBeitragszahler,
+  ladeEintritt,
+  ladeMeineBeitraege,
+  ladeVereinskonto,
+  mitgliedSchluessel,
+  speichereBeitrag,
+  speichereBeitragssatz,
+} from "@/daten/mitglieder";
 
 /** Kontodaten aus den Vereinsangaben – nur für Mitglieder lesbar. */
 function useVereinskonto() {
   const { data } = useQuery({
-    queryKey: ["vereinskonto"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("org_name, bank_recipient, bank_iban, bank_bic")
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
-    },
+    queryKey: mitgliedSchluessel.vereinskonto(),
+    queryFn: ladeVereinskonto,
     staleTime: 60 * 60 * 1000,
   });
   return {
@@ -119,34 +124,15 @@ const RateEditor = ({
       // Note: RateEditor is a standalone sub-component - it re-fetches the user
       // here instead of receiving it as a prop. Fine for now, but could be a prop.
       const { data: { user } } = await supabase.auth.getUser();
-      // Upsert pattern: try update first to avoid duplicate key errors
-      // Ohne die Kategorie liefert die Abfrage seit der Aufteilung mehrere
-      // Zeilen, und maybeSingle wirft dann einen Fehler.
-      const { data: existing } = await supabase
-        .from("contribution_rates")
-        .select("id")
-        .eq("year", year)
-        .eq("category", category)
-        .maybeSingle();
-
-      if (existing) {
-        const { error } = await supabase
-          .from("contribution_rates")
-          .update({ amount, updated_by: user!.id, updated_at: new Date().toISOString() })
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("contribution_rates")
-          .insert({ year, category, amount, updated_by: user!.id });
-        if (error) throw error;
-      }
+      await speichereBeitragssatz({ jahr: year, mitgliedsart: category, betrag: amount, userId: user!.id });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["contribution-rates"] });
+      qc.invalidateQueries({ queryKey: mitgliedSchluessel.beitragssaetze() });
       setEditing(false);
       toast({ title: "Beitragssatz gespeichert" });
     },
+    // Ohne das blieb ein nicht gespeicherter Satz stumm.
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const isCurrentYear = year === currentYear;
@@ -195,71 +181,32 @@ const Contributions = () => {
   const [ansicht, setzeAnsicht] = useAnsicht();
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["contribution-profiles"],
-    queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id");
-      const userIds = [...new Set(roles?.map((r) => r.user_id) || [])];
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, first_name, last_name, is_active, contribution_interval, membership_type")
-        .in("id", userIds);
-      if (error) throw error;
-      return data.filter((p) => p.is_active !== false);
-    },
+    queryKey: mitgliedSchluessel.beitragszahler(),
+    queryFn: ladeBeitragszahler,
   });
 
   const { data: contributions = [] } = useQuery({
-    queryKey: ["contributions", selectedYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contributions")
-        .select("*")
-        .eq("year", parseInt(selectedYear));
-      if (error) throw error;
-      return data;
-    },
+    queryKey: mitgliedSchluessel.beitraege(selectedYear),
+    queryFn: () => ladeBeitraege(parseInt(selectedYear)),
   });
 
   // Member's own contributions across all years (for member view)
   const { data: myAllContribs = [] } = useQuery({
-    queryKey: ["my-contributions", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from("contributions")
-        .select("*")
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return data;
-    },
+    queryKey: mitgliedSchluessel.meineBeitraege(user?.id),
+    queryFn: () => (user?.id ? ladeMeineBeitraege(user.id) : []),
     enabled: !canEdit && !!user?.id,
   });
 
   // Eigenes Profil – für Eintrittsdatum-basierten Historien-Filter
   const { data: myProfile } = useQuery({
-    queryKey: ["my-profile-entry", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("entry_date, membership_type")
-        .eq("id", user.id)
-        .maybeSingle();
-      return data;
-    },
+    queryKey: mitgliedSchluessel.eintritt(user?.id),
+    queryFn: () => (user?.id ? ladeEintritt(user.id) : null),
     enabled: !canEdit && !!user?.id,
   });
 
   const { data: rates = [] } = useQuery({
-    queryKey: ["contribution-rates"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contribution_rates")
-        .select("*")
-        .order("year", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: mitgliedSchluessel.beitragssaetze(),
+    queryFn: ladeBeitragssaetze,
   });
 
   /**
@@ -278,43 +225,15 @@ const Contributions = () => {
   const upsertMutation = useMutation({
     mutationFn: async (params: { userId: string; status: string; amount?: string; notes?: string; paidAt?: string | null; membershipType?: string | null }) => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      // Determine status: if amount provided and less than rate → teilzahlung
-      //
-      // Massgeblich ist der Satz der Mitgliedsart dieses Mitglieds. Mit einem
-      // Satz fuer alle waere eine volle Zahlung eines Studenten faelschlich
-      // als Teilzahlung erschienen.
-      const satz = satzFuer(parseInt(selectedYear), params.membershipType);
-      let resolvedStatus = params.status;
-      if (params.status === "bezahlt" && params.amount && satz) {
-        const amt = parseFloat(params.amount);
-        if (amt > 0 && amt < Number(satz.amount)) {
-          resolvedStatus = "teilzahlung";
-        }
-      }
 
-      const row = {
-        user_id: params.userId,
-        year: parseInt(selectedYear),
-        status: resolvedStatus,
-        amount: params.amount ? parseFloat(params.amount) : null,
-        paid_at: params.paidAt !== undefined ? params.paidAt : (resolvedStatus === "bezahlt" || resolvedStatus === "teilzahlung" ? (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : null),
-        notes: params.notes || null,
-        updated_by: authUser!.id,
-        updated_at: new Date().toISOString(),
-      };
-
-      const existing = contributions.find((c) => c.user_id === params.userId);
-      if (existing) {
-        const { error } = await supabase.from("contributions").update(row).eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("contributions").insert(row);
-        if (error) throw error;
-      }
+      // Maßgeblich ist der Satz der Mitgliedsart dieses Mitglieds; darunter
+      // wird aus „bezahlt" eine Teilzahlung (siehe beitragsZeile).
+      const jahr = parseInt(selectedYear);
+      const zeile = beitragsZeile(params, jahr, satzFuer(jahr, params.membershipType)?.amount, authUser!.id);
+      await speichereBeitrag(zeile, contributions.find((c) => c.user_id === params.userId)?.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["contributions", selectedYear] });
+      qc.invalidateQueries({ queryKey: mitgliedSchluessel.beitraege(selectedYear) });
       setBearbeitet(null);
       toast({ title: "Gespeichert" });
     },

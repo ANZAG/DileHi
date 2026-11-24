@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export default function Beitragsstufen() {
     qc.invalidateQueries({ queryKey: ["beitragsstufen"] });
     qc.invalidateQueries({ queryKey: ["contribution-categories"] });
     qc.invalidateQueries({ queryKey: ["beitragsmodell"] });
-    qc.invalidateQueries({ queryKey: ["contribution-rates"] });
+    qc.invalidateQueries({ queryKey: mitgliedSchluessel.beitragssaetze() });
   };
 
   const anlegen = useMutation({

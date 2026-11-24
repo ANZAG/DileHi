@@ -21,6 +21,15 @@ import MitgliederImport from "./MitgliederImport";
 import EinladungWeitergeben, { type EinladungsAntwort } from "./EinladungWeitergeben";
 import { heuteIso } from "@/lib/datum";
 import {
+  entzieheRollen,
+  ladeAntragsdateien,
+  ladeMitglieder,
+  mitgliedSchluessel,
+  trageAntragsdateiEin,
+  useRollenkatalog,
+  type Mitglied,
+} from "@/daten/mitglieder";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,26 +46,7 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
   schatzmeister: Coins,
 };
 
-type MemberData = {
-  id: string;
-  user_id: string;
-  role: string;
-  display_name: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  salutation: string;
-  street: string;
-  zip: string;
-  city: string;
-  entry_date: string;
-  exit_date: string;
-  is_active: boolean;
-  contribution_interval: string;
-  membership_type: string;
-  birthdate: string;
-};
+type MemberData = Mitglied;
 
 const MemberRegistry = () => {
   const { user } = useAuth();
@@ -64,13 +54,7 @@ const MemberRegistry = () => {
   const queryClient = useQueryClient();
 
   // Role catalog – loaded once
-  const { data: roleCatalog = [] } = useQuery({
-    queryKey: ["role_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return data ?? [];
-    },
-  });
+  const { data: roleCatalog = [] } = useRollenkatalog();
 
   const roleLabel = (role: string) =>
     roleCatalog.find((r) => r.key === role)?.label ?? role;
@@ -108,77 +92,9 @@ const MemberRegistry = () => {
 
   // Fetch members
   const { data: members = [], isLoading } = useQuery({
-    queryKey: ["members"],
-    queryFn: async () => {
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      const userIds = roles.map((r) => r.user_id);
-
-      // Also fetch inactive profiles that may no longer have a user_roles row
-      // (happens when they were deactivated and their role entry was removed)
-      const [profilesResult, inactiveProfilesResult] = await Promise.all([
-        supabase.from("profiles").select("*").in("id", userIds),
-        supabase.from("profiles").select("*").eq("is_active", false),
-      ]);
-
-      const profiles = profilesResult.data ?? [];
-      const inactiveProfiles = inactiveProfilesResult.data ?? [];
-
-      // Members coming from user_roles (the normal path)
-      const fromRoles: MemberData[] = roles.map((r) => {
-        const p = profiles.find((pr) => pr.id === r.user_id);
-        return {
-          id: r.id,
-          user_id: r.user_id,
-          role: r.role,
-          display_name: p?.display_name ?? "–",
-          first_name: p?.first_name ?? "",
-          last_name: p?.last_name ?? "",
-          email: "",
-          phone: p?.phone ?? "",
-          salutation: p?.salutation ?? "",
-          street: p?.street ?? "",
-          zip: p?.zip ?? "",
-          city: p?.city ?? "",
-          entry_date: p?.entry_date ?? "",
-          exit_date: p?.exit_date ?? "",
-          is_active: p?.is_active ?? true,
-          contribution_interval: p?.contribution_interval ?? "",
-          membership_type: p?.membership_type ?? "",
-          birthdate: p?.birthdate ?? "",
-        } as MemberData;
-      });
-
-      // Inactive profiles that lost their user_roles row – add them back as "ausgetreten"
-      const activeIds = new Set(userIds);
-      const orphans: MemberData[] = inactiveProfiles
-        .filter((p) => !activeIds.has(p.id))
-        .map((p) => ({
-          id: p.id, // no user_roles id – use profile id
-          user_id: p.id,
-          role: defaultRole,
-          display_name: p.display_name ?? "–",
-          first_name: p.first_name ?? "",
-          last_name: p.last_name ?? "",
-          email: "",
-          phone: p.phone ?? "",
-          salutation: p.salutation ?? "",
-          street: p.street ?? "",
-          zip: p.zip ?? "",
-          city: p.city ?? "",
-          entry_date: p.entry_date ?? "",
-          exit_date: p.exit_date ?? "",
-          is_active: false,
-          contribution_interval: p.contribution_interval ?? "",
-          membership_type: p.membership_type ?? "",
-          birthdate: p.birthdate ?? "",
-        } as MemberData));
-
-      return [...fromRoles, ...orphans];
-    },
+    queryKey: mitgliedSchluessel.liste(),
+    // Wer keine Rolle mehr hat, erscheint als ausgetreten mit der Standardrolle.
+    queryFn: () => ladeMitglieder(defaultRole),
   });
 
   /*
@@ -194,7 +110,7 @@ const MemberRegistry = () => {
    * die Funktion ganz aus, fehlt eine Spalte statt der ganzen Seite.
    */
   const { data: emailMap = {} } = useQuery({
-    queryKey: ["member-emails"],
+    queryKey: mitgliedSchluessel.emails(),
     queryFn: async (): Promise<Record<string, string>> => {
       const userIds = members.map((m) => m.user_id);
       if (userIds.length === 0) return {};
@@ -215,16 +131,9 @@ const MemberRegistry = () => {
 
   // Membership files
   const { data: membershipFiles = [] } = useQuery({
-    queryKey: ["membership-files", selectedMember?.user_id],
+    queryKey: mitgliedSchluessel.antragsdateien(selectedMember?.user_id),
     enabled: !!selectedMember,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("membership_files")
-        .select("*")
-        .eq("user_id", selectedMember!.user_id)
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: () => ladeAntragsdateien(selectedMember!.user_id),
   });
 
   const toggleSort = (key: typeof sortKey) => {
@@ -294,7 +203,7 @@ const MemberRegistry = () => {
       return { antwort, email: inviteEmail };
     },
     onSuccess: ({ antwort, email }) => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setInviteEmail("");
       if (antwort?.einladung) {
         // Kein Toast, der nach drei Sekunden weg ist: Der Link gilt einmalig
@@ -336,7 +245,7 @@ const MemberRegistry = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setSelectedMember(null);
       toast({ title: "Mitglied aktualisiert" });
     },
@@ -351,11 +260,10 @@ const MemberRegistry = () => {
       await invokeFunction("manage-member", {
         body: { action: "update_membership", userId: m.user_id, exitDate: today, isActive: false },
       });
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", m.user_id);
-      if (error) throw new Error(error.message);
+      await entzieheRollen(m.user_id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setSelectedMember(null);
       toast({ title: "Mitglied deaktiviert", description: "Der Zugang zum Mitgliederbereich ist gesperrt." });
     },
@@ -372,7 +280,7 @@ const MemberRegistry = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setSelectedMember(null);
       toast({ title: "Mitglied reaktiviert", description: "Der Zugang zum Mitgliederbereich steht wieder offen." });
     },
@@ -403,7 +311,7 @@ const MemberRegistry = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setDeletingMember(null);
       setReassignTo("");
       setSelectedMember(null);
@@ -421,17 +329,13 @@ const MemberRegistry = () => {
       return;
     }
     if (!user) return;
-    const { error: insertErr } = await supabase.from("membership_files").insert({
-      user_id: userId,
-      name: file.name,
-      storage_path: path,
-      uploaded_by: user.id,
-    });
-    if (insertErr) {
-      toast({ title: "Fehler", description: insertErr.message, variant: "destructive" });
+    try {
+      await trageAntragsdateiEin({ user_id: userId, name: file.name, storage_path: path, uploaded_by: user.id });
+    } catch (insertErr) {
+      toast({ title: "Fehler", description: (insertErr as { message: string }).message, variant: "destructive" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["membership-files", userId] });
+    queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.antragsdateien(userId) });
     toast({ title: "Mitgliedsantrag hochgeladen" });
   };
 

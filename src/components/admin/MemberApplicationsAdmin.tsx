@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -117,7 +118,7 @@ const MemberApplicationsAdmin = () => {
     },
     onSuccess: (antwort, app) => {
       queryClient.invalidateQueries({ queryKey: ["membership_applications"] });
-      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setSelected(null);
       if (antwort?.einladung) {
         // Der Antrag ist genehmigt, nur die Mail ging nicht raus. Der Link

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { invokeFunction } from "@/lib/functionError";
 import {
   dateiLesen, FELDER, zeilenPruefen, zuordnungRaten, VORLAGE_CSV,
@@ -138,7 +139,7 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
     }
     setLaeuft(false);
     setSchritt("fertig");
-    qc.invalidateQueries({ queryKey: ["members"] });
+    qc.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
   };
 
   const angelegt = ergebnisse.filter((e) => e.status === "created");

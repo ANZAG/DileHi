@@ -41,7 +41,12 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
   {
     name: "mitglieder",
     schluessel: mitgliedSchluessel,
-    dateien: [],
+    dateien: [
+      "src/components/admin/MemberRegistry.tsx",
+      "src/pages/intern/Profile.tsx",
+      "src/pages/intern/Contributions.tsx",
+      "src/pages/intern/MemberMap.tsx",
+    ],
   },
 ];
 
@@ -64,7 +69,21 @@ function wurzeln(schluessel: Schluesselsatz): string[] {
   return [...new Set(alle.map((s) => String(s[0])))];
 }
 
+/**
+ * Wo ein Schlüssel doch noch von Hand steht – jede Ausnahme mit Grund.
+ *
+ * Die öffentliche Anmeldeseite liest die Zelte des Mitglieds selbst, mit
+ * derselben Abfrage wie `ladeZelte`. Sie wird gerade an anderer Stelle
+ * umgebaut; bis sie umzieht, teilt sie sich den Eintrag mit dem Profil.
+ */
+const AUSNAHMEN = ["src/pages/EventRegistration.tsx: member_tents"];
+
 describe.each(BEREICHE)("Bereich $name", ({ schluessel, dateien }) => {
+  it("nennt Dateien, die es gibt", () => {
+    // Ein Muster, das nach einem Umbenennen nichts mehr trifft, prüfte nichts.
+    expect(dateien.length).toBeGreaterThan(0);
+  });
+
   it("spricht in Seiten und Komponenten nicht selbst mit der Datenbank", () => {
     // Auch über Zeilen hinweg: `supabase` und `.from(` stehen oft untereinander.
     const direkt = dateien.filter((pfad) => /supabase\s*\.\s*(from|rpc)\s*\(/.test(lies(pfad)));
@@ -106,6 +125,6 @@ describe("Die Schlüssel der Bereiche", () => {
         if (eigene.has(wurzel)) treffer.push(`${pfad}: ${wurzel}`);
       }
     }
-    expect(treffer).toEqual([]);
+    expect(treffer.sort()).toEqual(AUSNAHMEN);
   });
 });
