@@ -232,14 +232,11 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     dateien: ["src/pages/intern/Announcements.tsx"],
   },
   {
-    // Ohne components/forum/api.ts: Das ist die Stelle, an der das Forum mit
-    // der Datenbank spricht – älter als src/daten und gleich gebaut. Ihre
-    // Schlüssel kommen aus daten/forum.ts wie alle anderen.
     name: "forum",
     schluessel: forumSchluessel,
     dateien: [
       ...quelltexte("src/pages/intern").filter((pfad) => /\/Forum[^/]*\.tsx$/.test(pfad)),
-      ...quelltexte("src/components/forum").filter((pfad) => !pfad.endsWith("/api.ts")),
+      ...quelltexte("src/components/forum"),
       "src/components/admin/ForumCategoriesAdmin.tsx",
     ],
   },

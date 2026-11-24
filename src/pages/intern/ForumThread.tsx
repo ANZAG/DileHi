@@ -9,13 +9,13 @@ import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { forumSchluessel } from "@/daten/forum";
 import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 import PostBody from "@/components/forum/PostBody";
 import {
-  createPost, createPollPost, fetchCategories, fetchPosts, fetchThread, markRead,
-  removePost, restorePost, updatePost,
-} from "@/components/forum/api";
+  legeBeitragAn, legeUmfrageAn, ladeRubriken, ladeBeitraege, ladeThema, merkeGelesen,
+  entferneBeitrag, stelleBeitragWiederHer, aendereBeitrag,
+  forumSchluessel,
+} from "@/daten/forum";
 import ForumPoll, { type PollPayload } from "@/components/forum/ForumPoll";
 import PollComposer, { type PollDraft } from "@/components/forum/PollComposer";
 import { buildQuote } from "@/components/forum/quote";
@@ -53,19 +53,19 @@ export default function ForumThread() {
 
   const { data: thread } = useQuery({
     queryKey: forumSchluessel.thema(threadId),
-    queryFn: () => fetchThread(threadId!),
+    queryFn: () => ladeThema(threadId!),
     enabled: !!threadId,
   });
 
   // Zurück führt in die Rubrik, aus der man kam, nicht an den Anfang des
   // Forums – dort müsste man sie erst wieder heraussuchen.
-  const { data: rubriken = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories });
+  const { data: rubriken = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: ladeRubriken });
   const rubrik = rubriken.find((c) => c.id === thread?.category_id);
   const zurueck = rubrik ? `/intern/forum/${rubrik.slug}` : "/intern/forum";
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: forumSchluessel.beitraege(threadId),
-    queryFn: () => fetchPosts(threadId!),
+    queryFn: () => ladeBeitraege(threadId!),
     enabled: !!threadId,
   });
 
@@ -76,16 +76,20 @@ export default function ForumThread() {
   // ungelesener Themen auf der Übersicht stehen.
   useEffect(() => {
     if (threadId && user) {
-      markRead(threadId, user.id).then(() => {
-        queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });
-        queryClient.invalidateQueries({ queryKey: forumSchluessel.lesestaende() });
-        queryClient.invalidateQueries({ queryKey: forumSchluessel.ungelesene() });
-      });
+      // Lässt sich der Lesestand nicht merken, bleibt das Thema als ungelesen
+      // stehen – die Zählungen werden trotzdem neu gelesen, wie bisher.
+      merkeGelesen(threadId, user.id)
+        .catch((err) => console.warn("Lesestand nicht gemerkt:", err))
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });
+          queryClient.invalidateQueries({ queryKey: forumSchluessel.lesestaende() });
+          queryClient.invalidateQueries({ queryKey: forumSchluessel.ungelesene() });
+        });
     }
   }, [threadId, user, queryClient, posts.length]);
 
   const post = useMutation({
-    mutationFn: () => createPost({ threadId: threadId!, body: reply, userId: user!.id }),
+    mutationFn: () => legeBeitragAn({ threadId: threadId!, body: reply, userId: user!.id }),
     onSuccess: () => {
       setReply("");
       queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) });
@@ -97,7 +101,7 @@ export default function ForumThread() {
 
   const poll = useMutation({
     mutationFn: (draft: PollDraft) =>
-      createPollPost({
+      legeUmfrageAn({
         threadId: threadId!,
         userId: user!.id,
         kind: draft.kind,
@@ -119,7 +123,7 @@ export default function ForumThread() {
 
   const bearbeiten = useMutation({
     mutationFn: () =>
-      updatePost({
+      aendereBeitrag({
         postId: editing!.id,
         body: editBody,
         userId: user!.id,
@@ -136,7 +140,7 @@ export default function ForumThread() {
 
   const entfernen = useMutation({
     mutationFn: ({ id, zurueck }: { id: string; zurueck: boolean }) =>
-      zurueck ? restorePost(id) : removePost(id, user!.id),
+      zurueck ? stelleBeitragWiederHer(id) : entferneBeitrag(id, user!.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) }),
     onError: (err: Error) =>
       toast({ title: "Ging nicht", description: err.message, variant: "destructive" }),

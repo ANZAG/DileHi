@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { forumSchluessel } from "@/daten/forum";
 import { useNavigate } from "react-router-dom";
 import { Pin, Lock, LockOpen, Archive, ArchiveRestore, Pencil, Trash2, FolderInput, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { deleteThread, fetchCategories, updateThread, type ForumThread } from "./api";
+import { forumSchluessel, loescheThema, ladeRubriken, aendereThema, type ForumThread } from "@/daten/forum";
 
 /**
  * Die Moderationsleiste über einem Thema.
@@ -26,7 +25,7 @@ export default function ThreadModeration({ thread }: { thread: ForumThread }) {
 
   const { data: categories = [] } = useQuery({
     queryKey: forumSchluessel.rubriken(),
-    queryFn: fetchCategories,
+    queryFn: ladeRubriken,
   });
 
   const frisch = () => {
@@ -36,7 +35,7 @@ export default function ThreadModeration({ thread }: { thread: ForumThread }) {
   };
 
   const aendern = useMutation({
-    mutationFn: (patch: Parameters<typeof updateThread>[1]) => updateThread(thread.id, patch),
+    mutationFn: (patch: Parameters<typeof aendereThema>[1]) => aendereThema(thread.id, patch),
     onSuccess: () => {
       setUmbenennen(false);
       frisch();
@@ -46,7 +45,7 @@ export default function ThreadModeration({ thread }: { thread: ForumThread }) {
   });
 
   const entfernen = useMutation({
-    mutationFn: () => deleteThread(thread.id),
+    mutationFn: () => loescheThema(thread.id),
     onSuccess: () => {
       toast({ title: "Thema gelöscht" });
       frisch();
