@@ -2,17 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CameraOff, ChevronDown, HeartPulse } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
-import { supabase } from "@/integrations/supabase/client";
-import { ausJson } from "@/lib/json";
+import { einwilligungSchluessel, ladeFuersorge, type Fuersorge } from "@/daten/einwilligungen";
 
 
-interface Zeile {
-  user_id: string;
-  display_name: string | null;
-  no_photo_consent: boolean;
-  is_minor: boolean;
-  contacts: { name: string; phone: string; relation: string | null }[];
-}
+type Zeile = Fuersorge;
 
 /**
  * Was die Leitung einer Veranstaltung über die Zusagen wissen muss: wer nicht
@@ -27,12 +20,9 @@ export default function TeilnehmerFuersorge({ eventId }: { eventId: string }) {
   const [offen, setOffen] = useState(false);
 
   const { data: zeilen = [] } = useQuery({
-    queryKey: ["einwilligungen", "veranstaltung", eventId],
-    queryFn: async (): Promise<Zeile[]> => {
-      const { data, error } = await supabase.rpc("event_attendee_care", { _event_id: eventId });
-      if (error) return [];
-      return (data ?? []).map((z) => ({ ...z, contacts: ausJson<Zeile["contacts"]>(z.contacts) }));
-    },
+    queryKey: einwilligungSchluessel.veranstaltung(eventId),
+    // Fehlt die Funktion (Migration noch nicht eingespielt), nichts zeigen.
+    queryFn: () => ladeFuersorge(eventId).catch((): Zeile[] => []),
     enabled: an,
     staleTime: 60 * 1000,
   });

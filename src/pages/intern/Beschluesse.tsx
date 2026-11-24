@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  beschlussSchluessel, ladeBeschluesse, ladeBeschlussDokumente, loescheBeschluss, speichereBeschluss,
+  type Ausgang, type Beschluss, type Gremium,
+} from "@/daten/beschluesse";
+import { ladeAbstimmung, ladeErgebnisse, ladeStimmberechtigteVon } from "@/daten/wahlen";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
@@ -16,25 +20,6 @@ import { datumDe, heuteIso } from "@/lib/datum";
 import { ergebnisVon, stimmen } from "@/lib/ergebnisBild";
 import type { Election, ElectionResult } from "@/components/elections/types";
 
-
-type Gremium = "assembly" | "board" | "other";
-type Ausgang = "adopted" | "rejected";
-
-interface Beschluss {
-  id: string;
-  number: string | null;
-  decided_on: string;
-  body: Gremium;
-  title: string;
-  text: string;
-  outcome: Ausgang;
-  result: string | null;
-  visibility: "members" | "board";
-  election_id: string | null;
-  document_id: string | null;
-  superseded_by: string | null;
-  note: string | null;
-}
 
 const GREMIUM: Record<Gremium, string> = {
   assembly: "Mitgliederversammlung",
@@ -57,29 +42,17 @@ const KEINE = "__keine__";
 export default function Beschluesse() {
   const { hasPermission } = useAuth();
   const verwalter = hasPermission("resolutions.manage");
+  const { toast } = useToast();
   const [params, setParams] = useSearchParams();
 
   const { data: beschluesse = [], isLoading } = useQuery({
-    queryKey: ["beschluesse"],
-    queryFn: async (): Promise<Beschluss[]> => {
-      const { data, error } = await supabase.from("resolutions").select("*").order("decided_on", { ascending: false }).order("number", { ascending: false });
-      if (error) throw new Error(error.message);
-      // Gremium, Ausgang und Sichtbarkeit sind in der Datenbank Text mit festem Wertevorrat.
-      return (data ?? []).map((b) => ({
-        ...b,
-        body: b.body as Gremium,
-        outcome: b.outcome as Ausgang,
-        visibility: b.visibility as Beschluss["visibility"],
-      }));
-    },
+    queryKey: beschlussSchluessel.liste(),
+    queryFn: ladeBeschluesse,
   });
 
   const { data: dokumente = [] } = useQuery({
-    queryKey: ["beschluesse", "dokumente"],
-    queryFn: async (): Promise<{ id: string; title: string }[]> => {
-      const { data } = await supabase.from("documents").select("id, title").order("created_at", { ascending: false }).limit(200);
-      return data ?? [];
-    },
+    queryKey: beschlussSchluessel.dokumente(),
+    queryFn: ladeBeschlussDokumente,
   });
 
   const [gremium, setGremium] = useState<Gremium | null>(null);
@@ -93,12 +66,18 @@ export default function Beschluesse() {
     if (!aus || !verwalter) return;
     let abgebrochen = false;
     (async () => {
-      const vorlage = await beschlussAusAbstimmung(aus);
-      if (!abgebrochen && vorlage) setEntwurf(vorlage);
+      try {
+        const vorlage = await beschlussAusAbstimmung(aus);
+        if (!abgebrochen && vorlage) setEntwurf(vorlage);
+      } catch (err) {
+        if (!abgebrochen) {
+          toast({ title: "Abstimmung nicht übernommen", description: (err as Error).message, variant: "destructive" });
+        }
+      }
       setParams({}, { replace: true });
     })();
     return () => { abgebrochen = true; };
-  }, [aus, verwalter, setParams]);
+  }, [aus, verwalter, setParams, toast]);
 
   const jahre = [...new Set(beschluesse.map((b) => b.decided_on.slice(0, 4)))].sort().reverse();
   const nummerVon = (id: string | null) => beschluesse.find((b) => b.id === id)?.number ?? null;
@@ -234,13 +213,13 @@ export default function Beschluesse() {
  * Nein: 0 Stimmen (11 von 17 möglichen Stimmen)".
  */
 async function beschlussAusAbstimmung(electionId: string): Promise<Partial<Beschluss> | null> {
-  const { data: wahl } = await supabase.from("elections").select("*, candidates(*)").eq("id", electionId).maybeSingle();
+  const wahl = await ladeAbstimmung(electionId);
   if (!wahl || wahl.status !== "closed") return null;
-  const { data: ergebnisse } = await supabase.rpc("get_election_results");
+  const ergebnisse = await ladeErgebnisse();
   let moeglich: number | null = null;
   if (wahl.group_id) {
-    const { data: mitglieder } = await supabase.from("group_members").select("vote_count").eq("group_id", wahl.group_id);
-    moeglich = (mitglieder ?? []).reduce((s, m) => s + m.vote_count, 0) || null;
+    const mitglieder = await ladeStimmberechtigteVon(wahl.group_id);
+    moeglich = mitglieder.reduce((s, m) => s + m.vote_count, 0) || null;
   }
   const e = ergebnisVon(wahl as Election, (ergebnisse ?? []) as ElectionResult[], moeglich);
   if (!e) return null;
@@ -287,15 +266,10 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
         superseded_by: b.superseded_by ?? null,
         note: b.note?.trim() || null,
       };
-      const { error } = b.id
-        ? await supabase.from("resolutions").update(daten).eq("id", b.id)
-        : await supabase.from("resolutions").insert(daten);
-      if (error) {
-        throw new Error(error.message.includes("resolutions_number_key") ? `Die Nummer ${daten.number} ist schon vergeben.` : error.message);
-      }
+      await speichereBeschluss(daten, b.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["beschluesse"] });
+      qc.invalidateQueries({ queryKey: beschlussSchluessel.alle });
       toast({ title: "Beschluss gespeichert" });
       onFertig();
     },
@@ -305,11 +279,10 @@ function Formular({ beschluss, beschluesse, dokumente, onFertig }: {
   const loeschen = useMutation({
     mutationFn: async () => {
       if (!b.id) throw new Error("Der Beschluss ist noch nicht gespeichert.");
-      const { error } = await supabase.from("resolutions").delete().eq("id", b.id);
-      if (error) throw new Error(error.message);
+      await loescheBeschluss(b.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["beschluesse"] });
+      qc.invalidateQueries({ queryKey: beschlussSchluessel.alle });
       onFertig();
     },
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),

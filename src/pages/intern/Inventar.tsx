@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowLeft, CalendarDays, Loader2, MapPin, Package, Pencil, Plus, Trash2, Undo2, User,
 } from "lucide-react";
-import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +13,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
 import {
-  frei, heuteIso, istUeberfaellig, STATUS, useGegenstaende, useOffeneAusleihen, zeitraumText, ZUSTAND,
+  frei, heuteIso, istUeberfaellig, STATUS, zeitraumText, ZUSTAND,
   type Ausleihe, type Gegenstand, type Zustand,
 } from "@/hooks/useInventar";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereAusleihe, inventarSchluessel, ladeInventarTermine, legeAusleiheAn, loescheAusleihe, loescheGegenstand,
+  speichereGegenstand, useGegenstaende, useOffeneAusleihen, type InventarTermin,
+} from "@/daten/inventar";
+import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 
 interface Mitglied { id: string; display_name: string }
-interface Termin { id: string; title: string; start_date: string; end_date: string | null }
+type Termin = InventarTermin;
 
 const KEINE = "__keine__";
 
@@ -38,22 +41,15 @@ export default function Inventar() {
   const { data: gegenstaende = [], isLoading } = useGegenstaende();
   const { data: ausleihen = [] } = useOffeneAusleihen();
 
-  const { data: mitglieder = [] } = useQuery({
-    queryKey: ["mitglieder-verzeichnis"],
-    queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await supabase.rpc("get_member_directory");
-      const zeilen: Mitglied[] = data ?? [];
-      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
-    },
-  });
+  const { data: verzeichnis } = useMitgliederverzeichnis();
+  const mitglieder: Mitglied[] = useMemo(
+    () => [...(verzeichnis ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name, "de")),
+    [verzeichnis],
+  );
 
   const { data: termine = [] } = useQuery({
-    queryKey: ["inventar", "termine"],
-    queryFn: async (): Promise<Termin[]> => {
-      const { data } = await supabase.from("events").select("id, title, start_date, end_date")
-        .or(nochAktuellFilter()).order("start_date").limit(50);
-      return data ?? [];
-    },
+    queryKey: inventarSchluessel.termine(),
+    queryFn: ladeInventarTermine,
   });
 
   const [suche, setSuche] = useState("");
@@ -277,13 +273,9 @@ function AusleiheZeile({ ausleihe, titel, termin, darfAbsagen, verwalter }: {
   const qc = useQueryClient();
 
   const aendern = useMutation({
-    mutationFn: async (patch: Partial<Ausleihe> | "loeschen") => {
-      const { error } = patch === "loeschen"
-        ? await supabase.from("inventory_loans").delete().eq("id", ausleihe.id)
-        : await supabase.from("inventory_loans").update(patch).eq("id", ausleihe.id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inventar"] }),
+    mutationFn: (patch: Partial<Ausleihe> | "loeschen") =>
+      patch === "loeschen" ? loescheAusleihe(ausleihe.id) : aendereAusleihe(ausleihe.id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: inventarSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
@@ -353,19 +345,17 @@ function ReservierenFormular({ gegenstand, ausleihen, termine, mitglieder, onFer
   };
 
   const speichern = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("inventory_loans").insert({
+    mutationFn: () =>
+      legeAusleiheAn({
         item_id: gegenstand.id,
         user_id: fuer || user!.id,
         event_id: termin === KEINE ? null : termin,
         quantity: anzahl,
         from_date: von,
         until_date: bis,
-      });
-      if (error) throw new Error(error.message);
-    },
+      }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inventar"] });
+      qc.invalidateQueries({ queryKey: inventarSchluessel.alle });
       toast({ title: "Reserviert", description: gegenstand.name });
       onFertig();
     },
@@ -458,13 +448,10 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
         owner_id: werte.owner_id || null,
         note: werte.note?.trim() || null,
       };
-      const { error } = werte.id
-        ? await supabase.from("inventory_items").update(daten).eq("id", werte.id)
-        : await supabase.from("inventory_items").insert(daten);
-      if (error) throw new Error(error.message);
+      await speichereGegenstand(daten, werte.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inventar"] });
+      qc.invalidateQueries({ queryKey: inventarSchluessel.alle });
       toast({ title: "Gespeichert" });
       onFertig();
     },
@@ -474,11 +461,10 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
   const loeschen = useMutation({
     mutationFn: async () => {
       if (!werte.id) throw new Error("Der Gegenstand ist noch nicht gespeichert.");
-      const { error } = await supabase.from("inventory_items").delete().eq("id", werte.id);
-      if (error) throw new Error(error.message);
+      await loescheGegenstand(werte.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inventar"] });
+      qc.invalidateQueries({ queryKey: inventarSchluessel.alle });
       onFertig();
     },
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),

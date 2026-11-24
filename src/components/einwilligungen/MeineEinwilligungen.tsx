@@ -8,9 +8,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe } from "@/lib/datum";
 import {
-  istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type Notfallkontakt,
-} from "@/hooks/useEinwilligungen";
-import { supabase } from "@/integrations/supabase/client";
+  einwilligungSchluessel, ladeGeburtsdatum, ladeMeineEinwilligungen, ladeMeineNotfallkontakte, legeNotfallkontaktAn,
+  loescheNotfallkontakt, speichereEinwilligung, useEinwilligungsArten,
+} from "@/daten/einwilligungen";
+import { istMinderjaehrig } from "@/hooks/useEinwilligungen";
 
 /**
  * „Einwilligungen und Notfallkontakt" im Profil.
@@ -27,31 +28,20 @@ export default function MeineEinwilligungen() {
   const { data: arten = [] } = useEinwilligungsArten();
 
   const { data: geburtsdatum } = useQuery({
-    queryKey: ["einwilligungen", "geburtsdatum", user?.id],
-    queryFn: async (): Promise<string | null> => {
-      const { data } = await supabase.from("profiles").select("birthdate").eq("id", user!.id).maybeSingle();
-      return (data?.birthdate as string | null) ?? null;
-    },
+    queryKey: einwilligungSchluessel.geburtsdatum(user?.id),
+    queryFn: () => ladeGeburtsdatum(user!.id),
     enabled: !!user,
   });
 
   const { data: meine = [] } = useQuery({
-    queryKey: ["einwilligungen", "meine", user?.id],
-    queryFn: async (): Promise<Einwilligung[]> => {
-      const { data, error } = await supabase.from("member_consents").select("*").eq("user_id", user!.id);
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einwilligungSchluessel.meine(user?.id),
+    queryFn: () => ladeMeineEinwilligungen(user!.id),
     enabled: !!user,
   });
 
   const { data: kontakte = [] } = useQuery({
-    queryKey: ["einwilligungen", "kontakte", user?.id],
-    queryFn: async (): Promise<Notfallkontakt[]> => {
-      const { data, error } = await supabase.from("member_emergency_contacts").select("*").eq("user_id", user!.id).order("created_at");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einwilligungSchluessel.kontakteVon(user?.id),
+    queryFn: () => ladeMeineNotfallkontakte(user!.id),
     enabled: !!user,
   });
 
@@ -60,45 +50,35 @@ export default function MeineEinwilligungen() {
   const [neuerKontakt, setNeuerKontakt] = useState<{ name: string; phone: string; relation: string } | null>(null);
 
   const entscheiden = useMutation({
-    mutationFn: async ({ typeId, granted }: { typeId: string; granted: boolean }) => {
-      const { error } = await supabase.from("member_consents").upsert(
-        {
-          user_id: user!.id,
-          type_id: typeId,
-          granted,
-          guardian_name: minderjaehrig ? erziehungsberechtigt.trim() || null : null,
-        },
-        { onConflict: "user_id,type_id" }
-      );
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["einwilligungen"] }),
+    mutationFn: ({ typeId, granted }: { typeId: string; granted: boolean }) =>
+      speichereEinwilligung({
+        user_id: user!.id,
+        type_id: typeId,
+        granted,
+        guardian_name: minderjaehrig ? erziehungsberechtigt.trim() || null : null,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: einwilligungSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
   });
 
   const kontaktSpeichern = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("member_emergency_contacts").insert({
+    mutationFn: () =>
+      legeNotfallkontaktAn({
         user_id: user!.id,
         name: neuerKontakt!.name.trim(),
         phone: neuerKontakt!.phone.trim(),
         relation: neuerKontakt!.relation.trim() || null,
-      });
-      if (error) throw new Error(error.message);
-    },
+      }),
     onSuccess: () => {
       setNeuerKontakt(null);
-      qc.invalidateQueries({ queryKey: ["einwilligungen", "kontakte"] });
+      qc.invalidateQueries({ queryKey: einwilligungSchluessel.kontakte() });
     },
     onError: (err: Error) => toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
   });
 
   const kontaktLoeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("member_emergency_contacts").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["einwilligungen", "kontakte"] }),
+    mutationFn: loescheNotfallkontakt,
+    onSuccess: () => qc.invalidateQueries({ queryKey: einwilligungSchluessel.kontakte() }),
   });
 
   const aktiv = arten.filter((a) => a.is_active);

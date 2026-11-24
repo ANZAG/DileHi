@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { datumDe, plusMonate, tageBis } from "@/lib/datum";
 
 export { datumDe, tageBis };
@@ -15,6 +13,9 @@ export { datumDe, tageBis };
  *
  * Die Arten legt die Verwaltung an. Welche ein Verein braucht, ist von Verein
  * zu Verein verschieden; im Code steht keine einzige.
+ *
+ * Hier stehen Typen und der Stand eines Nachweises; was mit der Datenbank
+ * spricht, steht in `daten/nachweise.ts`.
  */
 
 export interface NachweisArt {
@@ -42,43 +43,6 @@ export interface Nachweis {
   updated_at: string;
 }
 
-
-export function useNachweisArten() {
-  return useQuery({
-    queryKey: ["nachweis-arten"],
-    queryFn: async (): Promise<NachweisArt[]> => {
-      const { data, error } = await supabase.from("certificate_types").select("*").order("sort_order").order("label");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useMeineNachweise(userId: string | undefined) {
-  return useQuery({
-    queryKey: ["nachweise", "meine", userId],
-    queryFn: async (): Promise<Nachweis[]> => {
-      if (!userId) return [];
-      const { data, error } = await supabase.from("member_certificates").select("*").eq("user_id", userId);
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    enabled: !!userId,
-  });
-}
-
-export function useAlleNachweise(enabled: boolean) {
-  return useQuery({
-    queryKey: ["nachweise", "alle"],
-    queryFn: async (): Promise<Nachweis[]> => {
-      const { data, error } = await supabase.from("member_certificates").select("*").order("valid_until", { ascending: true, nullsFirst: false });
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    enabled,
-  });
-}
 
 // ── Stand ───────────────────────────────────────────────────────────────────
 
