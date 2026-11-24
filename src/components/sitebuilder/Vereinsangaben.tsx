@@ -1,5 +1,6 @@
 import { useBranding } from "@/hooks/useBranding";
 import { useSprache } from "@/hooks/useSprache";
+import { mitWerten } from "@/lib/texte";
 import { abstandKlasse, breitenKlasse, type Abstand, type Breite } from "./gestaltung";
 
 /**
@@ -34,6 +35,7 @@ export function Vereinsangaben({
 }) {
   const b = useBranding();
   const { t } = useSprache();
+  const zeile = (name: string, wert: string) => mitWerten(t.beschriftet, { name, wert });
 
   const anschrift = [
     b.org_name,
@@ -52,8 +54,8 @@ export function Vereinsangaben({
               // Beide Zeilen beschriftet – „Amtsgericht Wiesbaden" allein sagt
               // nicht, in welcher Eigenschaft es dasteht.
               ? [
-                  b.register_court && `${t.registergericht}: ${b.register_court}`,
-                  b.register_number && `${t.registernummer}: ${b.register_number}`,
+                  b.register_court && zeile(t.registergericht, b.register_court),
+                  b.register_number && zeile(t.registernummer, b.register_number),
                 ]
               : [],
           },
@@ -61,8 +63,8 @@ export function Vereinsangaben({
           {
             titel: t.kontakt,
             werte: [
-              b.org_phone && `${t.telefon}: ${b.org_phone}`,
-              b.org_email && `${t.email}: ${b.org_email}`,
+              b.org_phone && zeile(t.telefon, b.org_phone),
+              b.org_email && zeile(t.email, b.org_email),
             ],
           },
           { titel: t.ustId, werte: [b.vat_id] },
@@ -73,7 +75,7 @@ export function Vereinsangaben({
               titel: t.verantwortlicheStelle,
               werte: [
                 ...anschrift,
-                b.org_phone && `${t.telefon}: ${b.org_phone}`,
+                b.org_phone && zeile(t.telefon, b.org_phone),
                 b.privacy_contact ?? b.org_email,
               ],
             },

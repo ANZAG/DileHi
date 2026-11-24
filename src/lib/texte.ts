@@ -97,6 +97,8 @@ const de = {
   vorherigesBild: "Vorheriges Bild",
   naechstesBild: "Nächstes Bild",
   uhrzeit: "{zeit} Uhr",
+  /** Beschriftung und Wert in einer Zeile – im Französischen steht vor dem Doppelpunkt ein Leerzeichen. */
+  beschriftet: "{name}: {wert}",
 
   // ── Pflichtangaben (Impressum, Datenschutz) ──
   // Nur die Beschriftungen. Was dahinter steht – Name, Anschrift, Register –
@@ -199,6 +201,7 @@ const en: Texte = {
   vorherigesBild: "Previous picture",
   naechstesBild: "Next picture",
   uhrzeit: "{zeit}",
+  beschriftet: "{name}: {wert}",
 
   angabenDdg: "Information pursuant to Section 5 DDG (German Digital Services Act)",
   vereinsregister: "Register of associations",
@@ -292,6 +295,7 @@ const fr: Texte = {
   vorherigesBild: "Image précédente",
   naechstesBild: "Image suivante",
   uhrzeit: "{zeit}",
+  beschriftet: "{name} : {wert}",
 
   angabenDdg: "Informations conformément à l’article 5 de la DDG (loi allemande sur les services numériques)",
   vereinsregister: "Registre des associations",

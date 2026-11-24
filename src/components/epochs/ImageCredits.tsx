@@ -1,5 +1,5 @@
 import { useSprache } from "@/hooks/useSprache";
-import { lizenzwort } from "@/lib/texte";
+import { lizenzwort, mitWerten } from "@/lib/texte";
 
 interface Credit {
   description: string;
@@ -27,7 +27,7 @@ const ImageCredits = ({ credits }: ImageCreditsProps) => {
       <div className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
         {credits.map((c, i) => (
           <p key={i}>
-            <span className="font-medium text-foreground/70">{c.description}:</span>{" "}
+            <span className="font-medium text-foreground/70">{mitWerten(t.beschriftet, { name: c.description, wert: "" }).trimEnd()}</span>{" "}
             {c.source} – {lizenzwort(c.license ?? "", t)}
           </p>
         ))}
