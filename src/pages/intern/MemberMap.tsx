@@ -3,7 +3,19 @@ import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  ladeTermineFuerKarte,
+  merkeOrtskoordinaten,
+  veranstaltungSchluessel,
+  type KartenTermin,
+} from "@/daten/veranstaltungen";
+import {
+  ladeKartenEinwilligung,
+  ladeKartenMitglieder,
+  merkeWohnortKoordinaten,
+  mitgliedSchluessel,
+  type KartenMitglied,
+} from "@/daten/mitglieder";
 import { useAuth } from "@/hooks/useAuth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,10 +26,6 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { SEITE } from "@/lib/layout";
 import { geocodeAdresse, geocodeOrt, type Koordinaten } from "@/lib/geocode";
-
-type KartenMitglied = { id: string; display_name: string | null; city: string | null; zip: string | null; map_lat: number | null; map_lng: number | null };
-
-type KartenTermin = { id: string; title: string; location: string | null; start_date: string; end_date: string | null; all_day: boolean; location_lat: number | null; location_lng: number | null };
 
 // Feste Leerwerte: Ein neues [] oder {} bei jedem Rendern liesse die Karte
 // jedes Mal neu aufbauen.
@@ -51,14 +59,8 @@ const MemberMap = () => {
 
   // Only map-relevant columns are exposed (RPC, no full profile row)
   const { data: gespeichert = KEINE_MITGLIEDER, isLoading } = useQuery({
-    queryKey: ["member-map"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_map_members");
-      if (error) throw error;
-      // Die erzeugten Typen kennen hier kein null; die Spalten können aber leer sein.
-      const zeilen: KartenMitglied[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: mitgliedSchluessel.karte(),
+    queryFn: ladeKartenMitglieder,
   });
 
   // Mitglieder, die auf die Karte wollen, aber keine gespeicherten Koordinaten
@@ -78,7 +80,7 @@ const MemberMap = () => {
   // profile"). Die Datenbank meldete dabei keinen Fehler, und so gingen bei
   // jedem Besuch wieder alle Anfragen hinaus – gleichzeitig.
   const { data: nachgeschlagen = NICHTS_NACHGESCHLAGEN } = useQuery({
-    queryKey: ["member-map-nachgeschlagen", ohneKoordinaten.map((p) => `${p.id}|${p.zip ?? ""}|${p.city ?? ""}`)],
+    queryKey: mitgliedSchluessel.karteNachgeschlagen(ohneKoordinaten.map((p) => `${p.id}|${p.zip ?? ""}|${p.city ?? ""}`)),
     enabled: ohneKoordinaten.length > 0,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -94,8 +96,9 @@ const MemberMap = () => {
         gefunden[p.id] = punkt;
         // Das eigene Profil darf man ändern – dort die Lücke gleich schliessen.
         if (p.id === user?.id) {
-          const { error } = await supabase.from("profiles").update({ map_lat: punkt.lat, map_lng: punkt.lng }).eq("id", p.id);
-          if (error) console.warn("Koordinaten konnten nicht im Profil gespeichert werden:", error.message);
+          await merkeWohnortKoordinaten(p.id, punkt.lat, punkt.lng).catch((error: { message: string }) =>
+            console.warn("Koordinaten konnten nicht im Profil gespeichert werden:", error.message),
+          );
         }
       }
       return gefunden;
@@ -115,26 +118,9 @@ const MemberMap = () => {
 
   // Fetch upcoming events with location (use cached lat/lng when available)
   const { data: termine = KEINE_TERMINE } = useQuery({
-    queryKey: ["member-map-events"],
-    queryFn: async () => {
-      // Start of today (local) — events disappear only the day AFTER they end,
-      // so ongoing/multi-day events stay visible until then.
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const cutoff = startOfToday.toISOString();
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, location, start_date, end_date, all_day, location_lat, location_lng")
-        // Keep events whose end is today or later; for single-day events (no end_date)
-        // fall back to comparing the start date.
-        .or(`end_date.gte.${cutoff},and(end_date.is.null,start_date.gte.${cutoff})`)
-        .not("location", "is", null)
-        .order("start_date", { ascending: true })
-        .limit(20);
-      if (error) throw error;
-      const zeilen: KartenTermin[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: veranstaltungSchluessel.fuerKarte(),
+    // Ab heute früh: Ein Termin verschwindet erst am Tag nach seinem Ende.
+    queryFn: () => ladeTermineFuerKarte(),
   });
 
   // Veranstaltungen, deren Ort noch keine gespeicherten Koordinaten hat.
@@ -146,7 +132,7 @@ const MemberMap = () => {
   // Wie bei den Mitgliedern: nachschlagen in einer eigenen Abfrage, damit die
   // Veranstaltungen mit gespeicherten Koordinaten sofort auf der Karte stehen.
   const { data: orte = NICHTS_NACHGESCHLAGEN } = useQuery({
-    queryKey: ["member-map-orte", [...new Set(termineOhneKoordinaten.map((e) => e.location!))]],
+    queryKey: mitgliedSchluessel.karteOrte([...new Set(termineOhneKoordinaten.map((e) => e.location!))]),
     enabled: termineOhneKoordinaten.length > 0,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -164,11 +150,9 @@ const MemberMap = () => {
         // die Veranstaltung ändern darf (angelegt hat oder events.moderate);
         // bei allen anderen ändert die Datenbank nichts und meldet auch
         // keinen Fehler – für sie bleibt es beim Ergebnis dieser Sitzung.
-        const { error } = await supabase
-          .from("events")
-          .update({ location_lat: punkt.lat, location_lng: punkt.lng })
-          .eq("id", e.id);
-        if (error) console.warn("Koordinaten der Veranstaltung konnten nicht gespeichert werden:", error.message);
+        await merkeOrtskoordinaten(e.id, punkt.lat, punkt.lng).catch((error: { message: string }) =>
+          console.warn("Koordinaten der Veranstaltung konnten nicht gespeichert werden:", error.message),
+        );
       }
       return gefunden;
     },
@@ -192,16 +176,9 @@ const MemberMap = () => {
 
   // Check if the current user has opted in
   const { data: userOptedIn } = useQuery({
-    queryKey: ["member-map-optin", user?.id],
+    queryKey: mitgliedSchluessel.karteEinwilligung(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("show_on_map")
-        .eq("id", user!.id)
-        .single();
-      return data?.show_on_map ?? false;
-    },
+    queryFn: () => ladeKartenEinwilligung(user!.id),
   });
 
   const hasData = members.length > 0 || events.length > 0;

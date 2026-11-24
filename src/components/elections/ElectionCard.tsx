@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Play, Square, Trash2, Pencil, CheckCircle2, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
@@ -12,6 +11,14 @@ import { Link } from "react-router-dom";
 import { Gavel } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
 import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
+import {
+  aendereAbstimmung,
+  gibStimmenAb,
+  kandidatenAusText,
+  setzeAbstimmungsStatus,
+  wahlSchluessel,
+  zaehleVerbrauchteStimmen,
+} from "@/daten/wahlen";
 
 interface Props {
   election: Election;
@@ -68,18 +75,9 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
 
   // 1) usedVotes: Jede Stimme ist eine Zeile in votes -> COUNT(*) (election_id, voter_id)
   const { data: usedVotes = 0 } = useQuery({
-    queryKey: ["my_votes_used", election.id, user?.id],
+    queryKey: wahlSchluessel.verbrauchteStimmen(election.id, user?.id),
     enabled: !!user?.id && election.status === "active",
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("votes")
-        .select("id", { count: "exact", head: true })
-        .eq("election_id", election.id)
-        .eq("voter_id", user!.id);
-
-      if (error) throw error;
-      return count ?? 0;
-    },
+    queryFn: () => zaehleVerbrauchteStimmen(election.id, user!.id),
   });
 
   // 2) remainingVotes: neue Stimmen (z.B. durch Stellvertretung) = myVoteCount - usedVotes
@@ -101,19 +99,14 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
   }, [election.id, remainingVotes]);
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["elections"] });
-    queryClient.invalidateQueries({ queryKey: ["election_results"] });
-    queryClient.invalidateQueries({ queryKey: ["my_votes"] });
-    if (user?.id) queryClient.invalidateQueries({ queryKey: ["my_votes_used", election.id, user.id] });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.ergebnisse() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmen() });
+    if (user?.id) queryClient.invalidateQueries({ queryKey: wahlSchluessel.verbrauchteStimmen(election.id, user.id) });
   };
 
   const updateStatus = useMutation({
-    mutationFn: async (status: string) => {
-      const updates: { status: string; closed_at?: string } = { status };
-      if (status === "closed") updates.closed_at = new Date().toISOString();
-      const { error } = await supabase.from("elections").update(updates).eq("id", election.id);
-      if (error) throw error;
-    },
+    mutationFn: (status: string) => setzeAbstimmungsStatus(election.id, status),
     onSuccess: () => {
       invalidateAll();
       toast({ title: "Status aktualisiert" });
@@ -124,18 +117,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
     mutationFn: async () => {
       if (!user) return;
 
-      // cast_votes erwartet candidate_id + count (siehe SQL)
-      const votes = Object.entries(voteAllocation)
-        .filter(([, count]) => count > 0)
-        .map(([candidate_id, count]) => ({ candidate_id, count }));
-
-      const { error } = await supabase.rpc("cast_votes", {
-        _election_id: election.id,
-        _voter_id: user.id,
-        _votes: votes,
-      });
-
-      if (error) throw error;
+      await gibStimmenAb(election.id, user.id, voteAllocation);
     },
     onSuccess: () => {
       invalidateAll();
@@ -164,20 +146,11 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
 
   const saveEdit = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("elections")
-        .update({ title: editForm.title, description: editForm.description || null })
-        .eq("id", election.id);
-      if (error) throw error;
-
-      await supabase.from("candidates").delete().eq("election_id", election.id);
-      const names = editForm.candidates.split("\n").map((c) => c.trim()).filter(Boolean);
-      if (names.length > 0) {
-        const { error: cErr } = await supabase
-          .from("candidates")
-          .insert(names.map((name) => ({ election_id: election.id, name })));
-        if (cErr) throw cErr;
-      }
+      await aendereAbstimmung(election.id, {
+        titel: editForm.title,
+        beschreibung: editForm.description || null,
+        kandidaten: kandidatenAusText(editForm.candidates),
+      });
     },
     onSuccess: () => {
       invalidateAll();

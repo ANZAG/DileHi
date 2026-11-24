@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { alsJson, ausJson } from "@/lib/json";
+import { ausJson } from "@/lib/json";
+import { speichereFormularEinstellungen, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 
@@ -15,42 +15,8 @@ import { toast } from "@/hooks/use-toast";
  * Änderung stillschweigend – der Query-Cache hält zwei Minuten.
  *
  * Jetzt wird nur noch die tatsächliche Änderung gesendet und in der Datenbank
- * zusammengeführt.
+ * zusammengeführt – in `speichereFormularEinstellungen` (src/daten).
  */
-
-/** Fehlercode von PostgreSQL, wenn die Funktion (noch) nicht existiert. */
-const UNDEFINED_FUNCTION = "42883";
-
-export async function saveFormSettings(
-  formId: string,
-  patch: Record<string, unknown>
-): Promise<void> {
-  const { error } = await supabase.rpc("update_form_settings", { _form_id: formId, _patch: alsJson(patch) });
-
-  if (!error) return;
-
-  if (error.code !== UNDEFINED_FUNCTION) throw new Error(error.message);
-
-  // ── Rückfallweg ──────────────────────────────────────────────────────────
-  // Solange die Migration 20260907180000 nicht eingespielt ist, wird hier
-  // zusammengeführt – aber gegen den frisch gelesenen Stand aus der Datenbank
-  // statt gegen den Browser-Cache. Das schließt das Zeitfenster nicht ganz,
-  // verkleinert es aber von zwei Minuten auf wenige Millisekunden.
-  // Dieser Block kann entfallen, sobald die Migration produktiv ist.
-  const { data: current, error: readError } = await supabase
-    .from("event_forms")
-    .select("settings")
-    .eq("id", formId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const merged = { ...((current?.settings as Record<string, Json>) ?? {}), ...patch } as Json;
-  const { error: writeError } = await supabase
-    .from("event_forms")
-    .update({ settings: merged })
-    .eq("id", formId);
-  if (writeError) throw new Error(writeError.message);
-}
 
 /**
  * Mutation für beide Seiten. Meldet Fehler sichtbar – bisher schluckte die
@@ -69,13 +35,13 @@ export function useFormSettings(formId: string | undefined, eventId: string | un
   return useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
       if (!formId) return;
-      await saveFormSettings(formId, patch);
+      await speichereFormularEinstellungen(formId, patch);
     },
     onMutate: () => {
       scrollY.current = window.scrollY;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_form", eventId] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.formular(eventId) });
       // Nach dem Neuaufbau, nicht davor – sonst wird die alte Position gesetzt
       // und der Sprung passiert danach trotzdem.
       requestAnimationFrame(() => {

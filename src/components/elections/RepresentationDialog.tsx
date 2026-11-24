@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { X, History, UserX, UserCheck } from "lucide-react";
-import type { GroupMember, RepresentationLogEntry } from "./types";
+import {
+  aendereStimmrechte,
+  anwesenheitsAenderungen,
+  ladeNamen,
+  ladeStimmberechtigteVon,
+  ladeVertretungsprotokoll,
+  themaHatStimmen,
+  vertretungsAenderungen,
+  wahlSchluessel,
+} from "@/daten/wahlen";
 
 interface Props {
   groupId: string;
@@ -26,72 +34,31 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
   const [showLog, setShowLog] = useState(false);
 
   const { data: members = [] } = useQuery({
-    queryKey: ["group_members", groupId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("*")
-        .eq("group_id", groupId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: wahlSchluessel.stimmberechtigteVon(groupId),
+    queryFn: () => ladeStimmberechtigteVon(groupId),
   });
 
+  // Dieselben Namen für die Liste und fürs Protokoll.
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles_all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, display_name");
-      if (error) return [];
-      return data;
-    },
+    queryKey: wahlSchluessel.namen(),
+    queryFn: ladeNamen,
   });
 
   const { data: logEntries = [] } = useQuery({
-    queryKey: ["representation_log", groupId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("representation_log")
-        .select("*")
-        .eq("group_id", groupId)
-        .order("changed_at", { ascending: false });
-      if (error) return [];
-      return data;
-    },
-  });
-
-  const { data: logProfiles = [] } = useQuery({
-    queryKey: ["profiles_for_rep_log"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, display_name");
-      if (error) return [];
-      return data;
-    },
+    queryKey: wahlSchluessel.vertretungsprotokoll(groupId),
+    queryFn: () => ladeVertretungsprotokoll(groupId),
   });
 
   // Check if any votes exist in this topic's elections
   const { data: hasVotes = false } = useQuery({
-    queryKey: ["topic_has_votes", groupId],
-    queryFn: async () => {
-      const { data: elections } = await supabase
-        .from("elections")
-        .select("id")
-        .eq("group_id", groupId);
-      if (!elections || elections.length === 0) return false;
-      const ids = elections.map((e) => e.id);
-      const { count } = await supabase
-        .from("votes")
-        .select("id", { count: "exact", head: true })
-        .in("election_id", ids);
-      return (count || 0) > 0;
-    },
+    queryKey: wahlSchluessel.themaHatStimmen(groupId),
+    queryFn: () => themaHatStimmen(groupId),
   });
 
   const getName = (userId: string) =>
     profiles.find((p) => p.id === userId)?.display_name || "Unbekannt";
 
-  const getLogName = (userId: string) =>
-    logProfiles.find((p) => p.id === userId)?.display_name || "Unbekannt";
+  const getLogName = getName;
 
   // Get who this member represents
   const getRepresentedUsers = (userId: string) =>
@@ -99,64 +66,30 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
 
   const setRepresentation = useMutation({
     mutationFn: async ({ representedUserId, representativeId }: { representedUserId: string; representativeId: string | null }) => {
-      const representedMember = members.find((m) => m.user_id === representedUserId);
-      if (!representedMember) return;
+      const aenderungen = vertretungsAenderungen(members, representedUserId, representativeId);
+      if (!aenderungen) return;
 
-      const oldRepresentative = representedMember.represented_by;
-
-      // Update the represented user
-      await supabase
-        .from("group_members")
-        .update({
-          represented_by: representativeId,
-          vote_count: representativeId ? 0 : 1,
-        })
-        .eq("group_id", groupId)
-        .eq("user_id", representedUserId);
-
-      // If removing old representative, decrease their vote count
-      if (oldRepresentative && oldRepresentative !== representativeId) {
-        const oldRep = members.find((m) => m.user_id === oldRepresentative);
-        if (oldRep) {
-          await supabase
-            .from("group_members")
-            .update({ vote_count: Math.max(1, oldRep.vote_count - 1) })
-            .eq("group_id", groupId)
-            .eq("user_id", oldRepresentative);
-        }
-      }
-
-      // If setting new representative, increase their vote count
-      if (representativeId) {
-        const newRep = members.find((m) => m.user_id === representativeId);
-        if (newRep) {
-          await supabase
-            .from("group_members")
-            .update({ vote_count: newRep.vote_count + 1 })
-            .eq("group_id", groupId)
-            .eq("user_id", representativeId);
-        }
-      }
+      const oldRepresentative = members.find((m) => m.user_id === representedUserId)?.represented_by;
+      const representedName = getName(representedUserId);
 
       // Log if votes have already been cast
-      if (hasVotes) {
-        const representedName = getName(representedUserId);
-        const action = representativeId ? "Vertretung gesetzt" : "Vertretung entfernt";
-        const details = representativeId
-          ? `${getName(representativeId)} vertritt jetzt ${representedName}`
-          : `Vertretung für ${representedName} wurde entfernt (vorher: ${oldRepresentative ? getName(oldRepresentative) : "-"})`;
-
-        await supabase.from("representation_log").insert({
-          group_id: groupId,
-          action,
-          details,
-          changed_by: user!.id,
-        });
-      }
+      await aendereStimmrechte(
+        groupId,
+        aenderungen,
+        hasVotes
+          ? {
+              action: representativeId ? "Vertretung gesetzt" : "Vertretung entfernt",
+              details: representativeId
+                ? `${getName(representativeId)} vertritt jetzt ${representedName}`
+                : `Vertretung für ${representedName} wurde entfernt (vorher: ${oldRepresentative ? getName(oldRepresentative) : "-"})`,
+              changed_by: user!.id,
+            }
+          : null,
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["group_members", groupId] });
-      queryClient.invalidateQueries({ queryKey: ["representation_log", groupId] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigteVon(groupId) });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.vertretungsprotokoll(groupId) });
       toast({ title: "Vertretung aktualisiert" });
     },
     onError: () => toast({ title: "Fehler", variant: "destructive" }),
@@ -167,67 +100,26 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
   // This is distinct from "represented" (vote_count=0, represented_by=someId).
   const toggleAbsent = useMutation({
     mutationFn: async ({ memberId, currentlyAbsent }: { memberId: string; currentlyAbsent: boolean }) => {
-      const member = members.find((m) => m.user_id === memberId);
-      if (!member) return;
+      const aenderungen = anwesenheitsAenderungen(members, memberId, currentlyAbsent);
+      if (!aenderungen) return;
 
-      if (currentlyAbsent || member.represented_by) {
-        // Restore to present: clear any representation, set vote_count back to 1.
-        // Works whether the member was absent (vote_count=0) or represented by someone.
-        if (member.represented_by) {
-          // Decrease the representative's vote count first
-          const rep = members.find((m) => m.user_id === member.represented_by);
-          if (rep) {
-            await supabase
-              .from("group_members")
-              .update({ vote_count: Math.max(1, rep.vote_count - 1) })
-              .eq("group_id", groupId)
-              .eq("user_id", member.represented_by);
-          }
-        }
-        await supabase
-          .from("group_members")
-          .update({ vote_count: 1, represented_by: null })
-          .eq("group_id", groupId)
-          .eq("user_id", memberId);
-      } else {
-        // Mark as absent: clear any existing representation first
-        if (member.represented_by) {
-          const rep = members.find((m) => m.user_id === member.represented_by);
-          if (rep) {
-            await supabase
-              .from("group_members")
-              .update({ vote_count: Math.max(1, rep.vote_count - 1) })
-              .eq("group_id", groupId)
-              .eq("user_id", member.represented_by);
-          }
-          await supabase
-            .from("group_members")
-            .update({ represented_by: null, vote_count: 0 })
-            .eq("group_id", groupId)
-            .eq("user_id", memberId);
-        } else {
-          await supabase
-            .from("group_members")
-            .update({ vote_count: 0 })
-            .eq("group_id", groupId)
-            .eq("user_id", memberId);
-        }
-      }
-
-      if (hasVotes) {
-        await supabase.from("representation_log").insert({
-          group_id: groupId,
-          action: currentlyAbsent ? "Anwesenheit wiederhergestellt" : "Mitglied ausgetragen",
-          details: currentlyAbsent
-            ? `${getName(memberId)} wurde als anwesend markiert`
-            : `${getName(memberId)} wurde als abwesend ausgetragen`,
-          changed_by: user!.id,
-        });
-      }
+      await aendereStimmrechte(
+        groupId,
+        aenderungen,
+        hasVotes
+          ? {
+              action: currentlyAbsent ? "Anwesenheit wiederhergestellt" : "Mitglied ausgetragen",
+              details: currentlyAbsent
+                ? `${getName(memberId)} wurde als anwesend markiert`
+                : `${getName(memberId)} wurde als abwesend ausgetragen`,
+              changed_by: user!.id,
+            }
+          : null,
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["group_members", groupId] });
-      queryClient.invalidateQueries({ queryKey: ["representation_log", groupId] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigteVon(groupId) });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.vertretungsprotokoll(groupId) });
       toast({ title: "Anwesenheit aktualisiert" });
     },
     onError: () => toast({ title: "Fehler", variant: "destructive" }),

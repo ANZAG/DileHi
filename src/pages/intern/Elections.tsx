@@ -10,9 +10,22 @@ import ElectionCard from "@/components/elections/ElectionCard";
 import ErgebnisBildKnopf from "@/components/elections/ErgebnisBildKnopf";
 import { ergebnisVon } from "@/lib/ergebnisBild";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
-import type { Election, ElectionGroup, ElectionResult, GroupMember } from "@/components/elections/types";
+import type { Election } from "@/components/elections/types";
 import { SEITE } from "@/lib/layout";
 import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
+import {
+  kandidatenAusText,
+  ladeAbstimmungen,
+  ladeErgebnisse,
+  ladeMeineStimmen,
+  ladeStimmberechtigte,
+  ladeThemen,
+  legeAbstimmungAn,
+  legeThemaAn,
+  loescheThema,
+  schliesseThema,
+  wahlSchluessel,
+} from "@/daten/wahlen";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
 const Elections = () => {
@@ -35,75 +48,45 @@ const Elections = () => {
     const channel = supabase
       .channel("elections-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "elections" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["elections"] });
-        queryClient.invalidateQueries({ queryKey: ["election_results"] });
-        queryClient.invalidateQueries({ queryKey: ["my_votes"] });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.ergebnisse() });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmen() });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["election_results"] });
-        queryClient.invalidateQueries({ queryKey: ["my_votes"] });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.ergebnisse() });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmen() });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["group_members"] });
+        queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigte() });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
   const { data: groups = [], isLoading: loadingGroups } = useQuery({
-    queryKey: ["election_groups"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("election_groups")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const zeilen: ElectionGroup[] = data;
-      return zeilen;
-    },
+    queryKey: wahlSchluessel.themen(),
+    queryFn: ladeThemen,
   });
 
   const { data: elections = [], isLoading: loadingElections } = useQuery({
-    queryKey: ["elections"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("elections")
-        .select("*, candidates(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: wahlSchluessel.abstimmungen(),
+    queryFn: ladeAbstimmungen,
   });
 
   const { data: results = [] } = useQuery({
-    queryKey: ["election_results"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_election_results");
-      if (error) throw error;
-      return data;
-    },
+    queryKey: wahlSchluessel.ergebnisse(),
+    queryFn: ladeErgebnisse,
   });
 
+  // Schlägt eine der beiden Abfragen fehl, bleibt die Liste leer – wie bisher.
   const { data: myVotes = [] } = useQuery({
-    queryKey: ["my_votes", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase.from("votes").select("election_id").eq("voter_id", user.id);
-      if (error) return [];
-      return data;
-    },
+    queryKey: wahlSchluessel.meineStimmen(user?.id),
+    queryFn: () => (user ? ladeMeineStimmen(user.id) : []),
   });
 
   const { data: allGroupMembers = [] } = useQuery({
-    queryKey: ["group_members"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("*");
-      if (error) return [];
-      const zeilen: GroupMember[] = data;
-      return zeilen;
-    },
+    queryKey: wahlSchluessel.stimmberechtigte(),
+    queryFn: ladeStimmberechtigte,
   });
 
   const hasVotedInElection = (electionId: string) =>
@@ -129,66 +112,34 @@ const Elections = () => {
   };
 
   const createGroup = useMutation({
-    mutationFn: async () => {
-      // Create the group
-      const { data: group, error } = await supabase
-        .from("election_groups")
-        .insert({
-          title: groupForm.title,
-          votes_per_member: 1,
-          created_by: user!.id,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      // Auto-add all members with 1 vote each.
-      // Uses get_member_ids() so role logic stays in the DB –
-      // no frontend change needed when a new role is added.
-      const { data: members } = await supabase.rpc("get_member_ids");
-      if (members && members.length > 0) {
-        await supabase.from("group_members").insert(
-          members.map((m: { user_id: string }) => ({
-            group_id: group.id,
-            user_id: m.user_id,
-            vote_count: 1,
-          }))
-        );
-      }
-    },
+    mutationFn: () => legeThemaAn(groupForm.title, user!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["election_groups"] });
-      queryClient.invalidateQueries({ queryKey: ["group_members"] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.themen() });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigte() });
       setShowGroupForm(false);
       setGroupForm({ title: "" });
       toast({ title: "Thema erstellt" });
     },
-    onError: () => toast({ title: "Fehler", variant: "destructive" }),
+    onError: () => {
+      // Das Thema kann schon angelegt sein, wenn erst das Eintragen der
+      // Mitglieder scheitert – dann soll es wenigstens in der Liste stehen.
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.themen() });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigte() });
+      toast({ title: "Fehler", variant: "destructive" });
+    },
   });
 
   const createElection = useMutation({
-    mutationFn: async (groupId: string) => {
-      const { data: election, error } = await supabase
-        .from("elections")
-        .insert({
-          title: electionForm.title,
-          description: electionForm.description || null,
-          created_by: user!.id,
-          group_id: groupId,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      const names = electionForm.candidates.split("\n").map((c) => c.trim()).filter(Boolean);
-      if (names.length > 0) {
-        const { error: cErr } = await supabase
-          .from("candidates")
-          .insert(names.map((name) => ({ election_id: election.id, name })));
-        if (cErr) throw cErr;
-      }
-    },
+    mutationFn: (groupId: string) =>
+      legeAbstimmungAn({
+        titel: electionForm.title,
+        beschreibung: electionForm.description || null,
+        kandidaten: kandidatenAusText(electionForm.candidates),
+        themaId: groupId,
+        userId: user!.id,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["elections"] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
       setShowElectionForm(null);
       setElectionForm({ title: "", description: "", candidates: "" });
       toast({ title: "Abstimmung erstellt" });
@@ -197,29 +148,19 @@ const Elections = () => {
   });
 
   const closeGroup = useMutation({
-    mutationFn: async (groupId: string) => {
-      const now = new Date().toISOString();
-      // Close group and all its active elections in two queries instead of N+1
-      await supabase
-        .from("election_groups")
-        .update({ status: "closed", closed_at: now })
-        .eq("id", groupId);
-      const activeIds = elections
-        .filter((e) => e.group_id === groupId && e.status === "active")
-        .map((e) => e.id);
-      if (activeIds.length > 0) {
-        await supabase
-          .from("elections")
-          .update({ status: "closed", closed_at: now })
-          .in("id", activeIds);
-      }
-    },
+    mutationFn: (groupId: string) =>
+      schliesseThema(
+        groupId,
+        elections.filter((e) => e.group_id === groupId && e.status === "active").map((e) => e.id),
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["election_groups"] });
-      queryClient.invalidateQueries({ queryKey: ["elections"] });
-      queryClient.invalidateQueries({ queryKey: ["election_results"] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.themen() });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.ergebnisse() });
       toast({ title: "Thema geschlossen" });
     },
+    // Ohne das blieb ein gescheitertes Schließen stumm – und galt als gelungen.
+    onError: () => toast({ title: "Fehler", variant: "destructive" }),
   });
 
   const deleteGroup = useMutation({
@@ -232,12 +173,11 @@ const Elections = () => {
         elections.filter((e) => e.group_id === groupId),
         user!.id,
       );
-      const { error } = await supabase.from("election_groups").delete().eq("id", groupId);
-      if (error) throw error;
+      await loescheThema(groupId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["election_groups"] });
-      queryClient.invalidateQueries({ queryKey: ["elections"] });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.themen() });
+      queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
       toast({ title: "Thema gelöscht" });
     },
     // Ohne das blieb ein gescheitertes Löschen stumm.
@@ -245,11 +185,11 @@ const Elections = () => {
   });
 
   const refreshAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["elections"] });
-    queryClient.invalidateQueries({ queryKey: ["election_results"] });
-    queryClient.invalidateQueries({ queryKey: ["my_votes"] });
-    queryClient.invalidateQueries({ queryKey: ["election_groups"] });
-    queryClient.invalidateQueries({ queryKey: ["group_members"] });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.abstimmungen() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.ergebnisse() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmen() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.themen() });
+    queryClient.invalidateQueries({ queryKey: wahlSchluessel.stimmberechtigte() });
     toast({ title: "Aktualisiert" });
   };
 

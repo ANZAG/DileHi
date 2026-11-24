@@ -27,6 +27,15 @@ import { beitragseinzugZeigen, mitgliedsartZeigen } from "@/lib/profilabschnitte
 import { useWoerter } from "@/hooks/useBranding";
 import { SEITE, ZWEISPALTIG } from "@/lib/layout";
 import { geocodeOrt } from "@/lib/geocode";
+import {
+  aendereProfil,
+  ladeAntragsdateien,
+  ladeProfil,
+  ladeZelte,
+  legeZeltAn,
+  loescheZelt,
+  mitgliedSchluessel,
+} from "@/daten/mitglieder";
 
 const TENT_TYPE_OPTIONS = [
   { value: "speichenrad", label: "Speichenrad", shape: "circle" },
@@ -95,12 +104,9 @@ const Profile = () => {
   // Load profile via useQuery for proper caching + loading state.
   // The raw useEffect approach would refetch on every mount without caching.
   const { data: profileData } = useQuery({
-    queryKey: ["my-profile", user?.id],
+    queryKey: mitgliedSchluessel.profil(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
-      return data;
-    },
+    queryFn: () => ladeProfil(user!.id),
   });
 
   const { data: profilfelder = [] } = useProfilfelder();
@@ -177,32 +183,15 @@ const Profile = () => {
   }, [profileData]);
 
   const { data: membershipFiles = [] } = useQuery({
-    queryKey: ["membership_files", user?.id],
+    queryKey: mitgliedSchluessel.antragsdateien(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("membership_files")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) return [];
-      return data;
-    },
+    queryFn: () => ladeAntragsdateien(user!.id),
   });
 
   const { data: myTents = [] } = useQuery({
-    queryKey: ["member_tents", user?.id],
+    queryKey: mitgliedSchluessel.zelteVon(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("member_tents")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at");
-      if (error) return [];
-      const zeilen: MemberTent[] = data;
-      return zeilen;
-    },
+    queryFn: async (): Promise<MemberTent[]> => ladeZelte(user!.id),
   });
 
   const handleSave = async () => {
@@ -237,30 +226,26 @@ const Profile = () => {
         }
       }
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          display_name: form.displayName,
-          salutation: form.salutation,
-          first_name: form.firstName,
-          last_name: form.lastName,
-          street: form.street,
-          zip: form.zip,
-          city: form.city,
-          birthdate: form.birthdate || null,
-          phone: form.phone,
-          membership_type: form.membershipType,
-          contribution_interval: form.contributionInterval,
-          extra: alsJson(extra),
-          show_on_map: form.showOnMap,
-          notify_digest: form.notifyDigest,
-          map_lat: form.showOnMap ? mapLat : null,
-          map_lng: form.showOnMap ? mapLng : null,
-          diet: form.diet || null,
-          allergies: form.allergies || null,
-        })
-        .eq("id", user.id);
-      if (profileError) throw profileError;
+      await aendereProfil(user.id, {
+        display_name: form.displayName,
+        salutation: form.salutation,
+        first_name: form.firstName,
+        last_name: form.lastName,
+        street: form.street,
+        zip: form.zip,
+        city: form.city,
+        birthdate: form.birthdate || null,
+        phone: form.phone,
+        membership_type: form.membershipType,
+        contribution_interval: form.contributionInterval,
+        extra: alsJson(extra),
+        show_on_map: form.showOnMap,
+        notify_digest: form.notifyDigest,
+        map_lat: form.showOnMap ? mapLat : null,
+        map_lng: form.showOnMap ? mapLng : null,
+        diet: form.diet || null,
+        allergies: form.allergies || null,
+      });
 
       if (email !== user.email) {
         const { error: emailError } = await supabase.auth.updateUser({ email });
@@ -309,21 +294,22 @@ const Profile = () => {
     if (!user || !tentName) return;
     const selectedType = TENT_TYPE_OPTIONS.find((t) => t.value === tentType);
     const shape = selectedType?.shape || "circle";
-    const { error } = await supabase.from("member_tents").insert({
-      user_id: user.id,
-      name: tentName,
-      tent_type: tentType,
-      shape,
-      diameter: shape === "circle" && tentDiameter ? Number(tentDiameter) : null,
-      length: shape === "rect" && tentLength ? Number(tentLength) : null,
-      width: shape === "rect" && tentWidth ? Number(tentWidth) : null,
-      guy_rope: Number(tentGuyRope) || 0,
-    });
-    if (error) {
-      toast({ title: "Fehler", description: error.message, variant: "destructive" });
+    try {
+      await legeZeltAn({
+        user_id: user.id,
+        name: tentName,
+        tent_type: tentType,
+        shape,
+        diameter: shape === "circle" && tentDiameter ? Number(tentDiameter) : null,
+        length: shape === "rect" && tentLength ? Number(tentLength) : null,
+        width: shape === "rect" && tentWidth ? Number(tentWidth) : null,
+        guy_rope: Number(tentGuyRope) || 0,
+      });
+    } catch (error) {
+      toast({ title: "Fehler", description: (error as { message: string }).message, variant: "destructive" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["member_tents"] });
+    queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.zelte() });
     setShowAddTent(false);
     setTentName("");
     setTentType("kegelzelt");
@@ -335,8 +321,11 @@ const Profile = () => {
   };
 
   const deleteTent = async (tentId: string) => {
-    await supabase.from("member_tents").delete().eq("id", tentId);
-    queryClient.invalidateQueries({ queryKey: ["member_tents"] });
+    // Ohne die Meldung sah ein gescheitertes Löschen aus wie ein gelungenes.
+    await loescheZelt(tentId).catch((error: { message: string }) =>
+      toast({ title: "Fehler", description: error.message, variant: "destructive" }),
+    );
+    queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.zelte() });
   };
 
   const selectedTentShape = TENT_TYPE_OPTIONS.find((t) => t.value === tentType)?.shape || "circle";
