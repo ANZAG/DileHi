@@ -6,8 +6,7 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
  *
  * Die Dateien selbst liegen im Speicher oder in SharePoint – Hochladen,
  * Vorschau und das Löschen mit Datei bleiben bei den Seiten
- * (`lib/sharePointFiles.ts`). Der Text der Quellen steht in
- * `lib/scan/quelltext.ts`.
+ * (`lib/sharePointFiles.ts`).
  */
 
 export type Quelle = Tables<"sources">;
@@ -192,4 +191,38 @@ export async function ladeQuellenInSupabase(): Promise<Pick<Quelle, "id" | "titl
     .eq("file_missing", false);
   if (error) throw error;
   return data ?? [];
+}
+
+// ── Der Text der Quellen ────────────────────────────────────────────────────
+
+/** Eine Fundstelle im Text einer Quelle (Migration 20261119100000_quelltext). */
+export interface TextTreffer {
+  source_id: string;
+  title: string;
+  epoch: string;
+  folder_id: string | null;
+  page: number;
+  /** Ausschnitt; Treffer stehen zwischen ⟦ und ⟧. */
+  snippet: string;
+  rank: number;
+}
+
+/** Den Text einer Datei ablegen, Seite für Seite. Ersetzt einen vorhandenen. */
+export async function legeTextAb(fileKey: string, seiten: string[]): Promise<void> {
+  const { error } = await supabase.rpc("source_text_save", { _file_key: fileKey, _pages: seiten });
+  if (error) throw new Error(`Der Text liess sich nicht speichern: ${error.message}`);
+}
+
+/** Sucht im Text aller Quellen, höchstens 60 Fundstellen. */
+export async function sucheImText(begriff: string): Promise<TextTreffer[]> {
+  const { data, error } = await supabase.rpc("source_text_search", { _q: begriff, _max: 60 });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Welche Dateien schon durchsuchbar sind: Kennung → Zahl der Seiten. */
+export async function ladeDurchsuchbareDateien(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.rpc("source_text_files");
+  if (error) throw error;
+  return new Map((data ?? []).map((z) => [z.file_key, z.pages]));
 }

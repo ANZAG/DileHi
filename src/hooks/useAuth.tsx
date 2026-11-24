@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ladeIstAktiv, ladeRollenkatalog, ladeRollenVon } from "@/daten/mitglieder";
+import { ladeRechteDerRolle, ladeRechteVon } from "@/daten/rollen";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -58,18 +60,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Mitglied nach einem Netzfehler aus wie ein Fremder.
    */
   const fetchRolesAndPermissions = async (userId: string, versuch = 0): Promise<void> => {
-    const [profil, rollen, katalog, rechte] = await Promise.all([
-      supabase.from("profiles").select("is_active").eq("id", userId).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.rpc("get_role_catalog"),
-      supabase.rpc("get_user_permissions", { _user_id: userId }),
+    // allSettled: Jede der vier Abfragen wirft bei einem Fehler; welche
+    // gescheitert ist, entscheidet unten, was passiert.
+    const [profil, rollen, katalog, rechte] = await Promise.allSettled([
+      ladeIstAktiv(userId),
+      ladeRollenVon(userId),
+      ladeRollenkatalog(),
+      ladeRechteVon(userId),
     ]);
     // Check if profile is active – if not, log out immediately
-    if (profil.data && profil.data.is_active === false) {
+    if (profil.status === "fulfilled" && profil.value === false) {
       await supabase.auth.signOut();
       return;
     }
-    if (rollen.error || rechte.error) {
+    if (rollen.status === "rejected" || rechte.status === "rejected") {
       if (versuch < 2) {
         await new Promise((ok) => setTimeout(ok, 1500 * (versuch + 1)));
         return fetchRolesAndPermissions(userId, versuch + 1);
@@ -78,16 +82,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setPermissionsLoaded(true);
       return;
     }
-    setRoles((rollen.data ?? []).map((r) => r.role));
+    setRoles(rollen.value);
     // Role catalog for display labels (single source of truth from DB)
-    if (katalog.data) {
+    if (katalog.status === "fulfilled") {
       const labels: Record<string, string> = {};
-      katalog.data.forEach((r) => {
+      katalog.value.forEach((r) => {
         labels[r.key] = r.label;
       });
       setRoleLabels(labels);
     }
-    const perms = rechte.data ?? [];
+    const perms = rechte.value;
     setPermissions(perms);
     setRealPermissions(perms);
     setPermissionsLoaded(true);
@@ -95,13 +99,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const startImpersonation = useCallback(async (role: string) => {
-    const { data } = await supabase
-      .from("role_permissions")
-      .select("permission")
-      .eq("role", role)
-      .eq("granted", true);
-    if (data) {
-      setPermissions(data.map((r) => r.permission));
+    // Bei einem Fehler bleibt alles, wie es ist – wie bisher.
+    const rechteDerRolle = await ladeRechteDerRolle(role).catch(() => null);
+    if (rechteDerRolle) {
+      setPermissions(rechteDerRolle);
       setImpersonatingRole(role);
     }
   }, []);

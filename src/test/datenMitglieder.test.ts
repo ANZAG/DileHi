@@ -9,7 +9,10 @@ import {
   mitgliedSchluessel,
   speichereBeitrag,
   speichereBeitragssatz,
+  ladeIstAktiv,
+  ladeRollenVon,
 } from "@/daten/mitglieder";
+import { ladeRechteVon } from "@/daten/rollen";
 import { datenbank, filterVon } from "./hilfe/nachbau";
 
 /**
@@ -179,5 +182,36 @@ describe("Wer Beitrag zahlt", () => {
     });
     expect((await ladeBeitragszahler()).map((p) => p.id)).toEqual(["anna", "cleo"]);
     expect(filterVon(aufrufe[1])).toEqual(['id in ["anna","bert","cleo"]']);
+  });
+});
+
+describe("Was die Anmeldung über ein Mitglied liest", () => {
+  it("hält ein nicht lesbares Profil nicht für ein abgeschaltetes Konto", async () => {
+    // useAuth meldet nur bei `false` ab. Ein Fehler oder ein fehlendes Profil
+    // darf niemanden hinauswerfen.
+    datenbank({
+      "select profiles": [
+        { data: { is_active: false } },
+        { data: { is_active: true } },
+        { data: null },
+        { data: null, error: { message: "Funkloch" } },
+      ],
+    });
+    expect(await ladeIstAktiv("anna")).toBe(false);
+    expect(await ladeIstAktiv("anna")).toBe(true);
+    expect(await ladeIstAktiv("anna")).toBeNull();
+    await expect(ladeIstAktiv("anna")).rejects.toMatchObject({ message: "Funkloch" });
+  });
+
+  it("meldet einen Netzfehler bei Rollen und Rechten, statt „keine“ zu liefern", async () => {
+    // Sonst sähe ein Mitglied nach einem Funkloch aus wie ein Fremder.
+    datenbank({
+      "select user_roles": [{ data: [{ role: "vorstand" }, { role: "mitglied" }] }, { data: null, error: { message: "Funkloch" } }],
+      "rpc get_user_permissions": [{ data: null }, { data: null, error: { message: "Funkloch" } }],
+    });
+    expect(await ladeRollenVon("anna")).toEqual(["vorstand", "mitglied"]);
+    await expect(ladeRollenVon("anna")).rejects.toMatchObject({ message: "Funkloch" });
+    expect(await ladeRechteVon("anna")).toEqual([]);
+    await expect(ladeRechteVon("anna")).rejects.toMatchObject({ message: "Funkloch" });
   });
 });

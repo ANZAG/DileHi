@@ -271,6 +271,20 @@ export async function ladeMitglieder(standardrolle: string): Promise<Mitglied[]>
   return mitgliederliste(rollen, profile.data ?? [], inaktive.data ?? [], standardrolle);
 }
 
+/** Die Rollen, die ein Mitglied hält. */
+export async function ladeRollenVon(userId: string): Promise<string[]> {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.role);
+}
+
+/** Ob das Konto aktiv ist. `null`: Das Profil ist (noch) nicht lesbar – das heisst nicht „abgeschaltet". */
+export async function ladeIstAktiv(userId: string): Promise<boolean | null> {
+  const { data, error } = await supabase.from("profiles").select("is_active").eq("id", userId).maybeSingle();
+  if (error) throw error;
+  return data?.is_active ?? null;
+}
+
 /** Nimmt einem Mitglied alle Rollen – damit ist der Zugang zum Mitgliederbereich gesperrt. */
 export async function entzieheRollen(userId: string): Promise<void> {
   const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
