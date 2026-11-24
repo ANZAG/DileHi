@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Info, CalendarDays } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { useAuth } from "@/hooks/useAuth";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -115,7 +116,7 @@ const MemberMap = () => {
 
   // Fetch upcoming events with location (use cached lat/lng when available)
   const { data: termine = KEINE_TERMINE } = useQuery({
-    queryKey: ["member-map-events"],
+    queryKey: veranstaltungSchluessel.fuerKarte(),
     queryFn: async () => {
       // Start of today (local) — events disappear only the day AFTER they end,
       // so ongoing/multi-day events stay visible until then.

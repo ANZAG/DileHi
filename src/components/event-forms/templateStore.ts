@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { ladeFormularvorlage, speichereFormularvorlage } from "@/daten/veranstaltungen";
 import { ausJson } from "@/lib/json";
 import { DEFAULT_TEMPLATE_FIELDS } from "./defaultTemplate";
 import type { FormField } from "./types";
@@ -27,12 +27,7 @@ function withIds(raw: any[]): FormField[] {
 
 /** Lädt die bearbeitbare Standardvorlage – fällt auf die eingebaute Vorlage zurück. */
 export async function fetchDefaultTemplate(): Promise<TemplateData> {
-  const { data, error } = await supabase
-    .from("form_templates")
-    .select("*")
-    .eq("slug", DEFAULT_TEMPLATE_SLUG)
-    .maybeSingle();
-  if (error) throw error;
+  const data = await ladeFormularvorlage(DEFAULT_TEMPLATE_SLUG);
 
   if (!data) {
     return {
@@ -71,8 +66,5 @@ export async function saveDefaultTemplate(template: TemplateData, userId: string
     updated_by: userId,
   };
 
-  const { error } = await supabase
-    .from("form_templates")
-    .upsert(payload, { onConflict: "slug" });
-  if (error) throw error;
+  await speichereFormularvorlage(payload);
 }

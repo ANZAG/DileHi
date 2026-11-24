@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeFormularZugang, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import EventRegistration from "@/pages/EventRegistration";
 
 /**
@@ -19,16 +19,8 @@ export default function EventRegistrationInternal() {
   const { eventId } = useParams<{ eventId: string }>();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["event_form_token", eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_forms")
-        .select("public_token, is_open")
-        .eq("event_id", eventId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryKey: veranstaltungSchluessel.formularZugang(eventId),
+    queryFn: () => ladeFormularZugang(eventId!),
     enabled: !!eventId,
   });
 

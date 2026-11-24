@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { readFormSettings } from "@/components/event-forms/formSettings";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,7 +7,20 @@ import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, differenceInCalendarDays } from "date-fns";
 import { getHessenHolidays } from "@/lib/holidays";
 import { calendarUrls } from "@/lib/publicAddresses";
-import type { Event, Attendee, SpanSegment, VisibilityFilter } from "./types";
+import type { Event, SpanSegment, VisibilityFilter } from "./types";
+import {
+  aendereVeranstaltung,
+  ladeAbspracheThemen,
+  ladeFormulare,
+  ladeKalenderToken,
+  ladeMeineAnmeldungen,
+  ladeTeilnahmen,
+  ladeVeranstaltungen,
+  legeVeranstaltungAn,
+  loescheVeranstaltung,
+  schalteTeilnahme,
+  veranstaltungSchluessel,
+} from "@/daten/veranstaltungen";
 import { zeitangabe } from "./zeitangabe";
 
 export function useEvents() {
@@ -44,27 +56,13 @@ export function useEvents() {
   const monthEnd = endOfMonth(currentMonth);
 
   const { data: events = [] } = useQuery({
-    queryKey: ["events"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .order("start_date", { ascending: true });
-      if (error) throw error;
-      const zeilen: Event[] = data;
-      return zeilen;
-    },
+    queryKey: veranstaltungSchluessel.liste(),
+    queryFn: ladeVeranstaltungen,
   });
 
   const { data: eventForms = [] } = useQuery({
-    queryKey: ["event_forms_list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_forms")
-        .select("id, event_id, is_open, public_token, settings");
-      if (error) throw error;
-      return data;
-    },
+    queryKey: veranstaltungSchluessel.formulare(),
+    queryFn: ladeFormulare,
   });
 
   const getFormForEvent = (eventId: string) => eventForms.find((f) => f.event_id === eventId);
@@ -72,63 +70,28 @@ export function useEvents() {
   // Absprache-Threads. Ohne diesen Verweis findet niemand den Thread, und ein
   // Forum, das man suchen muss, wird nicht benutzt.
   const { data: eventThreads = [] } = useQuery({
-    queryKey: ["event_threads"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("forum_threads").select("id, event_id, post_count").not("event_id", "is", null);
-      if (error) return [];
-      // Die Abfrage schließt Themen ohne Veranstaltung aus; der Typ weiß das nicht.
-      return (data ?? []).flatMap((t) => (t.event_id ? [{ ...t, event_id: t.event_id }] : []));
-    },
+    queryKey: veranstaltungSchluessel.abspracheThemen(),
+    queryFn: ladeAbspracheThemen,
   });
 
   const getThreadForEvent = (eventId: string) => eventThreads.find((t) => t.event_id === eventId);
 
   const { data: myFormResponses = [] } = useQuery({
-    queryKey: ["my_form_responses", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("event_form_responses")
-        .select("id, form_id, user_id")
-        .eq("user_id", user!.id);
-      if (error) return [];
-      return data;
-    },
+    queryKey: veranstaltungSchluessel.meineAnmeldungenVon(user?.id),
+    queryFn: () => ladeMeineAnmeldungen(user!.id),
     enabled: !!user,
   });
 
   const hasSubmittedForm = (formId: string) => myFormResponses.some((r) => r.form_id === formId);
 
   const { data: attendees = [] } = useQuery({
-    queryKey: ["event_attendees"],
-    queryFn: async () => {
-      const { data: attData, error } = await supabase.from("event_attendees").select("*");
-      if (error) throw error;
-      if (!attData || attData.length === 0) return [] as Attendee[];
-      const userIds = [...new Set(attData.map(a => a.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", userIds);
-      const profileMap = new Map(profiles?.map(p => [p.id, p.display_name]) || []);
-      return attData.map(a => ({
-        ...a,
-        profiles: { display_name: profileMap.get(a.user_id) || "Mitglied" },
-      })) as Attendee[];
-    },
+    queryKey: veranstaltungSchluessel.teilnahmen(),
+    queryFn: ladeTeilnahmen,
   });
 
   const { data: calendarToken } = useQuery({
-    queryKey: ["calendar_token", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("calendar_token")
-        .eq("id", user!.id)
-        .single();
-      if (error) throw error;
-      return data?.calendar_token as string;
-    },
+    queryKey: veranstaltungSchluessel.kalenderToken(user?.id),
+    queryFn: () => ladeKalenderToken(user!.id),
     enabled: !!user,
   });
 
@@ -148,18 +111,17 @@ export function useEvents() {
       const end = endDate
         ? (allDay ? new Date(`${endDate}T23:59:59`).toISOString() : new Date(`${endDate}T${endTime}`).toISOString())
         : null;
-      const { error } = await supabase.from("events").insert({
+      await legeVeranstaltungAn({
         title, description: description || null, location: location || null,
         start_date: start, end_date: end, all_day: allDay, is_public: isPublic, created_by: user!.id,
         // Der Thread entsteht per Trigger; ob das Haekchen ueberhaupt gilt,
         // entscheidet app_settings.forum_event_thread.
         forum_thread_wanted: wantForumThread,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["member-map-events"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.liste() });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.fuerKarte() });
       setShowCreate(false);
       resetForm();
       toast({ title: "Veranstaltung erstellt" });
@@ -189,12 +151,11 @@ export function useEvents() {
       if (organizerId && canModerate) {
         updateData.created_by = organizerId;
       }
-      const { error } = await supabase.from("events").update(updateData).eq("id", editingEvent.id);
-      if (error) throw error;
+      await aendereVeranstaltung(editingEvent.id, updateData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["member-map-events"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.liste() });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.fuerKarte() });
       setShowEdit(false);
       setEditingEvent(null);
       resetForm();
@@ -204,13 +165,10 @@ export function useEvents() {
   });
 
   const deleteEvent = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("events").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => loescheVeranstaltung(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["event_attendees"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.liste() });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.teilnahmen() });
       setSelectedEvent(null);
       toast({ title: "Veranstaltung gelöscht" });
     },
@@ -218,47 +176,22 @@ export function useEvents() {
 
   const toggleRSVP = useMutation({
     mutationFn: async ({ eventId, decline }: { eventId: string; decline?: boolean }) => {
-      const existing = attendees.find(a => a.event_id === eventId && a.user_id === user!.id);
-      if (existing) {
-        if (decline && existing.status !== 'declined') {
-          // Switch from attending to declined — also remove form response
-          const evForm = getFormForEvent(eventId);
-          if (evForm) {
-            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
-            if (myResp) {
-              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
-              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
-            }
-          }
-          const { error } = await supabase.from("event_attendees").update({ status: 'declined' }).eq("id", existing.id);
-          if (error) throw error;
-        } else {
-          // Remove RSVP entirely (un-attend or un-decline)
-          const evForm = getFormForEvent(eventId);
-          if (evForm && existing.status === 'attending') {
-            const myResp = myFormResponses.find((r) => r.form_id === evForm.id);
-            if (myResp) {
-              await supabase.from("event_form_answers").delete().eq("response_id", myResp.id);
-              await supabase.from("event_form_responses").delete().eq("id", myResp.id);
-            }
-          }
-          const { error } = await supabase.from("event_attendees").delete().eq("id", existing.id);
-          if (error) throw error;
-        }
-      } else if (decline) {
-        // Insert as declined
-        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'declined' });
-        if (error) throw error;
-      } else {
-        // Insert as attending
-        const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: user!.id, status: 'attending' });
-        if (error) throw error;
-      }
+      const evForm = getFormForEvent(eventId);
+      await schalteTeilnahme({
+        eventId,
+        userId: user!.id,
+        absagen: !!decline,
+        bisher: attendees.find(a => a.event_id === eventId && a.user_id === user!.id),
+        // Wer absagt, ist auch über das Formular nicht mehr angemeldet.
+        anmeldungId: evForm ? myFormResponses.find((r) => r.form_id === evForm.id)?.id : undefined,
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["event_attendees"] });
-      queryClient.invalidateQueries({ queryKey: ["my_form_responses"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.teilnahmen() });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.meineAnmeldungen() });
     },
+    // Ohne das blieb eine gescheiterte Zu- oder Absage stumm.
+    onError: () => toast({ title: "Fehler beim Speichern", variant: "destructive" }),
   });
 
   const resetForm = () => {
