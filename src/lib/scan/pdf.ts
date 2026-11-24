@@ -1,6 +1,6 @@
 import {
   PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, PDFString, StandardFonts, TextRenderingMode, beginText, endText,
-  popGraphicsState, pushGraphicsState, setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode,
+  concatTransformationMatrix, popGraphicsState, pushGraphicsState, setCharacterSqueeze, setFontAndSize, setTextMatrix, setTextRenderingMode,
   showText, type PDFFont,
 } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -257,14 +257,30 @@ export async function textEbeneEinfuegen(
   for (const t of seiten) {
     const page = alle[t.seite - 1];
     if (!page || !t.woerter.length) continue;
-    if (page.getRotation().angle % 360 !== 0) { gedreht++; continue; }
+    const drehung = ((page.getRotation().angle % 360) + 360) % 360;
+    if (drehung % 90 !== 0) { gedreht++; continue; }
     // Nie zwei Textebenen: eine alte (schlechte) Erkennung kommt weg.
     if (alteTextebeneEntfernen(pdf, page)) entfernt++;
+    // Die Wörter liegen auf dem Bild, wie der Leser die Seite zeigt (mit
+    // /Rotate gedreht). Die Ebene wird in dieser Ansicht gesetzt und mit
+    // einer Matrix in den Raum der ungedrehten Seite gebracht
+    // (Bekleidungsordnung Anhang III: 83 quer gestellte Seiten).
     const box = page.getCropBox();
-    const mass = box.width / t.bildBreite;
-    const l: Lage = { mass, x: box.x, y: box.y, hoehe: t.bildHoehe * mass };
+    const quer = drehung === 90 || drehung === 270;
+    const breite = quer ? box.height : box.width;
+    const mass = breite / t.bildBreite;
+    const l: Lage = { mass, x: 0, y: 0, hoehe: t.bildHoehe * mass };
+    const [a, b, c, d, e, f] = drehung === 90 ? [0, 1, -1, 0, box.x + box.width, box.y]
+      : drehung === 180 ? [-1, 0, 0, -1, box.x + box.width, box.y + box.height]
+      : drehung === 270 ? [0, -1, 1, 0, box.x, box.y + box.height]
+      : [1, 0, 0, 1, box.x, box.y];
     const schluessel = page.node.newFontDictionary(font.name, font.ref);
-    page.pushOperators(...textEbene(font, schluessel, zeichen, { jpeg: new Uint8Array(), breite: t.bildBreite, hoehe: t.bildHoehe, woerter: t.woerter }, l));
+    page.pushOperators(
+      pushGraphicsState(), concatTransformationMatrix(a, b, c, d, e, f),
+      ...textEbene(font, schluessel, zeichen, { jpeg: new Uint8Array(), breite: t.bildBreite, hoehe: t.bildHoehe, woerter: t.woerter }, l),
+      popGraphicsState(),
+    );
+    if (drehung) gedreht++;
     gesetzt++;
   }
   pdf.setCreator("DileHi Quellensammlung (Textebene ergänzt)");

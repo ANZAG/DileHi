@@ -553,7 +553,12 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
       // unlesbar (Handschrift, fremde Schrift), lohnt der Rest nicht.
       const sicherheiten: number[] = [];
       let geprueft = false;
-      let salatGeprueft = false;
+      // Hat das PDF schon auf vielen Seiten guten Text, ist es keine
+      // Handschrift: Die wenigen Seiten, die noch gelesen werden (Tabellen,
+      // Karten, Diagramme), wären eine schiefe Stichprobe für den
+      // Zeichensalat-Test (Schuhe aus Schleswig: 60 % wortartig – „nicht lesbar“).
+      const gutImPdf = bericht.ausPdf + imPdf.filter((t) => t && !fragwuerdig(t)).length;
+      let salatGeprueft = gutImPdf >= zahl * 0.3;
       for (let k = 0; k < zuLesen.length; k += parallel) {
         // Zeichensalat (Handschrift, die die Erkennung mit Zuversicht falsch
         // liest): kaum kleine Wörter, kaum Wiederholungen – siehe textMasse.
@@ -695,7 +700,7 @@ async function bearbeiten(datei: string, titel: string, schreiben: boolean, epoc
         else {
           const r = await textEbeneEinfuegen(new Uint8Array(readFileSync(datei)), textSeiten, new Uint8Array(readFileSync(join(OCR, "NotoSans-Regular.ttf"))), angabenFuer(datei, titel, epoche, texte, wahl.schrift));
           pdf = r.bytes;
-          bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.entfernt ? `, alte auf ${r.entfernt} ersetzt` : ""}${r.gedreht ? ` (${r.gedreht} gedreht, ohne)` : ""}`;
+          bericht.weg = `Textebene auf ${r.gesetzt} Seiten${r.entfernt ? `, alte auf ${r.entfernt} ersetzt` : ""}${r.gedreht ? ` (davon ${r.gedreht} gedreht)` : ""}`;
           bericht.neuMegabyte = Math.round((pdf.length / 1e6) * 10) / 10;
           bericht.alteWoerter = alteWoerter;
           const neu = join(ordner, "neu.pdf");

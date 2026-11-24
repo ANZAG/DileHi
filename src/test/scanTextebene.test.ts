@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PDFDocument, PDFName, StandardFonts, TextRenderingMode } from "pdf-lib";
+import { PDFDocument, PDFName, StandardFonts, TextRenderingMode, degrees } from "pdf-lib";
 import { angabenVervollstaendigen, textEbeneEinfuegen, utf8Reparieren } from "@/lib/scan/pdf";
 import { alteTextebeneEntfernen, schriftSchluessel, textBloeckeEntfernen } from "@/lib/scan/textebeneEntfernen";
 import fontkit from "@pdf-lib/fontkit";
@@ -116,4 +116,32 @@ describe("Aufräumen", () => {
     expect(String(doc.catalog.get(PDFName.of("Lang")))).toContain("la");
     expect(String(doc.catalog.lookup(PDFName.of("PageLabels")))).toContain("/S /D");
   });
+});
+
+describe("Gedrehte Seiten", () => {
+  for (const drehung of [0, 90, 180, 270]) {
+    it(`setzt die Ebene auch bei /Rotate ${drehung} an die richtige Stelle`, async () => {
+      const doc = await PDFDocument.create();
+      const seite = doc.addPage([400, 600]);
+      seite.setRotation(degrees(drehung));
+      const quer = drehung % 180 !== 0;
+      const [bb, bh] = quer ? [1200, 800] : [800, 1200]; // Bild in der Ansicht, 2 Punkte je PDF-Punkt
+      const r = await textEbeneEinfuegen(await doc.save(), [{
+        seite: 1, bildBreite: bb, bildHoehe: bh,
+        woerter: [{ text: "Waffenrock", x0: 100, y0: 100, x1: 400, y1: 160 }],
+      }], new Uint8Array(readFileSync("ocr-modelle/NotoSans-Regular.ttf")));
+      expect(r.gesetzt).toBe(1);
+      const ordner = mkdtempSync(join(tmpdir(), "dreh-"));
+      writeFileSync(join(ordner, "d.pdf"), r.bytes);
+      const html = execFileSync("pdftotext", ["-bbox", join(ordner, "d.pdf"), "-"]).toString("utf8");
+      const m = /xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">Waffenrock/.exec(html);
+      expect(m).not.toBeNull();
+      const [x0, y0, x1, y1] = m!.slice(1).map(Number);
+      // In der Ansicht: x 50…200, y 50…80 (Punkte, oben links)
+      expect(Math.abs(x0 - 50)).toBeLessThan(4);
+      expect(Math.abs(x1 - 200)).toBeLessThan(6);
+      // Die Box enthält Ober- und Unterlänge der Schrift; ihre Mitte liegt in der Zeile (50…80).
+      expect(Math.abs((y0 + y1) / 2 - 65)).toBeLessThan(5);
+    });
+  }
 });
