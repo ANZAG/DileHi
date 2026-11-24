@@ -1,8 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Inventar und Ausleihe.
+ * Inventar und Ausleihe: Typen, Beschriftungen und das Rechnen. Was mit der
+ * Datenbank spricht, steht in `daten/inventar.ts`.
  *
  * Die Werte in der Datenbank sind englisch (`good`, `handed_out`), die
  * Beschriftungen stehen hier. Welche Kategorien es gibt, entscheidet der
@@ -53,31 +51,6 @@ export const STATUS: Record<AusleihStatus, string> = {
   handed_out: "Ausgegeben",
   returned: "Zurück",
 };
-
-
-export function useGegenstaende() {
-  return useQuery({
-    queryKey: ["inventar", "gegenstaende"],
-    queryFn: async (): Promise<Gegenstand[]> => {
-      const { data, error } = await supabase.from("inventory_items").select("*").order("category").order("name");
-      if (error) throw new Error(error.message);
-      // Zustand und Status sind in der Datenbank Text mit festem Wertevorrat.
-      return (data ?? []).map((g) => ({ ...g, condition: g.condition as Zustand }));
-    },
-  });
-}
-
-/** Alles, was noch nicht zurück ist – mehr braucht die Seite nicht. */
-export function useOffeneAusleihen() {
-  return useQuery({
-    queryKey: ["inventar", "ausleihen"],
-    queryFn: async (): Promise<Ausleihe[]> => {
-      const { data, error } = await supabase.from("inventory_loans").select("*").neq("status", "returned").order("from_date");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((a) => ({ ...a, status: a.status as AusleihStatus }));
-    },
-  });
-}
 
 // ── Rechnen ─────────────────────────────────────────────────────────────────
 

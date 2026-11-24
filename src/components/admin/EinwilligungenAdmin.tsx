@@ -9,15 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe } from "@/lib/datum";
 import {
-  istMinderjaehrig, useEinwilligungsArten, type Einwilligung, type EinwilligungsArt, type Notfallkontakt,
-} from "@/hooks/useEinwilligungen";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Mitglied {
-  id: string;
-  display_name: string;
-  birthdate: string | null;
-}
+  aendereEinwilligungsArt, einwilligungSchluessel, ladeAktiveMitGeburtsdatum, ladeAlleEinwilligungen,
+  ladeAlleNotfallkontakte, legeEinwilligungsArtAn, useEinwilligungsArten,
+} from "@/daten/einwilligungen";
+import { istMinderjaehrig, type EinwilligungsArt } from "@/hooks/useEinwilligungen";
 
 /**
  * Einwilligungen in der Verwaltung.
@@ -32,30 +27,18 @@ export default function EinwilligungenAdmin() {
   const fotoArt = arten.find((a) => a.key === "photos");
 
   const { data: mitglieder = [] } = useQuery({
-    queryKey: ["einwilligungen", "mitglieder"],
-    queryFn: async (): Promise<Mitglied[]> => {
-      const { data, error } = await supabase.from("profiles").select("id, display_name, birthdate").eq("is_active", true).order("display_name");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einwilligungSchluessel.mitglieder(),
+    queryFn: ladeAktiveMitGeburtsdatum,
   });
 
   const { data: entscheidungen = [] } = useQuery({
-    queryKey: ["einwilligungen", "alle"],
-    queryFn: async (): Promise<Einwilligung[]> => {
-      const { data, error } = await supabase.from("member_consents").select("*");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einwilligungSchluessel.liste(),
+    queryFn: ladeAlleEinwilligungen,
   });
 
   const { data: kontakte = [] } = useQuery({
-    queryKey: ["einwilligungen", "alle-kontakte"],
-    queryFn: async (): Promise<Notfallkontakt[]> => {
-      const { data, error } = await supabase.from("member_emergency_contacts").select("*");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einwilligungSchluessel.alleKontakte(),
+    queryFn: ladeAlleNotfallkontakte,
   });
 
   const [nurOhneFoto, setNurOhneFoto] = useState(true);
@@ -181,17 +164,14 @@ function Arten({ arten }: { arten: EinwilligungsArt[] }) {
     setAenderungen((x) => ({ ...x, [id]: { ...x[id], ...patch } }));
 
   const speichern = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("consent_types").update(aenderungen[id]).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (id: string) => aendereEinwilligungsArt(id, aenderungen[id]),
     onSuccess: (_, id) => {
       setAenderungen((x) => {
         const rest = { ...x };
         delete rest[id];
         return rest;
       });
-      qc.invalidateQueries({ queryKey: ["einwilligungen"] });
+      qc.invalidateQueries({ queryKey: einwilligungSchluessel.alle });
       toast({ title: "Gespeichert" });
     },
     onError: (err: Error) => toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -200,12 +180,11 @@ function Arten({ arten }: { arten: EinwilligungsArt[] }) {
   const anlegen = useMutation({
     mutationFn: async () => {
       const letzte = arten[arten.length - 1]?.sort_order ?? 0;
-      const { error } = await supabase.from("consent_types").insert({ label: neu!.label.trim(), text: neu!.text.trim(), sort_order: letzte + 10 });
-      if (error) throw new Error(error.message);
+      await legeEinwilligungsArtAn({ label: neu!.label.trim(), text: neu!.text.trim(), sort_order: letzte + 10 });
     },
     onSuccess: () => {
       setNeu(null);
-      qc.invalidateQueries({ queryKey: ["einwilligungen"] });
+      qc.invalidateQueries({ queryKey: einwilligungSchluessel.alle });
     },
     onError: (err: Error) => toast({ title: "Nicht angelegt", description: err.message, variant: "destructive" }),
   });

@@ -1,10 +1,16 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { auslagenSchluessel } from "@/daten/auslagen";
+import { beschlussSchluessel } from "@/daten/beschluesse";
+import { einwilligungSchluessel } from "@/daten/einwilligungen";
+import { inventarSchluessel } from "@/daten/inventar";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
+import { nachweisSchluessel } from "@/daten/nachweise";
 import { sprachSchluessel } from "@/daten/sprachen";
 import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
+import { zuwendungSchluessel } from "@/daten/zuwendungen";
 
 /**
  * Die Datenschicht soll nicht wieder zerfasern.
@@ -63,6 +69,44 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       "src/components/SprachWeiche.tsx",
       "src/components/admin/RahmentexteAdmin.tsx",
       "src/components/admin/SprachfassungenZeile.tsx",
+    ],
+  },
+  {
+    name: "auslagen",
+    schluessel: auslagenSchluessel,
+    dateien: ["src/pages/intern/Auslagen.tsx", "src/hooks/useAuslagen.ts"],
+  },
+  {
+    name: "zuwendungen",
+    schluessel: zuwendungSchluessel,
+    dateien: ["src/pages/intern/Zuwendungen.tsx"],
+  },
+  {
+    name: "beschluesse",
+    schluessel: beschlussSchluessel,
+    dateien: ["src/pages/intern/Beschluesse.tsx"],
+  },
+  {
+    name: "inventar",
+    schluessel: inventarSchluessel,
+    dateien: ["src/pages/intern/Inventar.tsx", "src/hooks/useInventar.ts", ...quelltexte("src/components/inventar")],
+  },
+  {
+    name: "nachweise",
+    schluessel: nachweisSchluessel,
+    dateien: [
+      "src/hooks/useNachweise.ts",
+      "src/components/admin/NachweiseAdmin.tsx",
+      ...quelltexte("src/components/nachweise"),
+    ],
+  },
+  {
+    name: "einwilligungen",
+    schluessel: einwilligungSchluessel,
+    dateien: [
+      "src/hooks/useEinwilligungen.ts",
+      "src/components/admin/EinwilligungenAdmin.tsx",
+      ...quelltexte("src/components/einwilligungen"),
     ],
   },
 ];

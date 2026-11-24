@@ -65,6 +65,17 @@ export async function ladeAbstimmungen(): Promise<Abstimmung[]> {
   return data;
 }
 
+/** Eine Abstimmung mit ihren Wahlmöglichkeiten – oder nichts, wenn es sie nicht (mehr) gibt. */
+export async function ladeAbstimmung(abstimmungId: string): Promise<Abstimmung | null> {
+  const { data, error } = await supabase
+    .from("elections")
+    .select("*, candidates(*)")
+    .eq("id", abstimmungId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function ladeErgebnisse() {
   const { data, error } = await supabase.rpc("get_election_results");
   if (error) throw error;

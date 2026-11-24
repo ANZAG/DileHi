@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { alsDatum, heuteIso } from "@/lib/datum";
 
 /**
@@ -9,6 +7,9 @@ import { alsDatum, heuteIso } from "@/lib/datum";
  * kommen mit: Fotos und Videos (Kennung „photos" – daran erkennt die
  * Veranstaltung, wer nicht fotografiert werden will) und Name bei
  * Veröffentlichungen.
+ *
+ * Hier stehen die Typen und das Rechnen; was mit der Datenbank spricht, steht
+ * in `daten/einwilligungen.ts`.
  */
 
 export interface EinwilligungsArt {
@@ -37,18 +38,6 @@ export interface Notfallkontakt {
   relation: string | null;
 }
 
-
-export function useEinwilligungsArten() {
-  return useQuery({
-    queryKey: ["einwilligungen", "arten"],
-    queryFn: async (): Promise<EinwilligungsArt[]> => {
-      const { data, error } = await supabase.from("consent_types").select("*").order("sort_order").order("label");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 /**
  * Minderjährig an einem Tag? Der 18. Geburtstag zählt schon als volljährig.

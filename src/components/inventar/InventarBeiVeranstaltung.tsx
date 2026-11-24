@@ -2,14 +2,8 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
-import { supabase } from "@/integrations/supabase/client";
+import { inventarSchluessel, ladeAusleihenFuerVeranstaltung } from "@/daten/inventar";
 
-
-interface Zeile {
-  quantity: number;
-  status: string;
-  inventory_items: { name: string } | null;
-}
 
 /**
  * Was für eine Veranstaltung aus dem Inventar reserviert oder ausgegeben ist.
@@ -22,16 +16,9 @@ export default function InventarBeiVeranstaltung({ eventId }: { eventId: string 
   const an = moduleOn(module, "inventory");
 
   const { data: zeilen = [] } = useQuery({
-    queryKey: ["inventar", "veranstaltung", eventId],
-    queryFn: async (): Promise<Zeile[]> => {
-      const { data, error } = await supabase.from("inventory_loans")
-        .select("quantity, status, inventory_items(name)")
-        .eq("event_id", eventId)
-        .neq("status", "returned");
-      // Fehlt die Tabelle (Migration noch nicht eingespielt), nichts zeigen.
-      if (error) return [];
-      return data ?? [];
-    },
+    queryKey: inventarSchluessel.veranstaltung(eventId),
+    // Fehlt die Tabelle (Migration noch nicht eingespielt), nichts zeigen.
+    queryFn: () => ladeAusleihenFuerVeranstaltung(eventId).catch(() => []),
     enabled: an,
     staleTime: 60 * 1000,
   });

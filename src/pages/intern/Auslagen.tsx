@@ -2,6 +2,12 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  auslagenSchluessel, entscheideAuslage, ladeAlleAuslagen, ladeAuslagenTermine, ladeFreibetraege, ladeMeineAuslagen,
+  ladePauschalzahlungen, legeAuslageAn, legePauschalzahlungAn, loescheAuslage, loeschePauschalzahlung,
+  zaehleOffeneAuslagen, type AuslagenTermin,
+} from "@/daten/auslagen";
+import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 import { AlertTriangle, ArrowLeft, Check, FileImage, Loader2, Plus, Receipt, Trash2, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +19,11 @@ import { SEITE } from "@/lib/layout";
 import { datumDe, heuteIso } from "@/lib/datum";
 import {
   belegPfad, euro, FREIBETRAG_VORGABE, KATEGORIE, PAUSCHALE, pauschaleStand, STATUS,
-  alsAuslage, type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
+  type Auslage, type Kategorie, type PauschalArt,
 } from "@/hooks/useAuslagen";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
 
-interface Mitglied { id: string; display_name: string }
-interface Termin { id: string; title: string; start_date: string }
+type Termin = AuslagenTermin;
 
 const KEINE = "__keine__";
 
@@ -36,11 +40,8 @@ export default function Auslagen() {
   const [ansicht, setAnsicht] = useState<"meine" | "pruefen" | "pauschalen">("meine");
 
   const { data: offen = 0 } = useQuery({
-    queryKey: ["auslagen", "zu-pruefen-anzahl"],
-    queryFn: async (): Promise<number> => {
-      const { count } = await supabase.from("expense_claims").select("id", { count: "exact", head: true }).in("status", ["submitted", "approved"]);
-      return count ?? 0;
-    },
+    queryKey: auslagenSchluessel.zuPruefenAnzahl(),
+    queryFn: zaehleOffeneAuslagen,
     enabled: kasse,
   });
 
@@ -85,25 +86,19 @@ export default function Auslagen() {
 
 function useTermine() {
   return useQuery({
-    queryKey: ["auslagen", "termine"],
-    queryFn: async (): Promise<Termin[]> => {
-      const vorEinemJahr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase.from("events").select("id, title, start_date").gte("start_date", vorEinemJahr).order("start_date", { ascending: false }).limit(60);
-      return data ?? [];
-    },
+    queryKey: auslagenSchluessel.termine(),
+    queryFn: () => ladeAuslagenTermine(),
   });
 }
 
-function useMitglieder(enabled = true) {
-  return useQuery({
-    queryKey: ["mitglieder-verzeichnis"],
-    queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await supabase.rpc("get_member_directory");
-      const zeilen: Mitglied[] = data ?? [];
-      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
-    },
-    enabled,
-  });
+/** Das Verzeichnis aller Mitglieder, nach Namen sortiert – auch Ausgetretene haben Auslagen. */
+function useMitglieder() {
+  const { data } = useMitgliederverzeichnis();
+  const sortiert = useMemo(
+    () => [...(data ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name, "de")),
+    [data],
+  );
+  return { data: sortiert };
 }
 
 /** Beleg in einem neuen Tab öffnen – über eine Adresse, die nur kurz gilt. */
@@ -121,22 +116,17 @@ function MeineAuslagen() {
   const [formular, setFormular] = useState(false);
 
   const { data: meine = [], isLoading } = useQuery({
-    queryKey: ["auslagen", "meine", user?.id],
-    queryFn: async (): Promise<Auslage[]> => {
-      const { data, error } = await supabase.from("expense_claims").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data ?? []).map(alsAuslage);
-    },
+    queryKey: auslagenSchluessel.meine(user?.id),
+    queryFn: () => ladeMeineAuslagen(user!.id),
     enabled: !!user,
   });
 
   const zurueckziehen = useMutation({
     mutationFn: async (a: Auslage) => {
-      const { error } = await supabase.from("expense_claims").delete().eq("id", a.id);
-      if (error) throw new Error(error.message);
+      await loescheAuslage(a.id);
       if (a.receipt_path) await supabase.storage.from("receipts").remove([a.receipt_path]);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: auslagenSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht zurückgezogen", description: err.message, variant: "destructive" }),
   });
 
@@ -220,23 +210,24 @@ function Einreichen({ termine, onFertig }: { termine: Termin[]; onFertig: () => 
       const pfad = belegPfad(user!.id, beleg!.name);
       const { error: hochladen } = await supabase.storage.from("receipts").upload(pfad, beleg!, { contentType: beleg!.type || undefined });
       if (hochladen) throw new Error(`Beleg nicht hochgeladen: ${hochladen.message}`);
-      const { error } = await supabase.from("expense_claims").insert({
-        user_id: user!.id,
-        title: titel.trim(),
-        category: kategorie,
-        amount: Math.round(betragZahl * 100) / 100,
-        spent_on: datum,
-        event_id: termin === KEINE ? null : termin,
-        note: notiz.trim() || null,
-        receipt_path: pfad,
-      });
-      if (error) {
+      try {
+        await legeAuslageAn({
+          user_id: user!.id,
+          title: titel.trim(),
+          category: kategorie,
+          amount: Math.round(betragZahl * 100) / 100,
+          spent_on: datum,
+          event_id: termin === KEINE ? null : termin,
+          note: notiz.trim() || null,
+          receipt_path: pfad,
+        });
+      } catch (fehler) {
         await supabase.storage.from("receipts").remove([pfad]);
-        throw new Error(error.message);
+        throw fehler;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["auslagen"] });
+      qc.invalidateQueries({ queryKey: auslagenSchluessel.alle });
       toast({ title: "Eingereicht", description: "Die Kasse bekommt Bescheid." });
       onFertig();
     },
@@ -315,22 +306,14 @@ function Pruefen() {
   const { data: termine = [] } = useTermine();
 
   const { data: auslagen = [], isLoading } = useQuery({
-    queryKey: ["auslagen", "alle"],
-    queryFn: async (): Promise<Auslage[]> => {
-      const { data, error } = await supabase.from("expense_claims").select("*").order("created_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      return (data ?? []).map(alsAuslage);
-    },
+    queryKey: auslagenSchluessel.liste(),
+    queryFn: ladeAlleAuslagen,
   });
 
   const aendern = useMutation({
-    mutationFn: async ({ id, status, notiz }: { id: string; status: Auslage["status"]; notiz?: string | null }) => {
-      const patch: TablesUpdate<"expense_claims"> = { status };
-      if (notiz !== undefined) patch.decision_note = notiz;
-      const { error } = await supabase.from("expense_claims").update(patch).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen"] }),
+    mutationFn: ({ id, status, notiz }: { id: string; status: Auslage["status"]; notiz?: string | null }) =>
+      entscheideAuslage(id, status, notiz),
+    onSuccess: () => qc.invalidateQueries({ queryKey: auslagenSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
@@ -434,47 +417,34 @@ function Pauschalen() {
   const [neu, setNeu] = useState<{ user_id: string; kind: PauschalArt; amount: string; paid_on: string; note: string } | null>(null);
 
   const { data: freibetrag = FREIBETRAG_VORGABE } = useQuery({
-    queryKey: ["auslagen", "freibetraege"],
-    queryFn: async (): Promise<Record<PauschalArt, number>> => {
-      const { data } = await supabase.from("app_settings").select("volunteer_allowance, trainer_allowance").maybeSingle();
-      if (!data) return FREIBETRAG_VORGABE;
-      return { volunteer: Number(data.volunteer_allowance), trainer: Number(data.trainer_allowance) };
-    },
+    queryKey: auslagenSchluessel.freibetraege(),
+    queryFn: ladeFreibetraege,
   });
 
   const { data: zahlungen = [] } = useQuery({
-    queryKey: ["auslagen", "pauschalen"],
-    queryFn: async (): Promise<Pauschalzahlung[]> => {
-      const { data, error } = await supabase.from("volunteer_payments").select("*").order("paid_on", { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((z) => ({ ...z, kind: z.kind as PauschalArt }));
-    },
+    queryKey: auslagenSchluessel.pauschalen(),
+    queryFn: ladePauschalzahlungen,
   });
 
   const eintragen = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("volunteer_payments").insert({
+    mutationFn: () =>
+      legePauschalzahlungAn({
         user_id: neu!.user_id,
         kind: neu!.kind,
         amount: Math.round(Number(neu!.amount.replace(",", ".")) * 100) / 100,
         paid_on: neu!.paid_on,
         note: neu!.note.trim() || null,
-      });
-      if (error) throw new Error(error.message);
-    },
+      }),
     onSuccess: () => {
       setNeu(null);
-      qc.invalidateQueries({ queryKey: ["auslagen", "pauschalen"] });
+      qc.invalidateQueries({ queryKey: auslagenSchluessel.pauschalen() });
     },
     onError: (err: Error) => toast({ title: "Nicht eingetragen", description: err.message, variant: "destructive" }),
   });
 
   const loeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("volunteer_payments").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["auslagen", "pauschalen"] }),
+    mutationFn: loeschePauschalzahlung,
+    onSuccess: () => qc.invalidateQueries({ queryKey: auslagenSchluessel.pauschalen() }),
   });
 
   const imJahr = zahlungen.filter((z) => z.paid_on.startsWith(String(jahr)));

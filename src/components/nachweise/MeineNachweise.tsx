@@ -8,10 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
-  useMeineNachweise, useNachweisArten, type Nachweis,
-} from "@/hooks/useNachweise";
-import { supabase } from "@/integrations/supabase/client";
+  aendereNachweis, legeNachweisAn, loescheNachweis, nachweisSchluessel, useMeineNachweise, useNachweisArten,
+} from "@/daten/nachweise";
+import { gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText, type Nachweis } from "@/hooks/useNachweise";
 
 interface Entwurf {
   id: string | null;
@@ -58,25 +57,20 @@ export default function MeineNachweise() {
         valid_until: e.valid_until || null,
         note: e.note.trim() || null,
       };
-      const { error } = e.id
-        ? await supabase.from("member_certificates").update(daten).eq("id", e.id)
-        : await supabase.from("member_certificates").insert({ ...daten, user_id: user!.id });
-      if (error) throw new Error(error.message);
+      if (e.id) await aendereNachweis(e.id, daten);
+      else await legeNachweisAn({ ...daten, user_id: user!.id });
     },
     onSuccess: () => {
       setEntwurf(null);
-      qc.invalidateQueries({ queryKey: ["nachweise"] });
+      qc.invalidateQueries({ queryKey: nachweisSchluessel.alle });
       toast({ title: "Nachweis gespeichert" });
     },
     onError: (err: Error) => toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
   });
 
   const loeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("member_certificates").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweise"] }),
+    mutationFn: loescheNachweis,
+    onSuccess: () => qc.invalidateQueries({ queryKey: nachweisSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
