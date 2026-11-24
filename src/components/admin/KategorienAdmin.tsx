@@ -4,16 +4,12 @@ import { Plus, Trash2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  benenneKategorieUm, kategorieSchluessel, ladeKategorien, legeKategorieAn, loescheKategorie,
+  zaehleKategorieVerwendung,
+} from "@/daten/kategorien";
 import { useToast } from "@/hooks/use-toast";
 import { kategorienAktualisieren } from "@/hooks/useKategorien";
-
-interface Kategorie {
-  key: string;
-  label: string;
-  description: string | null;
-  sort_order: number;
-}
 
 
 /**
@@ -34,32 +30,15 @@ export default function KategorienAdmin() {
   const [entwurf, setEntwurf] = useState("");
 
   const { data: kategorien = [], isLoading } = useQuery({
-    queryKey: ["site-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("site_categories").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      const zeilen: Kategorie[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: kategorieSchluessel.liste(),
+    queryFn: ladeKategorien,
   });
 
   // Wie oft wird eine Kategorie tatsächlich benutzt? Ohne diese Zahl löscht
   // jemand die Kategorie, an der drei Galerien hängen.
   const { data: verwendung = {} } = useQuery({
-    queryKey: ["kategorie-verwendung"],
-    queryFn: async () => {
-      const [galerien, quellen, highlights] = await Promise.all([
-        supabase.from("gallery_images").select("epoch"),
-        supabase.from("epoch_sources").select("epoch"),
-        supabase.from("epoch_visitor_items").select("epoch"),
-      ]);
-      const zaehler: Record<string, number> = {};
-      for (const zeile of [...(galerien.data ?? []), ...(quellen.data ?? []), ...(highlights.data ?? [])]) {
-        const k = zeile.epoch;
-        if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
-      }
-      return zaehler;
-    },
+    queryKey: kategorieSchluessel.verwendung(),
+    queryFn: zaehleKategorieVerwendung,
   });
 
   // Beide Zwischenspeicher, an einer Stelle. Vorher fehlte hier die Abfrage,
@@ -73,18 +52,11 @@ export default function KategorienAdmin() {
         .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
       if (!key) throw new Error("Bitte einen Namen eingeben.");
-      const { error } = await supabase.from("site_categories").insert({
+      await legeKategorieAn({
         key,
         label: neuLabel.trim(),
         sort_order: (kategorien[kategorien.length - 1]?.sort_order ?? 0) + 10,
       });
-      if (error) {
-        throw new Error(
-          error.message.includes("duplicate")
-            ? "Diese Kategorie gibt es schon."
-            : error.message
-        );
-      }
     },
     onSuccess: () => { setNeuOffen(false); setNeuLabel(""); frisch(); },
     onError: (err: Error) =>
@@ -92,18 +64,12 @@ export default function KategorienAdmin() {
   });
 
   const umbenennen = useMutation({
-    mutationFn: async ({ key, label }: { key: string; label: string }) => {
-      const { error } = await supabase.from("site_categories").update({ label }).eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ key, label }: { key: string; label: string }) => benenneKategorieUm(key, label),
     onSuccess: () => { setBearbeitet(null); frisch(); },
   });
 
   const entfernen = useMutation({
-    mutationFn: async (key: string) => {
-      const { error } = await supabase.from("site_categories").delete().eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: loescheKategorie,
     onSuccess: frisch,
   });
 

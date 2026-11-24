@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { einstellungSchluessel } from "@/daten/einstellungen";
 import { CheckCircle2, AlertCircle, CircleDashed, RefreshCw, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +43,7 @@ export default function Einrichtungsassistent({ oeffne }: { oeffne?: (tab: strin
   const [probeLaeuft, setProbeLaeuft] = useState(false);
 
   const { data, isFetching, refetch, error } = useQuery({
-    queryKey: ["einrichtung-status"],
+    queryKey: einstellungSchluessel.einrichtung(),
     queryFn: async () => await invokeFunction<Findings>("einrichtung-status", { body: {} }),
     // Der Stand ändert sich, während jemand danebenher einrichtet.
     staleTime: 0,

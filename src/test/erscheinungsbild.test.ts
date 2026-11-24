@@ -62,8 +62,9 @@ describe("Die Felder des Erscheinungsbilds", () => {
   it("schreibt auch wirklich nur diese Felder", () => {
     // Die Liste nützt nichts, wenn daneben weiter der ganze Entwurf ins
     // update geht.
-    expect(CODE).toMatch(/update\(patch\)/);
-    expect(CODE).not.toMatch(/update\(rest\)/);
+    // Geschrieben wird über die Datenschicht (daten/einstellungen.ts).
+    expect(CODE).toMatch(/aendereEinstellungen\(patch\)/);
+    expect(CODE).not.toMatch(/aendereEinstellungen\(rest\)/);
   });
 
   it("zeigt die Organisationsform – und zwar dieselbe Maske wie der Durchlauf", () => {

@@ -13,11 +13,14 @@ import { einfuehrungSchluessel } from "@/daten/einfuehrung";
 import { einstellungSchluessel } from "@/daten/einstellungen";
 import { epochenSchluessel } from "@/daten/epochen";
 import { forumSchluessel } from "@/daten/forum";
+import { fristSchluessel } from "@/daten/fristen";
 import { einwilligungSchluessel } from "@/daten/einwilligungen";
 import { inventarSchluessel } from "@/daten/inventar";
+import { kategorieSchluessel } from "@/daten/kategorien";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { nachweisSchluessel } from "@/daten/nachweise";
 import { quellenSchluessel } from "@/daten/quellen";
+import { rollenSchluessel } from "@/daten/rollen";
 import { sprachSchluessel } from "@/daten/sprachen";
 import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
@@ -42,7 +45,11 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
   {
     name: "wahlen",
     schluessel: wahlSchluessel,
-    dateien: ["src/pages/intern/Elections.tsx", ...quelltexte("src/components/elections")],
+    dateien: [
+      "src/pages/intern/Elections.tsx",
+      "src/components/admin/AuditLogPanel.tsx",
+      ...quelltexte("src/components/elections"),
+    ],
   },
   {
     // Ohne die öffentliche Anmeldeseite (pages/EventRegistration.tsx): Sie
@@ -62,6 +69,8 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     schluessel: mitgliedSchluessel,
     dateien: [
       "src/components/admin/MemberRegistry.tsx",
+      "src/components/admin/ProfilfelderAdmin.tsx",
+      "src/hooks/useProfilfelder.ts",
       "src/pages/intern/Profile.tsx",
       "src/pages/intern/Contributions.tsx",
       "src/pages/intern/MemberMap.tsx",
@@ -152,10 +161,40 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     ],
   },
   {
-    // Erst die Dateiablage; der Rest der Vereinsangaben folgt mit der Verwaltung.
+    // Vereinsangaben, Erscheinungsbild, Dateiablage, Module.
     name: "einstellungen",
     schluessel: einstellungSchluessel,
-    dateien: ["src/pages/intern/Admin.tsx"],
+    dateien: [
+      "src/pages/intern/Admin.tsx",
+      "src/hooks/useBranding.ts",
+      "src/hooks/useModule.ts",
+      "src/components/admin/ErscheinungsbildAdmin.tsx",
+      "src/components/admin/ModuleAdmin.tsx",
+      "src/components/admin/OrganisationsformWahl.tsx",
+      "src/components/admin/SatzungEinstellung.tsx",
+      "src/components/admin/Einrichtungsprozess.tsx",
+      "src/components/admin/Einrichtungsassistent.tsx",
+    ],
+  },
+  {
+    name: "rollen",
+    schluessel: rollenSchluessel,
+    dateien: [
+      "src/components/admin/RollenAdmin.tsx",
+      "src/components/admin/RolesPermissionsPanel.tsx",
+      "src/hooks/useDefaultRole.ts",
+    ],
+  },
+  {
+    name: "fristen",
+    schluessel: fristSchluessel,
+    dateien: ["src/components/admin/FristenAdmin.tsx"],
+  },
+  {
+    // Die Auswahlliste selbst liest der Baukasten (sitebuilder/auswahl.ts).
+    name: "kategorien",
+    schluessel: kategorieSchluessel,
+    dateien: ["src/components/admin/KategorienAdmin.tsx", "src/hooks/useKategorien.ts"],
   },
   {
     name: "ankuendigungen",

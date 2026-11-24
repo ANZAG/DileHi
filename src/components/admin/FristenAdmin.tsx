@@ -5,24 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  fristSchluessel, ladeBescheidangaben, ladeFristen, loescheFrist, setzeFristErledigt, speichereFrist,
+  type Frist, type Fristkategorie,
+} from "@/daten/fristen";
+import { useRollenkatalog } from "@/daten/mitglieder";
 import { useToast } from "@/hooks/use-toast";
 import { datumDe, heuteIso, plusMonate, tageBis } from "@/lib/datum";
 
 
-type Kategorie = "tax" | "register" | "assembly" | "insurance" | "other";
-
-interface Frist {
-  id: string;
-  title: string;
-  category: Kategorie;
-  due_date: string;
-  repeat_months: number | null;
-  remind_days: number;
-  responsible_role: string | null;
-  note: string | null;
-  done_at: string | null;
-}
+type Kategorie = Fristkategorie;
 
 const KATEGORIE: Record<Kategorie, string> = {
   tax: "Finanzamt",
@@ -117,32 +109,18 @@ export default function FristenAdmin() {
   const [zeigeVorschlaege, setZeigeVorschlaege] = useState(false);
 
   const { data: fristen = [], isLoading } = useQuery({
-    queryKey: ["fristen"],
-    queryFn: async (): Promise<Frist[]> => {
-      const { data, error } = await supabase.from("club_deadlines").select("*").order("due_date");
-      if (error) throw new Error(error.message);
-      // Die Kategorie ist in der Datenbank Text mit festem Wertevorrat.
-      return (data ?? []).map((f) => ({ ...f, category: f.category as Kategorie }));
-    },
+    queryKey: fristSchluessel.liste(),
+    queryFn: ladeFristen,
   });
 
-  const { data: rollen = [] } = useQuery({
-    queryKey: ["rollen-katalog"],
-    queryFn: async (): Promise<{ key: string; label: string }[]> => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return data ?? [];
-    },
-  });
+  const { data: rollen = [] } = useRollenkatalog();
 
   const { data: bescheid } = useQuery({
-    queryKey: ["bescheid"],
-    queryFn: async (): Promise<Bescheid> => {
-      const { data } = await supabase.from("app_settings").select("exemption_notice_kind, exemption_notice_date").maybeSingle();
-      return (data ?? { exemption_notice_kind: null, exemption_notice_date: null }) as Bescheid;
-    },
+    queryKey: fristSchluessel.bescheid(),
+    queryFn: async (): Promise<Bescheid> => (await ladeBescheidangaben()) as Bescheid,
   });
 
-  const erneuern = () => qc.invalidateQueries({ queryKey: ["fristen"] });
+  const erneuern = () => qc.invalidateQueries({ queryKey: fristSchluessel.liste() });
 
   const speichern = useMutation({
     mutationFn: async (f: Partial<Frist>) => {
@@ -157,10 +135,7 @@ export default function FristenAdmin() {
         responsible_role: f.responsible_role || null,
         note: f.note?.trim() || null,
       };
-      const { error } = f.id
-        ? await supabase.from("club_deadlines").update(daten).eq("id", f.id)
-        : await supabase.from("club_deadlines").insert(daten);
-      if (error) throw new Error(error.message);
+      await speichereFrist(daten, f.id);
     },
     onSuccess: () => {
       setNeu(null);
@@ -171,11 +146,7 @@ export default function FristenAdmin() {
   });
 
   const erledigen = useMutation({
-    mutationFn: async ({ id, erledigt }: { id: string; erledigt: boolean }) => {
-      const { error } = await supabase.from("club_deadlines")
-        .update({ done_at: erledigt ? new Date().toISOString() : null }).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ id, erledigt }: { id: string; erledigt: boolean }) => setzeFristErledigt(id, erledigt),
     onSuccess: (_, { erledigt }) => {
       erneuern();
       if (erledigt) toast({ title: "Erledigt" });
@@ -184,10 +155,7 @@ export default function FristenAdmin() {
   });
 
   const loeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("club_deadlines").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: loescheFrist,
     onSuccess: erneuern,
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereEinstellungen, einstellungSchluessel, ladeModulKennungen, schalteModule,
+} from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 import { FORMEN, modulVorauswahl, type OrgForm } from "@/lib/organisationsform";
 import { FORM_REIHENFOLGE } from "@/lib/einrichtungsprozess";
@@ -44,12 +46,8 @@ export default function OrganisationsformWahl({
   const [moduleAnpassen, setModuleAnpassen] = useState(true);
 
   const vorhandene = useQuery({
-    queryKey: ["module-keys"],
-    queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.from("app_modules").select("key");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((m: { key: string }) => m.key);
-    },
+    queryKey: einstellungSchluessel.modulKennungen(),
+    queryFn: ladeModulKennungen,
   });
 
   const wirkung = modulVorauswahl(wahl, vorhandene.data ?? []);
@@ -59,25 +57,21 @@ export default function OrganisationsformWahl({
     mutationFn: async () => {
       // Nur diese eine Spalte. Die Maske drumherum hat ihren eigenen Entwurf;
       // ihn hier mitzuschreiben hiesse, halbfertige Eingaben zu speichern.
-      const { error } = await supabase.from("app_settings").update({ org_form: wahl }).eq("id", true);
-      if (error) throw new Error(error.message);
+      await aendereEinstellungen({ org_form: wahl });
 
-      if (moduleAnpassen) {
-        // Einzeln, damit ein Fehler bei einem nicht die anderen mitnimmt.
-        for (const [keys, enabled] of [
-          [wirkung.an, true],
-          [wirkung.aus, false],
-        ] as const) {
-          for (const key of keys) {
-            await supabase.from("app_modules").update({ enabled }).eq("key", key);
-          }
-        }
-      }
+      // Einzeln, damit ein Fehler bei einem nicht die anderen mitnimmt.
+      return moduleAnpassen ? schalteModule(wirkung.an, wirkung.aus) : [];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
-      queryClient.invalidateQueries({ queryKey: ["module"] });
-      queryClient.invalidateQueries({ queryKey: ["einrichtung-status"] });
+    onSuccess: (gescheitert) => {
+      // Vereinsangaben, Erscheinungsbild, Module und der Stand der Einrichtung.
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.alle });
+      if (gescheitert.length > 0) {
+        toast({
+          title: "Nicht alle Bereiche umgeschaltet",
+          description: `Die Form ist gespeichert. Diese Bereiche bitte unter Module von Hand schalten: ${gescheitert.join(", ")}`,
+          variant: "destructive",
+        });
+      }
       toast({ title: "Übernommen", description: FORMEN[wahl].label });
       nachSpeichern?.();
     },

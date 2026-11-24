@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel } from "@/daten/einstellungen";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
+import {
+  aendereRolle, ladeRollenMitStand, legeRolleAn, loescheRolle, rollenSchluessel, setzeStandardrolle,
+  type RolleMitStand,
+} from "@/daten/rollen";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
@@ -27,20 +31,7 @@ import { Hilfe } from "@/components/Hilfe";
  * Hier steht nur, welche es gibt und was sie über sich aussagt.
  */
 
-interface Role {
-  key: string;
-  label: string;
-  description: string | null;
-  sort_order: number;
-  is_board: boolean;
-  is_leadership: boolean;
-  is_default: boolean;
-  public_listed: boolean;
-  is_system: boolean;
-  max_holders: number | null;
-  member_count: number;
-  permission_count: number;
-}
+type Role = RolleMitStand;
 
 
 export default function RollenAdmin() {
@@ -52,37 +43,27 @@ export default function RollenAdmin() {
   const [nachfrage, setNachfrage] = useState<Role | null>(null);
 
   const { data: rollen = [], isLoading } = useQuery({
-    queryKey: ["role-status"],
-    queryFn: async (): Promise<Role[]> => {
-      const { data, error } = await supabase.rpc("role_status");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: rollenSchluessel.stand(),
+    queryFn: ladeRollenMitStand,
   });
 
   const erneuern = () => {
-    qc.invalidateQueries({ queryKey: ["role-status"] });
-    qc.invalidateQueries({ queryKey: ["app-settings"] });
+    // Stand, Rechte und Standardrolle – und die Einstellungen, in denen sie steht.
+    qc.invalidateQueries({ queryKey: rollenSchluessel.alle });
+    qc.invalidateQueries({ queryKey: einstellungSchluessel.alle });
     qc.invalidateQueries({ queryKey: mitgliedSchluessel.rollenkatalog() });
-    qc.invalidateQueries({ queryKey: ["role_permissions"] });
     qc.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ key, werte }: { key: string; werte: TablesUpdate<"role_catalog"> }) => {
-      const { error } = await supabase.from("role_catalog").update(werte).eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ key, werte }: { key: string; werte: TablesUpdate<"role_catalog"> }) => aendereRolle(key, werte),
     onSuccess: erneuern,
     onError: (e: Error) =>
       toast({ title: "Nicht gespeichert", description: e.message, variant: "destructive" }),
   });
 
   const standardSetzen = useMutation({
-    mutationFn: async (key: string) => {
-      const { error } = await supabase.from("app_settings").update({ default_role: key }).eq("id", true);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: setzeStandardrolle,
     onSuccess: () => {
       erneuern();
       toast({ title: "Standardrolle geändert" });
@@ -100,10 +81,7 @@ export default function RollenAdmin() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = rollen[rollen.length - 1]?.sort_order ?? 0;
-      const { error } = await supabase
-        .from("role_catalog")
-        .insert({ key, label, sort_order: letzte + 10 });
-      if (error) throw new Error(error.message);
+      await legeRolleAn({ key, label, sort_order: letzte + 10 });
     },
     onSuccess: () => {
       setNeuOffen(false);
@@ -119,10 +97,7 @@ export default function RollenAdmin() {
   });
 
   const loeschen = useMutation({
-    mutationFn: async (key: string) => {
-      const { error } = await supabase.from("role_catalog").delete().eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: loescheRolle,
     onSuccess: () => {
       setNachfrage(null);
       erneuern();

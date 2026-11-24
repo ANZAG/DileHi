@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { mitgliedSchluessel, schalteProfilbereich, speichereProfilfelder } from "@/daten/mitglieder";
 import { useToast } from "@/hooks/use-toast";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
@@ -45,52 +45,33 @@ export default function ProfilfelderAdmin() {
   }, [gespeichert, geaendert]);
 
   const bereichSchalten = useMutation({
-    mutationFn: async (feld: Profilfeld) => {
-      const { error } = await supabase.from("profile_fields")
-        .update({ is_active: !feld.is_active }).eq("id", feld.id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile-fields"] }),
+    mutationFn: (feld: Profilfeld) => schalteProfilbereich(feld.id, !feld.is_active),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.profilfelder() }),
     onError: (err: Error) =>
       toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const vorher = new Map(gespeichert.filter((f) => !f.block_key).map((f) => [f.id, f]));
-      const jetzt = new Map(felder.map((f) => [f.id, f]));
-
-      const entfernt = [...vorher.keys()].filter((id) => !jetzt.has(id));
-      if (entfernt.length > 0) {
-        const { error } = await supabase.from("profile_fields").delete().in("id", entfernt);
-        if (error) throw new Error(error.message);
-      }
-
-      for (const [i, feld] of felder.entries()) {
-        // Nach den Bereichen einsortieren, damit „Weitere Angaben" im Profil
-        // unter den fertigen Bloecken steht.
-        const daten = {
+      await speichereProfilfelder(
+        gespeichert.filter((f) => !f.block_key).map((f) => f.id),
+        felder.map((feld, i) => ({
+          id: feld.id,
           type: feld.type,
           label: feld.label,
           description: feld.description,
           required: feld.required,
+          // Nach den Bereichen einsortieren, damit „Weitere Angaben" im Profil
+          // unter den fertigen Bloecken steht.
           sort_order: 1000 + (i + 1) * 10,
           options: feld.options ?? [],
           settings: feld.settings ?? {},
-        };
-        if (vorher.has(feld.id)) {
-          const { error } = await supabase.from("profile_fields").update(daten).eq("id", feld.id);
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await supabase.from("profile_fields")
-            .insert({ ...daten, block_key: null });
-          if (error) throw new Error(error.message);
-        }
-      }
+        })),
+      );
     },
     onSuccess: () => {
       setGeaendert(false);
-      queryClient.invalidateQueries({ queryKey: ["profile-fields"] });
+      queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.profilfelder() });
       toast({ title: "Gespeichert" });
     },
     onError: (err: Error) =>
