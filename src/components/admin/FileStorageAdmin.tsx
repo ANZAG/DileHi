@@ -3,7 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { useDateiablageVerbindung } from "@/daten/einstellungen";
+import {
+  ladeQuellenInSupabase, ladeQuellenOhneSharePointDatei, quellenSchluessel, type QuelleOhneSharePointDatei,
+} from "@/daten/quellen";
 import { useToast } from "@/hooks/use-toast";
 import { useKategorien } from "@/hooks/useKategorien";
 import { invokeFunction } from "@/lib/functionError";
@@ -20,14 +23,7 @@ import { invokeFunction } from "@/lib/functionError";
  * trotzdem hier landet, erfährt, wo man umstellt.
  */
 export default function FileStorageAdmin() {
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["file-storage-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("file_storage, sharepoint_site_url").maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
-    },
-  });
+  const { data: settings, isLoading } = useDateiablageVerbindung();
 
   if (isLoading) {
     return <p className="py-8 text-center text-sm text-muted-foreground">Lade …</p>;
@@ -67,13 +63,8 @@ interface Ergebnis {
 function Verschieben() {
   const queryClient = useQueryClient();
   const { data: offen = [], refetch } = useQuery({
-    queryKey: ["sources-in-supabase"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sources")
-        .select("id, title").is("drive_item_id", null).not("file_path", "is", null).eq("file_missing", false);
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: quellenSchluessel.inSupabase(),
+    queryFn: ladeQuellenInSupabase,
   });
 
   const [laeuft, setLaeuft] = useState(false);
@@ -97,7 +88,7 @@ function Verschieben() {
     setErgebnis(e);
     setLaeuft(false);
     refetch();
-    queryClient.invalidateQueries({ queryKey: ["sources"] });
+    queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
   };
 
   return (
@@ -143,12 +134,7 @@ interface Eingang {
   mimeType: string | null;
 }
 
-interface OhneDatei {
-  id: string;
-  title: string;
-  epoch: string;
-  file_missing: boolean;
-}
+type OhneDatei = QuelleOhneSharePointDatei;
 
 const mb = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
 
@@ -171,7 +157,7 @@ function Posteingang() {
   const kategorien = useKategorien();
 
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ["sharepoint-inbox"],
+    queryKey: quellenSchluessel.eingangskorb(),
     queryFn: () => invokeFunction<{ ordner: string; dateien: Eingang[] }>("sharepoint-files", { body: { action: "inbox" } }),
   });
 
@@ -179,14 +165,8 @@ function Posteingang() {
   // verlorene Datei zeigen und in der Quellensammlung „Die Datei fehlt"
   // anzeigen. Gerade die warten ja auf einen Nachschub aus dem Korb.
   const { data: ohneDatei = [], error: quellenFehler } = useQuery({
-    queryKey: ["sources-ohne-datei"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sources")
-        .select("id, title, epoch, file_missing").is("drive_item_id", null).order("title");
-      if (error) throw new Error(error.message);
-      const zeilen: OhneDatei[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: quellenSchluessel.ohneSharePointDatei(),
+    queryFn: ladeQuellenOhneSharePointDatei,
   });
 
   const dateien = data?.dateien ?? [];
@@ -248,8 +228,8 @@ function Posteingang() {
       });
     }
     refetch();
-    queryClient.invalidateQueries({ queryKey: ["sources-ohne-datei"] });
-    queryClient.invalidateQueries({ queryKey: ["sources"] });
+    queryClient.invalidateQueries({ queryKey: quellenSchluessel.ohneDatei() });
+    queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
   };
 
   return (

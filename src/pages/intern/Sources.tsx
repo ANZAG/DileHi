@@ -2,6 +2,11 @@ import { useState } from "react";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useDateiablage } from "@/daten/einstellungen";
+import {
+  benenneQuelleUm, ladeOrdner, ladeQuelleFuerVorschau, ladeQuellen, legeOrdnerAn, legeQuelleAn, loescheOrdner,
+  loescheQuelle, quellenSchluessel, verschiebeQuelle,
+} from "@/daten/quellen";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Search, ExternalLink, Trash2, Folder, FolderPlus, Upload, FileText, ArrowUp, Loader2, CheckCircle2, Pencil, Eye, FolderInput, AlertTriangle, ScanLine } from "lucide-react";
 import {
@@ -94,40 +99,16 @@ const Sources = () => {
   const activeEpoch = epochFilter || kategorien[0]?.value || "";
 
   // Wohin neue Dateien gehen. Eingestellt unter Verwaltung → Dateiablage.
-  const { data: fileStorage = "supabase" } = useQuery({
-    queryKey: ["file-storage"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("app_settings").select("file_storage").maybeSingle();
-      return ((data?.file_storage as string | undefined) ?? "supabase") as "supabase" | "sharepoint";
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: fileStorage = "supabase" } = useDateiablage({ staleTime: 5 * 60 * 1000 });
 
   const { data: folders = [] } = useQuery({
-    queryKey: ["source_folders", activeEpoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("source_folders")
-        .select("*")
-        .eq("epoch", activeEpoch)
-        .order("name", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: quellenSchluessel.ordnerIn(activeEpoch),
+    queryFn: () => ladeOrdner(activeEpoch),
   });
 
   const { data: sources = [], isLoading } = useQuery({
-    queryKey: ["sources", activeEpoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sources")
-        .select("*")
-        .eq("epoch", activeEpoch)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryKey: quellenSchluessel.quellenIn(activeEpoch),
+    queryFn: () => ladeQuellen(activeEpoch),
   });
 
   const currentFolders = folders.filter((f) =>
@@ -143,19 +124,17 @@ const Sources = () => {
     : null;
 
   const addSource = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("sources").insert({
+    mutationFn: () =>
+      legeQuelleAn({
         epoch: activeEpoch,
         title: form.title,
         content: form.content || null,
         url: form.url || null,
         folder_id: currentFolderId,
         created_by: user!.id,
-      });
-      if (error) throw error;
-    },
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       setShowForm(false);
       setForm({ epoch: activeEpoch, title: "", content: "", url: "" });
       toast({ title: "Quelle hinzugefügt" });
@@ -164,17 +143,15 @@ const Sources = () => {
   });
 
   const createFolder = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("source_folders").insert({
+    mutationFn: () =>
+      legeOrdnerAn({
         epoch: activeEpoch,
         name: folderName,
         parent_id: currentFolderId,
         created_by: user!.id,
-      });
-      if (error) throw error;
-    },
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["source_folders"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.ordner() });
       setShowFolderForm(false);
       setFolderName("");
       toast({ title: "Ordner erstellt" });
@@ -192,11 +169,10 @@ const Sources = () => {
         await deleteSourceWithFile(id);
         return;
       }
-      const { error } = await supabase.from("sources").delete().eq("id", id);
-      if (error) throw error;
+      await loescheQuelle(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       toast({ title: "Quelle gelöscht" });
     },
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
@@ -237,17 +213,15 @@ const Sources = () => {
         if (q.drive_item_id || q.file_path) {
           await deleteSourceWithFile(q.id);
         } else {
-          const { error } = await supabase.from("sources").delete().eq("id", q.id);
-          if (error) throw error;
+          await loescheQuelle(q.id);
         }
       }
 
-      const { error } = await supabase.from("source_folders").delete().eq("id", id);
-      if (error) throw error;
+      await loescheOrdner(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["source_folders"] });
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.ordner() });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       setFolderDeleteConfirm(null);
       toast({ title: "Ordner und Inhalt gelöscht" });
     },
@@ -256,12 +230,9 @@ const Sources = () => {
   });
 
   const updateSourceTitle = useMutation({
-    mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      const { error } = await supabase.from("sources").update({ title }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, title }: { id: string; title: string }) => benenneQuelleUm(id, title),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       setEditingSource(null);
       toast({ title: "Titel aktualisiert" });
     },
@@ -269,12 +240,9 @@ const Sources = () => {
   });
 
   const moveSource = useMutation({
-    mutationFn: async ({ id, folder_id }: { id: string; folder_id: string | null }) => {
-      const { error } = await supabase.from("sources").update({ folder_id }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, folder_id }: { id: string; folder_id: string | null }) => verschiebeQuelle(id, folder_id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       toast({ title: "Quelle verschoben" });
     },
     onError: () => toast({ title: "Fehler beim Verschieben", variant: "destructive" }),
@@ -335,7 +303,7 @@ const Sources = () => {
             .upload(path, file);
           if (uploadErr) throw uploadErr;
 
-          const { error: dbErr } = await supabase.from("sources").insert({
+          await legeQuelleAn({
             epoch: activeEpoch,
             title: customTitle,
             content: `Datei: ${file.name}`,
@@ -343,7 +311,6 @@ const Sources = () => {
             folder_id: currentFolderId,
             created_by: user!.id,
           });
-          if (dbErr) throw dbErr;
         }
         gelungen++;
 
@@ -365,7 +332,7 @@ const Sources = () => {
       }
     }
 
-    queryClient.invalidateQueries({ queryKey: ["sources"] });
+    queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
     setPendingFiles([]);
     setUploadTitles({});
     // Bisher stand hier die Zahl der ausgewählten Dateien, auch wenn welche
@@ -464,7 +431,7 @@ const Sources = () => {
       const item = await uploadToSharePoint(file, activeEpoch, (anteil) => setze({ progress: Math.round(anteil * 100) }));
       await attachFile(s.id, item.id);
       setze({ progress: 100, status: "done" });
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.quellen() });
       toast({ title: "Datei nachgereicht" });
     } catch (err) {
       setze({ status: "error", error: (err as Error).message });
@@ -476,10 +443,8 @@ const Sources = () => {
    * springt nicht auf eine Seite; deshalb steht die Seite im Titel.
    */
   const fundstelleOeffnen = async (sourceId: string, seite: number) => {
-    const { data, error } = await supabase.from("sources")
-      .select("id, title, content, url, file_path, drive_item_id, file_name, file_missing, folder_id, created_by")
-      .eq("id", sourceId).maybeSingle();
-    if (error || !data) {
+    const data = await ladeQuelleFuerVorschau(sourceId).catch(() => null);
+    if (!data) {
       toast({ title: "Quelle nicht gefunden", variant: "destructive" });
       return;
     }

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { epochenSchluessel, ladeEpochenquellen } from "@/daten/epochen";
 import { betonung } from "@/lib/betonung";
 
 interface EpochSourcesProps {
@@ -8,16 +8,8 @@ interface EpochSourcesProps {
 
 const EpochSources = ({ epoch }: EpochSourcesProps) => {
   const { data: sources = [] } = useQuery({
-    queryKey: ["epoch_sources", epoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("epoch_sources")
-        .select("*")
-        .eq("epoch", epoch)
-        .order("sort_order", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: epochenSchluessel.quellen(epoch),
+    queryFn: () => ladeEpochenquellen(epoch),
   });
 
   return (

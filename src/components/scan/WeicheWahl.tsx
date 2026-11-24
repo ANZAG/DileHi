@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BookPlus, Inbox, Link2, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeOrdnerMitWeg, quellenSchluessel, sucheQuellenOhneDatei } from "@/daten/quellen";
 import { useKategorien } from "@/hooks/useKategorien";
 import type { Weiche } from "@/lib/scan/speicher";
 
@@ -22,23 +22,6 @@ interface Props {
 
 type Art = Weiche["art"];
 
-interface Ordner { id: string; name: string; parent_id: string | null }
-
-/** Ordner mit ihrem Weg, „Briefe / 1813", alphabetisch. */
-function ordnerMitWeg(liste: Ordner[]): { id: string; weg: string }[] {
-  const nachId = new Map(liste.map((o) => [o.id, o]));
-  const weg = (o: Ordner): string => {
-    const teile = [o.name];
-    let p = o.parent_id ? nachId.get(o.parent_id) : undefined;
-    for (let i = 0; p && i < 10; i++) {
-      teile.unshift(p.name);
-      p = p.parent_id ? nachId.get(p.parent_id) : undefined;
-    }
-    return teile.join(" / ");
-  };
-  return liste.map((o) => ({ id: o.id, weg: weg(o) })).sort((a, b) => a.weg.localeCompare(b.weg, "de"));
-}
-
 export function WeicheWahl({ vorgabe, epochVorgabe, ordnerVorgabe, onWahl }: Props) {
   const kategorien = useKategorien();
   const [art, setArt] = useState<Art>(vorgabe?.art ?? "neu");
@@ -52,33 +35,19 @@ export function WeicheWahl({ vorgabe, epochVorgabe, ordnerVorgabe, onWahl }: Pro
   const aktiveEpoche = epoch || kategorien[0]?.value || "";
 
   const { data: ordnerListe = [] } = useQuery({
-    // Eigener Schlüssel: Die Quellensammlung legt unter ["source_folders",
-    // Epoche] die rohen Ordner ab, hier liegt die Liste mit Weg. Unter
-    // demselben Schlüssel las die Quellensammlung nach dem Scannen diese
-    // Liste und zeigte Ordner ohne Namen. Der gemeinsame Anfang bleibt,
-    // damit ein neuer oder gelöschter Ordner beide Listen erneuert.
-    queryKey: ["source_folders", "mit-weg", aktiveEpoche],
+    // Die Liste mit Weg hat ihren eigenen Schlüssel; die rohen Ordner der
+    // Quellensammlung liegen unter einem anderen (daten/quellen.ts).
+    queryKey: quellenSchluessel.ordnerMitWeg(aktiveEpoche),
     enabled: art === "neu" && !!aktiveEpoche,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("source_folders").select("id, name, parent_id").eq("epoch", aktiveEpoche);
-      if (error) throw error;
-      return ordnerMitWeg(data ?? []);
-    },
+    queryFn: () => ladeOrdnerMitWeg(aktiveEpoche),
   });
 
   // Nur Quellen ohne Datei: Ein Buch, das schon eine Datei hat, würde sonst
   // überschrieben.
   const { data: ohneDatei = [], isFetching } = useQuery({
-    queryKey: ["sources-ohne-datei", suche],
+    queryKey: quellenSchluessel.ohneDateiSuche(suche),
     enabled: art === "quelle",
-    queryFn: async () => {
-      let q = supabase.from("sources").select("id, title, epoch")
-        .is("drive_item_id", null).is("file_path", null).order("title").limit(30);
-      if (suche.trim()) q = q.ilike("title", `%${suche.trim()}%`);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => sucheQuellenOhneDatei(suche),
   });
 
   const bereit =
