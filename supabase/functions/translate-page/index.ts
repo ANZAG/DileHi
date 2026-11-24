@@ -2,6 +2,8 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { SCHLUESSEL_FEHLT, uebersetzen, type Uebersetzbar } from "../_shared/deepl.ts";
 // @deno-types="../_shared/seitentexte.d.mts"
 import { seiteZerlegen, seiteZusammensetzen } from "../_shared/seitentexte.mjs";
+// @deno-types="../_shared/rahmentexte.d.mts"
+import { RAHMENARTEN, RAHMENFELDER, rahmentexteSammeln } from "../_shared/rahmentexte.mjs";
 
 /**
  * Übersetzt eine Seite – oder Menü und Rahmentexte – aus dem Deutschen ins
@@ -11,7 +13,12 @@ import { seiteZerlegen, seiteZusammensetzen } from "../_shared/seitentexte.mjs";
  *
  * Aufruf (angemeldet, mit dem Recht, Seiten zu bearbeiten):
  *   { art: "seite",  pageId: "<uuid>", sprachen?: ["en", "fr"] }
- *   { art: "rahmen",                   sprachen?: ["en", "fr"] }
+ *   { art: "rahmen", arten?: ["menu", "source", …], sprachen?: ["en", "fr"] }
+ *
+ * „rahmen" meint die kurzen Texte ausserhalb der Seiten: Menüpunkte,
+ * Untertitel und Fuss, Bildbeschreibungen, Besucherhinweise, Quellen
+ * (_shared/rahmentexte.mjs). Literaturangaben unter den Quellen lässt die
+ * Maschine stehen.
  *
  * Als Funktion und nicht im Browser, weil der DeepL-Schlüssel sonst in jedem
  * Browser stünde. Er liegt als Geheimnis DEEPL_API_KEY bei Supabase; fehlt
@@ -24,8 +31,6 @@ const corsHeaders = {
 };
 
 const SPRACHEN = ["en", "fr"];
-/** Die öffentlichen Texte aus den Vereinsangaben (wie der Check in der Migration). */
-const RAHMENFELDER = ["org_tagline", "seo_description", "footer_navigation_label", "footer_legal_label"] as const;
 
 function antworten(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -57,16 +62,26 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const body = (await req.json().catch(() => null)) as { art?: unknown; pageId?: unknown; sprachen?: unknown } | null;
+    const body = (await req.json().catch(() => null)) as { art?: unknown; pageId?: unknown; sprachen?: unknown; arten?: unknown } | null;
     const art = body?.art === "rahmen" ? "rahmen" : "seite";
     const gewuenscht = Array.isArray(body?.sprachen) ? body.sprachen.filter((s): s is string => typeof s === "string") : SPRACHEN;
     const sprachen = SPRACHEN.filter((s) => gewuenscht.includes(s));
     if (sprachen.length === 0) throw new Error("Keine gültige Zielsprache angegeben (en, fr).");
 
     // Dieselben Rechte wie beim Schreiben von Hand (Policies der Tabellen).
-    const rechte = art === "rahmen" ? ["site.layout_edit"] : ["site.content_edit", "site.layout_edit"];
-    if (!(await darf(adminClient, user.id, rechte))) {
-      throw new Error(art === "rahmen" ? "Keine Berechtigung, Menü und Rahmen zu ändern" : "Keine Berechtigung, Seiten zu bearbeiten");
+    // Bei den kurzen Texten je Art: Wer nur die Quellen pflegt, übersetzt nur
+    // die Quellen (site_text_translation_editable in der Datenbank).
+    const gewuenschteArten = Array.isArray(body?.arten) ? body.arten.filter((a): a is string => typeof a === "string") : null;
+    const arten: string[] = [];
+    if (art === "rahmen") {
+      const alles = await darf(adminClient, user.id, ["site.layout_edit"]);
+      for (const a of RAHMENARTEN) {
+        if (gewuenschteArten && !gewuenschteArten.includes(a.art)) continue;
+        if (alles || (a.recht && await darf(adminClient, user.id, [a.recht]))) arten.push(a.art);
+      }
+      if (arten.length === 0) throw new Error("Keine Berechtigung, diese Texte zu ändern");
+    } else if (!(await darf(adminClient, user.id, ["site.content_edit", "site.layout_edit"]))) {
+      throw new Error("Keine Berechtigung, Seiten zu bearbeiten");
     }
 
     // Erst nach der Anmeldung: Ob ein Schlüssel hinterlegt ist, geht
@@ -111,31 +126,48 @@ Deno.serve(async (req) => {
       return antworten({ ok: true, sprachen: bericht });
     }
 
-    // ── Menü und Rahmen ──
-    const [{ data: menue, error: menueFehler }, { data: angaben, error: angabenFehler }] = await Promise.all([
-      adminClient.from("site_menu").select("id, label"),
-      adminClient.from("app_settings").select(RAHMENFELDER.join(", ")).eq("id", true).maybeSingle(),
+    // ── Die kurzen Texte ausserhalb der Seiten ──
+    const will = (a: string) => arten.includes(a);
+    const nichts = { data: [], error: null };
+    const [menue, angaben, bilder, galerie, besucher, quellen] = await Promise.all([
+      will("menu") ? adminClient.from("site_menu").select("id, label") : nichts,
+      will("settings") ? adminClient.from("app_settings").select(RAHMENFELDER.join(", ")).eq("id", true).maybeSingle() : { data: null, error: null },
+      will("image") ? adminClient.from("site_images").select("slot, label, alt_text") : nichts,
+      will("gallery") ? adminClient.from("gallery_images").select("id, alt_text, epoch") : nichts,
+      will("visitor") ? adminClient.from("epoch_visitor_items").select("id, text, epoch") : nichts,
+      will("source") ? adminClient.from("epoch_sources").select("id, text, epoch") : nichts,
     ]);
-    if (menueFehler) throw new Error(menueFehler.message);
-    if (angabenFehler) throw new Error(angabenFehler.message);
+    for (const antwort of [menue, angaben, bilder, galerie, besucher, quellen]) {
+      if (antwort.error) throw new Error(antwort.error.message);
+    }
 
-    const werte = (angaben ?? {}) as Record<string, unknown>;
-    const texte: Uebersetzbar[] = [
-      ...(menue ?? []).map((m: { id: string; label: string }) => ({ schluessel: `menu:${m.id}`, art: "text" as const, text: m.label })),
-      ...RAHMENFELDER.map((f) => ({ schluessel: `settings:${f}`, art: "text" as const, text: typeof werte[f] === "string" ? (werte[f] as string) : "" })),
-    ].filter((t) => /\p{L}/u.test(t.text));
+    // Literaturangaben bleiben stehen (`maschinell` in rahmentexte.mjs): Ein
+    // Buchtitel wird nicht übersetzt, nur weil er auf einer übersetzten
+    // Seite steht.
+    const texte: Uebersetzbar[] = rahmentexteSammeln({
+      menue: menue.data,
+      marke: angaben.data as Record<string, unknown> | null,
+      bilder: bilder.data,
+      galerie: galerie.data,
+      besucher: besucher.data,
+      quellen: quellen.data,
+    })
+      .filter((z) => z.maschinell)
+      .map((z) => ({ schluessel: z.schluessel, art: "text" as const, text: z.text }));
 
     const bericht: Record<string, { texte: number }> = {};
     for (const sprache of sprachen) {
-      // Was ein Mensch schon gesichert hat und was noch stimmt, bleibt: Hier
-      // geht es um viele kleine Texte auf einmal, und niemand soll seine
-      // Korrekturen verlieren, weil ein neuer Menüpunkt dazukam.
+      // Übersetzt wird nur, was fehlt oder veraltet ist. Hier geht es um
+      // viele kleine Texte auf einmal: Niemand soll seine Korrekturen
+      // verlieren, weil ein neuer Menüpunkt dazukam – und hundert
+      // Bildbeschreibungen sollen nicht bei jedem Klick erneut das
+      // Zeichenkontingent bei DeepL kosten.
       const { data: vorhanden, error: fehler } = await adminClient
-        .from("site_text_translations").select("kind, ref, is_machine, is_stale").eq("lang", sprache);
+        .from("site_text_translations").select("kind, ref, is_stale").eq("lang", sprache);
       if (fehler) throw new Error(fehler.message);
       const bleibt = new Set(
         (vorhanden ?? [])
-          .filter((z: { is_machine: boolean; is_stale: boolean }) => !z.is_machine && !z.is_stale)
+          .filter((z: { is_stale: boolean }) => !z.is_stale)
           .map((z: { kind: string; ref: string }) => `${z.kind}:${z.ref}`),
       );
       const offen = texte.filter((t) => !bleibt.has(t.schluessel));

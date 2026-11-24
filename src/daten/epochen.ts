@@ -79,3 +79,10 @@ export const aendereBesucherpunkt = (id: string, text: string) => aendereText("e
 export const loescheBesucherpunkt = (id: string) => loesche("epoch_visitor_items", id);
 export const sortiereBesucherpunkte = (plaetze: { id: string; sort_order: number }[]) =>
   sortiere("epoch_visitor_items", plaetze);
+
+/** Die Besucherpunkte aller Kategorien – für die Übersetzungstabelle (src/daten/sprachen.ts). */
+export async function ladeAlleBesucherpunkte(): Promise<Pick<Besucherpunkt, "id" | "text" | "epoch">[]> {
+  const { data, error } = await supabase.from("epoch_visitor_items").select("id, text, epoch").order("epoch").order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}

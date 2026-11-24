@@ -46,7 +46,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     ?? (footer_navigation_label === "Navigation" ? t.navigation : footer_navigation_label);
   const fussRechtliches = rahmen["settings:footer_legal_label"]
     ?? (footer_legal_label === "Rechtliches" ? t.rechtliches : footer_legal_label);
-  const { eng, kopf, marke, name, leiste } = useEngeKopfzeile([navItems, user, org_short_name, logo_in_header, sprachen.length, sprache]);
+  const { stufe, kopf, marke, name, leiste } = useEngeKopfzeile([navItems, user, org_short_name, logo_in_header, sprachen.length, sprache]);
+
+  const eng = stufe === "eng";
 
   // Wird das Fenster breit genug für die ganze Leiste, ist die Klappe weg –
   // sie darf beim nächsten Schmalwerden nicht schon offen dastehen.
@@ -71,25 +73,46 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       )}
       <header lang={sprache} className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div ref={kopf} className="container relative flex h-16 items-center justify-between gap-6">
+        {/* Mindesthöhe statt fester Höhe: Passt die Leiste auf einem breiten
+            Bildschirm nicht in eine Zeile, bricht sie um (Stufe „zeilen"), und
+            der Kopf wächst mit. */}
+        <div ref={kopf} className="container relative flex min-h-16 items-center justify-between gap-6">
           <Link
             ref={marke}
             to={pfad("/")}
-            className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2 min-w-0 whitespace-nowrap"
+            className={`font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2 whitespace-nowrap ${
+              // Bricht die Leiste um, gibt sie nach – nicht der Name.
+              stufe === "zeilen" ? "shrink-0" : "min-w-0"
+            }`}
           >
             {logoUrl && logo_in_header && <img src={logoUrl} alt="" className="h-7 w-auto shrink-0" />}
             <span ref={name} className="truncate">{org_short_name}</span>
           </Link>
 
           {/* Die Leiste steht immer im Dokument, damit sich messen lässt, ob
-              sie passt. Passt sie nicht, ist sie unsichtbar (und damit auch
-              nicht per Tab erreichbar), und das Menü steckt hinter dem
-              Knopf. */}
+              sie passt. Wie sie dasteht, sagt `data-stufe` (useEngeKopfzeile):
+              weit, dicht (engere Abstände), in zwei Zeilen – oder gar nicht:
+              Dann ist sie unsichtbar (und damit auch nicht per Tab
+              erreichbar), und das Menü steckt hinter dem Knopf.
+
+              Das Aussehen hängt am Attribut und nicht an Klassen aus dem
+              Zustand, weil beim Messen jede Stufe kurz anprobiert wird, bevor
+              React etwas zeichnet. */}
           <nav
             ref={leiste}
             aria-label={t.hauptmenue}
             aria-hidden={eng || undefined}
-            className={`flex w-max shrink-0 items-center gap-1 ${eng ? "invisible absolute right-0 pointer-events-none" : ""}`}
+            data-stufe={stufe}
+            className={[
+              "flex w-max shrink-0 items-center gap-1",
+              // dicht und zeilen: weniger Luft um jeden Punkt, bevor etwas umbricht.
+              "data-[stufe=dicht]:gap-0 data-[stufe=zeilen]:gap-x-0",
+              "[&[data-stufe=dicht]>a]:px-2 [&[data-stufe=dicht]>button]:px-1.5 [&[data-stufe=dicht]>div>button]:px-2",
+              "[&[data-stufe=zeilen]>a]:px-2 [&[data-stufe=zeilen]>button]:px-1.5 [&[data-stufe=zeilen]>div>button]:px-2",
+              "data-[stufe=zeilen]:w-auto data-[stufe=zeilen]:min-w-0 data-[stufe=zeilen]:shrink",
+              "data-[stufe=zeilen]:flex-wrap data-[stufe=zeilen]:justify-end data-[stufe=zeilen]:gap-y-0 data-[stufe=zeilen]:py-1",
+              "data-[stufe=eng]:invisible data-[stufe=eng]:absolute data-[stufe=eng]:right-0 data-[stufe=eng]:pointer-events-none",
+            ].join(" ")}
           >
             {navItems.map((item) =>
               item.children ? (
@@ -99,7 +122,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   key={item.path}
                   to={item.path}
                   {...zielFenster(item)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted hover:text-foreground ${
+                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors hover:bg-muted hover:text-foreground ${
                     location.pathname === item.path ? "text-primary bg-muted" : "text-muted-foreground"
                   }`}
                 >
@@ -111,7 +134,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <Sprachwahl className="ml-1" />
             <Link
               to={user ? "/intern" : "/login"}
-              className={`ml-2 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+              className={`ml-2 px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap transition-colors ${
                 location.pathname.startsWith("/intern")
                   ? "border-primary text-primary bg-primary/5"
                   : "border-border text-foreground hover:bg-muted"
@@ -166,7 +189,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             >
               {t.mitgliederbereich}
             </Link>
-            <Sprachwahl className="px-1.5 pt-1" nachWahl={() => setMenuOpen(false)} />
+            <Sprachwahl art="zeile" className="px-1 pt-1" nachWahl={() => setMenuOpen(false)} />
           </nav>
         )}
       </header>
@@ -234,19 +257,41 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+/** Ab hier gilt ein Fenster als Rechner (Tailwinds `lg`). */
+const RECHNER_AB = 1024;
+
 /**
- * Passt die ganze Menüleiste neben den Namen?
+ * Wie die Menüleiste dasteht – von „alles in einer Zeile" bis „hinter dem
+ * Knopf".
+ */
+type Stufe = "weit" | "dicht" | "zeilen" | "eng";
+
+/**
+ * Passt die ganze Menüleiste neben den Namen – und wenn nicht, was dann?
  *
  * Vorher entschied eine feste Bildschirmbreite (768 px). Bei sieben
  * Menüpunkten und einem langen Vereinsnamen reichte die auf dem Tablet nicht:
  * Der Name brach auf drei Zeilen um, die Punkte auf zwei, und die Seite liess
  * sich 154 px seitwärts schieben. Wie viele Punkte ein Verein anlegt und wie
- * lang sein Name ist, weiss aber nur die Installation – also wird gemessen:
- * Passt die Leiste, steht sie da, sonst das Menü hinter dem Knopf.
+ * lang sein Name ist, weiss aber nur die Installation – also wird gemessen.
+ *
+ * Seit es die Seite auf Französisch gibt, reicht „passt oder passt nicht"
+ * nicht mehr. Der Kopf ist höchstens 1400 px breit (`container`), egal wie
+ * breit das Fenster ist; „Première Guerre mondiale" und „Pour les
+ * organisateurs" sprengten das, und auf einem 2000 px breiten Bildschirm
+ * stand das Menü des Telefons. Deshalb in Stufen, und jede wird erst
+ * genommen, wenn die davor nicht reicht:
+ *
+ *   weit   – wie immer.
+ *   dicht  – weniger Luft zwischen den Punkten.
+ *   zeilen – nur auf dem Rechner: Die Leiste bricht in eine zweite Zeile um.
+ *            Dort ist das besser als ein Knopf, hinter dem man das Menü
+ *            suchen muss.
+ *   eng    – darunter: das Menü hinter dem Knopf.
  *
  * Gemessen vor dem ersten Zeichnen (`useLayoutEffect`), sonst sähe man die
  * falsche Fassung aufblitzen. Erneut gemessen, wenn sich die Breite ändert,
- * die Schrift nachlädt oder Menü, Name und Anmeldung wechseln.
+ * die Schrift nachlädt oder Menü, Name, Sprache und Anmeldung wechseln.
  */
 function useEngeKopfzeile(abhaengig: unknown[]) {
   const kopf = useRef<HTMLDivElement>(null);
@@ -255,7 +300,7 @@ function useEngeKopfzeile(abhaengig: unknown[]) {
   const leiste = useRef<HTMLElement>(null);
   // Zuerst eng: Auf dem Handy ist das ohnehin richtig, und auf dem Rechner
   // wird vor dem Zeichnen umgestellt.
-  const [eng, setEng] = useState(true);
+  const [stufe, setStufe] = useState<Stufe>("eng");
 
   const messen = useCallback(() => {
     const k = kopf.current;
@@ -269,7 +314,19 @@ function useEngeKopfzeile(abhaengig: unknown[]) {
     // Der Name in voller Länge, nicht so, wie er gerade dasteht: Ist er
     // schon gekürzt („D…"), passte die Leiste sonst scheinbar daneben.
     const volleMarke = m.offsetWidth - n.clientWidth + n.scrollWidth;
-    setEng(volleMarke + abstand + l.scrollWidth > platz);
+    // Jede Stufe anprobieren: Das Attribut bestimmt das Aussehen, und in den
+    // Stufen „weit" und „dicht" ist die Leiste so breit wie ihr Inhalt.
+    const passt = (probe: Stufe) => {
+      l.dataset.stufe = probe;
+      return volleMarke + abstand + l.scrollWidth <= platz + 0.5;
+    };
+    const neu: Stufe = passt("weit") ? "weit"
+      : passt("dicht") ? "dicht"
+      : window.innerWidth >= RECHNER_AB ? "zeilen" : "eng";
+    // Auch von Hand setzen: Bleibt die Stufe gleich, zeichnet React nicht
+    // neu, und das Attribut stünde noch auf der letzten Anprobe.
+    l.dataset.stufe = neu;
+    setStufe(neu);
   }, []);
 
   useLayoutEffect(messen, [messen, ...abhaengig]);
@@ -285,7 +342,7 @@ function useEngeKopfzeile(abhaengig: unknown[]) {
     return () => beobachter.disconnect();
   }, [messen]);
 
-  return { eng, kopf, marke, name, leiste };
+  return { stufe, kopf, marke, name, leiste };
 }
 
 /**

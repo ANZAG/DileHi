@@ -159,3 +159,83 @@ describe("Veraltet", () => {
     expect((await db.query("select 1 from public.site_page_translations where page_id = $1", [entwurf])).rows).toHaveLength(0);
   });
 });
+
+/**
+ * Die weiteren Arten kurzer Texte (20261125100000_mehrsprachig_weitere_texte.sql):
+ * Quellen, Besucherhinweise, Bildbeschreibungen.
+ */
+describe("Quellen, Besucherhinweise und Bildbeschreibungen", () => {
+  const QUELLENPFLEGE = "e6e6e6e6-0000-4000-8000-000000000004";
+  let quelle: string;
+  let hinweis: string;
+  let galeriebild: string;
+
+  beforeAll(async () => {
+    await db.query("insert into public.role_catalog (key, label, sort_order) values ('quellen_sprachen', 'Quellen', 96) on conflict (key) do nothing");
+    await db.query("insert into public.role_permissions (role, permission, granted) values ('quellen_sprachen', 'epoch_sources.manage', true) on conflict do nothing");
+    await db.query("insert into auth.users (id, email) values ($1, 'quentin@example.org') on conflict (id) do nothing", [QUELLENPFLEGE]);
+    await db.query("insert into public.profiles (id, display_name, is_active) values ($1, 'Quentin', true) on conflict (id) do update set is_active = true", [QUELLENPFLEGE]);
+    await db.query("insert into public.user_roles (user_id, role) values ($1, 'quellen_sprachen') on conflict do nothing", [QUELLENPFLEGE]);
+    quelle = (await db.query<{ id: string }>("insert into public.epoch_sources (epoch, text) values ('mittelalter', 'Funde aus dem Rhein-Main-Gebiet') returning id")).rows[0].id;
+    hinweis = (await db.query<{ id: string }>("insert into public.epoch_visitor_items (epoch, text) values ('mittelalter', 'Kochen am offenen Feuer') returning id")).rows[0].id;
+    galeriebild = (await db.query<{ id: string }>("insert into public.gallery_images (storage_path, alt_text, epoch, created_by) values ('g/1.webp', 'Lager am Abend', 'mittelalter', $1) returning id", [AUFBAU])).rows[0].id;
+    await db.query("insert into public.site_images (slot, label, page, alt_text) values ('sprachen-hero', 'Kopfbild', 'Start', 'Burg im Nebel') on conflict (slot) do update set alt_text = 'Burg im Nebel'");
+    await db.query(
+      "insert into public.site_text_translations (kind, ref, lang, value) values ('source', $1, 'en', 'Finds from the Rhine-Main area'), ('visitor', $2, 'en', 'Cooking over an open fire'), ('gallery', $3, 'en', 'Camp in the evening'), ('image', 'sprachen-hero', 'en', 'Castle in the fog')",
+      [quelle, hinweis, galeriebild],
+    );
+  });
+
+  const stand = async (kind: string, ref: string) =>
+    (await db.query<{ is_stale: boolean }>("select is_stale from public.site_text_translations where kind = $1 and ref = $2", [kind, ref])).rows;
+
+  it("lesen kann sie jeder, andere Arten gibt es nicht", async () => {
+    const zeilen = await alsGast<{ kind: string }>("select kind from public.site_text_translations where ref = any($1) order by kind", [[quelle, hinweis, galeriebild, "sprachen-hero"]]);
+    expect(zeilen.map((z) => z.kind)).toEqual(["gallery", "image", "source", "visitor"]);
+    await expect(db.query("insert into public.site_text_translations (kind, ref, lang, value) values ('event', 'x', 'en', 'x')")).rejects.toThrow();
+  });
+
+  it("wer die Quellen pflegt, übersetzt sie – aber nichts anderes", async () => {
+    await alsMitglied(QUELLENPFLEGE, "insert into public.site_text_translations (kind, ref, lang, value) values ('source', $1, 'fr', 'Découvertes de la région Rhin-Main')", [quelle]);
+    await alsMitglied(QUELLENPFLEGE, "update public.site_text_translations set value = 'Trouvailles de la région Rhin-Main' where kind = 'source' and ref = $1 and lang = 'fr'", [quelle]);
+    expect((await db.query<{ value: string }>("select value from public.site_text_translations where kind = 'source' and ref = $1 and lang = 'fr'", [quelle])).rows[0].value).toMatch(/^Trouvailles/);
+    for (const [kind, ref] of [["visitor", hinweis], ["gallery", galeriebild], ["image", "sprachen-hero"], ["menu", "x"], ["settings", "org_tagline"]]) {
+      await expect(alsMitglied(QUELLENPFLEGE, "insert into public.site_text_translations (kind, ref, lang, value) values ($1, $2, 'fr', 'x')", [kind, ref]), kind).rejects.toThrow();
+    }
+    // Eine fremde Zeile lässt sich auch nicht zur Quelle umetikettieren oder umgekehrt.
+    await expect(alsMitglied(QUELLENPFLEGE, "update public.site_text_translations set kind = 'visitor' where kind = 'source' and ref = $1 and lang = 'fr'", [quelle])).rejects.toThrow();
+  });
+
+  it("ein einfaches Mitglied und Besucher ändern nichts; wer den Aufbau pflegt, alles", async () => {
+    await expect(alsMitglied(MITGLIED, "insert into public.site_text_translations (kind, ref, lang, value) values ('source', $1, 'fr', 'x')", [quelle])).rejects.toThrow();
+    await expect(alsGast("insert into public.site_text_translations (kind, ref, lang, value) values ('gallery', $1, 'fr', 'x')", [galeriebild])).rejects.toThrow();
+    await alsMitglied(AUFBAU, "insert into public.site_text_translations (kind, ref, lang, value) values ('gallery', $1, 'fr', 'Le camp le soir')", [galeriebild]);
+    expect(await stand("gallery", galeriebild)).toHaveLength(2);
+  });
+
+  it("ein geänderter deutscher Text macht die Übersetzung alt, alles andere nicht", async () => {
+    await db.query("update public.epoch_sources set sort_order = 5 where id = $1", [quelle]);
+    await db.query("update public.gallery_images set show_subtitle = true where id = $1", [galeriebild]);
+    await db.query("update public.site_images set label = 'Kopfbild der Startseite' where slot = 'sprachen-hero'");
+    for (const [kind, ref] of [["source", quelle], ["gallery", galeriebild], ["image", "sprachen-hero"], ["visitor", hinweis]]) {
+      expect((await stand(kind, ref)).every((z) => !z.is_stale), kind).toBe(true);
+    }
+    await db.query("update public.epoch_sources set text = 'Funde aus Hessen' where id = $1", [quelle]);
+    await db.query("update public.epoch_visitor_items set text = 'Kochen über dem Feuer' where id = $1", [hinweis]);
+    await db.query("update public.gallery_images set alt_text = 'Lager bei Nacht' where id = $1", [galeriebild]);
+    await db.query("update public.site_images set alt_text = 'Burg im Morgennebel' where slot = 'sprachen-hero'");
+    for (const [kind, ref] of [["source", quelle], ["gallery", galeriebild], ["image", "sprachen-hero"], ["visitor", hinweis]]) {
+      const zeilen = await stand(kind, ref);
+      expect(zeilen.length, kind).toBeGreaterThan(0);
+      expect(zeilen.every((z) => z.is_stale), kind).toBe(true);
+    }
+  });
+
+  it("mit der Zeile gehen ihre Übersetzungen", async () => {
+    await db.query("delete from public.epoch_sources where id = $1", [quelle]);
+    await db.query("delete from public.epoch_visitor_items where id = $1", [hinweis]);
+    await db.query("delete from public.gallery_images where id = $1", [galeriebild]);
+    await db.query("delete from public.site_images where slot = 'sprachen-hero'");
+    expect((await db.query("select 1 from public.site_text_translations where ref = any($1)", [[quelle, hinweis, galeriebild, "sprachen-hero"]])).rows).toHaveLength(0);
+  });
+});

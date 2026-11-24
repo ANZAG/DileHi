@@ -82,6 +82,53 @@ const de = {
     Mehrere: "Mehrere",
     Offen: "Offen",
   },
+
+  // ── Bausteine mit festen Worten ──
+  quellenTitel: "Unsere Quellen",
+  quellenEinleitung: "Unsere Darstellung stützt sich auf eine Vielzahl von Quellen: archäologische Funde, zeitgenössische Abbildungen und wissenschaftliche Literatur. Eine Auswahl:",
+  quellenLeer: "Quellen werden in Kürze ergänzt.",
+  quellenAbschluss: "Diese Liste wird laufend ergänzt. Bei Fragen zu einzelnen Quellen stehen wir gerne zur Verfügung.",
+  bildnachweise: "Bildnachweise",
+  besucherTitel: "Was Besucher bei uns erleben können",
+  besucherDazu: "Dazu gehören unter anderem:",
+  besucherLeer: "Inhalte werden in Kürze ergänzt.",
+  galerieLeer: "Weitere Bilder folgen in Kürze.",
+  schliessen: "Schließen",
+  vorherigesBild: "Vorheriges Bild",
+  naechstesBild: "Nächstes Bild",
+  uhrzeit: "{zeit} Uhr",
+  /** Beschriftung und Wert in einer Zeile – im Französischen steht vor dem Doppelpunkt ein Leerzeichen. */
+  beschriftet: "{name}: {wert}",
+
+  // ── Pflichtangaben (Impressum, Datenschutz) ──
+  // Nur die Beschriftungen. Was dahinter steht – Name, Anschrift, Register –
+  // sind Angaben und bleiben, wie sie eingetragen sind.
+  angabenDdg: "Angaben gemäß § 5 DDG",
+  vereinsregister: "Vereinsregister",
+  registergericht: "Registergericht",
+  registernummer: "Registernummer",
+  vertretenDurch: "Vertreten durch",
+  kontakt: "Kontakt",
+  telefon: "Telefon",
+  ustId: "Umsatzsteuer-Identifikationsnummer",
+  verantwortlicheStelle: "Verantwortliche Stelle im Sinne der DSGVO",
+  datenschutzbeauftragter: "Datenschutzbeauftragter",
+  hosting: "Hosting",
+  /**
+   * Lizenzangaben, wie sie in Bildnachweisen auf Deutsch stehen. Was hier
+   * nicht steht – „CC BY-SA 4.0", ein Name –, bleibt, wie es ist.
+   */
+  lizenzen: {
+    gemeinfrei: "gemeinfrei",
+    "public domain": "gemeinfrei",
+    "eigenes werk": "eigenes Werk",
+    "eigene aufnahme": "eigene Aufnahme",
+    "alle rechte vorbehalten": "alle Rechte vorbehalten",
+    "mit freundlicher genehmigung": "mit freundlicher Genehmigung",
+    privatbesitz: "Privatbesitz",
+    privat: "privat",
+    lizenzfrei: "lizenzfrei",
+  },
 };
 
 export type Texte = typeof de;
@@ -140,6 +187,44 @@ const en: Texte = {
     Mehrere: "Several",
     Offen: "Open",
   },
+
+  quellenTitel: "Our sources",
+  quellenEinleitung: "Our portrayal is based on a wide range of sources: archaeological finds, contemporary illustrations and scholarly literature. A selection:",
+  quellenLeer: "Sources will be added shortly.",
+  quellenAbschluss: "This list is updated continuously. If you have questions about individual sources, we are happy to help.",
+  bildnachweise: "Image credits",
+  besucherTitel: "What visitors can experience with us",
+  besucherDazu: "This includes, among other things:",
+  besucherLeer: "Content will be added shortly.",
+  galerieLeer: "More pictures will follow soon.",
+  schliessen: "Close",
+  vorherigesBild: "Previous picture",
+  naechstesBild: "Next picture",
+  uhrzeit: "{zeit}",
+  beschriftet: "{name}: {wert}",
+
+  angabenDdg: "Information pursuant to Section 5 DDG (German Digital Services Act)",
+  vereinsregister: "Register of associations",
+  registergericht: "Register court",
+  registernummer: "Registration number",
+  vertretenDurch: "Represented by",
+  kontakt: "Contact",
+  telefon: "Phone",
+  ustId: "VAT identification number",
+  verantwortlicheStelle: "Controller within the meaning of the GDPR",
+  datenschutzbeauftragter: "Data protection officer",
+  hosting: "Hosting",
+  lizenzen: {
+    gemeinfrei: "public domain",
+    "public domain": "public domain",
+    "eigenes werk": "own work",
+    "eigene aufnahme": "own photograph",
+    "alle rechte vorbehalten": "all rights reserved",
+    "mit freundlicher genehmigung": "with kind permission",
+    privatbesitz: "private collection",
+    privat: "private",
+    lizenzfrei: "royalty-free",
+  },
 };
 
 const fr: Texte = {
@@ -196,6 +281,44 @@ const fr: Texte = {
     Mehrere: "Plusieurs",
     Offen: "Sans préférence",
   },
+
+  quellenTitel: "Nos sources",
+  quellenEinleitung: "Notre reconstitution s’appuie sur de nombreuses sources : découvertes archéologiques, illustrations d’époque et littérature scientifique. Une sélection :",
+  quellenLeer: "Les sources seront ajoutées prochainement.",
+  quellenAbschluss: "Cette liste est complétée en continu. Pour toute question sur une source, nous sommes à votre disposition.",
+  bildnachweise: "Crédits photographiques",
+  besucherTitel: "Ce que les visiteurs peuvent découvrir chez nous",
+  besucherDazu: "Entre autres :",
+  besucherLeer: "Le contenu sera ajouté prochainement.",
+  galerieLeer: "D’autres images suivront bientôt.",
+  schliessen: "Fermer",
+  vorherigesBild: "Image précédente",
+  naechstesBild: "Image suivante",
+  uhrzeit: "{zeit}",
+  beschriftet: "{name} : {wert}",
+
+  angabenDdg: "Informations conformément à l’article 5 de la DDG (loi allemande sur les services numériques)",
+  vereinsregister: "Registre des associations",
+  registergericht: "Tribunal d’enregistrement",
+  registernummer: "Numéro d’enregistrement",
+  vertretenDurch: "Représentée par",
+  kontakt: "Contact",
+  telefon: "Téléphone",
+  ustId: "Numéro d’identification TVA",
+  verantwortlicheStelle: "Responsable du traitement au sens du RGPD",
+  datenschutzbeauftragter: "Délégué à la protection des données",
+  hosting: "Hébergement",
+  lizenzen: {
+    gemeinfrei: "domaine public",
+    "public domain": "domaine public",
+    "eigenes werk": "œuvre personnelle",
+    "eigene aufnahme": "photographie personnelle",
+    "alle rechte vorbehalten": "tous droits réservés",
+    "mit freundlicher genehmigung": "avec l’aimable autorisation",
+    privatbesitz: "collection particulière",
+    privat: "privé",
+    lizenzfrei: "libre de droits",
+  },
 };
 
 export const TEXTE: Record<Sprache, Texte> = { de, en, fr };
@@ -203,4 +326,14 @@ export const TEXTE: Record<Sprache, Texte> = { de, en, fr };
 /** Setzt `{name}` in einem Text ein. */
 export function mitWerten(text: string, werte: Record<string, string | number>): string {
   return text.replace(/\{(\w+)\}/g, (ganz, name: string) => (name in werte ? String(werte[name]) : ganz));
+}
+
+/**
+ * Eine Lizenzangabe in der Sprache der Seite – wenn es eine der gängigen
+ * deutschen Angaben ist („gemeinfrei"). Alles andere bleibt unverändert:
+ * Kennungen wie „CC BY-SA 4.0" und Namen übersetzt man nicht.
+ */
+export function lizenzwort(lizenz: string, t: Texte): string {
+  const bekannt: Record<string, string> = t.lizenzen;
+  return bekannt[lizenz.trim().toLowerCase()] ?? lizenz;
 }
