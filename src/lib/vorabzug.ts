@@ -21,8 +21,16 @@ export interface Vorabzug {
    * des Titelbilds – auf dem Handy der grösste Teil der Wartezeit.
    */
   bilder?: Record<string, { src: string; alt: string; breite?: number | null; hoehe?: number | null; fassungen?: number[] }>;
-  /** Die Baukastenseite, in deren fertigem HTML dieser Stand steht. */
-  seite?: Record<string, unknown> & { slug?: string };
+  /**
+   * Die Baukastenseite, in deren fertigem HTML dieser Stand steht. `sprache`
+   * sagt, in welcher Sprache ihr Text ist (ohne Angabe: Deutsch), `sprachen`,
+   * in welchen sie ausserdem vorliegt.
+   */
+  seite?: Record<string, unknown> & { slug?: string; sprache?: string; sprachen?: string[] };
+  /** Die Sprachen neben Deutsch, in denen es übersetzte Seiten gibt. */
+  sprachen?: string[];
+  /** Übersetzte Menüpunkte und Rahmentexte je Sprache (useRahmentexte). */
+  texte?: Record<string, Record<string, string>>;
 }
 
 export function vorabzug(): Vorabzug | null {

@@ -1,6 +1,8 @@
 import { Helmet } from "react-helmet-async";
 import { useBranding } from "@/hooks/useBranding";
+import { useAngeboteneSprachen, useRahmentexte, useSprache } from "@/hooks/useSprache";
 import { vereinsBeschreibung } from "@/lib/auffindbarkeit.mjs";
+import { SPRACHRAUM, sprachfassungen, type Sprache } from "@/lib/sprachen.mjs";
 
 interface SEOProps {
   title?: string;
@@ -10,6 +12,18 @@ interface SEOProps {
   type?: string;
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
+  /**
+   * In welcher Sprache der Text der Seite dasteht. Ohne Angabe die Sprache
+   * der Adresse; eine Seite ohne Übersetzung nennt hier „de", obwohl sie
+   * unter /en/… aufgerufen wurde.
+   */
+  lang?: Sprache;
+  /**
+   * In welchen weiteren Sprachen es diese Seite gibt – daraus werden die
+   * `hreflang`-Angaben. „alle": in jeder, die die Seite überhaupt anbietet.
+   * Ohne Angabe keine.
+   */
+  sprachen?: readonly string[] | "alle";
 }
 
 /**
@@ -28,8 +42,21 @@ const SEO = ({
   type = "website",
   noindex = false,
   jsonLd,
+  lang,
+  sprachen,
 }: SEOProps) => {
-  const marke = useBranding();
+  const roh = useBranding();
+  const { sprache } = useSprache();
+  const rahmen = useRahmentexte();
+  const { sprachen: angeboten } = useAngeboteneSprachen();
+  // Untertitel und Beschreibung des Vereins in der Sprache der Adresse,
+  // soweit übersetzt.
+  const marke = {
+    ...roh,
+    org_tagline: rahmen["settings:org_tagline"] ?? roh.org_tagline,
+    seo_description: rahmen["settings:seo_description"] ?? roh.seo_description,
+  };
+  const textSprache = lang ?? sprache;
   const baseUrl = (marke.website_url || "").replace(/\/$/, "");
   title = title ?? [marke.org_name, marke.org_tagline].filter(Boolean).join(" – ");
   // Ohne hinterlegte Beschreibung ein Satz aus Name, Ort und Untertitel –
@@ -42,11 +69,19 @@ const SEO = ({
   const bild = image ?? marke.seoImageUrl;
   const fullImageUrl = !bild ? undefined : bild.startsWith("http") ? bild : `${baseUrl}${bild}`;
 
+  const fassungen = url && !noindex
+    ? sprachfassungen(baseUrl, url, sprachen === "alle" ? angeboten : sprachen)
+    : [];
+
   return (
     <Helmet>
+      <html lang={textSprache} />
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={fullUrl} />
+      {fassungen.map((f) => (
+        <link key={f.hreflang} rel="alternate" hrefLang={f.hreflang} href={f.href} />
+      ))}
       
       {noindex && <meta name="robots" content="noindex, nofollow" />}
       
@@ -57,7 +92,7 @@ const SEO = ({
       <meta property="og:url" content={fullUrl} />
       {fullImageUrl && <meta property="og:image" content={fullImageUrl} />}
       <meta property="og:site_name" content={marke.org_short_name} />
-      <meta property="og:locale" content="de_DE" />
+      <meta property="og:locale" content={SPRACHRAUM[textSprache]} />
       
       {/* Twitter Card */}
       <meta name="twitter:card" content={fullImageUrl ? "summary_large_image" : "summary"} />

@@ -39,7 +39,7 @@ export function kuerzen(text: string | null | undefined, hoechstens?: number): s
 export function seitenTitel(seite: Seite, marke: Marke | null | undefined): string;
 export function seitenBeschreibung(seite: Seite, marke: Marke | null | undefined): string | undefined;
 export function strukturierteDaten(seite: Seite, marke: Marke | null | undefined): Record<string, unknown> | undefined;
-export function kontaktSeite(marke: Marke | null | undefined): {
+export function kontaktSeite(marke: Marke | null | undefined, sprache?: string): {
   titel: string;
   beschreibung: string;
   ueberschrift: string;

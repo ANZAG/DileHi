@@ -5,7 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import TourBeiBedarf from "@/components/onboarding/TourBeiBedarf";
 import NotificationBell from "@/components/NotificationBell";
 import { useBrandingAnwenden } from "@/hooks/useBranding";
-import { aufgeklappt, useSiteMenu, type MenuEintrag } from "@/hooks/useSiteMenu";
+import { aufgeklappt, type MenuEintrag } from "@/hooks/useSiteMenu";
+import { useSiteMenuInSprache } from "@/hooks/useSiteMenuInSprache";
+import { useAngeboteneSprachen, useRahmentexte, useSprache } from "@/hooks/useSprache";
+import Sprachwahl from "@/components/Sprachwahl";
 
 /**
  * Ein Menüpunkt kann auf eine fremde Seite zeigen – etwa den Dachverband. Die
@@ -28,9 +31,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     footer_legal_label,
   } = useBrandingAnwenden();
   // Beide Aufrufe teilen sich eine Abfrage – siehe useSiteMenu.
-  const navItems = useSiteMenu("header");
-  const rechtliches = useSiteMenu("footer_legal");
-  const { eng, kopf, marke, name, leiste } = useEngeKopfzeile([navItems, user, org_short_name, logo_in_header]);
+  const navItems = useSiteMenuInSprache("header");
+  const rechtliches = useSiteMenuInSprache("footer_legal");
+  // Der Rahmen in der Sprache der Adresse (/en/…, /fr/…). Im
+  // Mitgliederbereich ist das immer Deutsch.
+  const { sprache, t, pfad } = useSprache();
+  const rahmen = useRahmentexte();
+  const { sprachen } = useAngeboteneSprachen();
+  const untertitel = rahmen["settings:org_tagline"] ?? org_tagline;
+  // Die Spaltentitel im Fuss lassen sich in den Vereinsangaben umbenennen.
+  // Steht dort die Vorgabe und gibt es keine Übersetzung, kennt die
+  // Anwendung das Wort selbst.
+  const fussNavigation = rahmen["settings:footer_navigation_label"]
+    ?? (footer_navigation_label === "Navigation" ? t.navigation : footer_navigation_label);
+  const fussRechtliches = rahmen["settings:footer_legal_label"]
+    ?? (footer_legal_label === "Rechtliches" ? t.rechtliches : footer_legal_label);
+  const { eng, kopf, marke, name, leiste } = useEngeKopfzeile([navItems, user, org_short_name, logo_in_header, sprachen.length, sprache]);
 
   // Wird das Fenster breit genug für die ganze Leiste, ist die Klappe weg –
   // sie darf beim nächsten Schmalwerden nicht schon offen dastehen.
@@ -54,11 +70,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </button>
         </div>
       )}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header lang={sprache} className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div ref={kopf} className="container relative flex h-16 items-center justify-between gap-6">
           <Link
             ref={marke}
-            to="/"
+            to={pfad("/")}
             className="font-serif text-lg font-semibold text-primary tracking-wide flex items-center gap-2 min-w-0 whitespace-nowrap"
           >
             {logoUrl && logo_in_header && <img src={logoUrl} alt="" className="h-7 w-auto shrink-0" />}
@@ -71,6 +87,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               Knopf. */}
           <nav
             ref={leiste}
+            aria-label={t.hauptmenue}
             aria-hidden={eng || undefined}
             className={`flex w-max shrink-0 items-center gap-1 ${eng ? "invisible absolute right-0 pointer-events-none" : ""}`}
           >
@@ -91,6 +108,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               ),
             )}
             {user && <NotificationBell />}
+            <Sprachwahl className="ml-1" />
             <Link
               to={user ? "/intern" : "/login"}
               className={`ml-2 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
@@ -99,7 +117,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   : "border-border text-foreground hover:bg-muted"
               }`}
             >
-              Mitgliederbereich
+              {t.mitgliederbereich}
             </Link>
           </nav>
 
@@ -108,7 +126,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <button
               className="p-2 text-foreground"
               onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Menü"
+              aria-label={t.menue}
               aria-expanded={menuOpen}
             >
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -117,7 +135,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {eng && menuOpen && (
-          <nav className="border-t bg-background px-4 pb-4 pt-2 space-y-1">
+          <nav aria-label={t.hauptmenue} className="border-t bg-background px-4 pb-4 pt-2 space-y-1">
             {/* Untermenüs klappen hier nicht auf, sondern stehen eingerückt
                 darunter: Auf einem Handy ist Scrollen billiger als Tippen. */}
             {navItems.flatMap((item) =>
@@ -146,8 +164,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 location.pathname.startsWith("/intern") ? "text-primary bg-muted" : "text-muted-foreground"
               }`}
             >
-              Mitgliederbereich
+              {t.mitgliederbereich}
             </Link>
+            <Sprachwahl className="px-1.5 pt-1" nachWahl={() => setMenuOpen(false)} />
           </nav>
         )}
       </header>
@@ -155,15 +174,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="flex-1">{children}</main>
       <TourBeiBedarf />
 
-      <footer className="border-t bg-card">
+      <footer lang={sprache} className="border-t bg-card">
         <div className="container py-8 md:py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 className="font-serif text-lg font-semibold text-primary mb-3">{org_name}</h3>
-              {org_tagline && <p className="text-sm text-muted-foreground">{org_tagline}</p>}
+              {untertitel && <p className="text-sm text-muted-foreground">{untertitel}</p>}
             </div>
             <div>
-              <h4 className="font-serif text-sm font-semibold mb-3">{footer_navigation_label}</h4>
+              <h4 className="font-serif text-sm font-semibold mb-3">{fussNavigation}</h4>
               <ul className="space-y-1">
                 {navItems.flatMap((item) =>
                   [item, ...(item.children ?? [])].map((punkt) => (
@@ -183,13 +202,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     to={user ? "/intern" : "/login"}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
-                    Mitgliederbereich
+                    {t.mitgliederbereich}
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-serif text-sm font-semibold mb-3">{footer_legal_label}</h4>
+              <h4 className="font-serif text-sm font-semibold mb-3">{fussRechtliches}</h4>
               <ul className="space-y-1">
                 {rechtliches.map((item) => (
                   <li key={item.path}>
@@ -207,7 +226,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
           <div className="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
             {/* Endet der Name schon auf einen Punkt („e. V."), keinen zweiten. */}
-            © {new Date().getFullYear()} {org_name.replace(/\.$/, "")}. Alle Rechte vorbehalten.
+            © {new Date().getFullYear()} {org_name.replace(/\.$/, "")}. {t.alleRechte}
           </div>
         </div>
       </footer>

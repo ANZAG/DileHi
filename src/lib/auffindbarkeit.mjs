@@ -12,6 +12,8 @@
  * auffindbarkeit.d.mts.
  */
 
+import { seitentexte } from "./sprachen.mjs";
+
 /** Die Startseite liegt unter der blanken Adresse, nicht unter /startseite. */
 export function pfadVon(slug) {
   return slug === "startseite" ? "/" : `/${slug}`;
@@ -326,14 +328,15 @@ export function strukturierteDaten(seite, marke) {
 /**
  * Die Kontaktseite ist keine Baukastenseite, steht aber im Menü und in der
  * Sitemap. Ihre Worte stehen hier, damit das Vorab-HTML dasselbe sagt wie die
- * Anwendung (src/pages/Kontakt.tsx).
+ * Anwendung (src/pages/Kontakt.tsx) – in jeder Sprache (sprachen.mjs).
  */
-export function kontaktSeite(marke) {
+export function kontaktSeite(marke, sprache = "de") {
   const kurz = String(marke?.org_short_name || marke?.org_name || "").trim();
+  const t = seitentexte(sprache);
   return {
-    titel: kurz ? `Kontakt – ${kurz}` : "Kontakt",
-    beschreibung: "Fragen an uns oder Interesse mitzumachen? Schreib uns eine Nachricht.",
-    ueberschrift: "Kontakt aufnehmen",
-    text: "Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns eine Nachricht!",
+    titel: kurz ? `${t.kontaktTitel} – ${kurz}` : t.kontaktTitel,
+    beschreibung: t.kontaktBeschreibung,
+    ueberschrift: t.kontaktUeberschrift,
+    text: t.kontaktText,
   };
 }

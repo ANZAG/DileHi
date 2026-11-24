@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSprache } from "@/hooks/useSprache";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -33,11 +34,9 @@ const BESUCHERZAHLEN = ["bis 100", "100–500", "500–1000", "über 1000"];
  */
 const IMMER_DABEI = ["Mehrere", "Offen"];
 
-/** Was in der Auswahl steht und was in der Mail landet, ist nicht dasselbe. */
-const BESUCHER_BESCHRIFTUNG: Record<string, string> = {
-  "500–1000": "500–1.000",
-  "über 1000": "über 1.000",
-};
+// Was in der Auswahl steht und was in der Mail landet, ist nicht dasselbe:
+// Gezeigt wird die Beschriftung in der Sprache der Seite (texte.ts,
+// `auswahl`), gemailt der deutsche Wert – die Anfrage liest der Vorstand.
 
 const LEER = {
   name: "", organisation: "", email: "", eventType: "",
@@ -46,6 +45,7 @@ const LEER = {
 
 export default function VeranstalterFelder() {
   const { toast } = useToast();
+  const { t } = useSprache();
   const kategorien = useKategorien();
   const epochen = [...kategorien.map((k) => k.label), ...IMMER_DABEI];
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,7 @@ export default function VeranstalterFelder() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.organisation || !form.email) {
-      toast({ title: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
+      toast({ title: t.pflichtfelder, variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -85,9 +85,9 @@ export default function VeranstalterFelder() {
 
     setLoading(false);
     if (error) {
-      toast({ title: "Fehler beim Senden.", variant: "destructive" });
+      toast({ title: t.fehlerBeimSenden, variant: "destructive" });
     } else {
-      toast({ title: "Anfrage gesendet!", description: "Wir melden uns bei Ihnen." });
+      toast({ title: t.anfrageGesendet, description: t.wirMeldenUns });
       setForm(LEER);
     }
   };
@@ -95,32 +95,32 @@ export default function VeranstalterFelder() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Feld id="name" label="Name *">
+        <Feld id="name" label={`${t.name} *`}>
           <Input id="name" value={form.name} onChange={(e) => handleChange("name", e.target.value)} required maxLength={100} />
         </Feld>
-        <Feld id="organisation" label="Organisation / Institution *">
+        <Feld id="organisation" label={`${t.organisation} *`}>
           <Input id="organisation" value={form.organisation} onChange={(e) => handleChange("organisation", e.target.value)} required maxLength={200} />
         </Feld>
-        <Feld id="email" label="E-Mail *">
+        <Feld id="email" label={`${t.email} *`}>
           <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required maxLength={255} />
         </Feld>
-        <Feld id="eventType" label="Art der Veranstaltung">
+        <Feld id="eventType" label={t.artDerVeranstaltung}>
           <Input id="eventType" value={form.eventType} onChange={(e) => handleChange("eventType", e.target.value)} maxLength={200} />
         </Feld>
-        <Feld id="date" label="Datum / Zeitraum">
+        <Feld id="date" label={t.datumZeitraum}>
           <Input id="date" value={form.date} onChange={(e) => handleChange("date", e.target.value)} maxLength={100} />
         </Feld>
-        <Feld id="location" label="Ort der Veranstaltung">
+        <Feld id="location" label={t.ortDerVeranstaltung}>
           <Input id="location" value={form.location} onChange={(e) => handleChange("location", e.target.value)} maxLength={200} />
         </Feld>
-        <Feld id="visitors" label="Erwartete Besucherzahl">
+        <Feld id="visitors" label={t.besucherzahl}>
           <Auswahl
             id="visitors" wert={form.visitors}
             setze={(v) => handleChange("visitors", v)}
             werte={BESUCHERZAHLEN}
           />
         </Feld>
-        <Feld id="epoch" label="Gewünschte Zeit oder Thema">
+        <Feld id="epoch" label={t.zeitOderThema}>
           <Auswahl
             id="epoch" wert={form.epoch}
             setze={(v) => handleChange("epoch", v)}
@@ -128,11 +128,11 @@ export default function VeranstalterFelder() {
           />
         </Feld>
       </div>
-      <Feld id="message" label="Nachricht / Weitere Informationen">
+      <Feld id="message" label={t.weitereInformationen}>
         <Textarea id="message" value={form.message} onChange={(e) => handleChange("message", e.target.value)} rows={4} maxLength={5000} />
       </Feld>
       <Button type="submit" disabled={loading} className="w-full md:w-auto">
-        {loading ? "Wird gesendet…" : "Anfrage senden"}
+        {loading ? t.wirdGesendet : t.anfrageSenden}
       </Button>
     </form>
   );
@@ -150,12 +150,14 @@ function Feld({ id, label, children }: { id: string; label: string; children: Re
 function Auswahl({ id, wert, setze, werte }: {
   id: string; wert: string; setze: (v: string) => void; werte: string[];
 }) {
+  const { t } = useSprache();
+  const beschriftung: Record<string, string> = t.auswahl;
   return (
     <Select value={wert} onValueChange={setze}>
-      <SelectTrigger id={id}><SelectValue placeholder="Bitte wählen" /></SelectTrigger>
+      <SelectTrigger id={id}><SelectValue placeholder={t.bitteWaehlen} /></SelectTrigger>
       <SelectContent>
         {werte.map((w) => (
-          <SelectItem key={w} value={w}>{BESUCHER_BESCHRIFTUNG[w] ?? w}</SelectItem>
+          <SelectItem key={w} value={w}>{beschriftung[w] ?? w}</SelectItem>
         ))}
       </SelectContent>
     </Select>

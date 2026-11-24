@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
@@ -14,6 +14,8 @@ import { zwischenspeicherLeeren } from "./lib/recovery";
 import { lazyPage } from "./lib/nachladen";
 import AppUpdatePrompt from "./components/AppUpdatePrompt";
 import InstallHint from "./components/InstallHint";
+import SprachWeiche from "./components/SprachWeiche";
+import { ZUSATZSPRACHEN, nurDeutsch, pfadOhneSprache } from "./lib/sprachen.mjs";
 
 // Startseite und Fehlerseite bleiben im Haupt-Bundle: Die eine ist der
 // häufigste Einstieg, die andere muss immer sofort verfügbar sein.
@@ -132,6 +134,22 @@ const PageLoader = () => {
   );
 };
 
+/**
+ * Eine Adresse unter /en/… oder /fr/…, die keine der festen Routen ist.
+ *
+ * Meist eine Baukastenseite in dieser Sprache. Den Mitgliederbereich, die
+ * Anmeldung und die Formulare gibt es nur auf Deutsch: Wer sie mit
+ * Sprachkürzel aufruft, landet auf der deutschen Adresse statt auf einer
+ * Fehlerseite.
+ */
+const SprachSeite = () => {
+  const ort = useLocation();
+  if (nurDeutsch(ort.pathname)) {
+    return <Navigate to={pfadOhneSprache(`${ort.pathname}${ort.search}${ort.hash}`)} replace />;
+  }
+  return <SeiteAnzeigen />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -140,6 +158,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ScrollToTop />
+          <SprachWeiche />
           <ErrorBoundary>
           <Layout>
             <Suspense fallback={<PageLoader />}>
@@ -195,6 +214,13 @@ const App = () => (
 
                 <Route path="/anmeldung/:token" element={<ModuleRoute k="event_forms"><EventRegistration /></ModuleRoute>} />
                 <Route path="/mitglied-werden" element={<ModuleRoute k="applications"><MembershipApplication /></ModuleRoute>} />
+                {/* Die öffentlichen Seiten in den anderen Sprachen: dieselben
+                    Namen, das Sprachkürzel davor (src/lib/sprachen.mjs). */}
+                {ZUSATZSPRACHEN.map((s) => [
+                  <Route key={s} path={`/${s}`} element={<SeiteAnzeigen slug="startseite" />} />,
+                  <Route key={`${s}-kontakt`} path={`/${s}/kontakt`} element={<Kontakt />} />,
+                  <Route key={`${s}-seite`} path={`/${s}/*`} element={<SprachSeite />} />,
+                ])}
                 {/* Ganz am Ende: Was keine feste Route trifft, koennte eine im
                     Editor gebaute Seite sein. Gibt es sie nicht, zeigt
                     SeiteAnzeigen selbst die 404-Seite. */}
