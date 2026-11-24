@@ -5,17 +5,12 @@ import { Bell, Check } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  benachrichtigungSchluessel, ladeBenachrichtigungen, markiereGelesen, type Benachrichtigung,
+} from "@/daten/benachrichtigungen";
 import { useAuth } from "@/hooks/useAuth";
 
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  link: string | null;
-  is_read: boolean;
-  created_at: string;
-}
+type Notification = Benachrichtigung;
 
 /**
  * Glocke in der Kopfzeile.
@@ -31,17 +26,8 @@ export default function NotificationBell() {
   const boxRef = useRef<HTMLDivElement>(null);
 
   const { data: items = [] } = useQuery({
-    queryKey: ["notifications", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, type, title, body, link, is_read, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      const zeilen: Notification[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: benachrichtigungSchluessel.liste(user?.id),
+    queryFn: ladeBenachrichtigungen,
     enabled: !!user,
     // Ohne Nachfragen bleibt die Glocke stehen, bis die Seite neu geladen wird.
     refetchInterval: 60_000,
@@ -68,7 +54,7 @@ export default function NotificationBell() {
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-          () => queryClient.invalidateQueries({ queryKey: ["notifications", userId] })
+          () => queryClient.invalidateQueries({ queryKey: benachrichtigungSchluessel.liste(userId) })
         )
         .subscribe();
     } catch (err) {
@@ -94,9 +80,10 @@ export default function NotificationBell() {
   const unread = items.filter((n) => !n.is_read).length;
 
   const markRead = async (ids?: string[]) => {
-    // Ohne Kennungen bleibt das Argument weg; die Funktion nimmt dann alle.
-    await supabase.rpc("mark_notifications_read", { _ids: ids });
-    queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
+    // Scheitert das Abhaken, bleibt die Benachrichtigung ungelesen stehen –
+    // die Liste zeigt es, und der Klick führt trotzdem ans Ziel.
+    await markiereGelesen(ids).catch((err) => console.warn("Benachrichtigungen nicht als gelesen markiert:", err));
+    queryClient.invalidateQueries({ queryKey: benachrichtigungSchluessel.liste(user.id) });
   };
 
   const openItem = async (n: Notification) => {

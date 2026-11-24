@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { darstellungSchluessel } from "@/daten/darstellungen";
 
 /**
  * Creates signed URLs for private "internal-files" paths.
@@ -8,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const useSignedImages = (paths: string[]) => {
   const key = [...paths].sort().join("|");
   const { data } = useQuery({
-    queryKey: ["persona-signed-urls", key],
+    queryKey: darstellungSchluessel.bildadressen(key),
     enabled: paths.length > 0,
     staleTime: 1000 * 60 * 30,
     queryFn: async () => {

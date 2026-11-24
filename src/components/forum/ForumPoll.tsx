@@ -4,7 +4,7 @@ import { format, isPast, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
+import { forumSchluessel, ladeMeineStimmen, ladeUmfragestand, schalteStimme } from "@/daten/forum";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,8 +18,6 @@ export interface PollPayload {
   frist?: string | null;
   anonym?: boolean;
 }
-
-interface Result { option_key: string; stimmen: number; namen: string[] }
 
 /**
  * Umfrage oder Mitbringliste in einem Thread.
@@ -47,50 +45,22 @@ export default function ForumPoll({
   const closed = payload.frist ? isPast(parseISO(payload.frist)) : false;
 
   const { data: results = [] } = useQuery({
-    queryKey: ["forum-poll", postId],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("forum_poll_results", { _post_id: postId });
-      const zeilen: Result[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: forumSchluessel.umfrage(postId),
+    queryFn: () => ladeUmfragestand(postId),
   });
 
   const { data: own = [] } = useQuery({
-    queryKey: ["forum-poll-own", postId, user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("forum_poll_votes")
-        .select("option_key")
-        .eq("post_id", postId)
-        .eq("user_id", user!.id);
-      const zeilen: { option_key: string }[] = data ?? [];
-      return zeilen.map((v) => v.option_key);
-    },
+    queryKey: forumSchluessel.meineStimmen(postId, user?.id),
+    queryFn: () => ladeMeineStimmen(postId, user!.id),
     enabled: !!user,
   });
 
   const vote = useMutation({
-    mutationFn: async (optionKey: string) => {
-      const chosen = own.includes(optionKey);
-      if (chosen) {
-        const { error } = await supabase
-          .from("forum_poll_votes").delete()
-          .eq("post_id", postId).eq("user_id", user!.id).eq("option_key", optionKey);
-        if (error) throw new Error(error.message);
-        return;
-      }
-      // Bei Einfachauswahl die vorherige Stimme ersetzen, statt zwei zu zählen.
-      if (!payload.mehrfach && own.length > 0) {
-        await supabase.from("forum_poll_votes").delete().eq("post_id", postId).eq("user_id", user!.id);
-      }
-      const { error } = await supabase
-        .from("forum_poll_votes")
-        .insert({ post_id: postId, user_id: user!.id, option_key: optionKey });
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (optionKey: string) =>
+      schalteStimme({ beitragId: postId, userId: user!.id, option: optionKey, eigene: own, mehrfach: !!payload.mehrfach }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["forum-poll", postId] });
-      queryClient.invalidateQueries({ queryKey: ["forum-poll-own", postId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.umfrage(postId) });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.meineStimmen(postId, user?.id) });
     },
     onError: (err: Error) =>
       toast({ title: "Konnte nicht gespeichert werden", description: err.message, variant: "destructive" }),

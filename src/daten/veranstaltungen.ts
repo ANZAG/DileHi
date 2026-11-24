@@ -59,9 +59,36 @@ export const veranstaltungSchluessel = {
   anmeldungen: (formId: string | undefined) => ["veranstaltungen", "anmeldungen", formId] as const,
   meineAnmeldungen: () => ["veranstaltungen", "meine-anmeldungen"] as const,
   meineAnmeldungenVon: (userId: string | undefined) => ["veranstaltungen", "meine-anmeldungen", userId] as const,
+  /** Die Termine, deren Auswertung jemand sehen darf – je Mitglied und danach, ob es alle sieht. */
+  auswertungen: (userId: string | undefined, alle: boolean) =>
+    ["veranstaltungen", "auswertungen", userId, alle] as const,
 };
 
 // ── Veranstaltungen ─────────────────────────────────────────────────────────
+
+export type AuswertungsTermin = Pick<Veranstaltung, "id" | "title" | "start_date" | "end_date" | "created_by"> & {
+  hasForm: boolean;
+};
+
+/**
+ * Die Termine für die Auswertungen, neueste zuerst – auch die ohne Formular.
+ *
+ * Wer nicht alle sieht, bekommt die eigenen und die mit Formular.
+ */
+export async function ladeAuswertungsTermine(userId: string, alle: boolean): Promise<AuswertungsTermin[]> {
+  const [termine, formulare] = await Promise.all([
+    supabase.from("events").select("id, title, start_date, end_date, created_by").order("start_date", { ascending: false }),
+    supabase.from("event_forms").select("event_id"),
+  ]);
+  if (termine.error) throw termine.error;
+  // Ohne die Formulare fehlten Mitgliedern fast alle Termine – ohne Hinweis, warum.
+  if (formulare.error) throw formulare.error;
+
+  const mitFormular = new Set((formulare.data ?? []).map((f) => f.event_id));
+  return (termine.data ?? [])
+    .filter((e) => alle || e.created_by === userId || mitFormular.has(e.id))
+    .map((e) => ({ ...e, hasForm: mitFormular.has(e.id) }));
+}
 
 export async function ladeVeranstaltungen(): Promise<Veranstaltung[]> {
   const { data, error } = await supabase.from("events").select("*").order("start_date", { ascending: true });

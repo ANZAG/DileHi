@@ -115,8 +115,10 @@ describe("Die drei Fehler der Vorgängerfassung", () => {
 
 describe("Inhalte sind pflegbar", () => {
   it("holt die Schritte aus der Datenbank, nicht aus dem Quelltext", () => {
+    // Der Hook liest über die Datenschicht; dort steht die Tabelle.
     const hook = readFileSync("src/components/onboarding/useOnboarding.ts", "utf-8");
-    expect(hook).toContain('from("onboarding_steps")');
+    expect(hook).toContain("ladeAktiveSchritte");
+    expect(readFileSync("src/daten/einfuehrung.ts", "utf-8")).toContain('from("onboarding_steps")');
   });
 
   it("hat einen Platz in der Verwaltung", () => {

@@ -11,7 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereAblage, dokumentSchluessel, legeAblageAn, loescheAblage, zaehleDokumenteJeAblage,
+} from "@/daten/dokumente";
 import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
 import { useDokumentkategorien, type Dokumentkategorie } from "@/hooks/useDokumentkategorien";
@@ -93,23 +95,13 @@ export default function DokumentkategorienAdmin() {
   // Ablage, an der zwanzig Protokolle hängen – und wundert sich über die
   // Fehlermeldung, die der Fremdschlüssel schickt.
   const { data: verwendung = {} } = useQuery({
-    queryKey: ["dokumente-je-kategorie"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("documents").select("category");
-      if (error) throw new Error(error.message);
-      const zaehler: Record<string, number> = {};
-      for (const zeile of data ?? []) {
-        const k = zeile.category;
-        if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
-      }
-      return zaehler;
-    },
+    queryKey: dokumentSchluessel.jeAblage(),
+    queryFn: zaehleDokumenteJeAblage,
   });
 
   const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["document-categories"] });
-    queryClient.invalidateQueries({ queryKey: ["dokumente-je-kategorie"] });
-    queryClient.invalidateQueries({ queryKey: ["documents"] });
+    // Ablagen, Zählung und die Dokumente selbst.
+    queryClient.invalidateQueries({ queryKey: dokumentSchluessel.alle });
   };
 
   const anlegen = useMutation({
@@ -119,19 +111,12 @@ export default function DokumentkategorienAdmin() {
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
       if (!key) throw new Error("Bitte einen Namen eingeben.");
       const letzte = kategorien[kategorien.length - 1]?.sort_order ?? 0;
-      const { error } = await supabase.from("document_categories").insert({
+      await legeAblageAn({
         key,
         label: neuLabel.trim(),
         sort_order: letzte + 10,
         required_permission: STUFEN.find((s) => s.value === neuStufe)?.recht ?? null,
       });
-      if (error) {
-        throw new Error(
-          error.message.includes("duplicate")
-            ? "Diese Ablage gibt es schon."
-            : error.message
-        );
-      }
     },
     onSuccess: () => { setNeuOffen(false); setNeuLabel(""); setNeuStufe("alle"); frisch(); },
     onError: (err: Error) =>
@@ -139,33 +124,22 @@ export default function DokumentkategorienAdmin() {
   });
 
   const umbenennen = useMutation({
-    mutationFn: async ({ key, label }: { key: string; label: string }) => {
-      const { error } = await supabase.from("document_categories").update({ label }).eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ key, label }: { key: string; label: string }) => aendereAblage(key, { label }),
     onSuccess: () => { setBearbeitet(null); frisch(); },
     onError: (err: Error) =>
       toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
   const stufeSetzen = useMutation({
-    mutationFn: async ({ key, stufe }: { key: string; stufe: string }) => {
-      const { error } = await supabase
-        .from("document_categories")
-        .update({ required_permission: STUFEN.find((s) => s.value === stufe)?.recht ?? null })
-        .eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ key, stufe }: { key: string; stufe: string }) =>
+      aendereAblage(key, { required_permission: STUFEN.find((s) => s.value === stufe)?.recht ?? null }),
     onSuccess: frisch,
     onError: (err: Error) =>
       toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
   const entfernen = useMutation({
-    mutationFn: async (key: string) => {
-      const { error } = await supabase.from("document_categories").delete().eq("key", key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: loescheAblage,
     onSuccess: frisch,
     onError: (err: Error) =>
       toast({
