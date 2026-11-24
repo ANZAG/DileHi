@@ -27,7 +27,6 @@ export interface Dokumentkategorie {
   required_permission: string | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export function useDokumentkategorien() {
   const woerter = useWoerter();
@@ -35,7 +34,7 @@ export function useDokumentkategorien() {
   return useQuery({
     queryKey: ["document-categories", woerter.satzung],
     queryFn: async (): Promise<Dokumentkategorie[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("document_categories")
         .select("key, label, sort_order, required_permission")
         .order("sort_order");

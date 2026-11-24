@@ -40,7 +40,8 @@ interface Zeile {
   sort_order: number;
   is_visible: boolean;
   opens_new: boolean;
-  area: MenuBereich | null;
+  /** In der Datenbank Text; verglichen wird nur mit den bekannten Bereichen. */
+  area: string | null;
 }
 
 /**
@@ -118,13 +119,7 @@ export function useSiteMenu(bereich: MenuBereich = "header"): MenuEintrag[] {
   const { data } = useQuery({
     queryKey: ["site-menu"],
     queryFn: async (): Promise<Record<MenuBereich, MenuEintrag[]>> => {
-      const { data, error } = await (supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => {
-            order: (c: string) => Promise<{ data: Zeile[] | null; error: { message: string } | null }>;
-          };
-        };
-      })
+      const { data, error } = await supabase
         .from("site_menu")
         .select("*")
         .order("sort_order");
@@ -136,13 +131,7 @@ export function useSiteMenu(bereich: MenuBereich = "header"): MenuEintrag[] {
       // Verweise auf Seiten in Adressen auflösen.
       const seitenIds = zeilen.map((z) => z.page_id).filter((v): v is string => !!v);
       if (seitenIds.length > 0) {
-        const { data: pages } = await (supabase as unknown as {
-          from: (t: string) => {
-            select: (c: string) => {
-              in: (c: string, v: string[]) => Promise<{ data: { id: string; slug: string }[] | null }>;
-            };
-          };
-        })
+        const { data: pages } = await supabase
           .from("site_pages")
           .select("id, slug")
           .in("id", seitenIds);

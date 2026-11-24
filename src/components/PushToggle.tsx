@@ -67,14 +67,18 @@ export default function PushToggle() {
       });
 
       const raw = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-      const { error: saveError } = await (supabase.from as unknown as (t: string) => {
-        upsert: (v: unknown, o: unknown) => Promise<{ error: { message: string } | null }>;
-      })("push_subscriptions").upsert(
+      // Ohne Adresse und Schlüssel lässt sich nichts zustellen; die Datenbank
+      // lehnt so ein Abo ohnehin ab.
+      const { endpoint, keys } = raw;
+      if (!endpoint || !keys?.p256dh || !keys.auth) {
+        throw new Error("Der Browser hat kein vollständiges Abo geliefert.");
+      }
+      const { error: saveError } = await supabase.from("push_subscriptions").upsert(
         {
-          endpoint: raw.endpoint,
+          endpoint,
           user_id: user!.id,
-          p256dh: raw.keys?.p256dh,
-          auth: raw.keys?.auth,
+          p256dh: keys.p256dh,
+          auth: keys.auth,
           user_agent: navigator.userAgent.slice(0, 200),
           failure_count: 0,
         },
@@ -101,9 +105,7 @@ export default function PushToggle() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await (supabase.from as unknown as (t: string) => {
-          delete: () => { eq: (c: string, v: string) => Promise<unknown> };
-        })("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
         await sub.unsubscribe();
       }
       setState("aus");

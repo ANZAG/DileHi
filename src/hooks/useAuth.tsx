@@ -82,12 +82,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Role catalog for display labels (single source of truth from DB)
     if (katalog.data) {
       const labels: Record<string, string> = {};
-      (katalog.data as { key: string; label: string }[]).forEach((r) => {
+      katalog.data.forEach((r) => {
         labels[r.key] = r.label;
       });
       setRoleLabels(labels);
     }
-    const perms = (rechte.data ?? []) as unknown as string[];
+    const perms = rechte.data ?? [];
     setPermissions(perms);
     setRealPermissions(perms);
     setPermissionsLoaded(true);
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data } = await supabase
       .from("role_permissions")
       .select("permission")
-      .eq("role", role as any)
+      .eq("role", role)
       .eq("granted", true);
     if (data) {
       setPermissions(data.map((r) => r.permission));

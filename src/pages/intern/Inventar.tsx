@@ -14,9 +14,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { SEITE } from "@/lib/layout";
 import {
-  db, frei, heuteIso, istUeberfaellig, STATUS, useGegenstaende, useOffeneAusleihen, zeitraumText, ZUSTAND,
+  frei, heuteIso, istUeberfaellig, STATUS, useGegenstaende, useOffeneAusleihen, zeitraumText, ZUSTAND,
   type Ausleihe, type Gegenstand, type Zustand,
 } from "@/hooks/useInventar";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Mitglied { id: string; display_name: string }
 interface Termin { id: string; title: string; start_date: string; end_date: string | null }
@@ -40,17 +41,18 @@ export default function Inventar() {
   const { data: mitglieder = [] } = useQuery({
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await db.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const { data } = await supabase.rpc("get_member_directory");
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
   });
 
   const { data: termine = [] } = useQuery({
     queryKey: ["inventar", "termine"],
     queryFn: async (): Promise<Termin[]> => {
-      const { data } = await db.from("events").select("id, title, start_date, end_date")
+      const { data } = await supabase.from("events").select("id, title, start_date, end_date")
         .or(nochAktuellFilter()).order("start_date").limit(50);
-      return (data ?? []) as Termin[];
+      return data ?? [];
     },
   });
 
@@ -277,8 +279,8 @@ function AusleiheZeile({ ausleihe, titel, termin, darfAbsagen, verwalter }: {
   const aendern = useMutation({
     mutationFn: async (patch: Partial<Ausleihe> | "loeschen") => {
       const { error } = patch === "loeschen"
-        ? await db.from("inventory_loans").delete().eq("id", ausleihe.id)
-        : await db.from("inventory_loans").update(patch).eq("id", ausleihe.id);
+        ? await supabase.from("inventory_loans").delete().eq("id", ausleihe.id)
+        : await supabase.from("inventory_loans").update(patch).eq("id", ausleihe.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inventar"] }),
@@ -352,7 +354,7 @@ function ReservierenFormular({ gegenstand, ausleihen, termine, mitglieder, onFer
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("inventory_loans").insert({
+      const { error } = await supabase.from("inventory_loans").insert({
         item_id: gegenstand.id,
         user_id: fuer || user!.id,
         event_id: termin === KEINE ? null : termin,
@@ -457,8 +459,8 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
         note: werte.note?.trim() || null,
       };
       const { error } = werte.id
-        ? await db.from("inventory_items").update(daten).eq("id", werte.id)
-        : await db.from("inventory_items").insert(daten);
+        ? await supabase.from("inventory_items").update(daten).eq("id", werte.id)
+        : await supabase.from("inventory_items").insert(daten);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -471,7 +473,8 @@ function GegenstandFormular({ gegenstand, kategorien, mitglieder, onFertig }: {
 
   const loeschen = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("inventory_items").delete().eq("id", werte.id);
+      if (!werte.id) throw new Error("Der Gegenstand ist noch nicht gespeichert.");
+      const { error } = await supabase.from("inventory_items").delete().eq("id", werte.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

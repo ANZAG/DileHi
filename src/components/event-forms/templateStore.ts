@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { DEFAULT_TEMPLATE_FIELDS } from "./defaultTemplate";
 import type { FormField } from "./types";
 
@@ -46,7 +47,8 @@ export async function fetchDefaultTemplate(): Promise<TemplateData> {
     id: data.id,
     title: data.title,
     description: data.description,
-    fields: withIds((data.fields as any[]) || []),
+    // `fields` ist eine JSON-Spalte; withIds prüft jedes Feld einzeln nach.
+    fields: withIds(ausJson<unknown[] | null>(data.fields) || []),
   };
 }
 
@@ -65,7 +67,7 @@ export async function saveDefaultTemplate(template: TemplateData, userId: string
       sort_order: i,
       options: f.options || [],
       settings: f.settings || {},
-    })) as any,
+    })),
     updated_by: userId,
   };
 

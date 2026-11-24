@@ -1,16 +1,15 @@
 import type { Data } from "@puckeditor/core";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
+import type { Tables } from "@/integrations/supabase/types";
 
 /**
  * Datenzugriff für die Seiten.
  *
- * Die Zusicherungen stammen aus der Zeit, als site_pages noch nicht in der
- * erzeugten types.ts stand. Inzwischen steht sie dort; gebündelt bleiben sie
- * hier, damit sie nicht durch alle Komponenten wandern.
+ * Der Inhalt einer Seite ist eine JSON-Spalte, deren Form der Editor vorgibt
+ * (`Data`). Die Zusicherungen dafür stehen gebündelt hier, damit sie nicht
+ * durch alle Komponenten wandern.
  */
-const db = supabase as unknown as {
-  from: (table: string) => any;
-};
 
 export interface SitePage {
   id: string;
@@ -31,33 +30,40 @@ export interface SitePage {
   updated_at: string;
 }
 
+/** Eine Zeile aus `site_pages`; Inhalt und Entwurf sind JSON in der Form des Editors. */
+const alsSeite = (z: Tables<"site_pages">): SitePage => ({
+  ...z,
+  content: ausJson<Data | null>(z.content),
+  draft_content: ausJson<Data | null>(z.draft_content),
+});
+
 /** Eine leere Seite – kein null, damit der Editor immer etwas zu zeigen hat. */
 export const LEERE_SEITE: Data = { content: [], root: {} };
 
 export async function fetchPages(): Promise<SitePage[]> {
-  const { data, error } = await db.from("site_pages").select("*").order("title");
+  const { data, error } = await supabase.from("site_pages").select("*").order("title");
   if (error) throw new Error(error.message);
-  return (data ?? []) as SitePage[];
+  return (data ?? []).map(alsSeite);
 }
 
 export async function fetchPageBySlug(slug: string): Promise<SitePage | null> {
-  const { data, error } = await db.from("site_pages").select("*").eq("slug", slug).maybeSingle();
+  const { data, error } = await supabase.from("site_pages").select("*").eq("slug", slug).maybeSingle();
   if (error) throw new Error(error.message);
-  if (data) return data as SitePage;
+  if (data) return alsSeite(data);
 
   // Uebergang: Die Seiten hiessen bis zur Umstellung „…-neu". Der Code wird
   // beim Push veroeffentlicht, die Migration spielt jemand von Hand ein –
   // dazwischen liegen Minuten, in denen die Seite sonst ins Leere liefe.
   //
   // Diese Zeilen koennen weg, sobald 20260909220000 ueberall eingespielt ist.
-  const { data: alt } = await db.from("site_pages").select("*").eq("slug", `${slug}-neu`).maybeSingle();
-  return (alt ?? null) as SitePage | null;
+  const { data: alt } = await supabase.from("site_pages").select("*").eq("slug", `${slug}-neu`).maybeSingle();
+  return alt ? alsSeite(alt) : null;
 }
 
 export async function fetchPageById(id: string): Promise<SitePage | null> {
-  const { data, error } = await db.from("site_pages").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("site_pages").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return (data ?? null) as SitePage | null;
+  return data ? alsSeite(data) : null;
 }
 
 /**
@@ -67,12 +73,12 @@ export async function fetchPageById(id: string): Promise<SitePage | null> {
  * dabei zusehen. Deshalb liegen Entwurf und Veröffentlichtes nebeneinander.
  */
 export async function saveDraft(id: string, content: Data) {
-  const { error } = await db.from("site_pages").update({ draft_content: content }).eq("id", id);
+  const { error } = await supabase.from("site_pages").update({ draft_content: content }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
 export async function publish(id: string, content: Data) {
-  const { error } = await db
+  const { error } = await supabase
     .from("site_pages")
     .update({
       content,
@@ -85,12 +91,12 @@ export async function publish(id: string, content: Data) {
 }
 
 export async function unpublish(id: string) {
-  const { error } = await db.from("site_pages").update({ is_published: false }).eq("id", id);
+  const { error } = await supabase.from("site_pages").update({ is_published: false }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
 export async function createPage(input: { slug: string; title: string }) {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("site_pages")
     .insert({
       slug: input.slug,
@@ -101,19 +107,19 @@ export async function createPage(input: { slug: string; title: string }) {
     .select()
     .single();
   if (error) throw new Error(uebersetzeFehler(error.message));
-  return data as SitePage;
+  return alsSeite(data);
 }
 
 export async function updatePageMeta(
   id: string,
-  patch: Partial<Pick<SitePage, "title" | "slug" | "seo_description" | "noindex">>
+  patch: Partial<Pick<SitePage, "title" | "slug" | "seo_description" | "noindex" | "seo_title" | "seo_type">>
 ) {
-  const { error } = await db.from("site_pages").update(patch).eq("id", id);
+  const { error } = await supabase.from("site_pages").update(patch).eq("id", id);
   if (error) throw new Error(uebersetzeFehler(error.message));
 }
 
 export async function deletePage(id: string) {
-  const { error } = await db.from("site_pages").delete().eq("id", id);
+  const { error } = await supabase.from("site_pages").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 

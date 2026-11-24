@@ -23,21 +23,21 @@ const VisitorHighlightsAdmin = () => {
     queryKey: ["epoch_visitor_items_admin", selectedEpoch],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("epoch_visitor_items" as any)
+        .from("epoch_visitor_items")
         .select("*")
         .eq("epoch", selectedEpoch)
         .order("sort_order", { ascending: true });
       if (error) return [];
-      return data as any[];
+      return data;
     },
   });
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const maxOrder = items.length > 0 ? Math.max(...items.map((s: any) => s.sort_order)) + 1 : 1;
+      const maxOrder = items.length > 0 ? Math.max(...items.map((s) => s.sort_order)) + 1 : 1;
       const { error } = await supabase
-        .from("epoch_visitor_items" as any)
-        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id } as any);
+        .from("epoch_visitor_items")
+        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -50,7 +50,7 @@ const VisitorHighlightsAdmin = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("epoch_visitor_items" as any).delete().eq("id", id);
+      const { error } = await supabase.from("epoch_visitor_items").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -61,7 +61,7 @@ const VisitorHighlightsAdmin = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, text }: { id: string; text: string }) => {
-      const { error } = await supabase.from("epoch_visitor_items" as any).update({ text } as any).eq("id", id);
+      const { error } = await supabase.from("epoch_visitor_items").update({ text }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -76,8 +76,8 @@ const VisitorHighlightsAdmin = () => {
     mutationFn: async (reordered: { id: string; sort_order: number }[]) => {
       for (const item of reordered) {
         const { error } = await supabase
-          .from("epoch_visitor_items" as any)
-          .update({ sort_order: item.sort_order } as any)
+          .from("epoch_visitor_items")
+          .update({ sort_order: item.sort_order })
           .eq("id", item.id);
         if (error) throw error;
       }
@@ -96,12 +96,12 @@ const VisitorHighlightsAdmin = () => {
     const list = Array.from(items);
     const [moved] = list.splice(result.source.index, 1);
     list.splice(result.destination.index, 0, moved);
-    const reordered = list.map((item: any, idx: number) => ({ id: item.id, sort_order: idx + 1 }));
-    queryClient.setQueryData(["epoch_visitor_items_admin", selectedEpoch], list.map((item: any, idx: number) => ({ ...item, sort_order: idx + 1 })));
+    const reordered = list.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }));
+    queryClient.setQueryData(["epoch_visitor_items_admin", selectedEpoch], list.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
     reorderMutation.mutate(reordered);
   };
 
-  const startEdit = (s: any) => { setEditingId(s.id); setEditText(s.text); };
+  const startEdit = (s: { id: string; text: string }) => { setEditingId(s.id); setEditText(s.text); };
   const cancelEdit = () => { setEditingId(null); setEditText(""); };
 
   return (
@@ -148,7 +148,7 @@ const VisitorHighlightsAdmin = () => {
           <Droppable droppableId="visitor-items-list">
             {(provided) => (
               <ul className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
-                {items.map((s: any, index: number) => (
+                {items.map((s, index) => (
                   <Draggable key={s.id} draggableId={s.id} index={index}>
                     {(provided, snapshot) => (
                       <li

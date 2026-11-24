@@ -145,7 +145,7 @@ const Documents = () => {
 
   const grouped = CATEGORIES.map((cat) => ({
     ...cat,
-    docs: docs.filter((d: any) => d.category === cat.key),
+    docs: docs.filter((d) => d.category === cat.key),
   })).filter((g) => g.docs.length > 0);
 
   return (
@@ -210,7 +210,7 @@ const Documents = () => {
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-2">
-                    {group.docs.map((doc: any) => (
+                    {group.docs.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
                         <div className="flex items-center gap-3 min-w-0">
                           <FileText size={18} className="text-primary shrink-0" />

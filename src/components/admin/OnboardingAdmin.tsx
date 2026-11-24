@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, RotateCcw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,6 @@ interface Hilfetext {
   defaults: { title?: string | null; text?: string } | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die Touren mit Namen.
@@ -70,18 +70,18 @@ export default function OnboardingAdmin() {
   const { data: schritte = [], isLoading } = useQuery({
     queryKey: ["onboarding-schritte-admin"],
     queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await db.from("onboarding_steps").select("*").order("sort_order");
+      const { data, error } = await supabase.from("onboarding_steps").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []).map((s) => ({ ...s, defaults: ausJson<Schritt["defaults"]>(s.defaults) }));
     },
   });
 
   const { data: hilfen = [] } = useQuery({
     queryKey: ["onboarding-hilfe-admin"],
     queryFn: async (): Promise<Hilfetext[]> => {
-      const { data, error } = await db.from("onboarding_help").select("*").order("key");
+      const { data, error } = await supabase.from("onboarding_help").select("*").order("key");
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []).map((h) => ({ ...h, defaults: ausJson<Hilfetext["defaults"]>(h.defaults) }));
     },
   });
 
@@ -95,11 +95,11 @@ export default function OnboardingAdmin() {
   const speichern = useMutation({
     mutationFn: async () => {
       for (const [key, werte] of Object.entries(entwurf)) {
-        const { error } = await db.from("onboarding_steps").update(werte).eq("key", key);
+        const { error } = await supabase.from("onboarding_steps").update(werte).eq("key", key);
         if (error) throw new Error(error.message);
       }
       for (const [key, werte] of Object.entries(hilfeEntwurf)) {
-        const { error } = await db.from("onboarding_help").update(werte).eq("key", key);
+        const { error } = await supabase.from("onboarding_help").update(werte).eq("key", key);
         if (error) throw new Error(error.message);
       }
     },

@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  db, gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
+  gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
   useAlleNachweise, useNachweisArten, type NachweisArt,
 } from "@/hooks/useNachweise";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Mitglied {
   id: string;
@@ -55,8 +56,9 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
   const { data: mitglieder = [] } = useQuery({
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await db.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const { data } = await supabase.rpc("get_member_directory");
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
   });
 
@@ -79,7 +81,7 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
 
   const pruefen = useMutation({
     mutationFn: async ({ id, geprueft }: { id: string; geprueft: boolean }) => {
-      const { error } = await db.from("member_certificates")
+      const { error } = await supabase.from("member_certificates")
         .update(geprueft ? { verified_at: new Date().toISOString(), verified_by: user!.id } : { verified_at: null, verified_by: null })
         .eq("id", id);
       if (error) throw new Error(error.message);
@@ -90,7 +92,7 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("member_certificates").delete().eq("id", id);
+      const { error } = await supabase.from("member_certificates").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweise"] }),
@@ -99,7 +101,7 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
 
   const eintragen = useMutation({
     mutationFn: async () => {
-      const { error } = await db.from("member_certificates").insert({
+      const { error } = await supabase.from("member_certificates").insert({
         user_id: neu!.user_id,
         type_id: neu!.type_id,
         issued_on: neu!.issued_on || null,
@@ -291,7 +293,7 @@ function Arten() {
 
   const speichern = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("certificate_types").update(aenderungen[id]).eq("id", id);
+      const { error } = await supabase.from("certificate_types").update(aenderungen[id]).eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: (_, id) => {
@@ -309,7 +311,7 @@ function Arten() {
   const anlegen = useMutation({
     mutationFn: async () => {
       const letzte = arten[arten.length - 1]?.sort_order ?? 0;
-      const { error } = await db.from("certificate_types").insert({ label: neuLabel.trim(), sort_order: letzte + 10 });
+      const { error } = await supabase.from("certificate_types").insert({ label: neuLabel.trim(), sort_order: letzte + 10 });
       if (error) throw new Error(error.message.includes("duplicate") ? "Diese Art gibt es schon." : error.message);
     },
     onSuccess: () => {
@@ -321,7 +323,7 @@ function Arten() {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("certificate_types").delete().eq("id", id);
+      const { error } = await supabase.from("certificate_types").delete().eq("id", id);
       if (error) {
         // Der Fremdschlüssel verhindert das Löschen, solange Nachweise daran hängen.
         throw new Error(

@@ -37,7 +37,7 @@ export default function EventFormDialog({
     queryKey: ["member_directory"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_member_directory");
-      return (data || []).filter((m: any) => m.is_active).sort((a: any, b: any) => a.display_name.localeCompare(b.display_name));
+      return (data || []).filter((m) => m.is_active).sort((a, b) => a.display_name.localeCompare(b.display_name));
     },
     enabled: !!canChangeOrganizer && isEdit,
   });
@@ -64,7 +64,7 @@ export default function EventFormDialog({
               <SelectValue placeholder="Organisator wählen" />
             </SelectTrigger>
             <SelectContent>
-              {members.map((m: any) => (
+              {members.map((m) => (
                 <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
               ))}
             </SelectContent>

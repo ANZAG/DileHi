@@ -234,9 +234,9 @@ function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehl
   const { data: seiten = [] } = useQuery({
     queryKey: ["seo-organisation"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("seo_organization_pages" as never);
+      const { data, error } = await supabase.rpc("seo_organization_pages");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; title: string; slug: string }[];
+      return data ?? [];
     },
     enabled: gewaehlt === "organisation",
   });
@@ -258,10 +258,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
   seite: SitePage;
   pending: boolean;
   onAbbrechen: () => void;
-  onSpeichern: (patch: {
-    title?: string; slug?: string; seo_description?: string; noindex?: boolean;
-    seo_title?: string | null; seo_type?: string;
-  }) => void;
+  onSpeichern: (patch: Parameters<typeof updatePageMeta>[1]) => void;
 }) {
   const woerter = useWoerter();
   const [titel, setTitel] = useState(seite.title);
@@ -358,7 +355,7 @@ function SeitenEinstellungen({ seite, pending, onAbbrechen, onSpeichern }: {
             slug: adresse.trim(),
             seo_description: beschreibung.trim() || null,
             noindex: versteckt,
-          } as never)}
+          })}
         >
           Speichern
         </Button>

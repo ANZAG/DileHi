@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 /**
  * Auslagen und Pauschalen.
@@ -27,6 +28,13 @@ export interface Auslage {
   paid_at: string | null;
   created_at: string;
 }
+
+/** Eine Zeile aus `expense_claims`: Kategorie und Status sind dort Text mit festem Wertevorrat. */
+export const alsAuslage = (z: Tables<"expense_claims">): Auslage => ({
+  ...z,
+  category: z.category as Kategorie,
+  status: z.status as AuslagenStatus,
+});
 
 export interface Pauschalzahlung {
   id: string;
@@ -59,11 +67,6 @@ export const PAUSCHALE: Record<PauschalArt, { label: string; paragraf: string }>
 /** Vorgaben, falls die Einstellungen nicht lesbar sind. Stand 2026. */
 export const FREIBETRAG_VORGABE: Record<PauschalArt, number> = { volunteer: 960, trainer: 3300 };
 
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-  storage: typeof supabase.storage;
-};
 
 export function euro(betrag: number): string {
   return Number(betrag).toLocaleString("de-DE", { style: "currency", currency: "EUR" });

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CameraOff, ChevronDown, HeartPulse } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
-import { db } from "@/hooks/useEinwilligungen";
+import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
+
 
 interface Zeile {
   user_id: string;
@@ -27,9 +29,9 @@ export default function TeilnehmerFuersorge({ eventId }: { eventId: string }) {
   const { data: zeilen = [] } = useQuery({
     queryKey: ["einwilligungen", "veranstaltung", eventId],
     queryFn: async (): Promise<Zeile[]> => {
-      const { data, error } = await db.rpc("event_attendee_care", { _event_id: eventId });
+      const { data, error } = await supabase.rpc("event_attendee_care", { _event_id: eventId });
       if (error) return [];
-      return (data ?? []) as Zeile[];
+      return (data ?? []).map((z) => ({ ...z, contacts: ausJson<Zeile["contacts"]>(z.contacts) }));
     },
     enabled: an,
     staleTime: 60 * 1000,

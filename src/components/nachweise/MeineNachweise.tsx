@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  db, gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
+  gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
   useMeineNachweise, useNachweisArten, type Nachweis,
 } from "@/hooks/useNachweise";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Entwurf {
   id: string | null;
@@ -58,8 +59,8 @@ export default function MeineNachweise() {
         note: e.note.trim() || null,
       };
       const { error } = e.id
-        ? await db.from("member_certificates").update(daten).eq("id", e.id)
-        : await db.from("member_certificates").insert({ ...daten, user_id: user!.id });
+        ? await supabase.from("member_certificates").update(daten).eq("id", e.id)
+        : await supabase.from("member_certificates").insert({ ...daten, user_id: user!.id });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -72,7 +73,7 @@ export default function MeineNachweise() {
 
   const loeschen = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("member_certificates").delete().eq("id", id);
+      const { error } = await supabase.from("member_certificates").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweise"] }),

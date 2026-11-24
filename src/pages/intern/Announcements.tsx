@@ -51,8 +51,8 @@ const Announcements = () => {
   // This avoids loading all member profiles when we only need a handful.
   const authorIds = [
     ...new Set([
-      ...announcements.map((a: any) => a.created_by),
-      ...replies.map((r: any) => r.created_by),
+      ...announcements.map((a) => a.created_by),
+      ...replies.map((r) => r.created_by),
     ]),
   ];
 
@@ -177,7 +177,7 @@ const Announcements = () => {
   };
 
   const getReplies = (announcementId: string) =>
-    replies.filter((r: any) => r.announcement_id === announcementId);
+    replies.filter((r) => r.announcement_id === announcementId);
 
   return (
     <div className={SEITE}>

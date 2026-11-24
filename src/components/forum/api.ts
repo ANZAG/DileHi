@@ -1,17 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
+import { alsJson, ausJson } from "@/lib/json";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 /**
  * Datenzugriff fürs Forum.
  *
- * Die Forum-Tabellen stehen noch nicht in der erzeugten types.ts – die entsteht
- * erst bei der nächsten Neugenerierung. Damit die Zusicherungen nicht durch alle
- * Komponenten wandern, stehen sie gebündelt hier. Nach der Neugenerierung fällt
- * `db` ersatzlos weg, die Aufrufe bleiben.
+ * Alle Abfragen des Forums stehen gebündelt hier, damit die Komponenten die
+ * Tabellen nicht kennen müssen.
  */
-const db = supabase as unknown as {
-  from: (table: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 export type CategoryStatus = "vorgeschlagen" | "aktiv" | "archiviert";
 
@@ -70,20 +66,21 @@ export const slugify = (text: string) =>
     .slice(0, 60) || "thema";
 
 export async function fetchCategories(): Promise<ForumCategory[]> {
-  const { data, error } = await db.from("forum_categories").select("*").order("sort_order");
+  const { data, error } = await supabase.from("forum_categories").select("*").order("sort_order");
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumCategory[];
+  const zeilen: ForumCategory[] = data ?? [];
+  return zeilen;
 }
 
 /** Wann jemand welches Thema zuletzt geöffnet hat, je Thema. */
 export async function fetchReadState(userId: string): Promise<Record<string, string>> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("forum_read_state")
     .select("thread_id, last_read_at")
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
   const gelesen: Record<string, string> = {};
-  for (const r of (data ?? []) as { thread_id: string; last_read_at: string }[]) {
+  for (const r of data ?? []) {
     gelesen[r.thread_id] = r.last_read_at;
   }
   return gelesen;
@@ -106,7 +103,7 @@ export function istUngelesen(
 
 /** Themenzahl und Zahl der ungelesenen Themen je Rubrik. */
 export async function fetchCategoryStats(userId?: string) {
-  const { data: threads } = await db
+  const { data: threads } = await supabase
     .from("forum_threads")
     .select("id, category_id, last_post_at, is_archived");
   const gelesen = userId ? await fetchReadState(userId) : {};
@@ -123,38 +120,41 @@ export async function fetchCategoryStats(userId?: string) {
 /** Alle ungelesenen Themen über alle Rubriken, das mit dem jüngsten Beitrag zuerst. */
 export async function fetchUnreadThreads(userId: string): Promise<ForumThread[]> {
   const [{ data, error }, gelesen] = await Promise.all([
-    db.from("forum_threads").select("*").eq("is_archived", false).order("last_post_at", { ascending: false }),
+    supabase.from("forum_threads").select("*").eq("is_archived", false).order("last_post_at", { ascending: false }),
     fetchReadState(userId),
   ]);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as ForumThread[]).filter((t) => istUngelesen(t, gelesen[t.id]));
+  const zeilen: ForumThread[] = data ?? [];
+  return zeilen.filter((t) => istUngelesen(t, gelesen[t.id]));
 }
 
 export async function fetchThreads(categoryId: string): Promise<ForumThread[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("forum_threads")
     .select("*")
     .eq("category_id", categoryId)
     .order("is_pinned", { ascending: false })
     .order("last_post_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumThread[];
+  const zeilen: ForumThread[] = data ?? [];
+  return zeilen;
 }
 
 export async function fetchThread(id: string): Promise<ForumThread | null> {
-  const { data, error } = await db.from("forum_threads").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("forum_threads").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return (data ?? null) as ForumThread | null;
+  const zeile: ForumThread | null = data ?? null;
+  return zeile;
 }
 
 export async function fetchPosts(threadId: string): Promise<ForumPost[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("forum_posts")
     .select("*")
     .eq("thread_id", threadId)
     .order("created_at");
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumPost[];
+  return (data ?? []).map((p) => ({ ...p, payload: ausJson<ForumPost["payload"]>(p.payload) }));
 }
 
 export async function createThread(input: {
@@ -163,7 +163,7 @@ export async function createThread(input: {
   body: string;
   userId: string;
 }) {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("forum_threads")
     .insert({
       category_id: input.categoryId,
@@ -175,17 +175,18 @@ export async function createThread(input: {
     .single();
   if (error) throw new Error(error.message);
 
-  const { error: postError } = await db.from("forum_posts").insert({
+  const { error: postError } = await supabase.from("forum_posts").insert({
     thread_id: data.id,
     body: input.body,
     created_by: input.userId,
   });
   if (postError) throw new Error(postError.message);
-  return data as ForumThread;
+  const zeile: ForumThread = data;
+  return zeile;
 }
 
 export async function createPost(input: { threadId: string; body: string; userId: string }) {
-  const { data, error } = await db.from("forum_posts").insert({
+  const { data, error } = await supabase.from("forum_posts").insert({
     thread_id: input.threadId,
     body: input.body,
     created_by: input.userId,
@@ -203,7 +204,7 @@ export async function createPost(input: { threadId: string; body: string; userId
 
 /** Lesestand setzen – ohne den bringt die Zählung ungelesener Themen nichts. */
 export async function markRead(threadId: string, userId: string) {
-  await db
+  await supabase
     .from("forum_read_state")
     .upsert(
       { user_id: userId, thread_id: threadId, last_read_at: new Date().toISOString() },
@@ -220,15 +221,22 @@ export async function saveCategory(category: Partial<ForumCategory> & { id?: str
     sort_order: category.sort_order ?? 0,
     status: category.status ?? "vorgeschlagen",
   };
-  const query = category.id
-    ? db.from("forum_categories").update(payload).eq("id", category.id)
-    : db.from("forum_categories").insert({ ...payload, created_by: category.created_by });
-  const { error } = await query;
+  if (category.id) {
+    const { error } = await supabase.from("forum_categories").update(payload).eq("id", category.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  // Eine neue Rubrik ohne Namen lehnt die Datenbank ohnehin ab.
+  const { name } = payload;
+  if (!name) throw new Error("Die Rubrik braucht einen Namen.");
+  const { error } = await supabase
+    .from("forum_categories")
+    .insert({ ...payload, name, created_by: category.created_by });
   if (error) throw new Error(error.message);
 }
 
 export async function deleteCategory(id: string) {
-  const { error } = await db.from("forum_categories").delete().eq("id", id);
+  const { error } = await supabase.from("forum_categories").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -242,9 +250,10 @@ export interface CategoryRoleRights {
 }
 
 export async function fetchCategoryRights(): Promise<CategoryRoleRights[]> {
-  const { data, error } = await db.from("forum_category_roles").select("*");
+  const { data, error } = await supabase.from("forum_category_roles").select("*");
   if (error) throw new Error(error.message);
-  return (data ?? []) as CategoryRoleRights[];
+  const zeilen: CategoryRoleRights[] = data ?? [];
+  return zeilen;
 }
 
 export async function setCategoryRight(
@@ -252,7 +261,7 @@ export async function setCategoryRight(
   role: string,
   patch: Partial<Omit<CategoryRoleRights, "category_id" | "role">>
 ) {
-  const { error } = await db
+  const { error } = await supabase
     .from("forum_category_roles")
     .upsert({ category_id: categoryId, role, ...patch }, { onConflict: "category_id,role" });
   if (error) throw new Error(error.message);
@@ -265,11 +274,11 @@ export async function createPollPost(input: {
   kind: "umfrage" | "mitbringliste";
   payload: Record<string, unknown>;
 }) {
-  const { error } = await db.from("forum_posts").insert({
+  const { error } = await supabase.from("forum_posts").insert({
     thread_id: input.threadId,
     kind: input.kind,
     body: "",
-    payload: input.payload,
+    payload: alsJson(input.payload),
     created_by: input.userId,
   });
   if (error) throw new Error(error.message);
@@ -289,18 +298,18 @@ export interface ThreadPatch {
 }
 
 export async function updateThread(id: string, patch: ThreadPatch) {
-  const daten: Record<string, unknown> = { ...patch };
+  const daten: TablesUpdate<"forum_threads"> = { ...patch };
   // Der Titel bestimmt die Adresse mit – sonst zeigt der Link auf den alten.
   if (patch.title !== undefined) {
     daten.title = patch.title.trim();
     daten.slug = slugify(patch.title);
   }
-  const { error } = await db.from("forum_threads").update(daten).eq("id", id);
+  const { error } = await supabase.from("forum_threads").update(daten).eq("id", id);
   if (error) throw new Error(uebersetzeFehler(error.message));
 }
 
 export async function deleteThread(id: string) {
-  const { error } = await db.from("forum_threads").delete().eq("id", id);
+  const { error } = await supabase.from("forum_threads").delete().eq("id", id);
   if (error) throw new Error(uebersetzeFehler(error.message));
 }
 
@@ -312,14 +321,14 @@ export async function updatePost(input: {
 }) {
   // Erst den alten Stand sichern, dann aendern. Andersherum waere der alte
   // Stand weg, falls das Schreiben des Verlaufs scheitert.
-  const { error: histError } = await db.from("forum_post_revisions").insert({
+  const { error: histError } = await supabase.from("forum_post_revisions").insert({
     post_id: input.postId,
     body: input.originalBody,
     edited_by: input.userId,
   });
   if (histError) throw new Error(histError.message);
 
-  const { error } = await db
+  const { error } = await supabase
     .from("forum_posts")
     .update({ body: input.body, edited_at: new Date().toISOString(), edited_by: input.userId })
     .eq("id", input.postId);
@@ -332,7 +341,7 @@ export async function updatePost(input: {
  * das der Unterschied zwischen „entfernt" und „hat es nie gegeben".
  */
 export async function removePost(postId: string, userId: string) {
-  const { error } = await db
+  const { error } = await supabase
     .from("forum_posts")
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq("id", postId);
@@ -340,7 +349,7 @@ export async function removePost(postId: string, userId: string) {
 }
 
 export async function restorePost(postId: string) {
-  const { error } = await db
+  const { error } = await supabase
     .from("forum_posts")
     .update({ deleted_at: null, deleted_by: null })
     .eq("id", postId);

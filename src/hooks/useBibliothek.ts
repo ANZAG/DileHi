@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { invokeFunction } from "@/lib/functionError";
-import { alleZeilen } from "@/lib/alleZeilen";
+import { alleZeilen, type Seitenabfrage } from "@/lib/alleZeilen";
 import type { BaumKnoten, KartenStatus, RahmenZeile, Rechte, Stufe } from "@/lib/bibliothek";
 
 /**
@@ -166,13 +166,17 @@ export function useBibliotheksrechte() {
   return { lesen: pflegen || hasPermission("library.read"), pflegen };
 }
 
-// Die Tabellen stehen noch nicht in den erzeugten Typen.
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
+/**
+ * Die Bibliothek hält vieles in JSON-Spalten (Ebenen, Kapitel, Baum, Rahmen …)
+ * und Text mit festem Wertevorrat (Stufe, Status, Rechte). Der erzeugte Typ
+ * kennt davon nur `Json` und `string`; die Form steht oben in den
+ * Schnittstellen. `holen` und `alle` sind die beiden Stellen, an denen eine
+ * Zeile als ihr Anwendungstyp gilt. Tabelle, Spalten und Sortierung prüft der
+ * Compiler vorher an der Abfrage selbst.
+ */
+type Antwort = { data: unknown; error: { message: string } | null };
 
-const holen = async <T>(abfrage: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T> => {
+const holen = async <T>(abfrage: PromiseLike<Antwort>): Promise<T> => {
   const { data, error } = await abfrage;
   if (error) throw new Error(error.message);
   return data as T;
@@ -181,21 +185,24 @@ const holen = async <T>(abfrage: PromiseLike<{ data: unknown; error: { message: 
 /**
  * Ganze Listen immer seitenweise: Supabase liefert je Abfrage höchstens 1000
  * Zeilen, ohne Fehler. Die Sortierung endet jeweils auf der Kennung, damit
- * keine Zeile zwischen zwei Seiten verloren geht.
+ * keine Zeile zwischen zwei Seiten verloren geht. Die Abfrage muss
+ * `count: "exact"` anfordern.
  */
-const alle = <T>(tabelle: string, spalten: string, sortieren: (q: any) => any) =>
-  alleZeilen<T>((von, bis) => sortieren(db.from(tabelle).select(spalten, { count: "exact" })).range(von, bis));
+const alle = <T>(abfrage: (von: number, bis: number) => PromiseLike<Antwort & { count?: number | null }>) =>
+  alleZeilen<T>(abfrage as Seitenabfrage<T>);
 
 export const useDarstellungen = () =>
   useQuery({
     queryKey: ["bibliothek", "darstellungen"],
-    queryFn: () => alle<Darstellung>("library_presentations", "*", (q) => q.order("sort_order").order("id")),
+    queryFn: () => alle<Darstellung>((von, bis) =>
+      supabase.from("library_presentations").select("*", { count: "exact" }).order("sort_order").order("id").range(von, bis)),
   });
 
 export const useSeiten = () =>
   useQuery({
     queryKey: ["bibliothek", "seiten"],
-    queryFn: () => alle<Seite>("library_pages", "*", (q) => q.order("sort_order").order("title").order("slug")),
+    queryFn: () => alle<Seite>((von, bis) =>
+      supabase.from("library_pages").select("*", { count: "exact" }).order("sort_order").order("title").order("slug").range(von, bis)),
   });
 
 /** Alle Karten, ohne Text. Für Übersichten und Zählungen; bei einigen Hundert Karten billig. */
@@ -203,18 +210,24 @@ export const useKarten = (darstellung?: string) =>
   useQuery({
     queryKey: ["bibliothek", "karten", darstellung ?? "alle"],
     queryFn: () =>
-      alle<Karte>(
-        "library_cards",
-        "id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, topics, roles, status, as_of, updated_at",
-        (q) => (darstellung ? q.eq("presentation_id", darstellung) : q).order("id")
-      ),
+      alle<Karte>((von, bis) => {
+        const q = supabase
+          .from("library_cards")
+          .select(
+            "id, presentation_id, area, statement, grade, grade_note, level, valid_for, keywords, topics, roles, status, as_of, updated_at",
+            { count: "exact" }
+          );
+        return (darstellung ? q.eq("presentation_id", darstellung) : q).order("id").range(von, bis);
+      }),
   });
 
 /** Alle Themenseiten, mit Text: Die Seiten brauchen ihn für „gehört zu", Offen und Prüfliste. */
 export const useThemen = () =>
   useQuery({
     queryKey: ["bibliothek", "themen"],
-    queryFn: () => alle<Thema>("library_topics", "*", (q) => q.order("chapter").order("sort_order").order("title").order("id")),
+    queryFn: () => alle<Thema>((von, bis) =>
+      supabase.from("library_topics").select("*", { count: "exact" })
+        .order("chapter").order("sort_order").order("title").order("id").range(von, bis)),
   });
 
 export const useKarte = (id: string | undefined) =>
@@ -222,9 +235,11 @@ export const useKarte = (id: string | undefined) =>
     queryKey: ["bibliothek", "karte", id],
     enabled: !!id,
     queryFn: async () => {
+      // Läuft nur mit Kennung (enabled); der Typ weiß das nicht.
+      if (!id) return { karte: null, fundstellen: [] };
       const [karte, fundstellen] = await Promise.all([
-        holen<Karte | null>(db.from("library_cards").select("*").eq("id", id).maybeSingle()),
-        holen<Fundstelle[]>(db.from("library_findings").select("*").eq("card_id", id).order("position")),
+        holen<Karte | null>(supabase.from("library_cards").select("*").eq("id", id).maybeSingle()),
+        holen<Fundstelle[]>(supabase.from("library_findings").select("*").eq("card_id", id).order("position")),
       ]);
       return { karte, fundstellen };
     },
@@ -233,13 +248,15 @@ export const useKarte = (id: string | undefined) =>
 export const useQuellen = () =>
   useQuery({
     queryKey: ["bibliothek", "quellen"],
-    queryFn: () => alle<Quelle>("library_sources", "*", (q) => q.order("title").order("id")),
+    queryFn: () => alle<Quelle>((von, bis) =>
+      supabase.from("library_sources").select("*", { count: "exact" }).order("title").order("id").range(von, bis)),
   });
 
 export const useTafeln = () =>
   useQuery({
     queryKey: ["bibliothek", "tafeln"],
-    queryFn: () => alle<Tafel>("library_plates", "*", (q) => q.order("id")),
+    queryFn: () => alle<Tafel>((von, bis) =>
+      supabase.from("library_plates").select("*", { count: "exact" }).order("id").range(von, bis)),
   });
 
 /** Welche Fundstelle auf welche Quelle oder Tafel verweist – für „zitiert in" und den Filter nach Darstellung. */
@@ -247,8 +264,10 @@ export const useVerweise = () =>
   useQuery({
     queryKey: ["bibliothek", "verweise"],
     queryFn: () =>
-      alle<Pick<Fundstelle, "card_id" | "source_id" | "plate_id" | "page" | "pointer_image" | "page_image">>(
-        "library_findings", "card_id, source_id, plate_id, page, pointer_image, page_image", (q) => q.order("id")
+      alle<Pick<Fundstelle, "card_id" | "source_id" | "plate_id" | "page" | "pointer_image" | "page_image">>((von, bis) =>
+        supabase.from("library_findings")
+          .select("card_id, source_id, plate_id, page, pointer_image, page_image", { count: "exact" })
+          .order("id").range(von, bis)
       ),
   });
 
@@ -256,7 +275,8 @@ export const useBilder = () =>
   useQuery({
     queryKey: ["bibliothek", "bilder"],
     queryFn: async () => {
-      const liste = await alle<Bild>("library_images", "path, width, height", (q) => q.order("path"));
+      const liste = await alle<Bild>((von, bis) =>
+        supabase.from("library_images").select("path, width, height", { count: "exact" }).order("path").range(von, bis));
       return new Map(liste.map((b) => [b.path, b]));
     },
   });
@@ -265,7 +285,7 @@ export const useSuche = (begriff: string) =>
   useQuery({
     queryKey: ["bibliothek", "suche", begriff],
     enabled: begriff.trim().length >= 2,
-    queryFn: () => holen<Treffer[]>(db.rpc("library_search", { _q: begriff })),
+    queryFn: () => holen<Treffer[]>(supabase.rpc("library_search", { _q: begriff })),
     placeholderData: (vorher) => vorher,
   });
 

@@ -42,18 +42,14 @@ export interface Nachweis {
   updated_at: string;
 }
 
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 export function useNachweisArten() {
   return useQuery({
     queryKey: ["nachweis-arten"],
     queryFn: async (): Promise<NachweisArt[]> => {
-      const { data, error } = await db.from("certificate_types").select("*").order("sort_order").order("label");
+      const { data, error } = await supabase.from("certificate_types").select("*").order("sort_order").order("label");
       if (error) throw new Error(error.message);
-      return (data ?? []) as NachweisArt[];
+      return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -63,9 +59,10 @@ export function useMeineNachweise(userId: string | undefined) {
   return useQuery({
     queryKey: ["nachweise", "meine", userId],
     queryFn: async (): Promise<Nachweis[]> => {
-      const { data, error } = await db.from("member_certificates").select("*").eq("user_id", userId);
+      if (!userId) return [];
+      const { data, error } = await supabase.from("member_certificates").select("*").eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Nachweis[];
+      return data ?? [];
     },
     enabled: !!userId,
   });
@@ -75,9 +72,9 @@ export function useAlleNachweise(enabled: boolean) {
   return useQuery({
     queryKey: ["nachweise", "alle"],
     queryFn: async (): Promise<Nachweis[]> => {
-      const { data, error } = await db.from("member_certificates").select("*").order("valid_until", { ascending: true, nullsFirst: false });
+      const { data, error } = await supabase.from("member_certificates").select("*").order("valid_until", { ascending: true, nullsFirst: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Nachweis[];
+      return data ?? [];
     },
     enabled,
   });

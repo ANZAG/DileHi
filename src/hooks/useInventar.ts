@@ -54,18 +54,15 @@ export const STATUS: Record<AusleihStatus, string> = {
   returned: "Zurück",
 };
 
-export const db = supabase as unknown as {
-  from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
-};
 
 export function useGegenstaende() {
   return useQuery({
     queryKey: ["inventar", "gegenstaende"],
     queryFn: async (): Promise<Gegenstand[]> => {
-      const { data, error } = await db.from("inventory_items").select("*").order("category").order("name");
+      const { data, error } = await supabase.from("inventory_items").select("*").order("category").order("name");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Gegenstand[];
+      // Zustand und Status sind in der Datenbank Text mit festem Wertevorrat.
+      return (data ?? []).map((g) => ({ ...g, condition: g.condition as Zustand }));
     },
   });
 }
@@ -75,9 +72,9 @@ export function useOffeneAusleihen() {
   return useQuery({
     queryKey: ["inventar", "ausleihen"],
     queryFn: async (): Promise<Ausleihe[]> => {
-      const { data, error } = await db.from("inventory_loans").select("*").neq("status", "returned").order("from_date");
+      const { data, error } = await supabase.from("inventory_loans").select("*").neq("status", "returned").order("from_date");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Ausleihe[];
+      return (data ?? []).map((a) => ({ ...a, status: a.status as AusleihStatus }));
     },
   });
 }

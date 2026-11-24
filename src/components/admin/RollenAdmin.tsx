@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useWoerter } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,6 @@ interface Role {
   permission_count: number;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function RollenAdmin() {
   const woerter = useWoerter();
@@ -53,9 +53,9 @@ export default function RollenAdmin() {
   const { data: rollen = [], isLoading } = useQuery({
     queryKey: ["role-status"],
     queryFn: async (): Promise<Role[]> => {
-      const { data, error } = await supabase.rpc("role_status" as never);
+      const { data, error } = await supabase.rpc("role_status");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Role[];
+      return data ?? [];
     },
   });
 
@@ -68,8 +68,8 @@ export default function RollenAdmin() {
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ key, werte }: { key: string; werte: Partial<Role> }) => {
-      const { error } = await db.from("role_catalog").update(werte).eq("key", key);
+    mutationFn: async ({ key, werte }: { key: string; werte: TablesUpdate<"role_catalog"> }) => {
+      const { error } = await supabase.from("role_catalog").update(werte).eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: erneuern,
@@ -79,7 +79,7 @@ export default function RollenAdmin() {
 
   const standardSetzen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("app_settings").update({ default_role: key }).eq("id", true);
+      const { error } = await supabase.from("app_settings").update({ default_role: key }).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -99,7 +99,7 @@ export default function RollenAdmin() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = rollen[rollen.length - 1]?.sort_order ?? 0;
-      const { error } = await db
+      const { error } = await supabase
         .from("role_catalog")
         .insert({ key, label, sort_order: letzte + 10 });
       if (error) throw new Error(error.message);
@@ -119,7 +119,7 @@ export default function RollenAdmin() {
 
   const loeschen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("role_catalog").delete().eq("key", key);
+      const { error } = await supabase.from("role_catalog").delete().eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { alsJson, ausJson } from "@/lib/json";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,15 +25,7 @@ export async function saveFormSettings(
   formId: string,
   patch: Record<string, unknown>
 ): Promise<void> {
-  // Der Aufruf ist noch ungetypt, weil types.ts erst nach dem Einspielen der
-  // Migration neu erzeugt wird. Nach der Neugenerierung kann die Zusicherung weg.
-  const { error } = await (supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>
-  ) => Promise<{ error: { code?: string; message: string } | null }>)(
-    "update_form_settings",
-    { _form_id: formId, _patch: patch }
-  );
+  const { error } = await supabase.rpc("update_form_settings", { _form_id: formId, _patch: alsJson(patch) });
 
   if (!error) return;
 
@@ -100,3 +93,29 @@ export function useFormSettings(formId: string | undefined, eventId: string | un
     },
   });
 }
+
+/**
+ * Was in event_forms.settings liegt. Die Spalte ist JSON; diese Liste ist die
+ * Summe dessen, was Baukasten, Auswertung und Kalender dort lesen. Alles ist
+ * freiwillig – ein älteres Formular hat davon nur einen Teil.
+ */
+export interface FormSettings {
+  opens_at?: string | null;
+  closes_at?: string | null;
+  group_link?: string;
+  /** Alter Schlüssel von group_link; wird nur noch gelesen. */
+  whatsapp_link?: string;
+  spacing_m?: number;
+  club_tents?: string[];
+  pool_tent_ids?: string[];
+  kitchen_lead?: string;
+  event_lead_id?: string;
+  program_items?: { point: string; person: string }[];
+  tent_positions?: Record<string, { x: number; y: number; rotated?: boolean }>;
+  map_image_path?: string | null;
+  map_scale?: number | null;
+}
+
+/** Die Einstellungen eines Formulars lesen; ohne Formular oder Inhalt leer. */
+export const readFormSettings = (form: { settings: Json } | null | undefined): FormSettings =>
+  ausJson<FormSettings | null>(form?.settings ?? null) ?? {};

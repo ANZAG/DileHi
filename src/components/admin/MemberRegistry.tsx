@@ -68,7 +68,7 @@ const MemberRegistry = () => {
     queryKey: ["role_catalog"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
+      return data ?? [];
     },
   });
 
@@ -385,7 +385,7 @@ const MemberRegistry = () => {
         body: { action: "reset_password", userId },
       });
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       toast({ title: "Passwort-Reset", description: `Reset-Link wurde an ${data?.email || "den Benutzer"} gesendet.` });
     },
     onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),

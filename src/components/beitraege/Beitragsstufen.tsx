@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export default function Beitragsstufen() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = stufen[stufen.length - 1]?.sort_order ?? 0;
-      const { error } = await (supabase as unknown as { from: (t: string) => any })
+      const { error } = await supabase
         .from("contribution_categories")
         .insert({ key, label, sort_order: letzte + 10 });
       if (error) throw new Error(error.message);
@@ -70,9 +71,10 @@ export default function Beitragsstufen() {
 
   const entfernen = useMutation({
     mutationFn: async (key: string) => {
-      const { data, error } = await supabase.rpc("remove_contribution_category" as never, { _key: key } as never);
+      const { data, error } = await supabase.rpc("remove_contribution_category", { _key: key });
       if (error) throw new Error(error.message);
-      return data as Ergebnis;
+      // Die Funktion antwortet mit JSON; seine Form steht in meldungen.ts.
+      return ausJson<Ergebnis>(data);
     },
     onSuccess: (ergebnis) => {
       alles();
@@ -90,7 +92,7 @@ export default function Beitragsstufen() {
 
   const wiederAnbieten = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await supabase.rpc("restore_contribution_category" as never, { _key: key } as never);
+      const { error } = await supabase.rpc("restore_contribution_category", { _key: key });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {

@@ -63,7 +63,7 @@ function formatAnswer(field: FormField, value: any): string {
     case "tent": {
       const tents = value?.tents;
       if (Array.isArray(tents) && tents.length > 0) {
-        return tents.map((t: any) => {
+        return tents.map((t) => {
           const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
           if (!type) return "Zelt (unbekannt)";
           const dim = type.shape === "circle" ? `Ø${t.diameter}m` : `${t.length}×${t.width}m`;
@@ -93,9 +93,11 @@ export default function EvalResponsesTable({
 
   const assign = useMutation({
     mutationFn: async ({ responseId, userId }: { responseId: string; userId: string | null }) => {
-      const { error } = await (supabase.rpc as any)("assign_response_to_member", {
+      const { error } = await supabase.rpc("assign_response_to_member", {
         _response_id: responseId,
-        _user_id: userId,
+        // null hebt die Zuordnung auf. Die Funktion nimmt das an; der erzeugte Typ
+        // kennt bei Funktionsargumenten kein null.
+        _user_id: userId as string,
       });
       if (error) throw error;
     },
@@ -104,7 +106,7 @@ export default function EvalResponsesTable({
       toast({ title: "Zuordnung gespeichert" });
       setOpenAssignId(null);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Fehler", description: err.message, variant: "destructive" });
     },
   });

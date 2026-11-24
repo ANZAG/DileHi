@@ -21,14 +21,7 @@ export function useAntragstexte(): Record<string, Antragstext> {
   const { data } = useQuery({
     queryKey: ["pdf-texts-oeffentlich"],
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => Promise<{
-            data: { key: string; title: string; body: string }[] | null;
-            error: { message: string } | null;
-          }>;
-        };
-      })
+      const { data, error } = await supabase
         .from("pdf_texts")
         .select("key, title, body");
       if (error) throw new Error(error.message);

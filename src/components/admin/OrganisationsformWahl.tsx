@@ -26,7 +26,6 @@ import { FORM_REIHENFOLGE } from "@/lib/einrichtungsprozess";
  * ändern will, nimmt das Häkchen weg.
  */
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 export default function OrganisationsformWahl({
   wert,
@@ -47,7 +46,7 @@ export default function OrganisationsformWahl({
   const vorhandene = useQuery({
     queryKey: ["module-keys"],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await db.from("app_modules").select("key");
+      const { data, error } = await supabase.from("app_modules").select("key");
       if (error) throw new Error(error.message);
       return (data ?? []).map((m: { key: string }) => m.key);
     },
@@ -60,7 +59,7 @@ export default function OrganisationsformWahl({
     mutationFn: async () => {
       // Nur diese eine Spalte. Die Maske drumherum hat ihren eigenen Entwurf;
       // ihn hier mitzuschreiben hiesse, halbfertige Eingaben zu speichern.
-      const { error } = await db.from("app_settings").update({ org_form: wahl }).eq("id", true);
+      const { error } = await supabase.from("app_settings").update({ org_form: wahl }).eq("id", true);
       if (error) throw new Error(error.message);
 
       if (moduleAnpassen) {
@@ -70,7 +69,7 @@ export default function OrganisationsformWahl({
           [wirkung.aus, false],
         ] as const) {
           for (const key of keys) {
-            await db.from("app_modules").update({ enabled }).eq("key", key);
+            await supabase.from("app_modules").update({ enabled }).eq("key", key);
           }
         }
       }

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 
 /**
  * Wie der Verein Beiträge erhebt.
@@ -34,12 +35,12 @@ export function useBeitragsmodell(): Beitragseinstellungen {
   const { data } = useQuery({
     queryKey: ["beitragsmodell"],
     queryFn: async (): Promise<Beitragseinstellungen> => {
-      const { data, error } = await supabase.rpc("public_contribution_settings" as never);
+      const { data, error } = await supabase.rpc("public_contribution_settings");
       if (error) throw new Error(error.message);
-      const zeile = (data as { model: string; options: unknown }[] | null)?.[0];
+      const zeile = data?.[0];
       if (!zeile) return VORGABE;
 
-      const arten = Array.isArray(zeile.options) ? (zeile.options as Mitgliedsart[]) : [];
+      const arten = Array.isArray(zeile.options) ? ausJson<Mitgliedsart[]>(zeile.options) : [];
       return {
         modell: (["fest", "umlage", "keiner"] as const).includes(zeile.model as Beitragsmodell)
           ? (zeile.model as Beitragsmodell)

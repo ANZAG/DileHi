@@ -97,7 +97,7 @@ const Sources = () => {
   const { data: fileStorage = "supabase" } = useQuery({
     queryKey: ["file-storage"],
     queryFn: async () => {
-      const { data } = await (supabase as unknown as { from: (t: string) => any })
+      const { data } = await supabase
         .from("app_settings").select("file_storage").maybeSingle();
       return ((data?.file_storage as string | undefined) ?? "supabase") as "supabase" | "sharepoint";
     },
@@ -126,7 +126,7 @@ const Sources = () => {
         .eq("epoch", activeEpoch)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as SourceRow[];
+      return data ?? [];
     },
   });
 
@@ -483,7 +483,7 @@ const Sources = () => {
       toast({ title: "Quelle nicht gefunden", variant: "destructive" });
       return;
     }
-    await previewSourceFile({ ...(data as SourceRow), title: `${data.title} – PDF-Seite ${seite}` });
+    await previewSourceFile({ ...data, title: `${data.title} – PDF-Seite ${seite}` });
   };
 
   const searchResults = search

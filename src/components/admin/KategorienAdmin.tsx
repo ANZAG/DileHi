@@ -15,7 +15,6 @@ interface Kategorie {
   sort_order: number;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Kategorien für Galerien, Quellen und Besucher-Highlights.
@@ -37,9 +36,10 @@ export default function KategorienAdmin() {
   const { data: kategorien = [], isLoading } = useQuery({
     queryKey: ["site-categories"],
     queryFn: async () => {
-      const { data, error } = await db.from("site_categories").select("*").order("sort_order");
+      const { data, error } = await supabase.from("site_categories").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Kategorie[];
+      const zeilen: Kategorie[] = data ?? [];
+      return zeilen;
     },
   });
 
@@ -55,7 +55,7 @@ export default function KategorienAdmin() {
       ]);
       const zaehler: Record<string, number> = {};
       for (const zeile of [...(galerien.data ?? []), ...(quellen.data ?? []), ...(highlights.data ?? [])]) {
-        const k = (zeile as { epoch?: string }).epoch;
+        const k = zeile.epoch;
         if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
       }
       return zaehler;
@@ -73,7 +73,7 @@ export default function KategorienAdmin() {
         .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
       if (!key) throw new Error("Bitte einen Namen eingeben.");
-      const { error } = await db.from("site_categories").insert({
+      const { error } = await supabase.from("site_categories").insert({
         key,
         label: neuLabel.trim(),
         sort_order: (kategorien[kategorien.length - 1]?.sort_order ?? 0) + 10,
@@ -93,7 +93,7 @@ export default function KategorienAdmin() {
 
   const umbenennen = useMutation({
     mutationFn: async ({ key, label }: { key: string; label: string }) => {
-      const { error } = await db.from("site_categories").update({ label }).eq("key", key);
+      const { error } = await supabase.from("site_categories").update({ label }).eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => { setBearbeitet(null); frisch(); },
@@ -101,7 +101,7 @@ export default function KategorienAdmin() {
 
   const entfernen = useMutation({
     mutationFn: async (key: string) => {
-      const { error } = await db.from("site_categories").delete().eq("key", key);
+      const { error } = await supabase.from("site_categories").delete().eq("key", key);
       if (error) throw new Error(error.message);
     },
     onSuccess: frisch,

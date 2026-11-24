@@ -66,7 +66,6 @@ interface Einstellungen {
   bank_bic: string | null;
 }
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Die Felder, die diese Maske pflegt — und nur die.
@@ -126,9 +125,15 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
   const { data, isLoading } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("app_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Einstellungen;
+      // Ablage und Art des Bescheids sind in der Datenbank Text mit festem Wertevorrat.
+      const zeile: Einstellungen | null = data && {
+        ...data,
+        file_storage: data.file_storage as Einstellungen["file_storage"],
+        exemption_notice_kind: data.exemption_notice_kind as Einstellungen["exemption_notice_kind"],
+      };
+      return zeile;
     },
   });
 
@@ -154,11 +159,14 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       }
       // Aus dem Entwurf nur die eigenen Felder – siehe FELDER oben. Die
       // Dateiablage ist schon oben durch die Edge Function gegangen.
-      const patch = Object.fromEntries(
-        FELDER.filter((f) => f !== "file_storage" && f !== "sharepoint_site_url")
-          .map((f) => [f, (rest as Einstellungen)[f]])
-      );
-      const { error } = await db.from("app_settings").update(patch).eq("id", true);
+      // Feld für Feld statt Object.fromEntries: So bleibt je Spalte ihr Typ
+      // erhalten, und der Compiler prüft das Ganze gegen die Tabelle.
+      const patch: Partial<Einstellungen> = {};
+      const uebernehmen = <K extends keyof typeof rest>(f: K) => { patch[f] = rest[f]; };
+      for (const f of FELDER) {
+        if (f !== "file_storage" && f !== "sharepoint_site_url") uebernehmen(f);
+      }
+      const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -209,8 +217,8 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // fand die Datei im Speicher, den Verweis darauf aber nirgends. Genau
       // eine Spalte wird geschrieben, damit andere offene Änderungen im
       // Formular davon unberührt bleiben.
-      const { error: speicherFehler } = await db
-        .from("app_settings").update({ [spalte]: pfad }).eq("id", true);
+      const { error: speicherFehler } = await supabase
+        .from("app_settings").update(art === "logo" ? { logo_path: pfad } : { favicon_path: pfad }).eq("id", true);
       if (speicherFehler) throw new Error(speicherFehler.message);
 
       queryClient.invalidateQueries({ queryKey: ["app-settings"] });
@@ -232,7 +240,8 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     if (!entwurf) return;
     const spalte = art === "logo" ? "logo_path" : "favicon_path";
     setEntwurf({ ...entwurf, [spalte]: null });
-    const { error } = await db.from("app_settings").update({ [spalte]: null }).eq("id", true);
+    const { error } = await supabase.from("app_settings")
+      .update(art === "logo" ? { logo_path: null } : { favicon_path: null }).eq("id", true);
     if (error) {
       toast({ title: "Nicht entfernt", description: error.message, variant: "destructive" });
       return;

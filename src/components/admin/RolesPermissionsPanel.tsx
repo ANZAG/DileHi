@@ -26,7 +26,7 @@ const RolesPermissionsPanel = () => {
     queryKey: ["role_catalog"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
+      return data ?? [];
     },
   });
 
@@ -34,7 +34,7 @@ const RolesPermissionsPanel = () => {
     queryKey: ["permission_catalog"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_permission_catalog");
-      return (data ?? []) as { key: string; label: string; category: string }[];
+      return data ?? [];
     },
   });
 
@@ -45,18 +45,13 @@ const RolesPermissionsPanel = () => {
     // gibt, entscheidet der Verein. Vorher stand hier eine Aufzaehlung unserer
     // sechs Aemter, die jede neue Rolle abgelehnt haette.
     mutationFn: async ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) => {
-      // Die erzeugte types.ts fuehrt role_permissions.role noch als
-      // Aufzaehlungstyp – der ist in der Datenbank inzwischen weg. Bis zur
-      // naechsten Neugenerierung der Typen die Zusicherung, sonst lehnt der
-      // Compiler jede selbst angelegte Rolle ab.
-      const db = supabase as unknown as { from: (t: string) => any };
       if (granted) {
-        const { error } = await db
+        const { error } = await supabase
           .from("role_permissions")
           .insert({ role, permission, granted: true });
         if (error) throw error;
       } else {
-        const { error } = await db
+        const { error } = await supabase
           .from("role_permissions")
           .delete()
           .eq("role", role)

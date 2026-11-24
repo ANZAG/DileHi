@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useModule, type ModuleState } from "@/hooks/useModule";
 
-const db = supabase as unknown as { from: (t: string) => any };
 
 /**
  * Kacheln oder Liste.
@@ -82,7 +81,7 @@ export default function ModuleAdmin() {
 
   const schalten = useMutation({
     mutationFn: async (m: ModuleState) => {
-      const { error } = await db.from("app_modules")
+      const { error } = await supabase.from("app_modules")
         .update({ enabled: !m.enabled }).eq("key", m.key);
       if (error) throw new Error(error.message);
     },
