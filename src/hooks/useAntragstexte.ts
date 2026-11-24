@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { aufnahmeSchluessel, ladeAntragstexte } from "@/daten/aufnahme";
 
 export interface Antragstext {
   title: string;
@@ -19,16 +19,8 @@ export interface Antragstext {
  */
 export function useAntragstexte(): Record<string, Antragstext> {
   const { data } = useQuery({
-    queryKey: ["pdf-texts-oeffentlich"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pdf_texts")
-        .select("key, title, body");
-      if (error) throw new Error(error.message);
-      return Object.fromEntries(
-        (data ?? []).map((z) => [z.key, { title: z.title, body: z.body }])
-      );
-    },
+    queryKey: aufnahmeSchluessel.texteNachKennung(),
+    queryFn: ladeAntragstexte,
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

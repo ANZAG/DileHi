@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ankuendigungSchluessel } from "@/daten/ankuendigungen";
+import { aufnahmeSchluessel } from "@/daten/aufnahme";
 import { auslagenSchluessel } from "@/daten/auslagen";
 import { beitragsstufenSchluessel } from "@/daten/beitragsstufen";
 import { benachrichtigungSchluessel } from "@/daten/benachrichtigungen";
@@ -24,6 +25,7 @@ import { rollenSchluessel } from "@/daten/rollen";
 import { sprachSchluessel } from "@/daten/sprachen";
 import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
+import { websiteSchluessel } from "@/daten/website";
 import { zuwendungSchluessel } from "@/daten/zuwendungen";
 
 /**
@@ -48,6 +50,7 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     dateien: [
       "src/pages/intern/Elections.tsx",
       "src/components/admin/AuditLogPanel.tsx",
+      "src/components/admin/ContactMessages.tsx",
       ...quelltexte("src/components/elections"),
     ],
   },
@@ -62,6 +65,7 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       ...quelltexte("src/components/event-forms"),
       ...quelltexte("src/components/evaluation"),
       "src/pages/intern/Auswertungen.tsx",
+      "src/components/admin/FormTemplateAdmin.tsx",
     ],
   },
   {
@@ -71,6 +75,7 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       "src/components/admin/MemberRegistry.tsx",
       "src/components/admin/ProfilfelderAdmin.tsx",
       "src/hooks/useProfilfelder.ts",
+      "src/components/admin/MitgliederImport.tsx",
       "src/pages/intern/Profile.tsx",
       "src/pages/intern/Contributions.tsx",
       "src/pages/intern/MemberMap.tsx",
@@ -197,6 +202,31 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
     dateien: ["src/components/admin/KategorienAdmin.tsx", "src/hooks/useKategorien.ts"],
   },
   {
+    // Menü, Galerie, Bilder, Kontaktnachrichten. Die Seiten selbst und die
+    // Bausteine (components/sitebuilder) sind noch nicht umgezogen.
+    name: "website",
+    schluessel: websiteSchluessel,
+    dateien: [
+      "src/components/admin/MenueAdmin.tsx",
+      "src/components/admin/GalleryAdmin.tsx",
+      "src/components/admin/SitePagesAdmin.tsx",
+      "src/pages/intern/SeitenEditor.tsx",
+      "src/hooks/useSiteMenu.ts",
+      "src/hooks/useSiteImage.ts",
+    ],
+  },
+  {
+    name: "aufnahme",
+    schluessel: aufnahmeSchluessel,
+    dateien: [
+      "src/components/admin/MemberApplicationsAdmin.tsx",
+      "src/components/admin/AntragsfelderAdmin.tsx",
+      "src/components/admin/VorlagenAdmin.tsx",
+      "src/hooks/useAntragsfelder.ts",
+      "src/hooks/useAntragstexte.ts",
+    ],
+  },
+  {
     name: "ankuendigungen",
     schluessel: ankuendigungSchluessel,
     dateien: ["src/pages/intern/Announcements.tsx"],
@@ -281,8 +311,15 @@ function wurzeln(schluessel: Schluesselsatz): string[] {
  * Die öffentliche Anmeldeseite liest die Zelte des Mitglieds selbst, mit
  * derselben Abfrage wie `ladeZelte`. Sie wird gerade an anderer Stelle
  * umgebaut; bis sie umzieht, teilt sie sich den Eintrag mit dem Profil.
+ *
+ * Der Galerie-Baustein liest seine Bilder je Kategorie selbst. Der Baukasten
+ * ist noch nicht umgezogen; die Galerieverwaltung macht seine Listen über
+ * denselben Anfang ungültig.
  */
-const AUSNAHMEN = ["src/pages/EventRegistration.tsx: member_tents"];
+const AUSNAHMEN = [
+  "src/components/sitebuilder/bausteine.tsx: gallery_images",
+  "src/pages/EventRegistration.tsx: member_tents",
+];
 
 describe.each(BEREICHE)("Bereich $name", ({ schluessel, dateien }) => {
   it("nennt Dateien, die es gibt", () => {

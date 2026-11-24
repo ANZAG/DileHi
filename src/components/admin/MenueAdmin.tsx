@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereMenuepunkt, ladeMenuezeilen, legeMenuepunktAn, loescheMenuepunkt, websiteSchluessel,
+} from "@/daten/website";
 import { aendereEinstellungen, einstellungSchluessel, useEinstellungen } from "@/daten/einstellungen";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
@@ -86,32 +88,25 @@ export default function MenueAdmin() {
   const aktiv = BEREICHE.find((b) => b.id === bereich) ?? BEREICHE[0];
 
   const { data: alle = [], isLoading } = useQuery({
-    queryKey: ["site-menu-admin"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("site_menu").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      // Der Bereich ist in der Datenbank Text mit festem Wertevorrat.
-      const zeilen: Eintrag[] = (data ?? []).map((e) => ({ ...e, area: e.area as MenuBereich }));
-      return zeilen;
-    },
+    queryKey: websiteSchluessel.menuezeilen(),
+    // Der Bereich ist in der Datenbank Text mit festem Wertevorrat.
+    queryFn: async (): Promise<Eintrag[]> =>
+      (await ladeMenuezeilen()).map((e) => ({ ...e, area: e.area as MenuBereich })),
   });
 
-  const { data: seiten = [] } = useQuery({ queryKey: ["site-pages"], queryFn: fetchPages });
+  const { data: seiten = [] } = useQuery({ queryKey: websiteSchluessel.seiten(), queryFn: fetchPages });
 
   // Nur die Einträge des offenen Reiters. Fehlt die Spalte noch (Migration
   // nicht eingespielt), zählt alles zur Kopfzeile – wie vorher.
   const eintraege = alle.filter((e) => (e.area ?? "header") === bereich);
 
   const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["site-menu-admin"] });
-    queryClient.invalidateQueries({ queryKey: ["site-menu"] });
+    // Die Zeilen der Verwaltung und das fertige Menü der Seite.
+    queryClient.invalidateQueries({ queryKey: websiteSchluessel.menue() });
   };
 
   const aendern = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<"site_menu"> }) => {
-      const { error } = await supabase.from("site_menu").update(patch).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: ({ id, patch }: { id: string; patch: TablesUpdate<"site_menu"> }) => aendereMenuepunkt(id, patch),
     onSuccess: frisch,
     onError: (err: Error) => toast({ title: "Ging nicht", description: err.message, variant: "destructive" }),
   });
@@ -122,7 +117,7 @@ export default function MenueAdmin() {
       // die Prüfbedingung in der Datenbank lässt nichts anderes zu.
       const istSeite = neuZiel.startsWith("seite:");
       const oben = eintraege.filter((e) => !e.parent_id);
-      const { error } = await supabase.from("site_menu").insert({
+      await legeMenuepunktAn({
         label: neuLabel.trim(),
         page_id: istSeite ? neuZiel.slice(6) : null,
         href: istSeite ? null : neuZiel.trim(),
@@ -130,7 +125,6 @@ export default function MenueAdmin() {
         area: bereich,
         sort_order: (oben[oben.length - 1]?.sort_order ?? 0) + 10,
       });
-      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       setNeuOffen(false);
@@ -144,10 +138,7 @@ export default function MenueAdmin() {
   });
 
   const entfernen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("site_menu").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: loescheMenuepunkt,
     onSuccess: frisch,
   });
 

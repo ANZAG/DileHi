@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { aufnahmeSchluessel, entscheideAntrag, ladeAntraege } from "@/daten/aufnahme";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
@@ -85,16 +85,8 @@ const MemberApplicationsAdmin = () => {
   >(null);
 
   const { data: applications = [], isLoading } = useQuery({
-    queryKey: ["membership_applications"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("membership_applications")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const zeilen: Application[] = data ?? [];
-      return zeilen;
-    },
+    queryKey: aufnahmeSchluessel.antraege(),
+    queryFn: (): Promise<Application[]> => ladeAntraege(),
   });
 
   const pending = applications.filter((a) => a.status === "pending");
@@ -109,15 +101,11 @@ const MemberApplicationsAdmin = () => {
       });
 
       // Mark application as approved
-      const { error: updateErr } = await supabase
-        .from("membership_applications")
-        .update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-        .eq("id", app.id);
-      if (updateErr) throw updateErr;
+      await entscheideAntrag(app.id, { status: "approved", von: user?.id });
       return antwort;
     },
     onSuccess: (antwort, app) => {
-      queryClient.invalidateQueries({ queryKey: ["membership_applications"] });
+      queryClient.invalidateQueries({ queryKey: aufnahmeSchluessel.antraege() });
       queryClient.invalidateQueries({ queryKey: mitgliedSchluessel.liste() });
       setSelected(null);
       if (antwort?.einladung) {
@@ -142,19 +130,10 @@ const MemberApplicationsAdmin = () => {
 
   const rejectMutation = useMutation({
     mutationFn: async (app: Application) => {
-      const { error } = await supabase
-        .from("membership_applications")
-        .update({
-          status: "rejected",
-          reviewed_by: user?.id,
-          reviewed_at: new Date().toISOString(),
-          review_notes: rejectNotes || null,
-        })
-        .eq("id", app.id);
-      if (error) throw error;
+      await entscheideAntrag(app.id, { status: "rejected", von: user?.id, vermerk: rejectNotes || null });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["membership_applications"] });
+      queryClient.invalidateQueries({ queryKey: aufnahmeSchluessel.antraege() });
       setSelected(null);
       setShowReject(false);
       setRejectNotes("");

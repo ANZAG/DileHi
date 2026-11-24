@@ -59,6 +59,8 @@ export const veranstaltungSchluessel = {
   anmeldungen: (formId: string | undefined) => ["veranstaltungen", "anmeldungen", formId] as const,
   meineAnmeldungen: () => ["veranstaltungen", "meine-anmeldungen"] as const,
   meineAnmeldungenVon: (userId: string | undefined) => ["veranstaltungen", "meine-anmeldungen", userId] as const,
+  /** Die Standardvorlage für Anmeldeformulare. */
+  formularvorlage: () => ["veranstaltungen", "formularvorlage"] as const,
   /** Die Termine, deren Auswertung jemand sehen darf – je Mitglied und danach, ob es alle sieht. */
   auswertungen: (userId: string | undefined, alle: boolean) =>
     ["veranstaltungen", "auswertungen", userId, alle] as const,

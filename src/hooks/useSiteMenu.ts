@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeMenuezeilen, ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
 import { vorabzug } from "@/lib/vorabzug";
 
 export interface MenuEintrag {
@@ -117,26 +117,14 @@ function menueBauen(zeilen: Zeile[], seiten: Map<string, string>): Record<MenuBe
  */
 export function useSiteMenu(bereich: MenuBereich = "header"): MenuEintrag[] {
   const { data } = useQuery({
-    queryKey: ["site-menu"],
+    queryKey: websiteSchluessel.menueFertig(),
     queryFn: async (): Promise<Record<MenuBereich, MenuEintrag[]>> => {
-      const { data, error } = await supabase
-        .from("site_menu")
-        .select("*")
-        .order("sort_order");
-      if (error) throw new Error(error.message);
+      const data = await ladeMenuezeilen();
 
-      const zeilen = (data ?? []).filter((z) => z.is_visible);
-      const seiten = new Map<string, string>();
-
+      const zeilen = data.filter((z) => z.is_visible);
       // Verweise auf Seiten in Adressen auflösen.
       const seitenIds = zeilen.map((z) => z.page_id).filter((v): v is string => !!v);
-      if (seitenIds.length > 0) {
-        const { data: pages } = await supabase
-          .from("site_pages")
-          .select("id, slug")
-          .in("id", seitenIds);
-        for (const p of pages ?? []) seiten.set(p.id, `/${p.slug}`);
-      }
+      const seiten = await ladeSeitenadressen(seitenIds);
 
       return menueBauen(zeilen, seiten);
     },
