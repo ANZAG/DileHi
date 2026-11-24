@@ -215,7 +215,9 @@ set search_path to 'public'
 as $$
   select coalesce(array_agg(distinct t.lang order by t.lang), '{}')
   from public.site_page_translations t
-  join public.site_pages p on p.id = t.page_id and p.is_published;
+  join public.site_pages p on p.id = t.page_id and p.is_published
+  -- Ohne übersetzte Bausteine zeigt die Seite das Deutsche: keine Fassung.
+  where t.content is not null;
 $$;
 
 grant execute on function public.site_languages() to anon, authenticated, service_role;

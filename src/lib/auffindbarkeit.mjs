@@ -12,7 +12,7 @@
  * auffindbarkeit.d.mts.
  */
 
-import { seitentexte } from "./sprachen.mjs";
+import { seitentexte, sprachPfad } from "./sprachen.mjs";
 
 /** Die Startseite liegt unter der blanken Adresse, nicht unter /startseite. */
 export function pfadVon(slug) {
@@ -249,8 +249,11 @@ export function seitenBeschreibung(seite, marke) {
  * Web-Adresse des Vereins – weiss die Anwendung aus den Vereinsangaben besser
  * als der Mensch vor dem Formular. In der Seitenverwaltung wird nur gewählt,
  * um welche Art Seite es sich handelt.
+ *
+ * `seite` und `marke` kommen schon in der Sprache herein, in der die Seite
+ * dasteht; `sprache` braucht es nur für ihre Adresse.
  */
-export function strukturierteDaten(seite, marke) {
+export function strukturierteDaten(seite, marke, sprache = "de") {
   if (seite?.seo_type === "keine") return undefined;
 
   const web = basisVon(marke);
@@ -269,7 +272,8 @@ export function strukturierteDaten(seite, marke) {
       addressCountry: marke.org_country ?? "DE",
     }
     : undefined;
-  const adresse = web ? `${web}${pfadVon(seite?.slug)}` : undefined;
+  // Die Adresse der Sprachfassung, um die es geht – nicht die des Originals.
+  const adresse = web ? `${web}${sprachPfad(pfadVon(seite?.slug), sprache)}` : undefined;
   const name = !leer(seite?.seo_title) ? seite.seo_title : seite?.title;
 
   switch (seite?.seo_type) {

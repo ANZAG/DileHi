@@ -38,7 +38,7 @@ export function seitenInhalt(daten: unknown): {
 export function kuerzen(text: string | null | undefined, hoechstens?: number): string | undefined;
 export function seitenTitel(seite: Seite, marke: Marke | null | undefined): string;
 export function seitenBeschreibung(seite: Seite, marke: Marke | null | undefined): string | undefined;
-export function strukturierteDaten(seite: Seite, marke: Marke | null | undefined): Record<string, unknown> | undefined;
+export function strukturierteDaten(seite: Seite, marke: Marke | null | undefined, sprache?: string): Record<string, unknown> | undefined;
 export function kontaktSeite(marke: Marke | null | undefined, sprache?: string): {
   titel: string;
   beschreibung: string;
