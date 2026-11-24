@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { kategorieSchluessel } from "@/daten/kategorien";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 
@@ -77,9 +78,9 @@ describe("Kategorien auffrischen", () => {
 
   it("frischt auch die Liste in der Verwaltung auf", () => {
     const qc = new QueryClient();
-    qc.setQueryData(["site-categories"], []);
+    qc.setQueryData(kategorieSchluessel.liste(), []);
     kategorienAktualisieren(qc);
-    expect(qc.getQueryState(["site-categories"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(kategorieSchluessel.liste())?.isInvalidated).toBe(true);
   });
 
   it("wird von der Kategorienverwaltung auch benutzt", async () => {

@@ -1,15 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck, ShieldCheck } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeTeilnehmerNachweise, nachweisSchluessel, type TeilnehmerNachweis } from "@/daten/nachweise";
 
 
-interface Zeile {
-  user_id: string;
-  label: string;
-  valid_until: string | null;
-  verified: boolean;
-}
+type Zeile = TeilnehmerNachweis;
 
 /**
  * Wer von den Zusagen welchen Nachweis hat – am Tag der Veranstaltung gültig.
@@ -27,13 +22,9 @@ export default function TeilnehmerNachweise({ eventId, namen }: {
   const an = moduleOn(module, "certificates");
 
   const { data: zeilen = [] } = useQuery({
-    queryKey: ["event-attendee-certificates", eventId],
-    queryFn: async (): Promise<Zeile[]> => {
-      const { data, error } = await supabase.rpc("event_attendee_certificates", { _event_id: eventId });
-      // Fehlt die Funktion (Migration noch nicht eingespielt), einfach nichts zeigen.
-      if (error) return [];
-      return data ?? [];
-    },
+    queryKey: nachweisSchluessel.veranstaltung(eventId),
+    // Fehlt die Funktion (Migration noch nicht eingespielt), einfach nichts zeigen.
+    queryFn: () => ladeTeilnehmerNachweise(eventId).catch((): Zeile[] => []),
     enabled: an,
     staleTime: 60 * 1000,
   });

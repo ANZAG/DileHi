@@ -12,8 +12,8 @@ import {
 } from "@/hooks/useBibliothek";
 import { useBibliotheksrechte } from "@/hooks/useBibliothek";
 import { DATIERUNG, LAGE, RECHTE, type Rechte } from "@/lib/bibliothek";
-import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import { bibliothekSchluessel, ladeQuellensammlungKurz, verknuepfeQuelle } from "@/daten/bibliothek";
+import { epochenSchluessel, ladeAlleEpochenquellen } from "@/daten/epochen";
 
 const KRUMEN = [{ label: "Wissensbibliothek", to: "/intern/bibliothek" }];
 const ALLE = "__alle__";
@@ -180,26 +180,17 @@ function Verbindungen({ quelle }: { quelle: { id: string; collection_source_id: 
   const qc = useQueryClient();
 
   const { data: sammlung = [] } = useQuery({
-    queryKey: ["bibliothek", "quellensammlung"],
-    queryFn: async () => {
-      const { data } = await supabase.from("sources").select("id, title, epoch").order("title");
-      return data ?? [];
-    },
+    queryKey: bibliothekSchluessel.quellensammlung(),
+    queryFn: ladeQuellensammlungKurz,
   });
   const { data: oeffentlich = [] } = useQuery({
-    queryKey: ["bibliothek", "epochenquellen"],
-    queryFn: async () => {
-      const { data } = await supabase.from("epoch_sources").select("id, text, epoch").order("sort_order");
-      return data ?? [];
-    },
+    queryKey: epochenSchluessel.alleQuellen(),
+    queryFn: ladeAlleEpochenquellen,
   });
 
   const setzen = useMutation({
-    mutationFn: async (werte: Pick<TablesUpdate<"library_sources">, "collection_source_id" | "public_source_id">) => {
-      const { error } = await supabase.from("library_sources").update(werte).eq("id", quelle.id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["bibliothek", "quellen"] }),
+    mutationFn: (werte: Parameters<typeof verknuepfeQuelle>[1]) => verknuepfeQuelle(quelle.id, werte),
+    onSuccess: () => qc.invalidateQueries({ queryKey: bibliothekSchluessel.quellen() }),
     onError: (e: Error) => toast({ title: "Nicht gespeichert", description: e.message, variant: "destructive" }),
   });
 

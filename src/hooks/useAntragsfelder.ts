@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { aufnahmeSchluessel, ladeAntragsfelder } from "@/daten/aufnahme";
 import { ausJson } from "@/lib/json";
 import type { FormField } from "@/components/event-forms/types";
 
@@ -26,18 +26,14 @@ export const ANTRAG_FELDTYPEN = [
 
 export function useAntragsfelder() {
   return useQuery({
-    queryKey: ["application-fields"],
-    queryFn: async (): Promise<Antragsfeld[]> => {
-      const { data, error } = await supabase
-        .from("application_fields").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((f) => ({
+    queryKey: aufnahmeSchluessel.felder(),
+    queryFn: async (): Promise<Antragsfeld[]> =>
+      (await ladeAntragsfelder()).map((f) => ({
         ...f,
         // Postgres gibt jsonb zurueck; der Renderer erwartet ein Array.
         options: Array.isArray(f.options) ? ausJson<string[]>(f.options) : [],
         settings: ausJson<FormField["settings"] | null>(f.settings) ?? {},
-      }));
-    },
+      })),
     staleTime: 5 * 60 * 1000,
   });
 }

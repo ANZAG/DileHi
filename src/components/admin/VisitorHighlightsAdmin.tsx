@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereBesucherpunkt, epochenSchluessel, ladeBesucherpunkte, legeBesucherpunktAn, loescheBesucherpunkt, sortiereBesucherpunkte,
+} from "@/daten/epochen";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Pencil, Check, X } from "lucide-react";
@@ -20,25 +22,14 @@ const VisitorHighlightsAdmin = () => {
   const [editText, setEditText] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["epoch_visitor_items_admin", selectedEpoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("epoch_visitor_items")
-        .select("*")
-        .eq("epoch", selectedEpoch)
-        .order("sort_order", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: epochenSchluessel.besucherpunkte(selectedEpoch),
+    queryFn: () => ladeBesucherpunkte(selectedEpoch),
   });
 
   const addMutation = useMutation({
     mutationFn: async () => {
       const maxOrder = items.length > 0 ? Math.max(...items.map((s) => s.sort_order)) + 1 : 1;
-      const { error } = await supabase
-        .from("epoch_visitor_items")
-        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
-      if (error) throw error;
+      await legeBesucherpunktAn({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
     },
     onSuccess: () => {
       setNewText("");
@@ -49,10 +40,7 @@ const VisitorHighlightsAdmin = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("epoch_visitor_items").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: loescheBesucherpunkt,
     onSuccess: () => {
       invalidate();
       toast({ title: "Stichpunkt gelöscht" });
@@ -60,10 +48,7 @@ const VisitorHighlightsAdmin = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, text }: { id: string; text: string }) => {
-      const { error } = await supabase.from("epoch_visitor_items").update({ text }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, text }: { id: string; text: string }) => aendereBesucherpunkt(id, text),
     onSuccess: () => {
       setEditingId(null);
       invalidate();
@@ -73,22 +58,14 @@ const VisitorHighlightsAdmin = () => {
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async (reordered: { id: string; sort_order: number }[]) => {
-      for (const item of reordered) {
-        const { error } = await supabase
-          .from("epoch_visitor_items")
-          .update({ sort_order: item.sort_order })
-          .eq("id", item.id);
-        if (error) throw error;
-      }
-    },
+    mutationFn: sortiereBesucherpunkte,
     onSuccess: () => invalidate(),
     onError: () => toast({ title: "Fehler beim Sortieren", variant: "destructive" }),
   });
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["epoch_visitor_items_admin", selectedEpoch] });
-    queryClient.invalidateQueries({ queryKey: ["epoch_visitor_items", selectedEpoch] });
+    // Öffentliche Seite und Verwaltung lesen dieselbe Liste.
+    queryClient.invalidateQueries({ queryKey: epochenSchluessel.besucherpunkte(selectedEpoch) });
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -97,7 +74,7 @@ const VisitorHighlightsAdmin = () => {
     const [moved] = list.splice(result.source.index, 1);
     list.splice(result.destination.index, 0, moved);
     const reordered = list.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }));
-    queryClient.setQueryData(["epoch_visitor_items_admin", selectedEpoch], list.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
+    queryClient.setQueryData(epochenSchluessel.besucherpunkte(selectedEpoch), list.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
     reorderMutation.mutate(reordered);
   };
 

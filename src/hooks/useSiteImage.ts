@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { useRahmentexte } from "@/hooks/useSprache";
 import { useQuery } from "@tanstack/react-query";
+import { useRahmentexte } from "@/hooks/useSprache";
 import { supabase } from "@/integrations/supabase/client";
+import { ladeSeitenbilder, websiteSchluessel } from "@/daten/website";
 import { vorabzug } from "@/lib/vorabzug";
 import type { GespeichertesBild } from "@/components/SpeicherBild";
 
@@ -43,12 +44,9 @@ export function useSiteImages() {
   );
   return useQuery({
     select: inSprache,
-    queryKey: ["site_images"],
+    queryKey: websiteSchluessel.bilder(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("site_images")
-        .select("*");
-      if (error) return {} as Record<string, SiteImageData>;
+      const data = await ladeSeitenbilder();
 
       const map: Record<string, SiteImageData> = {};
       for (const img of data) {

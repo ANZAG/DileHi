@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ export default function FormTemplateAdmin() {
   const queryClient = useQueryClient();
 
   const { data: template, isLoading } = useQuery({
-    queryKey: ["form_template_default"],
+    queryKey: veranstaltungSchluessel.formularvorlage(),
     queryFn: fetchDefaultTemplate,
   });
 
@@ -47,7 +48,7 @@ export default function FormTemplateAdmin() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["form_template_default"] });
+      queryClient.invalidateQueries({ queryKey: veranstaltungSchluessel.formularvorlage() });
       setDirty(false);
       toast({ title: "Vorlage gespeichert", description: "Neue Formulare übernehmen diese Vorlage." });
     },

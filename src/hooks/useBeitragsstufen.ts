@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { beitragsstufenSchluessel, ladeBeitragsstufen, ladeBeitragsstufenStatus } from "@/daten/beitragsstufen";
 
 /**
  * Die Beitragsstufen: „Aktives Mitglied“, „Student“, „Rentner“.
@@ -44,15 +44,8 @@ export interface BeitragsstufeStatus extends Beitragsstufe {
 
 export function useBeitragsstufen() {
   const { data } = useQuery({
-    queryKey: ["beitragsstufen"],
-    queryFn: async (): Promise<Beitragsstufe[]> => {
-      const { data, error } = await supabase
-        .from("contribution_categories")
-        .select("key, label, description, sort_order, is_active, removed_from")
-        .order("sort_order");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: beitragsstufenSchluessel.stufen(),
+    queryFn: ladeBeitragsstufen,
     staleTime: 10 * 60 * 1000,
   });
   return data ?? [];
@@ -60,12 +53,8 @@ export function useBeitragsstufen() {
 
 export function useBeitragsstufenStatus(aktiv = true) {
   return useQuery({
-    queryKey: ["beitragsstufen-status"],
-    queryFn: async (): Promise<BeitragsstufeStatus[]> => {
-      const { data, error } = await supabase.rpc("contribution_category_status");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: beitragsstufenSchluessel.status(),
+    queryFn: ladeBeitragsstufenStatus,
     enabled: aktiv,
   });
 }

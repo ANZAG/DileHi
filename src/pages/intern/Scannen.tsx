@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useDateiablage } from "@/daten/einstellungen";
+import { quellenSchluessel } from "@/daten/quellen";
 import { ArrowLeft, Camera, CheckCircle2, FileUp, ImagePlus, Loader2, Pencil, RotateCcw, RotateCw, Smartphone } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { SEITE } from "@/lib/layout";
 import { KameraAufnahme } from "@/components/scan/KameraAufnahme";
@@ -116,13 +117,7 @@ const Scannen = () => {
   const speicherFehler = useRef(false);
   const glaettHinweis = useRef(false);
 
-  const { data: fileStorage, isLoading: ablageLaedt } = useQuery({
-    queryKey: ["file-storage"],
-    queryFn: async () => {
-      const { data } = await supabase.from("app_settings").select("file_storage").maybeSingle();
-      return data?.file_storage ?? "supabase";
-    },
-  });
+  const { data: fileStorage, isLoading: ablageLaedt } = useDateiablage();
 
   const aendern = useCallback((f: (s: Sitzung) => Sitzung) => setSitzung((s) => (s ? f(s) : s)), []);
 
@@ -534,7 +529,7 @@ const Scannen = () => {
       await allesLoeschen();
       bilderVergessen([...bilder.keys()]);
       setSitzung(leereSitzung(s.zuschnitt));
-      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      queryClient.invalidateQueries({ queryKey: quellenSchluessel.alle });
     } catch (err) {
       setFehler(`${err instanceof Error ? err.message : String(err)} – Die Seiten bleiben erhalten; „Hochladen" versucht es noch einmal.`);
     } finally {

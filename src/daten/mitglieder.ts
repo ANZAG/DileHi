@@ -69,9 +69,13 @@ export const mitgliedSchluessel = {
   /** Die Mitgliederliste der Verwaltung. */
   liste: () => ["mitglieder", "liste"] as const,
   emails: () => ["mitglieder", "emails"] as const,
+  /** Alle schon vergebenen Mailadressen, kleingeschrieben – für die Prüfung beim Import. */
+  vorhandeneAdressen: () => ["mitglieder", "vorhandene-adressen"] as const,
   /** Die hochgeladenen Mitgliedsanträge eines Mitglieds – für Verwaltung und eigenes Profil. */
   antragsdateien: (userId: string | undefined) => ["mitglieder", "antragsdateien", userId] as const,
   profil: (userId: string | undefined) => ["mitglieder", "profil", userId] as const,
+  /** Was im Profil steht: fertige Bereiche und selbst angelegte Felder. */
+  profilfelder: () => ["mitglieder", "profilfelder"] as const,
   /** Eintrittsdatum und Mitgliedsart – für die eigene Beitragsübersicht. */
   eintritt: (userId: string | undefined) => ["mitglieder", "eintritt", userId] as const,
 
@@ -284,6 +288,49 @@ export async function ladeEintritt(
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+// ── Profilfelder ────────────────────────────────────────────────────────────
+
+export async function ladeProfilfelder(): Promise<Tables<"profile_fields">[]> {
+  const { data, error } = await supabase.from("profile_fields").select("*").order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Schaltet einen fertigen Bereich der Profilseite an oder ab. */
+export async function schalteProfilbereich(feldId: string, aktiv: boolean): Promise<void> {
+  const { error } = await supabase.from("profile_fields").update({ is_active: aktiv }).eq("id", feldId);
+  if (error) throw error;
+}
+
+/**
+ * Gleicht die selbst angelegten Felder mit dem Entwurf ab: Was fehlt, wird
+ * gelöscht; was es schon gibt, geändert; der Rest entsteht – ohne Bereich,
+ * denn Bereiche legt nur das Programm an.
+ */
+export async function speichereProfilfelder(
+  gespeicherteIds: string[],
+  entwurf: (TablesUpdate<"profile_fields"> & { id: string; type: string; label: string })[],
+): Promise<void> {
+  const vorher = new Set(gespeicherteIds);
+  const jetzt = new Set(entwurf.map((f) => f.id));
+
+  const entfernt = gespeicherteIds.filter((id) => !jetzt.has(id));
+  if (entfernt.length > 0) {
+    const { error } = await supabase.from("profile_fields").delete().in("id", entfernt);
+    if (error) throw error;
+  }
+
+  for (const { id, ...daten } of entwurf) {
+    if (vorher.has(id)) {
+      const { error } = await supabase.from("profile_fields").update(daten).eq("id", id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("profile_fields").insert({ ...daten, block_key: null });
+      if (error) throw error;
+    }
+  }
 }
 
 // ── Karte ───────────────────────────────────────────────────────────────────

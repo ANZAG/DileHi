@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { HelpCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { einfuehrungSchluessel, ladeHilfetexte } from "@/daten/einfuehrung";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWoerter } from "@/hooks/useBranding";
 import { einsetzen } from "@/lib/organisationsform";
@@ -27,14 +27,8 @@ export function Hilfe({ k }: { k: string }) {
   // Text neben einem Schalter etwas anderes, als auf dem Schalter steht.
   const woerter = useWoerter();
   const { data } = useQuery({
-    queryKey: ["onboarding-hilfe"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("onboarding_help")
-        .select("key, title, text");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einfuehrungSchluessel.hilfetexte(),
+    queryFn: ladeHilfetexte,
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

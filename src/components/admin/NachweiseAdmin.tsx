@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText,
-  useAlleNachweise, useNachweisArten, type NachweisArt,
-} from "@/hooks/useNachweise";
-import { supabase } from "@/integrations/supabase/client";
+  aendereNachweisArt, legeNachweisAn, legeNachweisArtAn, loescheNachweis, loescheNachweisArt, nachweisSchluessel,
+  setzeNachweisGeprueft, useAlleNachweise, useNachweisArten,
+} from "@/daten/nachweise";
+import { useMitgliederverzeichnis } from "@/daten/mitglieder";
+import { gueltigBisVorschlag, nachweisStand, STAND_FARBE, standText, type NachweisArt } from "@/hooks/useNachweise";
 
 interface Mitglied {
   id: string;
@@ -53,14 +54,11 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
   const qc = useQueryClient();
   const { data: arten = [] } = useNachweisArten();
   const { data: nachweise = [], isLoading } = useAlleNachweise(true);
-  const { data: mitglieder = [] } = useQuery({
-    queryKey: ["mitglieder-verzeichnis"],
-    queryFn: async (): Promise<Mitglied[]> => {
-      const { data } = await supabase.rpc("get_member_directory");
-      const zeilen: Mitglied[] = data ?? [];
-      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
-    },
-  });
+  const { data: verzeichnis } = useMitgliederverzeichnis();
+  const mitglieder: Mitglied[] = useMemo(
+    () => [...(verzeichnis ?? [])].sort((a, b) => a.display_name.localeCompare(b.display_name, "de")),
+    [verzeichnis],
+  );
 
   const [ansicht, setAnsicht] = useState<"aufmerksamkeit" | "alle">("aufmerksamkeit");
   const [suche, setSuche] = useState("");
@@ -80,38 +78,29 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
   }, [nachweise, arten, mitglieder, ansicht, suche]);
 
   const pruefen = useMutation({
-    mutationFn: async ({ id, geprueft }: { id: string; geprueft: boolean }) => {
-      const { error } = await supabase.from("member_certificates")
-        .update(geprueft ? { verified_at: new Date().toISOString(), verified_by: user!.id } : { verified_at: null, verified_by: null })
-        .eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweise"] }),
+    mutationFn: ({ id, geprueft }: { id: string; geprueft: boolean }) =>
+      setzeNachweisGeprueft(id, geprueft ? user!.id : null),
+    onSuccess: () => qc.invalidateQueries({ queryKey: nachweisSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),
   });
 
   const loeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("member_certificates").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweise"] }),
+    mutationFn: loescheNachweis,
+    onSuccess: () => qc.invalidateQueries({ queryKey: nachweisSchluessel.alle }),
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 
   const eintragen = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("member_certificates").insert({
+    mutationFn: () =>
+      legeNachweisAn({
         user_id: neu!.user_id,
         type_id: neu!.type_id,
         issued_on: neu!.issued_on || null,
         valid_until: neu!.valid_until || null,
-      });
-      if (error) throw new Error(error.message);
-    },
+      }),
     onSuccess: () => {
       setNeu(null);
-      qc.invalidateQueries({ queryKey: ["nachweise"] });
+      qc.invalidateQueries({ queryKey: nachweisSchluessel.alle });
       toast({ title: "Nachweis eingetragen" });
     },
     onError: (err: Error) => toast({ title: "Nicht eingetragen", description: err.message, variant: "destructive" }),
@@ -292,17 +281,14 @@ function Arten() {
     setAenderungen((x) => ({ ...x, [id]: { ...x[id], ...patch } }));
 
   const speichern = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("certificate_types").update(aenderungen[id]).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (id: string) => aendereNachweisArt(id, aenderungen[id]),
     onSuccess: (_, id) => {
       setAenderungen((x) => {
         const rest = { ...x };
         delete rest[id];
         return rest;
       });
-      qc.invalidateQueries({ queryKey: ["nachweis-arten"] });
+      qc.invalidateQueries({ queryKey: nachweisSchluessel.arten() });
       toast({ title: "Gespeichert" });
     },
     onError: (err: Error) => toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -311,29 +297,18 @@ function Arten() {
   const anlegen = useMutation({
     mutationFn: async () => {
       const letzte = arten[arten.length - 1]?.sort_order ?? 0;
-      const { error } = await supabase.from("certificate_types").insert({ label: neuLabel.trim(), sort_order: letzte + 10 });
-      if (error) throw new Error(error.message.includes("duplicate") ? "Diese Art gibt es schon." : error.message);
+      await legeNachweisArtAn({ label: neuLabel.trim(), sort_order: letzte + 10 });
     },
     onSuccess: () => {
       setNeuLabel("");
-      qc.invalidateQueries({ queryKey: ["nachweis-arten"] });
+      qc.invalidateQueries({ queryKey: nachweisSchluessel.arten() });
     },
     onError: (err: Error) => toast({ title: "Nicht angelegt", description: err.message, variant: "destructive" }),
   });
 
   const loeschen = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("certificate_types").delete().eq("id", id);
-      if (error) {
-        // Der Fremdschlüssel verhindert das Löschen, solange Nachweise daran hängen.
-        throw new Error(
-          error.code === "23503" || error.message.includes("foreign key")
-            ? "An dieser Art hängen noch Nachweise. Schalte sie stattdessen aus – dann erscheint sie nicht mehr zur Auswahl."
-            : error.message
-        );
-      }
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["nachweis-arten"] }),
+    mutationFn: loescheNachweisArt,
+    onSuccess: () => qc.invalidateQueries({ queryKey: nachweisSchluessel.arten() }),
     onError: (err: Error) => toast({ title: "Nicht gelöscht", description: err.message, variant: "destructive" }),
   });
 

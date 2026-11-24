@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { epochenSchluessel, ladeEpochenquellen } from "@/daten/epochen";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";
 import { betonung } from "@/lib/betonung";
 
@@ -19,18 +19,11 @@ interface EpochSourcesProps {
 const EpochSources = ({ epoch }: EpochSourcesProps) => {
   const { t } = useSprache();
   const uebersetzt = useRahmentexte();
-  const { data: sources = [] } = useQuery({
-    queryKey: ["epoch_sources", epoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("epoch_sources")
-        .select("*")
-        .eq("epoch", epoch)
-        .order("sort_order", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+  const { data = [] } = useQuery({
+    queryKey: epochenSchluessel.quellen(epoch),
+    queryFn: () => ladeEpochenquellen(epoch),
   });
+  const sources = data.map((s) => ({ ...s, text: uebersetzt[`source:${s.id}`] ?? s.text }));
 
   return (
     <div className="mb-12">
@@ -42,7 +35,7 @@ const EpochSources = ({ epoch }: EpochSourcesProps) => {
             {sources.map((s) => (
               <li key={s.id} className="flex items-start gap-2">
                 <span className="text-primary mt-1">•</span>
-                <span dangerouslySetInnerHTML={{ __html: betonung(uebersetzt[`source:${s.id}`] ?? s.text) }} />
+                <span dangerouslySetInnerHTML={{ __html: betonung(s.text) }} />
               </li>
             ))}
           </ul>

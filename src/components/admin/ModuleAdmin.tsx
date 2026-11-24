@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, LayoutGrid, List, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel, schalteModul } from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 import { useModule, type ModuleState } from "@/hooks/useModule";
 
@@ -80,15 +80,11 @@ export default function ModuleAdmin() {
   const { data: module = [], isLoading } = useModule();
 
   const schalten = useMutation({
-    mutationFn: async (m: ModuleState) => {
-      const { error } = await supabase.from("app_modules")
-        .update({ enabled: !m.enabled }).eq("key", m.key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (m: ModuleState) => schalteModul(m.key, !m.enabled),
     onSuccess: () => {
       // Fast alles auf der Seite haengt daran – auch die Verwaltungskacheln
       // neben dieser Liste.
-      queryClient.invalidateQueries({ queryKey: ["module"] });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.module() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht geändert", description: err.message, variant: "destructive" }),

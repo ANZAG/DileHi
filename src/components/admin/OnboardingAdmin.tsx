@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, RotateCcw, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { ausJson } from "@/lib/json";
+import {
+  einfuehrungSchluessel, ladeHilfeMitVorgabe, ladeSchritteMitVorgabe, speichereEinfuehrung,
+  type HilfetextMitVorgabe, type SchrittMitVorgabe,
+} from "@/daten/einfuehrung";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,25 +26,8 @@ import { zeichen } from "@/components/onboarding/icons";
  * den jemand umbenennt, zeigt auf nichts mehr.
  */
 
-interface Schritt {
-  key: string;
-  tour: string;
-  icon: string;
-  title: string;
-  text: string;
-  tip: string | null;
-  task: string | null;
-  sort_order: number;
-  is_active: boolean;
-  defaults: { title?: string; text?: string; tip?: string | null } | null;
-}
-
-interface Hilfetext {
-  key: string;
-  title: string | null;
-  text: string;
-  defaults: { title?: string | null; text?: string } | null;
-}
+type Schritt = SchrittMitVorgabe;
+type Hilfetext = HilfetextMitVorgabe;
 
 
 /**
@@ -68,41 +53,23 @@ export default function OnboardingAdmin() {
   const [hilfeEntwurf, setHilfeEntwurf] = useState<Record<string, Partial<Hilfetext>>>({});
 
   const { data: schritte = [], isLoading } = useQuery({
-    queryKey: ["onboarding-schritte-admin"],
-    queryFn: async (): Promise<Schritt[]> => {
-      const { data, error } = await supabase.from("onboarding_steps").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((s) => ({ ...s, defaults: ausJson<Schritt["defaults"]>(s.defaults) }));
-    },
+    queryKey: einfuehrungSchluessel.schritteMitVorgabe(),
+    queryFn: ladeSchritteMitVorgabe,
   });
 
   const { data: hilfen = [] } = useQuery({
-    queryKey: ["onboarding-hilfe-admin"],
-    queryFn: async (): Promise<Hilfetext[]> => {
-      const { data, error } = await supabase.from("onboarding_help").select("*").order("key");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((h) => ({ ...h, defaults: ausJson<Hilfetext["defaults"]>(h.defaults) }));
-    },
+    queryKey: einfuehrungSchluessel.hilfeMitVorgabe(),
+    queryFn: ladeHilfeMitVorgabe,
   });
 
   const erneuern = () => {
-    qc.invalidateQueries({ queryKey: ["onboarding-schritte-admin"] });
-    qc.invalidateQueries({ queryKey: ["onboarding-schritte"] });
-    qc.invalidateQueries({ queryKey: ["onboarding-hilfe-admin"] });
-    qc.invalidateQueries({ queryKey: ["onboarding-hilfe"] });
+    // Beide Sichten: was die Verwaltung bearbeitet und was Mitglieder sehen.
+    qc.invalidateQueries({ queryKey: einfuehrungSchluessel.schritte() });
+    qc.invalidateQueries({ queryKey: einfuehrungSchluessel.hilfe() });
   };
 
   const speichern = useMutation({
-    mutationFn: async () => {
-      for (const [key, werte] of Object.entries(entwurf)) {
-        const { error } = await supabase.from("onboarding_steps").update(werte).eq("key", key);
-        if (error) throw new Error(error.message);
-      }
-      for (const [key, werte] of Object.entries(hilfeEntwurf)) {
-        const { error } = await supabase.from("onboarding_help").update(werte).eq("key", key);
-        if (error) throw new Error(error.message);
-      }
-    },
+    mutationFn: () => speichereEinfuehrung(entwurf, hilfeEntwurf),
     onSuccess: () => {
       setEntwurf({});
       setHilfeEntwurf({});

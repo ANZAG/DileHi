@@ -2,8 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useDateiablageVerbindung } from "@/daten/einstellungen";
 // Jede Kachel ein eigenes Symbol: Sechs Paare teilten sich vorher eines, und
 // beim Suchen zaehlt die Form, bevor man den Text liest.
 import {
@@ -92,16 +91,7 @@ const Admin = () => {
   const einrichtungOffen = !useBranding().setup_done_at;
   // Den Eingangskorb gibt es nur, wenn die Dateien in SharePoint liegen.
   // Derselbe Schlüssel wie im Eingangskorb selbst, also eine Abfrage für beide.
-  const { data: dateiablage } = useQuery({
-    queryKey: ["file-storage-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("app_settings").select("file_storage, sharepoint_site_url").maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
-    },
-    enabled: canAdmin,
-  });
+  const { data: dateiablage } = useDateiablageVerbindung({ enabled: canAdmin });
 
   const defaultTab: AdminTab = canMembers ? "members" : "gallery";
   // ?reiter=… öffnet einen bestimmten Reiter, etwa beim Zurück aus dem

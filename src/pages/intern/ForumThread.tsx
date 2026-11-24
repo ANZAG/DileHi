@@ -9,7 +9,8 @@ import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { forumSchluessel } from "@/daten/forum";
+import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 import PostBody from "@/components/forum/PostBody";
 import {
   createPost, createPollPost, fetchCategories, fetchPosts, fetchThread, markRead,
@@ -32,6 +33,7 @@ const ForumEditor = (props: ComponentProps<typeof ForumEditorNachgeladen>) => (
 );
 
 interface Member { id: string; display_name: string }
+const KEINE_MITGLIEDER: Member[] = [];
 
 export default function ForumThread() {
   const { threadId } = useParams<{ threadId: string }>();
@@ -50,31 +52,24 @@ export default function ForumThread() {
   const canModerate = hasPermission("forum.moderate");
 
   const { data: thread } = useQuery({
-    queryKey: ["forum-thread", threadId],
+    queryKey: forumSchluessel.thema(threadId),
     queryFn: () => fetchThread(threadId!),
     enabled: !!threadId,
   });
 
   // Zurück führt in die Rubrik, aus der man kam, nicht an den Anfang des
   // Forums – dort müsste man sie erst wieder heraussuchen.
-  const { data: rubriken = [] } = useQuery({ queryKey: ["forum-categories"], queryFn: fetchCategories });
+  const { data: rubriken = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories });
   const rubrik = rubriken.find((c) => c.id === thread?.category_id);
   const zurueck = rubrik ? `/intern/forum/${rubrik.slug}` : "/intern/forum";
 
   const { data: posts = [], isLoading } = useQuery({
-    queryKey: ["forum-posts", threadId],
+    queryKey: forumSchluessel.beitraege(threadId),
     queryFn: () => fetchPosts(threadId!),
     enabled: !!threadId,
   });
 
-  const { data: members = [] } = useQuery({
-    queryKey: ["forum-members"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_member_directory");
-      const zeilen: Member[] = data ?? [];
-      return zeilen;
-    },
-  });
+  const { data: members = KEINE_MITGLIEDER } = useMitgliederverzeichnis();
   const nameOf = (id: string) => members.find((m) => m.id === id)?.display_name ?? "Mitglied";
 
   // Lesestand setzen, sobald der Thread offen ist – sonst bleibt die Zählung
@@ -82,9 +77,9 @@ export default function ForumThread() {
   useEffect(() => {
     if (threadId && user) {
       markRead(threadId, user.id).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["forum-category-stats"] });
-        queryClient.invalidateQueries({ queryKey: ["forum-read-state"] });
-        queryClient.invalidateQueries({ queryKey: ["forum-unread"] });
+        queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });
+        queryClient.invalidateQueries({ queryKey: forumSchluessel.lesestaende() });
+        queryClient.invalidateQueries({ queryKey: forumSchluessel.ungelesene() });
       });
     }
   }, [threadId, user, queryClient, posts.length]);
@@ -93,8 +88,8 @@ export default function ForumThread() {
     mutationFn: () => createPost({ threadId: threadId!, body: reply, userId: user!.id }),
     onSuccess: () => {
       setReply("");
-      queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
-      queryClient.invalidateQueries({ queryKey: ["forum-thread", threadId] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.thema(threadId) });
     },
     onError: (err: Error) =>
       toast({ title: "Beitrag konnte nicht gespeichert werden", description: err.message, variant: "destructive" }),
@@ -116,7 +111,7 @@ export default function ForumThread() {
       }),
     onSuccess: () => {
       setComposingPoll(false);
-      queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) });
     },
     onError: (err: Error) =>
       toast({ title: "Konnte nicht angelegt werden", description: err.message, variant: "destructive" }),
@@ -133,7 +128,7 @@ export default function ForumThread() {
     onSuccess: () => {
       setEditing(null);
       setEditBody("");
-      queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) });
     },
     onError: (err: Error) =>
       toast({ title: "Änderung nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -142,7 +137,7 @@ export default function ForumThread() {
   const entfernen = useMutation({
     mutationFn: ({ id, zurueck }: { id: string; zurueck: boolean }) =>
       zurueck ? restorePost(id) : removePost(id, user!.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum-posts", threadId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: forumSchluessel.beitraege(threadId) }),
     onError: (err: Error) =>
       toast({ title: "Ging nicht", description: err.message, variant: "destructive" }),
   });

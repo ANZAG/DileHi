@@ -1,15 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEinblenden } from "@/lib/einblenden";
 import { supabase } from "@/integrations/supabase/client";
+import { darstellungSchluessel, ladeOeffentlicheSteckbriefe, type OeffentlicherSteckbrief } from "@/daten/darstellungen";
 
-interface PublicPersona {
-  period: string;
-  portrayal: string;
-  expertise: string;
-  images: string[];
-  /** Nur gesetzt, wenn die Person dem selbst zugestimmt hat. */
-  name: string | null;
-}
+type PublicPersona = OeffentlicherSteckbrief;
 
 /**
  * Welche Darstellungen der Verein anbietet – ohne Personenbezug.
@@ -54,12 +48,9 @@ export default function PublicPersonasSection({
   namenZeigen?: boolean;
 } = {}) {
   const { data: personas = [] } = useQuery({
-    queryKey: ["public-personas"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_public_personas");
-      if (error) return [];
-      return data ?? [];
-    },
+    queryKey: darstellungSchluessel.oeffentlich(),
+    // Auf der öffentlichen Seite fehlt der Abschnitt lieber, als dass er einen Fehler zeigt.
+    queryFn: () => ladeOeffentlicheSteckbriefe().catch((): PublicPersona[] => []),
     staleTime: 1000 * 60 * 10,
   });
 

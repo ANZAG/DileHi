@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forumSchluessel } from "@/daten/forum";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import {
   ArrowLeft, MessageSquare, Plus, Megaphone, CalendarDays, Wrench, BookOpen,
@@ -38,7 +39,7 @@ export default function Forum() {
   const { toast } = useToast();
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["forum-categories"],
+    queryKey: forumSchluessel.rubriken(),
     queryFn: fetchCategories,
   });
 
@@ -47,7 +48,7 @@ export default function Forum() {
   const [description, setDescription] = useState("");
 
   const { data: stats = {} } = useQuery({
-    queryKey: ["forum-category-stats", user?.id],
+    queryKey: forumSchluessel.rubrikStand(user?.id),
     queryFn: () => fetchCategoryStats(user?.id),
     enabled: !!user,
   });
@@ -62,7 +63,7 @@ export default function Forum() {
   const [params, setParams] = useSearchParams();
   const nurUngelesen = params.get("ansicht") === "ungelesen";
   const { data: ungelesen = [] } = useQuery({
-    queryKey: ["forum-unread", user?.id],
+    queryKey: forumSchluessel.ungelesen(user?.id),
     queryFn: () => fetchUnreadThreads(user!.id),
     enabled: !!user,
   });
@@ -79,7 +80,7 @@ export default function Forum() {
         created_by: user?.id,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["forum-categories"] });
+      queryClient.invalidateQueries({ queryKey: forumSchluessel.rubriken() });
       setProposing(false); setName(""); setDescription("");
       toast({
         title: "Vorschlag eingereicht",

@@ -43,6 +43,8 @@ export const wahlSchluessel = {
   namen: () => ["wahlen", "namen"] as const,
   vertretungsprotokoll: (themaId: string) => ["wahlen", "vertretungsprotokoll", themaId] as const,
   themaHatStimmen: (themaId: string) => ["wahlen", "thema-hat-stimmen", themaId] as const,
+  /** Was von gelöschten Abstimmungen festgehalten wurde. */
+  loeschprotokoll: () => ["wahlen", "loeschprotokoll"] as const,
 };
 
 // ── Lesen ───────────────────────────────────────────────────────────────────
@@ -61,6 +63,17 @@ export async function ladeAbstimmungen(): Promise<Abstimmung[]> {
     .from("elections")
     .select("*, candidates(*)")
     .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+/** Eine Abstimmung mit ihren Wahlmöglichkeiten – oder nichts, wenn es sie nicht (mehr) gibt. */
+export async function ladeAbstimmung(abstimmungId: string): Promise<Abstimmung | null> {
+  const { data, error } = await supabase
+    .from("elections")
+    .select("*, candidates(*)")
+    .eq("id", abstimmungId)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -100,6 +113,16 @@ export async function ladeStimmberechtigteVon(themaId: string): Promise<Stimmber
     .select("*")
     .eq("group_id", themaId)
     .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+/** Gelöschte Abstimmungen mit ihrem letzten Ergebnis, die jüngste Löschung zuerst. */
+export async function ladeLoeschprotokoll(): Promise<Tables<"election_audit_log">[]> {
+  const { data, error } = await supabase
+    .from("election_audit_log")
+    .select("*")
+    .order("deleted_at", { ascending: false });
   if (error) throw error;
   return data;
 }

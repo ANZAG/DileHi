@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { websiteSchluessel } from "@/daten/website";
 import { Puck, type Data } from "@puckeditor/core";
 import { ArrowLeft, Eye, EyeOff, Globe, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export default function SeitenEditor() {
   const darfLayout = hasPermission("site.layout_edit");
 
   const { data: page, isLoading } = useQuery({
-    queryKey: ["site-page", pageId],
+    queryKey: websiteSchluessel.seite(pageId),
     queryFn: () => fetchPageById(pageId!),
     enabled: !!pageId,
   });
@@ -71,8 +72,8 @@ export default function SeitenEditor() {
     mutationFn: (daten: Data) => publish(pageId!, daten),
     onSuccess: () => {
       toast({ title: "Seite ist online" });
-      queryClient.invalidateQueries({ queryKey: ["site-page", pageId] });
-      queryClient.invalidateQueries({ queryKey: ["site-pages"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.seite(pageId) });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.seiten() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht veröffentlicht", description: err.message, variant: "destructive" }),
@@ -82,7 +83,7 @@ export default function SeitenEditor() {
     mutationFn: () => unpublish(pageId!),
     onSuccess: () => {
       toast({ title: "Seite ist nicht mehr öffentlich" });
-      queryClient.invalidateQueries({ queryKey: ["site-page", pageId] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.seite(pageId) });
     },
   });
 

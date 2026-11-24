@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { forumSchluessel } from "@/daten/forum";
+import { useRollenkatalog } from "@/daten/mitglieder";
 import { Hilfe } from "@/components/Hilfe";
 import {
   deleteCategory, fetchCategories, fetchCategoryRights, saveCategory, setCategoryRight,
@@ -44,22 +45,16 @@ export default function ForumCategoriesAdmin() {
   const [draft, setDraft] = useState<{ name: string; description: string } | null>(null);
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["forum-categories"], queryFn: fetchCategories,
+    queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories,
   });
   const { data: rights = [] } = useQuery({
-    queryKey: ["forum-category-rights"], queryFn: fetchCategoryRights,
+    queryKey: forumSchluessel.rubrikRechte(), queryFn: fetchCategoryRights,
   });
-  const { data: roles = [] } = useQuery({
-    queryKey: ["role_catalog_admin"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_role_catalog");
-      return data ?? [];
-    },
-  });
+  const { data: roles = [] } = useRollenkatalog();
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["forum-categories"] });
-    queryClient.invalidateQueries({ queryKey: ["forum-category-rights"] });
+    queryClient.invalidateQueries({ queryKey: forumSchluessel.rubriken() });
+    queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikRechte() });
   };
 
   const save = useMutation({
@@ -78,7 +73,7 @@ export default function ForumCategoriesAdmin() {
     mutationFn: ({ categoryId, role, patch }: {
       categoryId: string; role: string; patch: Record<string, boolean>;
     }) => setCategoryRight(categoryId, role, patch),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum-category-rights"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikRechte() }),
     onError: (e: Error) => toast({ title: "Recht nicht geändert", description: e.message, variant: "destructive" }),
   });
 

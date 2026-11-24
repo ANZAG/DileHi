@@ -5,6 +5,8 @@ import { alsJson, ausJson } from "@/lib/json";
 import type { Rahmenart, Rahmenstand } from "@/lib/rahmentexte";
 import { ZUSATZSPRACHEN, type Sprache, type Zusatzsprache } from "@/lib/sprachen.mjs";
 import { fetchPageBySlug, type SitePage } from "@/components/sitebuilder/api";
+import { ladeAlleBesucherpunkte, ladeAlleEpochenquellen } from "@/daten/epochen";
+import { ladeGalerie, ladeMenuezeilen, ladeSeitenbilder } from "@/daten/website";
 
 /**
  * Datenzugriff für die Sprachfassungen der öffentlichen Seite:
@@ -212,23 +214,22 @@ export type Rahmentext = Tables<"site_text_translations">;
  */
 export async function ladeRahmenVerwaltung(arten?: readonly Rahmenart[]): Promise<{ stand: Omit<Rahmenstand, "marke">; texte: Rahmentext[] }> {
   const will = (art: Rahmenart) => !arten || arten.includes(art);
-  const leer = { data: [], error: null };
+  // Das Deutsche über die Funktionen der Bereiche, denen es gehört.
   const [menue, bilder, galerie, besucher, quellen, texte] = await Promise.all([
-    will("menu") ? supabase.from("site_menu").select("id, label, area, sort_order").order("area").order("sort_order") : leer,
-    will("image") ? supabase.from("site_images").select("slot, label, alt_text").order("page").order("label") : leer,
-    will("gallery") ? supabase.from("gallery_images").select("id, alt_text, epoch").order("epoch").order("created_at", { ascending: false }) : leer,
-    will("visitor") ? supabase.from("epoch_visitor_items").select("id, text, epoch").order("epoch").order("sort_order") : leer,
-    will("source") ? supabase.from("epoch_sources").select("id, text, epoch").order("epoch").order("sort_order") : leer,
+    will("menu") ? ladeMenuezeilen() : [],
+    will("image") ? ladeSeitenbilder() : [],
+    will("gallery") ? ladeGalerie() : [],
+    will("visitor") ? ladeAlleBesucherpunkte() : [],
+    will("source") ? ladeAlleEpochenquellen() : [],
     arten
       ? supabase.from("site_text_translations").select("*").in("kind", [...arten])
       : supabase.from("site_text_translations").select("*"),
   ]);
-  for (const antwort of [menue, bilder, galerie, besucher, quellen, texte]) {
-    if (antwort.error) throw antwort.error;
-  }
+  if (texte.error) throw texte.error;
+  const nachKategorie = <T extends { epoch: string }>(zeilen: T[]) => [...zeilen].sort((a, b) => a.epoch.localeCompare(b.epoch));
   return {
-    stand: { menue: menue.data, bilder: bilder.data, galerie: galerie.data, besucher: besucher.data, quellen: quellen.data },
-    texte: texte.data ?? [],
+    stand: { menue, bilder, galerie: nachKategorie(galerie), besucher, quellen: nachKategorie(quellen) },
+    texte: texte.data,
   };
 }
 

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { ausJson } from "@/lib/json";
+import {
+  aendereAntragstext, aendereMailvorlage, aufnahmeSchluessel, ladeAntragstextzeilen, ladeMailvorlagen,
+} from "@/daten/aufnahme";
 import { useToast } from "@/hooks/use-toast";
 import ForumEditor from "@/components/forum/ForumEditor";
 
@@ -94,13 +95,8 @@ function Mailvorlagen() {
   const [entwurf, setEntwurf] = useState<MailVorlage | null>(null);
 
   const { data: vorlagen = [], isLoading } = useQuery({
-    queryKey: ["mail-templates"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("mail_templates").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      const zeilen: MailVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<MailVorlage["defaults"]>(v.defaults) }));
-      return zeilen;
-    },
+    queryKey: aufnahmeSchluessel.mailvorlagen(),
+    queryFn: (): Promise<MailVorlage[]> => ladeMailvorlagen<MailVorlage["defaults"]>(),
   });
 
   const gewaehlt = useMemo(
@@ -113,16 +109,14 @@ function Mailvorlagen() {
   }, [gewaehlt]);
 
   const speichern = useMutation({
-    mutationFn: async (v: MailVorlage) => {
-      const { error } = await supabase.from("mail_templates").update({
+    mutationFn: (v: MailVorlage) =>
+      aendereMailvorlage(v.key, {
         subject: v.subject, eyebrow: v.eyebrow, heading: v.heading,
         body: v.body, button_label: v.button_label, footnote: v.footnote,
-      }).eq("key", v.key);
-      if (error) throw new Error(error.message);
-    },
+      }),
     onSuccess: () => {
       toast({ title: "Gespeichert" });
-      queryClient.invalidateQueries({ queryKey: ["mail-templates"] });
+      queryClient.invalidateQueries({ queryKey: aufnahmeSchluessel.mailvorlagen() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -212,13 +206,8 @@ export function Antragstexte() {
   const [entwurf, setEntwurf] = useState<PdfVorlage | null>(null);
 
   const { data: texte = [], isLoading } = useQuery({
-    queryKey: ["pdf-texts"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("pdf_texts").select("*").order("sort_order");
-      if (error) throw new Error(error.message);
-      const zeilen: PdfVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<PdfVorlage["defaults"]>(v.defaults) }));
-      return zeilen;
-    },
+    queryKey: aufnahmeSchluessel.textzeilen(),
+    queryFn: (): Promise<PdfVorlage[]> => ladeAntragstextzeilen<PdfVorlage["defaults"]>(),
   });
 
   const gewaehlt = useMemo(
@@ -231,14 +220,11 @@ export function Antragstexte() {
   }, [gewaehlt]);
 
   const speichern = useMutation({
-    mutationFn: async (t: PdfVorlage) => {
-      const { error } = await supabase.from("pdf_texts")
-        .update({ title: t.title, body: t.body }).eq("key", t.key);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (t: PdfVorlage) => aendereAntragstext(t.key, { title: t.title, body: t.body }),
     onSuccess: () => {
       toast({ title: "Gespeichert" });
-      queryClient.invalidateQueries({ queryKey: ["pdf-texts"] });
+      // Die Zeilen der Verwaltung und die Texte, die der Antrag selbst liest.
+      queryClient.invalidateQueries({ queryKey: aufnahmeSchluessel.texte() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),

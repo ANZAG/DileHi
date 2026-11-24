@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { epochenSchluessel, ladeBesucherpunkte } from "@/daten/epochen";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";
 
 interface VisitorHighlightProps {
@@ -14,16 +14,8 @@ const VisitorHighlight = ({ epoch, intro, outro }: VisitorHighlightProps) => {
   const { t } = useSprache();
   const uebersetzt = useRahmentexte();
   const { data: items = [] } = useQuery({
-    queryKey: ["epoch_visitor_items", epoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("epoch_visitor_items")
-        .select("*")
-        .eq("epoch", epoch)
-        .order("sort_order", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: epochenSchluessel.besucherpunkte(epoch),
+    queryFn: () => ladeBesucherpunkte(epoch),
   });
 
   return (

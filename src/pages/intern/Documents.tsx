@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { dokumentSchluessel, ladeDokumente, legeDokumentAn, loescheDokument } from "@/daten/dokumente";
 import { useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -63,15 +64,8 @@ const Documents = () => {
   // stand dieselbe Regel noch einmal als Filter – zwei Fassungen derselben
   // Entscheidung, von denen nur eine wirklich schützt.
   const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["documents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryKey: dokumentSchluessel.liste(),
+    queryFn: ladeDokumente,
   });
 
   /** In welche Ablage das Hochgeladene kommt, solange niemand gewählt hat. */
@@ -100,13 +94,13 @@ const Documents = () => {
     }
 
     // user is already available from useAuth – no extra round-trip needed
-    const { error } = await supabase.from("documents").insert({
+    const error = await legeDokumentAn({
       title: title.trim(),
       category: gewaehlt,
       storage_path: path,
       file_name: file.name,
       uploaded_by: user!.id,
-    });
+    }).then(() => null, (err: unknown) => err);
 
     setUploading(false);
     if (error) {
@@ -116,18 +110,17 @@ const Documents = () => {
       setTitle("");
       setCategory("");
       setFile(null);
-      qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: dokumentSchluessel.alle });
     }
   };
 
   const deleteMutation = useMutation({
     mutationFn: async (doc: { id: string; storage_path: string }) => {
       await supabase.storage.from("documents").remove([doc.storage_path]);
-      const { error } = await supabase.from("documents").delete().eq("id", doc.id);
-      if (error) throw error;
+      await loescheDokument(doc.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: dokumentSchluessel.alle });
       toast({ title: "Dokument gelöscht" });
     },
   });

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  beitragsstufenSchluessel, bieteBeitragsstufeWiederAn, entferneBeitragsstufe, legeBeitragsstufeAn,
+} from "@/daten/beitragsstufen";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
-import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useBeitragsstufenStatus, type BeitragsstufeStatus } from "@/hooks/useBeitragsstufen";
-import { beschreibung, meldung, nachfrageText, type Ergebnis } from "./meldungen";
+import { beschreibung, meldung, nachfrageText } from "./meldungen";
 
 /**
  * Beitragsstufen anlegen und wieder loswerden.
@@ -38,10 +39,8 @@ export default function Beitragsstufen() {
   const [nachfrage, setNachfrage] = useState<BeitragsstufeStatus | null>(null);
 
   const alles = () => {
-    qc.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
-    qc.invalidateQueries({ queryKey: ["beitragsstufen"] });
-    qc.invalidateQueries({ queryKey: ["contribution-categories"] });
-    qc.invalidateQueries({ queryKey: ["beitragsmodell"] });
+    // Stufen, ihr Stand in der Verwaltung und das Angebot im Aufnahmeantrag.
+    qc.invalidateQueries({ queryKey: beitragsstufenSchluessel.alle });
     qc.invalidateQueries({ queryKey: mitgliedSchluessel.beitragssaetze() });
   };
 
@@ -55,10 +54,7 @@ export default function Beitragsstufen() {
         .replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30);
       if (!key) throw new Error("Die Beschriftung ergibt keinen brauchbaren Schlüssel.");
       const letzte = stufen[stufen.length - 1]?.sort_order ?? 0;
-      const { error } = await supabase
-        .from("contribution_categories")
-        .insert({ key, label, sort_order: letzte + 10 });
-      if (error) throw new Error(error.message);
+      await legeBeitragsstufeAn({ key, label, sort_order: letzte + 10 });
     },
     onSuccess: () => {
       setNeuOffen(false);
@@ -71,12 +67,7 @@ export default function Beitragsstufen() {
   });
 
   const entfernen = useMutation({
-    mutationFn: async (key: string) => {
-      const { data, error } = await supabase.rpc("remove_contribution_category", { _key: key });
-      if (error) throw new Error(error.message);
-      // Die Funktion antwortet mit JSON; seine Form steht in meldungen.ts.
-      return ausJson<Ergebnis>(data);
-    },
+    mutationFn: entferneBeitragsstufe,
     onSuccess: (ergebnis) => {
       alles();
       setNachfrage(null);
@@ -92,10 +83,7 @@ export default function Beitragsstufen() {
   });
 
   const wiederAnbieten = useMutation({
-    mutationFn: async (key: string) => {
-      const { error } = await supabase.rpc("restore_contribution_category", { _key: key });
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: bieteBeitragsstufeWiederAn,
     onSuccess: () => {
       alles();
       toast({ title: "Wird wieder angeboten" });

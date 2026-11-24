@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereEpochenquelle, epochenSchluessel, ladeEpochenquellen, legeEpochenquelleAn, loescheEpochenquelle, sortiereEpochenquellen,
+} from "@/daten/epochen";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, GripVertical, Pencil, Check, X } from "lucide-react";
@@ -20,25 +22,14 @@ const SourcesAdmin = () => {
   const [editText, setEditText] = useState("");
 
   const { data: sources = [], isLoading } = useQuery({
-    queryKey: ["epoch_sources_admin", selectedEpoch],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("epoch_sources")
-        .select("*")
-        .eq("epoch", selectedEpoch)
-        .order("sort_order", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: epochenSchluessel.quellen(selectedEpoch),
+    queryFn: () => ladeEpochenquellen(selectedEpoch),
   });
 
   const addMutation = useMutation({
     mutationFn: async () => {
       const maxOrder = sources.length > 0 ? Math.max(...sources.map((s) => s.sort_order)) + 1 : 1;
-      const { error } = await supabase
-        .from("epoch_sources")
-        .insert({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
-      if (error) throw error;
+      await legeEpochenquelleAn({ epoch: selectedEpoch, text: newText, sort_order: maxOrder, created_by: user?.id });
     },
     onSuccess: () => {
       setNewText("");
@@ -49,10 +40,7 @@ const SourcesAdmin = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("epoch_sources").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: loescheEpochenquelle,
     onSuccess: () => {
       invalidate();
       toast({ title: "Quelle gelöscht" });
@@ -60,10 +48,7 @@ const SourcesAdmin = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, text }: { id: string; text: string }) => {
-      const { error } = await supabase.from("epoch_sources").update({ text }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, text }: { id: string; text: string }) => aendereEpochenquelle(id, text),
     onSuccess: () => {
       setEditingId(null);
       invalidate();
@@ -73,16 +58,7 @@ const SourcesAdmin = () => {
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async (reordered: { id: string; sort_order: number }[]) => {
-      // Update each item's sort_order
-      for (const item of reordered) {
-        const { error } = await supabase
-          .from("epoch_sources")
-          .update({ sort_order: item.sort_order })
-          .eq("id", item.id);
-        if (error) throw error;
-      }
-    },
+    mutationFn: sortiereEpochenquellen,
     onSuccess: () => {
       invalidate();
     },
@@ -90,8 +66,9 @@ const SourcesAdmin = () => {
   });
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["epoch_sources_admin", selectedEpoch] });
-    queryClient.invalidateQueries({ queryKey: ["epoch_sources", selectedEpoch] });
+    // Öffentliche Seite und Verwaltung lesen dieselbe Liste.
+    queryClient.invalidateQueries({ queryKey: epochenSchluessel.quellen(selectedEpoch) });
+    queryClient.invalidateQueries({ queryKey: epochenSchluessel.alleQuellen() });
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -101,7 +78,7 @@ const SourcesAdmin = () => {
     items.splice(result.destination.index, 0, moved);
     const reordered = items.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }));
     // Optimistic update
-    queryClient.setQueryData(["epoch_sources_admin", selectedEpoch], items.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
+    queryClient.setQueryData(epochenSchluessel.quellen(selectedEpoch), items.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
     reorderMutation.mutate(reordered);
   };
 

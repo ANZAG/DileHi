@@ -7,6 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { beitragsstufenSchluessel } from "@/daten/beitragsstufen";
+import { aendereEinstellungen, einstellungSchluessel, ladeEinstellungen } from "@/daten/einstellungen";
+import { fristSchluessel } from "@/daten/fristen";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
@@ -123,18 +126,17 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
   const [laedtBild, setLaedtBild] = useState<"logo" | "favicon" | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
-      if (error) throw new Error(error.message);
-      // Ablage und Art des Bescheids sind in der Datenbank Text mit festem Wertevorrat.
-      const zeile: Einstellungen | null = data && {
-        ...data,
-        file_storage: data.file_storage as Einstellungen["file_storage"],
-        exemption_notice_kind: data.exemption_notice_kind as Einstellungen["exemption_notice_kind"],
-      };
-      return zeile;
-    },
+    queryKey: einstellungSchluessel.vereinsangaben(),
+    queryFn: ladeEinstellungen,
+    // Ablage und Art des Bescheids sind in der Datenbank Text mit festem
+    // Wertevorrat. Nur hier so gelesen; im Zwischenspeicher liegt die Zeile,
+    // wie sie auch Menü und Satzung lesen.
+    select: (zeile): Einstellungen | null =>
+      zeile && {
+        ...zeile,
+        file_storage: zeile.file_storage as Einstellungen["file_storage"],
+        exemption_notice_kind: zeile.exemption_notice_kind as Einstellungen["exemption_notice_kind"],
+      },
   });
 
   useEffect(() => {
@@ -166,24 +168,19 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       for (const f of FELDER) {
         if (f !== "file_storage" && f !== "sharepoint_site_url") uebernehmen(f);
       }
-      const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
-      if (error) throw new Error(error.message);
+      await aendereEinstellungen(patch);
     },
     onSuccess: () => {
       toast({ title: "Gespeichert" });
       // Das Erscheinungsbild hängt an einer eigenen Abfrage – ohne das bleibt
       // die alte Farbe stehen, bis jemand neu lädt.
-      queryClient.invalidateQueries({ queryKey: ["app-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
+      // Vereinsangaben, Erscheinungsbild, Dateiablage und Module: Die
+      // Gemeinnützigkeit schaltet Bereiche frei oder ab.
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.alle });
       // Die Aufbewahrungsfrist bestimmt, ab wann eine Beitragsstufe endgueltig
       // weg darf – die Verwaltung zeigt diese Jahreszahl an.
-      queryClient.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
-      // Quellensammlung und Eingangskorb fragen die Dateiablage getrennt ab.
-      queryClient.invalidateQueries({ queryKey: ["file-storage-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["file-storage"] });
-      // Die Gemeinnützigkeit schaltet Bereiche frei oder ab.
-      queryClient.invalidateQueries({ queryKey: ["module"] });
-      queryClient.invalidateQueries({ queryKey: ["bescheid"] });
+      queryClient.invalidateQueries({ queryKey: beitragsstufenSchluessel.status() });
+      queryClient.invalidateQueries({ queryKey: fristSchluessel.bescheid() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),
@@ -217,12 +214,10 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // fand die Datei im Speicher, den Verweis darauf aber nirgends. Genau
       // eine Spalte wird geschrieben, damit andere offene Änderungen im
       // Formular davon unberührt bleiben.
-      const { error: speicherFehler } = await supabase
-        .from("app_settings").update(art === "logo" ? { logo_path: pfad } : { favicon_path: pfad }).eq("id", true);
-      if (speicherFehler) throw new Error(speicherFehler.message);
+      await aendereEinstellungen(art === "logo" ? { logo_path: pfad } : { favicon_path: pfad });
 
-      queryClient.invalidateQueries({ queryKey: ["app-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.vereinsangaben() });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.erscheinungsbild() });
       toast({ title: art === "logo" ? "Logo gespeichert" : "Symbol gespeichert" });
     } catch (err) {
       toast({
@@ -240,14 +235,14 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     if (!entwurf) return;
     const spalte = art === "logo" ? "logo_path" : "favicon_path";
     setEntwurf({ ...entwurf, [spalte]: null });
-    const { error } = await supabase.from("app_settings")
-      .update(art === "logo" ? { logo_path: null } : { favicon_path: null }).eq("id", true);
-    if (error) {
-      toast({ title: "Nicht entfernt", description: error.message, variant: "destructive" });
+    try {
+      await aendereEinstellungen(art === "logo" ? { logo_path: null } : { favicon_path: null });
+    } catch (err) {
+      toast({ title: "Nicht entfernt", description: (err as Error).message, variant: "destructive" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["app-settings"] });
-    queryClient.invalidateQueries({ queryKey: ["branding"] });
+    queryClient.invalidateQueries({ queryKey: einstellungSchluessel.vereinsangaben() });
+    queryClient.invalidateQueries({ queryKey: einstellungSchluessel.erscheinungsbild() });
   };
 
   if (isLoading || !entwurf) {
