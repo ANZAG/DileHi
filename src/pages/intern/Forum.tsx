@@ -1,7 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { forumSchluessel } from "@/daten/forum";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import {
   ArrowLeft, MessageSquare, Plus, Megaphone, CalendarDays, Wrench, BookOpen,
@@ -14,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
-import { fetchCategories, fetchCategoryStats, fetchUnreadThreads, saveCategory } from "@/components/forum/api";
+import { forumSchluessel, ladeRubriken, ladeRubrikStaende, ladeUngeleseneThemen, speichereRubrik } from "@/daten/forum";
 import { SEITE } from "@/lib/layout";
 import Brotkrumen from "@/components/forum/Brotkrumen";
 
@@ -40,7 +39,7 @@ export default function Forum() {
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: forumSchluessel.rubriken(),
-    queryFn: fetchCategories,
+    queryFn: ladeRubriken,
   });
 
   const [proposing, setProposing] = useState(false);
@@ -49,7 +48,7 @@ export default function Forum() {
 
   const { data: stats = {} } = useQuery({
     queryKey: forumSchluessel.rubrikStand(user?.id),
-    queryFn: () => fetchCategoryStats(user?.id),
+    queryFn: () => ladeRubrikStaende(user?.id),
     enabled: !!user,
   });
 
@@ -64,7 +63,7 @@ export default function Forum() {
   const nurUngelesen = params.get("ansicht") === "ungelesen";
   const { data: ungelesen = [] } = useQuery({
     queryKey: forumSchluessel.ungelesen(user?.id),
-    queryFn: () => fetchUnreadThreads(user!.id),
+    queryFn: () => ladeUngeleseneThemen(user!.id),
     enabled: !!user,
   });
   const rubrikName = (id: string) => categories.find((c) => c.id === id)?.name ?? "";
@@ -72,7 +71,7 @@ export default function Forum() {
   // Mitglieder duerfen vorschlagen; freigeschaltet wird in der Verwaltung.
   const propose = useMutation({
     mutationFn: () =>
-      saveCategory({
+      speichereRubrik({
         name: name.trim(),
         description: description.trim() || null,
         status: "vorgeschlagen",

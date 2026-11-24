@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { istUngelesen } from "@/components/forum/api";
+import { istUngelesen } from "@/daten/forum";
 import { installation } from "./hilfe/buehne";
 
 /**

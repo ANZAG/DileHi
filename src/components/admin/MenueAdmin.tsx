@@ -13,7 +13,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
 import { einsetzen } from "@/lib/organisationsform";
-import { fetchPages, type SitePage } from "@/components/sitebuilder/api";
+import { ladeSeiten, type SitePage } from "@/daten/seiten";
 import type { MenuBereich } from "@/hooks/useSiteMenu";
 
 interface Eintrag {
@@ -94,7 +94,7 @@ export default function MenueAdmin() {
       (await ladeMenuezeilen()).map((e) => ({ ...e, area: e.area as MenuBereich })),
   });
 
-  const { data: seiten = [] } = useQuery({ queryKey: websiteSchluessel.seiten(), queryFn: fetchPages });
+  const { data: seiten = [] } = useQuery({ queryKey: websiteSchluessel.seiten(), queryFn: ladeSeiten });
 
   // Nur die Einträge des offenen Reiters. Fehlt die Spalte noch (Migration
   // nicht eingespielt), zählt alles zur Kopfzeile – wie vorher.

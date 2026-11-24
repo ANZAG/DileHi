@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ladeAnmeldeVorgaben, ladeZelte, mitgliedSchluessel } from "@/daten/mitglieder";
+import {
+  aendereAnmeldungAlsGast, aendereAnmeldungMitAntworten, ladeAnmeldungZumAendern, ladeAntwortenVon,
+  ladeEigeneAnmeldung, ladeFormularMitSchluessel, reicheAnmeldungEin, sageZu,
+} from "@/daten/veranstaltungen";
 import { ausJson } from "@/lib/json";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -54,8 +59,8 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
   useEffect(() => {
     if (!editToken) return;
     (async () => {
-      const { data, error } = await supabase.rpc("get_response_by_edit_token", { _edit_token: editToken });
-      if (error || !data) {
+      const data = await ladeAnmeldungZumAendern(editToken).catch(() => null);
+      if (!data) {
         // Fall back to normal token load
         setGuestEditToken(null);
         return;
@@ -89,14 +94,13 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
   // Load form by public token (normal flow)
   useEffect(() => {
     if (!token || editToken) return;
-    supabase.rpc("get_form_by_token", { _token: token }).then(({ data, error }) => {
-      if (error || !data) {
+    // Ohne Formular – auch bei einem Fehler – zeigt die Seite „nicht gefunden".
+    ladeFormularMitSchluessel(token)
+      .catch(() => null)
+      .then((data) => {
+        if (data) setFormData(ausJson<FormData>(data));
         setLoading(false);
-        return;
-      }
-      setFormData(ausJson<FormData>(data));
-      setLoading(false);
-    });
+      });
   }, [token, editToken]);
 
   // Vorbefuellung fuer angemeldete Mitglieder. Ernaehrung und Allergien werden
@@ -104,12 +108,10 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
   // sonst bleibt die Vorbefuellung aus, sobald ein Feld anders heisst.
   useEffect(() => {
     if (user && !editToken) {
-      supabase
-        .from("profiles")
-        .select("display_name, diet, allergies")
-        .eq("id", user.id)
-        .single()
-        .then(({ data }) => {
+      // Vorbefüllen ist eine Hilfe, keine Voraussetzung: Ohne Profil bleibt das Formular leer.
+      ladeAnmeldeVorgaben(user.id)
+        .catch(() => null)
+        .then((data) => {
           if (!data) return;
           if (data.display_name) setName(data.display_name);
           // Pre-fill dynamic form fields by matching their label
@@ -137,26 +139,29 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
   useEffect(() => {
     if (!user || !formData?.form.id || editToken) return;
     (async () => {
-      const { data: responses } = await supabase
-        .from("event_form_responses")
-        .select("id, respondent_name, respondent_email")
-        .eq("form_id", formData.form.id)
-        .eq("user_id", user.id)
-        .limit(1);
+      let resp: Awaited<ReturnType<typeof ladeEigeneAnmeldung>>;
+      try {
+        resp = await ladeEigeneAnmeldung(formData.form.id, user.id);
+      } catch (err) {
+        // Sonst legte das Absenden eine zweite Anmeldung neben die erste.
+        toast({ title: "Deine Anmeldung ließ sich nicht laden", description: (err as Error).message, variant: "destructive" });
+        return;
+      }
 
-      if (responses && responses.length > 0) {
-        const resp = responses[0];
+      if (resp) {
         setExistingResponseId(resp.id);
         setIsEditMode(true);
         setName(resp.respondent_name);
         if (resp.respondent_email) setEmail(resp.respondent_email);
 
-        const { data: existingAnswers } = await supabase
-          .from("event_form_answers")
-          .select("field_id, value")
-          .eq("response_id", resp.id);
+        const existingAnswers = await ladeAntwortenVon(resp.id).catch(
+          (err: Error): Awaited<ReturnType<typeof ladeAntwortenVon>> => {
+            toast({ title: "Deine Antworten ließen sich nicht laden", description: err.message, variant: "destructive" });
+            return [];
+          },
+        );
 
-        if (existingAnswers && existingAnswers.length > 0) {
+        if (existingAnswers.length > 0) {
           const answerMap: Record<string, any> = {};
           existingAnswers.forEach((a) => {
             answerMap[a.field_id] = a.value;
@@ -165,21 +170,14 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
         }
       }
     })();
-  }, [user, formData?.form.id, editToken]);
+  // `toast` ist die eine Funktion des Moduls und ändert sich nie.
+  }, [user, formData?.form.id, editToken, toast]);
 
   // Fetch member's saved tents
   const { data: memberTents = [] } = useQuery({
-    queryKey: ["member_tents", user?.id],
+    queryKey: mitgliedSchluessel.zelteVon(user?.id),
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("member_tents")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at");
-      if (error) return [];
-      return data;
-    },
+    queryFn: () => ladeZelte(user!.id),
   });
 
   // Auto-redirect after submission
@@ -220,43 +218,23 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
           .filter((f) => answers[f.id] !== undefined)
           .map((f) => ({ field_id: f.id, value: answers[f.id] }));
 
-        const { error } = await supabase.rpc("update_response_by_edit_token", {
-          _edit_token: guestEditToken,
-          _name: name.trim(),
-          // Die Funktion nimmt eine leere Adresse als NULL; die erzeugten Typen kennen nur „text“.
-          _email: (email.trim() || null) as string,
-          _answers: answerArray,
+        await aendereAnmeldungAlsGast({
+          aenderungsSchluessel: guestEditToken,
+          name: name.trim(),
+          email: email.trim() || null,
+          antworten: answerArray,
         });
-        if (error) throw error;
         setSubmitted(true);
         toast({ title: "Anmeldung aktualisiert!" });
       } else if (isEditMode && existingResponseId) {
         // Logged-in member edit
-        const { error: respError } = await supabase
-          .from("event_form_responses")
-          .update({ respondent_name: name.trim(), respondent_email: email.trim() || null })
-          .eq("id", existingResponseId);
-        if (respError) throw respError;
-
-        await supabase
-          .from("event_form_answers")
-          .delete()
-          .eq("response_id", existingResponseId);
-
-        const answerRows = visibleFields
-          .filter((f) => answers[f.id] !== undefined)
-          .map((f) => ({
-            response_id: existingResponseId,
-            field_id: f.id,
-            value: answers[f.id],
-          }));
-
-        if (answerRows.length > 0) {
-          const { error: ansError } = await supabase
-            .from("event_form_answers")
-            .insert(answerRows);
-          if (ansError) throw ansError;
-        }
+        await aendereAnmeldungMitAntworten(
+          existingResponseId,
+          { name: name.trim(), email: email.trim() || null },
+          visibleFields
+            .filter((f) => answers[f.id] !== undefined)
+            .map((f) => ({ field_id: f.id, value: answers[f.id] })),
+        );
 
         setSubmitted(true);
         toast({ title: "Anmeldung aktualisiert!" });
@@ -269,21 +247,20 @@ export default function EventRegistration({ tokenOverride, internal = false }: P
             value: answers[f.id],
           }));
 
-        const { data: returnedEditToken, error } = await supabase.rpc("submit_form_response", {
-          _token: token!,
-          _name: name.trim(),
-          _email: (email.trim() || null) as string,
-          _answers: answerArray,
+        const returnedEditToken = await reicheAnmeldungEin({
+          token: token!,
+          name: name.trim(),
+          email: email.trim() || null,
+          antworten: answerArray,
         });
-
-        if (error) throw error;
 
         // Auto-RSVP for logged-in members
         if (user && formData.form.event_id) {
-          await supabase.from("event_attendees").upsert(
-            { event_id: formData.form.event_id, user_id: user.id },
-            { onConflict: "event_id,user_id", ignoreDuplicates: true }
-          ).then(() => {});
+          // Die Anmeldung steht schon. Scheitert die Zusage, ist das kein Grund,
+          // „Fehler beim Absenden" zu melden – sonst sendet jemand ein zweites Mal.
+          await sageZu(formData.form.event_id, user.id).catch((err) =>
+            console.warn("Zusage zur Veranstaltung nicht eingetragen:", err),
+          );
         }
 
         // Send confirmation email (content is derived server-side from the edit token)

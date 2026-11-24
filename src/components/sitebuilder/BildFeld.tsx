@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FieldLabel } from "@puckeditor/core";
 import { ImagePlus, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { aendereAlternativtext, ladeAlternativtext, legeBildplatzAn } from "@/daten/website";
 import { convertToWebP } from "@/lib/imageConversion";
 import { bildAblegen } from "@/lib/bildablage";
 import { bildVorschauen, leereAuswahlMerker, leereVorschauMerker, type BildVorschau } from "./auswahl";
@@ -54,21 +54,29 @@ export default function BildFeld({
   useEffect(() => {
     let abgebrochen = false;
     if (!value) { setAltText(""); return; }
-    supabase.from("site_images").select("alt_text").eq("slot", value).maybeSingle()
-      .then(({ data }) => {
+    ladeAlternativtext(value)
+      .then((text) => {
         if (!abgebrochen) {
-          setAltText(data?.alt_text ?? "");
+          setAltText(text);
           setAltGespeichert(true);
         }
+      })
+      .catch((err: Error) => {
+        // Nicht als „leer und gespeichert" zeigen: Wer dann tippt, überschriebe
+        // einen Text, den er nie gesehen hat.
+        if (!abgebrochen) setFehler(`Der Alternativtext ließ sich nicht laden: ${err.message}`);
       });
     return () => { abgebrochen = true; };
   }, [value]);
 
   const altSpeichern = async () => {
     if (!value || altGespeichert) return;
-    const { error } = await supabase.from("site_images")
-      .update({ alt_text: altText.trim() }).eq("slot", value);
-    if (error) { setFehler(error.message); return; }
+    try {
+      await aendereAlternativtext(value, altText.trim());
+    } catch (err) {
+      setFehler((err as Error).message);
+      return;
+    }
     setAltGespeichert(true);
     // Die Vorschauen tragen keinen Alternativtext, aber die Bausteine lesen
     // ihn ueber useSiteImage – dort haengt er an einer eigenen Abfrage.
@@ -94,7 +102,7 @@ export default function BildFeld({
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "bild";
       const slot = `${basis}-${Date.now().toString(36)}`;
 
-      const { error: zeileFehler } = await supabase.from("site_images").insert({
+      await legeBildplatzAn({
         slot,
         label: datei.name.replace(/\.[^.]+$/, ""),
         page: seitentitel || "Seiten",
@@ -102,7 +110,6 @@ export default function BildFeld({
         alt_text: "",
         ...masse,
       });
-      if (zeileFehler) throw new Error(zeileFehler.message);
 
       // Die Auswahlliste ist gemerkt; ohne Leeren fehlt das neue Bild.
       leereAuswahlMerker("bilder");

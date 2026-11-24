@@ -12,8 +12,8 @@ import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
 import { WOERTERBUCH } from "@/components/sitebuilder/woerterbuch";
 import { BausteinKarte } from "@/components/sitebuilder/BausteinKarte";
 import {
-  fetchPageById, LEERE_SEITE, publish, saveDraft, unpublish,
-} from "@/components/sitebuilder/api";
+  ladeSeite, LEERE_SEITE, veroeffentlicheSeite, sichereEntwurf, nimmSeiteZurueck,
+} from "@/daten/seiten";
 import "@puckeditor/core/puck.css";
 
 /**
@@ -50,7 +50,7 @@ export default function SeitenEditor() {
 
   const { data: page, isLoading } = useQuery({
     queryKey: websiteSchluessel.seite(pageId),
-    queryFn: () => fetchPageById(pageId!),
+    queryFn: () => ladeSeite(pageId!),
     enabled: !!pageId,
   });
 
@@ -62,14 +62,14 @@ export default function SeitenEditor() {
   }, [page]);
 
   const entwurf = useMutation({
-    mutationFn: (daten: Data) => saveDraft(pageId!, daten),
+    mutationFn: (daten: Data) => sichereEntwurf(pageId!, daten),
     onSuccess: () => toast({ title: "Entwurf gesichert" }),
     onError: (err: Error) =>
       toast({ title: "Nicht gesichert", description: err.message, variant: "destructive" }),
   });
 
   const veroeffentlichen = useMutation({
-    mutationFn: (daten: Data) => publish(pageId!, daten),
+    mutationFn: (daten: Data) => veroeffentlicheSeite(pageId!, daten),
     onSuccess: () => {
       toast({ title: "Seite ist online" });
       queryClient.invalidateQueries({ queryKey: websiteSchluessel.seite(pageId) });
@@ -80,7 +80,7 @@ export default function SeitenEditor() {
   });
 
   const zurueckziehen = useMutation({
-    mutationFn: () => unpublish(pageId!),
+    mutationFn: () => nimmSeiteZurueck(pageId!),
     onSuccess: () => {
       toast({ title: "Seite ist nicht mehr öffentlich" });
       queryClient.invalidateQueries({ queryKey: websiteSchluessel.seite(pageId) });

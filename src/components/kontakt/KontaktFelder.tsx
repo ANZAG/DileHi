@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendeKontaktnachricht } from "@/daten/website";
 import { useToast } from "@/hooks/use-toast";
 import { useSprache } from "@/hooks/useSprache";
 import { mitWerten } from "@/lib/texte";
@@ -107,11 +108,11 @@ export default function KontaktFelder({ kompakt = false }: { kompakt?: boolean }
 
     setSending(true);
     const nachricht = form.message.trim();
-    const { error } = await supabase.from("contact_messages").insert({
+    const error = await sendeKontaktnachricht({
       name: form.name.trim(),
       email: form.email.trim(),
       message: nachricht,
-    });
+    }).then(() => null, (err: unknown) => err);
 
     // Mailbenachrichtigung ohne Warten: Die Nachricht steht bereits in der
     // Datenbank und ist in der Verwaltung sichtbar.

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/integrations/supabase/client";
-import { loescheAbstimmungen, loeschprotokollZeile } from "@/lib/abstimmungLoeschen";
+import { loescheAbstimmungen, loeschprotokollZeile } from "@/daten/wahlen";
 
 /**
  * Abstimmungen löschen – einzeln und mit dem ganzen Thema über denselben Weg.

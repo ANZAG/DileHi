@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Copy, Loader2, ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel, ladeEinrichtungNoetig } from "@/daten/einstellungen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,12 +36,8 @@ export default function Einrichtung() {
   const [fertig, setFertig] = useState<{ rolle: string; einladung: string | null; mailVersandt: boolean } | null>(null);
 
   const { data: noetig, isLoading } = useQuery({
-    queryKey: ["setup-needed"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("setup_needed");
-      if (error) throw new Error(error.message);
-      return data;
-    },
+    queryKey: einstellungSchluessel.einrichtungNoetig(),
+    queryFn: ladeEinrichtungNoetig,
     retry: false,
   });
 

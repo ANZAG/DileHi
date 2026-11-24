@@ -8,13 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { forumSchluessel } from "@/daten/forum";
 import { useRollenkatalog } from "@/daten/mitglieder";
 import { Hilfe } from "@/components/Hilfe";
 import {
-  deleteCategory, fetchCategories, fetchCategoryRights, saveCategory, setCategoryRight,
+  loescheRubrik, ladeRubriken, ladeRubrikRechte, speichereRubrik, setzeRubrikRecht,
   type CategoryStatus, type ForumCategory,
-} from "@/components/forum/api";
+  forumSchluessel,
+} from "@/daten/forum";
 
 const STATUS_LABEL: Record<CategoryStatus, string> = {
   vorgeschlagen: "Vorgeschlagen",
@@ -45,10 +45,10 @@ export default function ForumCategoriesAdmin() {
   const [draft, setDraft] = useState<{ name: string; description: string } | null>(null);
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories,
+    queryKey: forumSchluessel.rubriken(), queryFn: ladeRubriken,
   });
   const { data: rights = [] } = useQuery({
-    queryKey: forumSchluessel.rubrikRechte(), queryFn: fetchCategoryRights,
+    queryKey: forumSchluessel.rubrikRechte(), queryFn: ladeRubrikRechte,
   });
   const { data: roles = [] } = useRollenkatalog();
 
@@ -58,13 +58,13 @@ export default function ForumCategoriesAdmin() {
   };
 
   const save = useMutation({
-    mutationFn: (c: Partial<ForumCategory> & { id?: string }) => saveCategory(c),
+    mutationFn: (c: Partial<ForumCategory> & { id?: string }) => speichereRubrik(c),
     onSuccess: () => { invalidate(); setDraft(null); },
     onError: (e: Error) => toast({ title: "Nicht gespeichert", description: e.message, variant: "destructive" }),
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteCategory(id),
+    mutationFn: (id: string) => loescheRubrik(id),
     onSuccess: () => { invalidate(); toast({ title: "Rubrik gelöscht" }); },
     onError: (e: Error) => toast({ title: "Nicht gelöscht", description: e.message, variant: "destructive" }),
   });
@@ -72,7 +72,7 @@ export default function ForumCategoriesAdmin() {
   const toggleRight = useMutation({
     mutationFn: ({ categoryId, role, patch }: {
       categoryId: string; role: string; patch: Record<string, boolean>;
-    }) => setCategoryRight(categoryId, role, patch),
+    }) => setzeRubrikRecht(categoryId, role, patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikRechte() }),
     onError: (e: Error) => toast({ title: "Recht nicht geändert", description: e.message, variant: "destructive" }),
   });

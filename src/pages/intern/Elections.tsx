@@ -12,7 +12,7 @@ import { ergebnisVon } from "@/lib/ergebnisBild";
 import RepresentationDialog from "@/components/elections/RepresentationDialog";
 import type { Election } from "@/components/elections/types";
 import { SEITE } from "@/lib/layout";
-import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
+import { loescheAbstimmungen } from "@/daten/wahlen";
 import {
   kandidatenAusText,
   ladeAbstimmungen,

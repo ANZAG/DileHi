@@ -10,7 +10,7 @@ import ErgebnisBildKnopf from "./ErgebnisBildKnopf";
 import { Link } from "react-router-dom";
 import { Gavel } from "lucide-react";
 import { moduleOn, useModule } from "@/hooks/useModule";
-import { loescheAbstimmungen } from "@/lib/abstimmungLoeschen";
+import { loescheAbstimmungen } from "@/daten/wahlen";
 import {
   aendereAbstimmung,
   gibStimmenAb,

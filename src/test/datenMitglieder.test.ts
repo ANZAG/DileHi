@@ -9,7 +9,10 @@ import {
   mitgliedSchluessel,
   speichereBeitrag,
   speichereBeitragssatz,
+  ladeIstAktiv,
+  ladeRollenVon,
 } from "@/daten/mitglieder";
+import { ladeRechteVon } from "@/daten/rollen";
 import { datenbank, filterVon } from "./hilfe/nachbau";
 
 /**
@@ -40,12 +43,14 @@ describe("Die Schlüssel der Mitglieder", () => {
   });
 
   it("machen mit den Zelten auch die der Anmeldeseite ungültig", () => {
-    // Die öffentliche Anmeldeseite liest noch selbst unter ["member_tents", id].
+    // Profil und Anmeldeseite lesen die Zelte unter demselben Schlüssel.
     const qc = new QueryClient();
-    qc.setQueryData(["member_tents", "anna"], []);
+    qc.setQueryData(mitgliedSchluessel.zelteVon("anna"), []);
     qc.setQueryData(mitgliedSchluessel.alleZelte(), []);
     qc.invalidateQueries({ queryKey: mitgliedSchluessel.zelte() });
-    expect(qc.getQueryState(["member_tents", "anna"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(mitgliedSchluessel.zelteVon("anna"))?.isInvalidated).toBe(true);
+    // Ein Mitglied, dessen Kennung wie die Gesamtliste heisst, trifft sie nicht.
+    expect(mitgliedSchluessel.zelteVon("alle")).not.toEqual(mitgliedSchluessel.alleZelte());
     expect(qc.getQueryState(mitgliedSchluessel.alleZelte())?.isInvalidated).toBe(true);
   });
 
@@ -177,5 +182,36 @@ describe("Wer Beitrag zahlt", () => {
     });
     expect((await ladeBeitragszahler()).map((p) => p.id)).toEqual(["anna", "cleo"]);
     expect(filterVon(aufrufe[1])).toEqual(['id in ["anna","bert","cleo"]']);
+  });
+});
+
+describe("Was die Anmeldung über ein Mitglied liest", () => {
+  it("hält ein nicht lesbares Profil nicht für ein abgeschaltetes Konto", async () => {
+    // useAuth meldet nur bei `false` ab. Ein Fehler oder ein fehlendes Profil
+    // darf niemanden hinauswerfen.
+    datenbank({
+      "select profiles": [
+        { data: { is_active: false } },
+        { data: { is_active: true } },
+        { data: null },
+        { data: null, error: { message: "Funkloch" } },
+      ],
+    });
+    expect(await ladeIstAktiv("anna")).toBe(false);
+    expect(await ladeIstAktiv("anna")).toBe(true);
+    expect(await ladeIstAktiv("anna")).toBeNull();
+    await expect(ladeIstAktiv("anna")).rejects.toMatchObject({ message: "Funkloch" });
+  });
+
+  it("meldet einen Netzfehler bei Rollen und Rechten, statt „keine“ zu liefern", async () => {
+    // Sonst sähe ein Mitglied nach einem Funkloch aus wie ein Fremder.
+    datenbank({
+      "select user_roles": [{ data: [{ role: "vorstand" }, { role: "mitglied" }] }, { data: null, error: { message: "Funkloch" } }],
+      "rpc get_user_permissions": [{ data: null }, { data: null, error: { message: "Funkloch" } }],
+    });
+    expect(await ladeRollenVon("anna")).toEqual(["vorstand", "mitglied"]);
+    await expect(ladeRollenVon("anna")).rejects.toMatchObject({ message: "Funkloch" });
+    expect(await ladeRechteVon("anna")).toEqual([]);
+    await expect(ladeRechteVon("anna")).rejects.toMatchObject({ message: "Funkloch" });
   });
 });

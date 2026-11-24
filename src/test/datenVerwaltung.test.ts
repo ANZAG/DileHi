@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { aufnahmeSchluessel, entscheideAntrag, ladeAntragstexte, speichereAntragsfelder } from "@/daten/aufnahme";
-import { ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
+import { ladeSeiteNachAdresse, legeSeiteAn } from "@/daten/seiten";
+import { ladeGalerieKategorien, ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
+import { ladeAktuellenBeitragssatz } from "@/daten/mitglieder";
+import { ladeEinrichtungNoetig } from "@/daten/einstellungen";
 import { aendereEinstellungen, einstellungSchluessel, ladeErscheinungsbild, schalteModule } from "@/daten/einstellungen";
 import { fristSchluessel, ladeBescheidangaben, setzeFristErledigt, speichereFrist } from "@/daten/fristen";
 import { kategorieSchluessel, legeKategorieAn, zaehleKategorieVerwendung } from "@/daten/kategorien";
@@ -200,14 +203,15 @@ describe("Die Schlüssel von Website und Aufnahme", () => {
     expect(qc.getQueryState(websiteSchluessel.seiten())?.isInvalidated).toBe(false);
   });
 
-  it("erreichen mit der Galerie auch die Listen der Bausteine", () => {
-    // Der Baukasten liest noch selbst unter ["gallery_images", kategorie].
+  it("erreichen mit der Galerie auch die Listen der Bausteine – jede Kategorie für sich", () => {
     const qc = new QueryClient();
-    qc.setQueryData(["gallery_images", "napoleonik"], []);
+    qc.setQueryData(websiteSchluessel.galerieIn("napoleonik"), []);
+    qc.setQueryData(websiteSchluessel.galerie(), []);
     qc.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
-    expect(qc.getQueryState(["gallery_images", "napoleonik"])?.isInvalidated).toBe(true);
-    // Die Liste der Verwaltung kann keine Kategorie treffen, wie auch immer die heisst.
-    expect(websiteSchluessel.galerie()[0]).not.toBe("gallery_images");
+    expect(qc.getQueryState(websiteSchluessel.galerieIn("napoleonik"))?.isInvalidated).toBe(true);
+    // Die Liste der Verwaltung ist anders geformt und kann keine Kategorie treffen.
+    expect(qc.getQueryState(websiteSchluessel.galerie())?.isInvalidated).toBe(false);
+    expect(websiteSchluessel.galerieIn("a")).not.toEqual(websiteSchluessel.galerieIn("b"));
   });
 
   it("erneuern mit einem geänderten Text des Antrags auch den Antrag selbst", () => {
@@ -269,5 +273,46 @@ describe("Ein Aufnahmeantrag", () => {
   it("liefert seine Texte nach Kennung", async () => {
     datenbank({ "select pdf_texts": { data: [{ key: "datenschutz", title: "Datenschutz", body: "…" }] } });
     expect(await ladeAntragstexte()).toEqual({ datenschutz: { title: "Datenschutz", body: "…" } });
+  });
+});
+
+describe("Ob die Einrichtung noch nötig ist", () => {
+  it("wird bei einem Fehler nicht als „nein“ beantwortet", async () => {
+    // Vorher legte die Anmeldeseite bei einem Fehler `false` unter denselben
+    // Schlüssel, unter dem die Einrichtungsseite liest – die leitete dann weg.
+    datenbank({ "rpc setup_needed": [{ data: true }, { data: null, error: { message: "weg" } }] });
+    expect(await ladeEinrichtungNoetig()).toBe(true);
+    await expect(ladeEinrichtungNoetig()).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("gilt beim Beitragssatz nur eine brauchbare Zahl", async () => {
+    datenbank({ "rpc get_current_contribution_rate": [{ data: "48.00" }, { data: 0 }, { data: null }] });
+    expect(await ladeAktuellenBeitragssatz()).toBe(48);
+    expect(await ladeAktuellenBeitragssatz()).toBeNull();
+    expect(await ladeAktuellenBeitragssatz()).toBeNull();
+  });
+});
+
+describe("Die Seiten des Baukastens", () => {
+  it("finden eine Seite auch noch unter ihrem alten Namen mit „-neu“", async () => {
+    const aufrufe = datenbank({ "select site_pages": [{ data: null }, { data: { id: "s1", slug: "kontakt-neu", content: null, draft_content: null } }] });
+    expect(await ladeSeiteNachAdresse("kontakt")).toMatchObject({ id: "s1" });
+    expect(aufrufe.map((a) => filterVon(a)[0])).toEqual(['slug eq "kontakt"', 'slug eq "kontakt-neu"']);
+  });
+
+  it("melden einen Fehler beim zweiten Versuch, statt „Seite nicht gefunden“ zu zeigen", async () => {
+    // Vorher wurde der Fehler der Ersatzabfrage übergangen.
+    datenbank({ "select site_pages": [{ data: null }, { data: null, error: { message: "weg" } }] });
+    await expect(ladeSeiteNachAdresse("kontakt")).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("sagen bei einer vergebenen Adresse, was zu tun ist", async () => {
+    datenbank({ "insert site_pages": { data: null, error: { message: 'duplicate key value violates unique constraint "site_pages_slug_key"' } } });
+    await expect(legeSeiteAn({ slug: "kontakt", title: "Kontakt" })).rejects.toThrow("Diese Adresse gibt es schon. Wähle eine andere.");
+  });
+
+  it("nennen jede Kategorie der Galerie einmal, sortiert und ohne leere", async () => {
+    datenbank({ "select gallery_images": { data: [{ epoch: "napoleonik" }, { epoch: null }, { epoch: "mittelalter" }, { epoch: "napoleonik" }] } });
+    expect(await ladeGalerieKategorien()).toEqual(["mittelalter", "napoleonik"]);
   });
 });

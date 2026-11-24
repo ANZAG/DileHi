@@ -1,4 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import { ladeKategorieAuswahl } from "@/daten/kategorien";
+import { ladeSeitenKurz } from "@/daten/seiten";
+import { ladeBildplaetze, ladeGalerieKategorien } from "@/daten/website";
 
 /**
  * Auswahllisten für die Bausteine.
@@ -53,13 +56,7 @@ export function leereAuswahlMerker(schluessel?: string) {
 
 export function bildAuswahl(): Promise<Auswahl[]> {
   return gemerkt("bilder", async () => {
-    const { data, error } = await supabase
-      .from("site_images")
-      .select("slot, label, page")
-      .order("page")
-      .order("label");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((b) => ({
+    return (await ladeBildplaetze()).map((b) => ({
       value: b.slot,
       label: b.page ? `${b.label} (${b.page})` : b.label,
     }));
@@ -88,13 +85,7 @@ export async function bildVorschauen(): Promise<BildVorschau[]> {
     return vorschauMerker.werte;
   }
   const laden = async (): Promise<BildVorschau[]> => {
-    const { data, error } = await supabase
-      .from("site_images")
-      .select("slot, label, page, storage_path")
-      .order("page")
-      .order("label");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((b) => ({
+    return (await ladeBildplaetze()).map((b) => ({
       slot: b.slot,
       label: b.label,
       page: b.page,
@@ -114,10 +105,7 @@ export async function bildVorschauen(): Promise<BildVorschau[]> {
 /** Die Galerien – abgeleitet daraus, welche es tatsächlich gibt. */
 export function galerieAuswahl(): Promise<Auswahl[]> {
   return gemerkt("galerien", async () => {
-    const { data, error } = await supabase.from("gallery_images").select("epoch");
-    if (error) throw new Error(error.message);
-    const namen = [...new Set((data ?? []).map((g) => g.epoch).filter(Boolean))].sort();
-    return namen.map((n) => ({ value: n as string, label: n as string }));
+    return (await ladeGalerieKategorien()).map((n) => ({ value: n, label: n }));
   });
 }
 
@@ -131,29 +119,18 @@ export function galerieAuswahl(): Promise<Auswahl[]> {
  */
 export function kategorieAuswahl(): Promise<Auswahl[]> {
   return gemerkt("kategorien", async () => {
-    const { data, error } = await supabase
-      .from("site_categories")
-      .select("key, label")
-      .order("sort_order");
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) return data.map((k) => ({ value: k.key, label: k.label }));
+    const gepflegt = await ladeKategorieAuswahl();
+    if (gepflegt.length > 0) return gepflegt;
 
     // Notnagel, solange die Kategorien noch nicht eingespielt sind.
-    const galerien = await supabase.from("gallery_images").select("epoch");
-    const namen = [...new Set((galerien.data ?? []).map((g) => g.epoch).filter(Boolean))].sort();
-    return (namen as string[]).map((n) => ({ value: n, label: n }));
+    return (await ladeGalerieKategorien()).map((n) => ({ value: n, label: n }));
   });
 }
 
 /** Die im Editor gebauten Seiten – für Verweise aus Knöpfen und Karten. */
 export function seitenAuswahl(): Promise<Auswahl[]> {
   return gemerkt("seiten", async () => {
-    const { data, error } = await supabase
-      .from("site_pages")
-      .select("slug, title")
-      .order("title");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((s) => ({ value: `/${s.slug}`, label: s.title }));
+    return (await ladeSeitenKurz()).map((s) => ({ value: `/${s.slug}`, label: s.title }));
   });
 }
 

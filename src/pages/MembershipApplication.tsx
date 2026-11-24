@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { EINBLENDEN_KARTE, EINBLENDEN_SEITE } from "@/lib/einblenden";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeAktuellenBeitragssatz } from "@/daten/mitglieder";
 import { invokeFunction } from "@/lib/functionError";
 import { CheckCircle2, Loader2, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -154,10 +154,10 @@ const MembershipApplication = () => {
   }, [arten, form.membership_type]);
 
   useEffect(() => {
-    supabase.rpc("get_current_contribution_rate").then(({ data }) => {
-      const n = typeof data === "number" ? data : Number(data);
-      if (Number.isFinite(n) && n > 0) setRate(n);
-    });
+    // Ohne Antwort bleibt der Satz aus der Vorgabe stehen.
+    ladeAktuellenBeitragssatz()
+      .then((n) => { if (n !== null) setRate(n); })
+      .catch(() => undefined);
   }, []);
 
   const fmt = (n: number) => n.toFixed(2).replace(".", ",") + " \u20AC";

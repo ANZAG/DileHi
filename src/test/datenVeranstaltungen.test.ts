@@ -10,6 +10,10 @@ import {
   speichereFelder,
   speichereFormularEinstellungen,
   veranstaltungSchluessel,
+  aendereAnmeldungMitAntworten,
+  ladeEigeneAnmeldung,
+  ladeMeineAuswertungsTermine,
+  sageZu,
 } from "@/daten/veranstaltungen";
 import { aktiveNachName } from "@/daten/mitglieder";
 import type { FormField } from "@/components/event-forms/types";
@@ -246,5 +250,51 @@ describe("Termine für die Karte", () => {
     await ladeTermineFuerKarte(mittags);
     const ab = new Date(2026, 10, 24).toISOString();
     expect(aufrufe[0].schritte).toContainEqual(["or", `end_date.gte.${ab},and(end_date.is.null,start_date.gte.${ab})`]);
+  });
+});
+
+describe("Die Anmeldeseite", () => {
+  it("ersetzt die Antworten eines Mitglieds – und legt keine doppelten an, wenn die alten nicht weggehen", async () => {
+    const antworten = [{ field_id: "f1", value: "ja" }];
+    let aufrufe = datenbank();
+    await aendereAnmeldungMitAntworten("r1", { name: "Anna", email: null }, antworten);
+    expect(aufrufe.map((a) => a.was)).toEqual([
+      "update event_form_responses",
+      "delete event_form_answers",
+      "insert event_form_answers",
+    ]);
+    expect(aufrufe[2].wert).toEqual([{ response_id: "r1", field_id: "f1", value: "ja" }]);
+    vi.restoreAllMocks();
+
+    // Vorher wurde der Fehler beim Entfernen übergangen und trotzdem eingefügt.
+    aufrufe = datenbank({ "delete event_form_answers": { error: { message: "weg" } } });
+    await expect(aendereAnmeldungMitAntworten("r1", { name: "Anna", email: null }, antworten)).rejects.toMatchObject({
+      message: "weg",
+    });
+    expect(aufrufe.map((a) => a.was)).not.toContain("insert event_form_answers");
+  });
+
+  it("findet die eigene Anmeldung oder keine – ein Fehler ist nicht „keine“", async () => {
+    datenbank({
+      "select event_form_responses": [{ data: [] }, { data: [{ id: "r1" }] }, { data: null, error: { message: "weg" } }],
+    });
+    expect(await ladeEigeneAnmeldung("f", "anna")).toBeNull();
+    expect(await ladeEigeneAnmeldung("f", "anna")).toMatchObject({ id: "r1" });
+    // Sonst legte das Absenden eine zweite Anmeldung an.
+    await expect(ladeEigeneAnmeldung("f", "anna")).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("lässt eine bestehende Zusage, wie sie ist", async () => {
+    const aufrufe = datenbank();
+    await sageZu("e1", "anna");
+    expect(aufrufe[0].schritte[0][2]).toEqual({ onConflict: "event_id,user_id", ignoreDuplicates: true });
+  });
+
+  it("zeigt auf der Startseite nur eigene Termine, wenn jemand nicht alle auswerten darf", async () => {
+    const aufrufe = datenbank();
+    await ladeMeineAuswertungsTermine("anna", true);
+    await ladeMeineAuswertungsTermine("anna", false);
+    expect(filterVon(aufrufe[0])).toEqual([]);
+    expect(filterVon(aufrufe[1])).toEqual(['created_by eq "anna"']);
   });
 });

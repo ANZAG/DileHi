@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeGeburtsdaten, mitgliedSchluessel } from "@/daten/mitglieder";
 import { useAuth } from "@/hooks/useAuth";
 import { Cake, X } from "lucide-react";
 import { useState } from "react";
@@ -37,15 +37,8 @@ const BirthdayBanner = () => {
   const [dismissed, setDismissed] = useState(false);
 
   const { data: entries = [] } = useQuery({
-    queryKey: ["birthday-check"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, birthdate")
-        .eq("is_active", true)
-        .not("birthdate", "is", null);
-      return getBirthdayEntries(data ?? []);
-    },
+    queryKey: mitgliedSchluessel.geburtstage(),
+    queryFn: async () => getBirthdayEntries(await ladeGeburtsdaten()),
     enabled: !!user,
     staleTime: 1000 * 60 * 60, // 1h
   });

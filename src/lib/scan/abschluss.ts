@@ -1,7 +1,7 @@
 import { attachFile, registerSource, uploadToSharePoint, type DriveItem } from "@/lib/sharePointFiles";
 import { pdfBauen, type PdfSeite, type Wort } from "./pdf";
 import { seitePruefen } from "./pruefung";
-import { textAblegen } from "./quelltext";
+import { legeTextAb } from "@/daten/quellen";
 import { dateiLaden, textLaden, type Sitzung } from "./speicher";
 import { lesetext, markdownBauen } from "./text";
 import { alsIso, heuteIso } from "@/lib/datum";
@@ -170,7 +170,7 @@ export async function abschliessen(
     melden("text", 0, st);
     // Für die Suche: Trennungen zusammengeführt, Absätze am Stück – so
     // findet „wurde“ auch das gedruckte „wur-⏎de“.
-    if (texte.some((t) => t.trim())) await textAblegen(st.driveItemId!, texte.map(lesetext));
+    if (texte.some((t) => t.trim())) await legeTextAb(st.driveItemId!, texte.map(lesetext));
     st.textAbgelegt = true;
   }
   melden("fertig", 1, st);

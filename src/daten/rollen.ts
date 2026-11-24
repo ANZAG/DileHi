@@ -98,6 +98,20 @@ export async function ladeRechtekatalog() {
   return data ?? [];
 }
 
+/** Alles, was ein Mitglied über seine Rollen darf. */
+export async function ladeRechteVon(userId: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc("get_user_permissions", { _user_id: userId });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Die erteilten Rechte einer Rolle – für „ansehen als". */
+export async function ladeRechteDerRolle(rolle: string): Promise<string[]> {
+  const { data, error } = await supabase.from("role_permissions").select("permission").eq("role", rolle).eq("granted", true);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.permission);
+}
+
 /** Gibt einer Rolle ein Recht oder nimmt es ihr. */
 export async function setzeRollenrecht(rolle: string, recht: string, erteilt: boolean): Promise<void> {
   if (erteilt) {

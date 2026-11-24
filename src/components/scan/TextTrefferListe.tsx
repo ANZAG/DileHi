@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileSearch, Loader2 } from "lucide-react";
-import { quellenSchluessel } from "@/daten/quellen";
-import { ausschnittTeile, imTextSuchen, type TextTreffer } from "@/lib/scan/quelltext";
+import { quellenSchluessel, sucheImText, type TextTreffer } from "@/daten/quellen";
+import { ausschnittTeile } from "@/lib/scan/quelltext";
 
 /**
  * Treffer im Text der Quellen, für die Suche der Quellensammlung. Je Quelle
@@ -26,7 +26,7 @@ export function TextTrefferListe({ suche, epochName, onOeffnen }: Props) {
   const { data: treffer = [], isFetching, error } = useQuery({
     queryKey: quellenSchluessel.textsuche(verzoegert),
     enabled: verzoegert.length >= 3,
-    queryFn: () => imTextSuchen(verzoegert),
+    queryFn: () => sucheImText(verzoegert),
   });
 
   if (verzoegert.length < 3) return null;

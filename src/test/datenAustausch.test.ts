@@ -6,7 +6,14 @@ import { benachrichtigungSchluessel, markiereGelesen, speicherePushAbo } from "@
 import { besitzerName, darstellungSchluessel, ladeSteckbriefeZurFreigabe } from "@/daten/darstellungen";
 import { dokumentSchluessel, legeAblageAn, zaehleDokumenteJeAblage } from "@/daten/dokumente";
 import { einfuehrungSchluessel, ladeSchritteMitVorgabe, merkeGesehen, speichereEinfuehrung } from "@/daten/einfuehrung";
-import { forumSchluessel, ladeMeineStimmen, schalteStimme } from "@/daten/forum";
+import {
+  forumSchluessel,
+  ladeMeineStimmen,
+  ladeRubrikStaende,
+  legeThemaAn,
+  merkeGelesen,
+  schalteStimme,
+} from "@/daten/forum";
 import { ladeAuswertungsTermine, veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { datenbank, filterVon } from "./hilfe/nachbau";
 
@@ -263,5 +270,44 @@ describe("Die Auswertungen", () => {
   it("melden einen Fehler, statt keine Termine zu zeigen", async () => {
     datenbank({ "select events": { data: termine }, "select event_forms": { data: null, error: { message: "weg" } } });
     await expect(ladeAuswertungsTermine("anna", false)).rejects.toMatchObject({ message: "weg" });
+  });
+});
+
+describe("Das Forum", () => {
+  it("meldet, wenn die Themen für die Zählung nicht lesbar sind, statt null Themen zu zählen", async () => {
+    // Vorher: leere Zählung – jede Rubrik sah aus, als wäre nichts darin.
+    datenbank({ "select forum_threads": { data: null, error: { message: "weg" } } });
+    await expect(ladeRubrikStaende("anna")).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("zählt je Rubrik Themen und Ungelesenes, Archiviertes nie als ungelesen", async () => {
+    datenbank({
+      "select forum_threads": {
+        data: [
+          { id: "t1", category_id: "r1", last_post_at: "2026-11-20T10:00:00Z", is_archived: false },
+          { id: "t2", category_id: "r1", last_post_at: "2026-11-10T10:00:00Z", is_archived: false },
+          { id: "t3", category_id: "r1", last_post_at: "2026-11-20T10:00:00Z", is_archived: true },
+        ],
+      },
+      "select forum_read_state": { data: [{ thread_id: "t2", last_read_at: "2026-11-15T10:00:00Z" }] },
+    });
+    expect(await ladeRubrikStaende("anna")).toEqual({ r1: { threads: 3, unread: 1 } });
+  });
+
+  it("meldet, wenn sich der Lesestand nicht merken liess", async () => {
+    const aufrufe = datenbank({ "upsert forum_read_state": [{}, { error: { message: "weg" } }] });
+    await merkeGelesen("t1", "anna");
+    expect(aufrufe[0].schritte[0][2]).toEqual({ onConflict: "user_id,thread_id" });
+    await expect(merkeGelesen("t1", "anna")).rejects.toMatchObject({ message: "weg" });
+  });
+
+  it("legt zu einem neuen Thema den ersten Beitrag an – und meldet, wenn der nicht ankam", async () => {
+    const aufrufe = datenbank({
+      "insert forum_threads": { data: { id: "t9", title: "Lager" } },
+      "insert forum_posts": { error: { message: "weg" } },
+    });
+    await expect(legeThemaAn({ categoryId: "r1", title: " Lager ", body: "<p>Hallo</p>", userId: "anna" })).rejects.toMatchObject({ message: "weg" });
+    expect(aufrufe[0].wert).toMatchObject({ category_id: "r1", title: "Lager", slug: "lager", created_by: "anna" });
+    expect(aufrufe[1].wert).toMatchObject({ thread_id: "t9", body: "<p>Hallo</p>" });
   });
 });

@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel, ladeEinrichtungNoetig } from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
@@ -38,12 +39,10 @@ const Login = () => {
    * Zustand ohnehin von aussen sichtbar: eine Website ohne Inhalt.
    */
   const { data: einrichtungNoetig } = useQuery({
-    queryKey: ["setup-needed"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("setup_needed");
-      if (error) return false;
-      return data;
-    },
+    // Bei einem Fehler bleibt der Hinweis weg – aber „nein" wird nicht
+    // gemerkt: Unter demselben Schlüssel liest die Einrichtungsseite.
+    queryKey: einstellungSchluessel.einrichtungNoetig(),
+    queryFn: ladeEinrichtungNoetig,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

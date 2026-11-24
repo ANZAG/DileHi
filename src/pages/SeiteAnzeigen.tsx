@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import NotFound from "@/pages/NotFound";
 import SeitenRenderer, { type SeitenDaten } from "@/components/sitebuilder/SeitenRenderer";
-import type { SitePage } from "@/components/sitebuilder/api";
+import type { SitePage } from "@/daten/seiten";
 import { ladeSeiteInSprache, sprachSchluessel, type SeiteInSprache } from "@/daten/sprachen";
 import { useBranding } from "@/hooks/useBranding";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";

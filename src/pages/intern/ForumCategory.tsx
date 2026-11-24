@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { createThread, fetchCategories, fetchReadState, fetchThreads, istUngelesen } from "@/components/forum/api";
-import { forumSchluessel } from "@/daten/forum";
+import { forumSchluessel, legeThemaAn, ladeRubriken, ladeLesestand, ladeThemen, istUngelesen } from "@/daten/forum";
 import { useMitgliederverzeichnis } from "@/daten/mitglieder";
 import { SEITE } from "@/lib/layout";
 import Brotkrumen from "@/components/forum/Brotkrumen";
@@ -38,18 +37,18 @@ export default function ForumCategory() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  const { data: categories = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: fetchCategories });
+  const { data: categories = [] } = useQuery({ queryKey: forumSchluessel.rubriken(), queryFn: ladeRubriken });
   const category = categories.find((c) => c.slug === slug);
 
   const { data: threads = [], isLoading } = useQuery({
     queryKey: forumSchluessel.themenIn(category?.id),
-    queryFn: () => fetchThreads(category!.id),
+    queryFn: () => ladeThemen(category!.id),
     enabled: !!category?.id,
   });
 
   const { data: gelesen = {} } = useQuery({
     queryKey: forumSchluessel.lesestand(user?.id),
-    queryFn: () => fetchReadState(user!.id),
+    queryFn: () => ladeLesestand(user!.id),
     enabled: !!user,
   });
 
@@ -63,7 +62,7 @@ export default function ForumCategory() {
 
   const create = useMutation({
     mutationFn: () =>
-      createThread({ categoryId: category!.id, title, body, userId: user!.id }),
+      legeThemaAn({ categoryId: category!.id, title, body, userId: user!.id }),
     onSuccess: (thread) => {
       queryClient.invalidateQueries({ queryKey: forumSchluessel.themenIn(category?.id) });
       queryClient.invalidateQueries({ queryKey: forumSchluessel.rubrikStaende() });

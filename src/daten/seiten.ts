@@ -4,7 +4,12 @@ import { ausJson } from "@/lib/json";
 import type { Tables } from "@/integrations/supabase/types";
 
 /**
- * Datenzugriff für die Seiten.
+ * Datenzugriff für die Seiten des Baukastens.
+ *
+ * Stand bis zur dritten Runde der Datenschicht in
+ * `components/sitebuilder/api.ts`. Die Schlüssel dazu stehen bei der Website
+ * (`websiteSchluessel.seiten()`, `.seite(id)`); die Sprachfassungen in
+ * `daten/sprachen.ts`.
  *
  * Der Inhalt einer Seite ist eine JSON-Spalte, deren Form der Editor vorgibt
  * (`Data`). Die Zusicherungen dafür stehen gebündelt hier, damit sie nicht
@@ -40,15 +45,15 @@ const alsSeite = (z: Tables<"site_pages">): SitePage => ({
 /** Eine leere Seite – kein null, damit der Editor immer etwas zu zeigen hat. */
 export const LEERE_SEITE: Data = { content: [], root: {} };
 
-export async function fetchPages(): Promise<SitePage[]> {
+export async function ladeSeiten(): Promise<SitePage[]> {
   const { data, error } = await supabase.from("site_pages").select("*").order("title");
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return (data ?? []).map(alsSeite);
 }
 
-export async function fetchPageBySlug(slug: string): Promise<SitePage | null> {
+export async function ladeSeiteNachAdresse(slug: string): Promise<SitePage | null> {
   const { data, error } = await supabase.from("site_pages").select("*").eq("slug", slug).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   if (data) return alsSeite(data);
 
   // Uebergang: Die Seiten hiessen bis zur Umstellung „…-neu". Der Code wird
@@ -56,13 +61,18 @@ export async function fetchPageBySlug(slug: string): Promise<SitePage | null> {
   // dazwischen liegen Minuten, in denen die Seite sonst ins Leere liefe.
   //
   // Diese Zeilen koennen weg, sobald 20260909220000 ueberall eingespielt ist.
-  const { data: alt } = await supabase.from("site_pages").select("*").eq("slug", `${slug}-neu`).maybeSingle();
+  const { data: alt, error: altFehler } = await supabase
+    .from("site_pages")
+    .select("*")
+    .eq("slug", `${slug}-neu`)
+    .maybeSingle();
+  if (altFehler) throw altFehler;
   return alt ? alsSeite(alt) : null;
 }
 
-export async function fetchPageById(id: string): Promise<SitePage | null> {
+export async function ladeSeite(id: string): Promise<SitePage | null> {
   const { data, error } = await supabase.from("site_pages").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw error;
   return data ? alsSeite(data) : null;
 }
 
@@ -72,12 +82,12 @@ export async function fetchPageById(id: string): Promise<SitePage | null> {
  * Wer eine Seite umbaut, soll sie in Ruhe umbauen können, ohne dass Besucher
  * dabei zusehen. Deshalb liegen Entwurf und Veröffentlichtes nebeneinander.
  */
-export async function saveDraft(id: string, content: Data) {
+export async function sichereEntwurf(id: string, content: Data) {
   const { error } = await supabase.from("site_pages").update({ draft_content: content }).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 }
 
-export async function publish(id: string, content: Data) {
+export async function veroeffentlicheSeite(id: string, content: Data) {
   const { error } = await supabase
     .from("site_pages")
     .update({
@@ -87,15 +97,15 @@ export async function publish(id: string, content: Data) {
       published_at: new Date().toISOString(),
     })
     .eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 }
 
-export async function unpublish(id: string) {
+export async function nimmSeiteZurueck(id: string) {
   const { error } = await supabase.from("site_pages").update({ is_published: false }).eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 }
 
-export async function createPage(input: { slug: string; title: string }) {
+export async function legeSeiteAn(input: { slug: string; title: string }) {
   const { data, error } = await supabase
     .from("site_pages")
     .insert({
@@ -110,7 +120,7 @@ export async function createPage(input: { slug: string; title: string }) {
   return alsSeite(data);
 }
 
-export async function updatePageMeta(
+export async function aendereSeitenangaben(
   id: string,
   patch: Partial<Pick<SitePage, "title" | "slug" | "seo_description" | "noindex" | "seo_title" | "seo_type">>
 ) {
@@ -118,9 +128,9 @@ export async function updatePageMeta(
   if (error) throw new Error(uebersetzeFehler(error.message));
 }
 
-export async function deletePage(id: string) {
+export async function loescheSeite(id: string) {
   const { error } = await supabase.from("site_pages").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 }
 
 /** Aus einem Titel eine lesbare Adresse machen. */
@@ -138,4 +148,11 @@ function uebersetzeFehler(message: string): string {
     return "Diese Adresse gibt es schon. Wähle eine andere.";
   }
   return message;
+}
+
+/** Adresse und Titel aller Seiten, nach Titel – für Verweise aus Knöpfen und Karten. */
+export async function ladeSeitenKurz(): Promise<Pick<Tables<"site_pages">, "slug" | "title">[]> {
+  const { data, error } = await supabase.from("site_pages").select("slug, title").order("title");
+  if (error) throw error;
+  return data ?? [];
 }
