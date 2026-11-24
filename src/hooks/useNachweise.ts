@@ -49,7 +49,7 @@ export function useNachweisArten() {
     queryFn: async (): Promise<NachweisArt[]> => {
       const { data, error } = await supabase.from("certificate_types").select("*").order("sort_order").order("label");
       if (error) throw new Error(error.message);
-      return (data ?? []) as NachweisArt[];
+      return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -62,7 +62,7 @@ export function useMeineNachweise(userId: string | undefined) {
       if (!userId) return [];
       const { data, error } = await supabase.from("member_certificates").select("*").eq("user_id", userId);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Nachweis[];
+      return data ?? [];
     },
     enabled: !!userId,
   });
@@ -74,7 +74,7 @@ export function useAlleNachweise(enabled: boolean) {
     queryFn: async (): Promise<Nachweis[]> => {
       const { data, error } = await supabase.from("member_certificates").select("*").order("valid_until", { ascending: true, nullsFirst: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Nachweis[];
+      return data ?? [];
     },
     enabled,
   });

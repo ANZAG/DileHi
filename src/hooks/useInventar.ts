@@ -61,7 +61,8 @@ export function useGegenstaende() {
     queryFn: async (): Promise<Gegenstand[]> => {
       const { data, error } = await supabase.from("inventory_items").select("*").order("category").order("name");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Gegenstand[];
+      // Zustand und Status sind in der Datenbank Text mit festem Wertevorrat.
+      return (data ?? []).map((g) => ({ ...g, condition: g.condition as Zustand }));
     },
   });
 }
@@ -73,7 +74,7 @@ export function useOffeneAusleihen() {
     queryFn: async (): Promise<Ausleihe[]> => {
       const { data, error } = await supabase.from("inventory_loans").select("*").neq("status", "returned").order("from_date");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Ausleihe[];
+      return (data ?? []).map((a) => ({ ...a, status: a.status as AusleihStatus }));
     },
   });
 }

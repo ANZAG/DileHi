@@ -120,7 +120,7 @@ const Scannen = () => {
     queryKey: ["file-storage"],
     queryFn: async () => {
       const { data } = await supabase.from("app_settings").select("file_storage").maybeSingle();
-      return (data as { file_storage?: string } | null)?.file_storage ?? "supabase";
+      return data?.file_storage ?? "supabase";
     },
   });
 

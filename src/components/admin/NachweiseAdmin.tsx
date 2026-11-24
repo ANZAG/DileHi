@@ -57,7 +57,8 @@ function Uebersicht({ darfVerwalten }: { darfVerwalten: boolean }) {
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
       const { data } = await supabase.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
   });
 

@@ -49,7 +49,7 @@ export default function PersonaPublishAdmin() {
           [p.first_name, p.last_name].filter(Boolean).join(" ") || p.display_name || "Unbekannt",
         ])
       );
-      return ((rows ?? []) as PersonaRow[]).map((r) => ({
+      return (rows ?? []).map((r) => ({
         ...r,
         owner: nameById.get(r.user_id) ?? "Unbekannt",
       }));

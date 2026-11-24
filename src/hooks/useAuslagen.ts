@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 /**
  * Auslagen und Pauschalen.
@@ -27,6 +28,13 @@ export interface Auslage {
   paid_at: string | null;
   created_at: string;
 }
+
+/** Eine Zeile aus `expense_claims`: Kategorie und Status sind dort Text mit festem Wertevorrat. */
+export const alsAuslage = (z: Tables<"expense_claims">): Auslage => ({
+  ...z,
+  category: z.category as Kategorie,
+  status: z.status as AuslagenStatus,
+});
 
 export interface Pauschalzahlung {
   id: string;

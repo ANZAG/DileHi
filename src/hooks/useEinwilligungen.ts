@@ -44,7 +44,7 @@ export function useEinwilligungsArten() {
     queryFn: async (): Promise<EinwilligungsArt[]> => {
       const { data, error } = await supabase.from("consent_types").select("*").order("sort_order").order("label");
       if (error) throw new Error(error.message);
-      return (data ?? []) as EinwilligungsArt[];
+      return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });

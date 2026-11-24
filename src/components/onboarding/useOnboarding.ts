@@ -65,7 +65,7 @@ export function useOnboarding() {
         .eq("is_active", true)
         .order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Schritt[];
+      return data ?? [];
     },
     enabled: !!user,
     staleTime: 10 * 60 * 1000,
@@ -76,7 +76,7 @@ export function useOnboarding() {
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase.rpc("onboarding_completed_tasks");
       if (error) throw new Error(error.message);
-      return (data ?? []) as string[];
+      return data ?? [];
     },
     enabled: !!user,
     // Kurz, damit ein gerade ausgefülltes Profil beim nächsten Blick abgehakt

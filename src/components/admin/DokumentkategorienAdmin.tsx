@@ -99,7 +99,7 @@ export default function DokumentkategorienAdmin() {
       if (error) throw new Error(error.message);
       const zaehler: Record<string, number> = {};
       for (const zeile of data ?? []) {
-        const k = (zeile as { category?: string }).category;
+        const k = zeile.category;
         if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
       }
       return zaehler;

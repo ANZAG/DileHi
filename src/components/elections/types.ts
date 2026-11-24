@@ -59,7 +59,7 @@ export interface AuditLogEntry {
   election_description: string | null;
   group_title: string | null;
   result_snapshot: unknown;
-  total_votes: number;
+  total_votes: number | null;
   deleted_by: string;
   deleted_at: string;
 }

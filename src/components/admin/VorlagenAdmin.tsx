@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import { useToast } from "@/hooks/use-toast";
 import ForumEditor from "@/components/forum/ForumEditor";
 
@@ -97,7 +98,8 @@ function Mailvorlagen() {
     queryFn: async () => {
       const { data, error } = await supabase.from("mail_templates").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as MailVorlage[];
+      const zeilen: MailVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<MailVorlage["defaults"]>(v.defaults) }));
+      return zeilen;
     },
   });
 
@@ -214,7 +216,8 @@ export function Antragstexte() {
     queryFn: async () => {
       const { data, error } = await supabase.from("pdf_texts").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as PdfVorlage[];
+      const zeilen: PdfVorlage[] = (data ?? []).map((v) => ({ ...v, defaults: ausJson<PdfVorlage["defaults"]>(v.defaults) }));
+      return zeilen;
     },
   });
 

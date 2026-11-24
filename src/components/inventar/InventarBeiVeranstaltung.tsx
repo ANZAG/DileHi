@@ -30,7 +30,7 @@ export default function InventarBeiVeranstaltung({ eventId }: { eventId: string 
         .neq("status", "returned");
       // Fehlt die Tabelle (Migration noch nicht eingespielt), nichts zeigen.
       if (error) return [];
-      return (data ?? []) as Zeile[];
+      return data ?? [];
     },
     enabled: an,
     staleTime: 60 * 1000,

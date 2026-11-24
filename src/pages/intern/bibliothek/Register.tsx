@@ -183,14 +183,14 @@ function Verbindungen({ quelle }: { quelle: { id: string; collection_source_id: 
     queryKey: ["bibliothek", "quellensammlung"],
     queryFn: async () => {
       const { data } = await supabase.from("sources").select("id, title, epoch").order("title");
-      return (data ?? []) as { id: string; title: string; epoch: string }[];
+      return data ?? [];
     },
   });
   const { data: oeffentlich = [] } = useQuery({
     queryKey: ["bibliothek", "epochenquellen"],
     queryFn: async () => {
       const { data } = await supabase.from("epoch_sources").select("id, text, epoch").order("sort_order");
-      return (data ?? []) as { id: string; text: string; epoch: string }[];
+      return data ?? [];
     },
   });
 

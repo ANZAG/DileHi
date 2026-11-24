@@ -39,7 +39,8 @@ export default function NotificationBell() {
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
-      return (data ?? []) as Notification[];
+      const zeilen: Notification[] = data ?? [];
+      return zeilen;
     },
     enabled: !!user,
     // Ohne Nachfragen bleibt die Glocke stehen, bis die Seite neu geladen wird.
@@ -93,9 +94,8 @@ export default function NotificationBell() {
   const unread = items.filter((n) => !n.is_read).length;
 
   const markRead = async (ids?: string[]) => {
-    await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<unknown>)(
-      "mark_notifications_read", { _ids: ids ?? null }
-    );
+    // Ohne Kennungen bleibt das Argument weg; die Funktion nimmt dann alle.
+    await supabase.rpc("mark_notifications_read", { _ids: ids });
     queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
   };
 

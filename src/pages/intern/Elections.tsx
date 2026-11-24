@@ -58,7 +58,8 @@ const Elections = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ElectionGroup[];
+      const zeilen: ElectionGroup[] = data;
+      return zeilen;
     },
   });
 
@@ -70,7 +71,7 @@ const Elections = () => {
         .select("*, candidates(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as Election[];
+      return data;
     },
   });
 
@@ -79,7 +80,7 @@ const Elections = () => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_election_results");
       if (error) throw error;
-      return data as unknown as ElectionResult[];
+      return data;
     },
   });
 
@@ -100,7 +101,8 @@ const Elections = () => {
         .from("group_members")
         .select("*");
       if (error) return [];
-      return data as GroupMember[];
+      const zeilen: GroupMember[] = data;
+      return zeilen;
     },
   });
 
@@ -173,7 +175,7 @@ const Elections = () => {
           description: electionForm.description || null,
           created_by: user!.id,
           group_id: groupId,
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -181,7 +183,7 @@ const Elections = () => {
       if (names.length > 0) {
         const { error: cErr } = await supabase
           .from("candidates")
-          .insert(names.map((name) => ({ election_id: (election as any).id, name })));
+          .insert(names.map((name) => ({ election_id: election.id, name })));
         if (cErr) throw cErr;
       }
     },

@@ -95,7 +95,7 @@ const Admin = () => {
       const { data, error } = await supabase
         .from("app_settings").select("file_storage, sharepoint_site_url").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as { file_storage: string; sharepoint_site_url: string | null };
+      return data;
     },
     enabled: canAdmin,
   });

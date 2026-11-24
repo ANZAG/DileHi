@@ -128,7 +128,7 @@ export function useBranding() {
     queryFn: async (): Promise<Branding> => {
       const { data, error } = await supabase.rpc("public_branding");
       if (error) throw new Error(error.message);
-      const row = (data as Branding[] | null)?.[0];
+      const row = data?.[0];
       return row ? { ...VORGABE, ...row } : VORGABE;
     },
     // Der Stand vom Bauen, damit die Seite nicht mit den Vorgaben beginnt.

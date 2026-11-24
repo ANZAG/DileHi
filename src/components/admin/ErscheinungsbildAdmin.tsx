@@ -127,7 +127,13 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Einstellungen;
+      // Ablage und Art des Bescheids sind in der Datenbank Text mit festem Wertevorrat.
+      const zeile: Einstellungen | null = data && {
+        ...data,
+        file_storage: data.file_storage as Einstellungen["file_storage"],
+        exemption_notice_kind: data.exemption_notice_kind as Einstellungen["exemption_notice_kind"],
+      };
+      return zeile;
     },
   });
 

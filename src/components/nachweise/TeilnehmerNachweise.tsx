@@ -32,7 +32,7 @@ export default function TeilnehmerNachweise({ eventId, namen }: {
       const { data, error } = await supabase.rpc("event_attendee_certificates", { _event_id: eventId });
       // Fehlt die Funktion (Migration noch nicht eingespielt), einfach nichts zeigen.
       if (error) return [];
-      return (data ?? []) as Zeile[];
+      return data ?? [];
     },
     enabled: an,
     staleTime: 60 * 1000,

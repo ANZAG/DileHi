@@ -63,7 +63,7 @@ function formatAnswer(field: FormField, value: any): string {
     case "tent": {
       const tents = value?.tents;
       if (Array.isArray(tents) && tents.length > 0) {
-        return tents.map((t: any) => {
+        return tents.map((t) => {
           const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
           if (!type) return "Zelt (unbekannt)";
           const dim = type.shape === "circle" ? `Ø${t.diameter}m` : `${t.length}×${t.width}m`;
@@ -106,7 +106,7 @@ export default function EvalResponsesTable({
       toast({ title: "Zuordnung gespeichert" });
       setOpenAssignId(null);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Fehler", description: err.message, variant: "destructive" });
     },
   });

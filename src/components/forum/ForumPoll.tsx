@@ -50,7 +50,8 @@ export default function ForumPoll({
     queryKey: ["forum-poll", postId],
     queryFn: async () => {
       const { data } = await supabase.rpc("forum_poll_results", { _post_id: postId });
-      return (data ?? []) as Result[];
+      const zeilen: Result[] = data ?? [];
+      return zeilen;
     },
   });
 
@@ -62,7 +63,8 @@ export default function ForumPoll({
         .select("option_key")
         .eq("post_id", postId)
         .eq("user_id", user!.id);
-      return ((data ?? []) as { option_key: string }[]).map((v) => v.option_key);
+      const zeilen: { option_key: string }[] = data ?? [];
+      return zeilen.map((v) => v.option_key);
     },
     enabled: !!user,
   });

@@ -84,7 +84,7 @@ export default function BibliothekPflege() {
     queryFn: async () => {
       const { data } = await supabase.from("library_history")
         .select("id, table_name, entry_id, operation, changed_at").order("id", { ascending: false }).limit(25);
-      return (data ?? []) as { id: number; table_name: string; entry_id: string; operation: string; changed_at: string }[];
+      return data ?? [];
     },
   });
 

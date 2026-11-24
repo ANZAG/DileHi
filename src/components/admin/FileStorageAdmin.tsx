@@ -25,7 +25,7 @@ export default function FileStorageAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("file_storage, sharepoint_site_url").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as { file_storage: string; sharepoint_site_url: string | null };
+      return data;
     },
   });
 
@@ -72,7 +72,7 @@ function Verschieben() {
       const { data, error } = await supabase.from("sources")
         .select("id, title").is("drive_item_id", null).not("file_path", "is", null).eq("file_missing", false);
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; title: string }[];
+      return data ?? [];
     },
   });
 
@@ -184,7 +184,8 @@ function Posteingang() {
       const { data, error } = await supabase.from("sources")
         .select("id, title, epoch, file_missing").is("drive_item_id", null).order("title");
       if (error) throw new Error(error.message);
-      return (data ?? []) as OhneDatei[];
+      const zeilen: OhneDatei[] = data ?? [];
+      return zeilen;
     },
   });
 

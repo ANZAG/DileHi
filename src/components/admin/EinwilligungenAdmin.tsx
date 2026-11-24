@@ -36,7 +36,7 @@ export default function EinwilligungenAdmin() {
     queryFn: async (): Promise<Mitglied[]> => {
       const { data, error } = await supabase.from("profiles").select("id, display_name, birthdate").eq("is_active", true).order("display_name");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Mitglied[];
+      return data ?? [];
     },
   });
 
@@ -45,7 +45,7 @@ export default function EinwilligungenAdmin() {
     queryFn: async (): Promise<Einwilligung[]> => {
       const { data, error } = await supabase.from("member_consents").select("*");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Einwilligung[];
+      return data ?? [];
     },
   });
 
@@ -54,7 +54,7 @@ export default function EinwilligungenAdmin() {
     queryFn: async (): Promise<Notfallkontakt[]> => {
       const { data, error } = await supabase.from("member_emergency_contacts").select("*");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Notfallkontakt[];
+      return data ?? [];
     },
   });
 

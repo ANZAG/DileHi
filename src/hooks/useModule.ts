@@ -43,7 +43,7 @@ export function useModule() {
     queryFn: async (): Promise<ModuleState[]> => {
       const { data, error } = await supabase.rpc("module_status");
       if (error) throw new Error(error.message);
-      return (data ?? []) as ModuleState[];
+      return (data ?? []).map((m) => ({ ...m, kind: m.kind as ModuleState["kind"] }));
     },
     // Module aendern sich fast nie und werden auf jeder Seite gebraucht.
     staleTime: 60 * 60 * 1000,

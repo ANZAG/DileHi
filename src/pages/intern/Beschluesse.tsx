@@ -64,7 +64,13 @@ export default function Beschluesse() {
     queryFn: async (): Promise<Beschluss[]> => {
       const { data, error } = await supabase.from("resolutions").select("*").order("decided_on", { ascending: false }).order("number", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Beschluss[];
+      // Gremium, Ausgang und Sichtbarkeit sind in der Datenbank Text mit festem Wertevorrat.
+      return (data ?? []).map((b) => ({
+        ...b,
+        body: b.body as Gremium,
+        outcome: b.outcome as Ausgang,
+        visibility: b.visibility as Beschluss["visibility"],
+      }));
     },
   });
 
@@ -72,7 +78,7 @@ export default function Beschluesse() {
     queryKey: ["beschluesse", "dokumente"],
     queryFn: async (): Promise<{ id: string; title: string }[]> => {
       const { data } = await supabase.from("documents").select("id, title").order("created_at", { ascending: false }).limit(200);
-      return (data ?? []) as { id: string; title: string }[];
+      return data ?? [];
     },
   });
 
@@ -234,7 +240,7 @@ async function beschlussAusAbstimmung(electionId: string): Promise<Partial<Besch
   let moeglich: number | null = null;
   if (wahl.group_id) {
     const { data: mitglieder } = await supabase.from("group_members").select("vote_count").eq("group_id", wahl.group_id);
-    moeglich = ((mitglieder ?? []) as { vote_count: number }[]).reduce((s, m) => s + m.vote_count, 0) || null;
+    moeglich = (mitglieder ?? []).reduce((s, m) => s + m.vote_count, 0) || null;
   }
   const e = ergebnisVon(wahl as Election, (ergebnisse ?? []) as ElectionResult[], moeglich);
   if (!e) return null;

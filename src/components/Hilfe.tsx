@@ -33,7 +33,7 @@ export function Hilfe({ k }: { k: string }) {
         .from("onboarding_help")
         .select("key, title, text");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { key: string; title: string | null; text: string }[];
+      return data ?? [];
     },
     staleTime: 60 * 60 * 1000,
     retry: 1,

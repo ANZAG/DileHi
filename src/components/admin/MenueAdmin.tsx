@@ -89,7 +89,9 @@ export default function MenueAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase.from("site_menu").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Eintrag[];
+      // Der Bereich ist in der Datenbank Text mit festem Wertevorrat.
+      const zeilen: Eintrag[] = (data ?? []).map((e) => ({ ...e, area: e.area as MenuBereich }));
+      return zeilen;
     },
   });
 

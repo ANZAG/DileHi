@@ -150,7 +150,7 @@ function useSteuerangaben() {
       const { data } = await supabase.from("app_settings")
         .select("tax_office, tax_number, tax_purposes, exemption_notice_kind, exemption_notice_date, exemption_notice_period, fees_deductible")
         .maybeSingle();
-      return data as Steuerangaben | null;
+      return data && { ...data, exemption_notice_kind: data.exemption_notice_kind as BescheidArt | null };
     },
   });
 }
@@ -184,7 +184,8 @@ function Spenden() {
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
       const { data } = await supabase.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
   });
 
@@ -193,7 +194,7 @@ function Spenden() {
     queryFn: async (): Promise<Zuwendung[]> => {
       const { data, error } = await supabase.from("donations").select("*").is("receipt_id", null).order("received_on");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Zuwendung[];
+      return (data ?? []).map((z) => ({ ...z, kind: z.kind as Zuwendung["kind"] }));
     },
   });
 
@@ -244,7 +245,8 @@ function Spenden() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc("import_paid_contributions", { _year: beitragsjahr });
       if (error) throw new Error(error.message);
-      return data as number;
+      const zeile: number = data;
+      return zeile;
     },
     onSuccess: (n) => {
       neuLaden();

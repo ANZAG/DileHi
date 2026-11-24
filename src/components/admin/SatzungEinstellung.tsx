@@ -39,7 +39,8 @@ export default function SatzungEinstellung() {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Stand;
+      const zeile: Stand | null = data;
+      return zeile;
     },
   });
 
@@ -64,7 +65,7 @@ export default function SatzungEinstellung() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("statutes_options");
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; title: string; created_at: string }[];
+      return data ?? [];
     },
   });
 

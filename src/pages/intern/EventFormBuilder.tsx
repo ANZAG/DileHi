@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,11 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Trash2, Copy, Link as LinkIcon, FileText, Settings, Save, RotateCcw } from "lucide-react";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
-import type { FormField } from "@/components/event-forms/types";
+import { alsFormField, type FormField } from "@/components/event-forms/types";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormPreview from "@/components/event-forms/FormPreview";
 import { fetchDefaultTemplate } from "@/components/event-forms/templateStore";
-import { useFormSettings } from "@/components/event-forms/formSettings";
+import { readFormSettings, useFormSettings } from "@/components/event-forms/formSettings";
 import { SEITE } from "@/lib/layout";
 import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
 
@@ -58,7 +59,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
         .eq("event_id", eventId!)
         .maybeSingle();
       if (error) throw error;
-      return data as any;
+      return data;
     },
     enabled: !!eventId,
   });
@@ -72,7 +73,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
         .eq("form_id", form!.id)
         .order("sort_order");
       if (error) throw error;
-      return data as FormField[];
+      return data.map(alsFormField);
     },
     enabled: !!form?.id,
   });
@@ -182,7 +183,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
       queryClient.invalidateQueries({ queryKey: ["event_form_fields"] });
       toast({ title: "Formular gespeichert" });
     },
-    onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const deleteForm = useMutation({
@@ -190,7 +191,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
       if (!form) return;
       await supabase.from("event_form_answers").delete().in(
         "response_id",
-        (await supabase.from("event_form_responses").select("id").eq("form_id", form.id)).data?.map((r: any) => r.id) || []
+        (await supabase.from("event_form_responses").select("id").eq("form_id", form.id)).data?.map((r) => r.id) || []
       );
       await supabase.from("event_form_responses").delete().eq("form_id", form.id);
       await supabase.from("event_form_fields").delete().eq("form_id", form.id);
@@ -205,7 +206,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   });
 
   const updateForm = useMutation({
-    mutationFn: async (updates: { title?: string; description?: string | null; is_open?: boolean; settings?: any }) => {
+    mutationFn: async (updates: { title?: string; description?: string | null; is_open?: boolean; settings?: Json }) => {
       if (!form) return;
       const { error } = await supabase.from("event_forms").update(updates).eq("id", form.id);
       if (error) throw error;
@@ -216,12 +217,12 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
   // Auto-Schließung: Anmeldeschluss überschritten → Formular schließen
   useEffect(() => {
     if (!form?.is_open) return;
-    const closesAt = (form.settings as any)?.closes_at;
+    const closesAt = readFormSettings(form).closes_at;
     if (closesAt && new Date(closesAt).getTime() < Date.now()) {
       updateForm.mutate({ is_open: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.id, form?.is_open, (form?.settings as any)?.closes_at]);
+  }, [form?.id, form?.is_open, readFormSettings(form).closes_at]);
 
   const copyPublicLink = () => {
     if (form?.public_token) {
@@ -239,8 +240,8 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
 
   const eventDates = useMemo(
     () => ({
-      start: (event as any)?.start_date || (event as any)?.event_date || undefined,
-      end: (event as any)?.end_date || null,
+      start: event?.start_date || undefined,
+      end: event?.end_date || null,
     }),
     [event]
   );
@@ -345,7 +346,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
                   <Input
                     id="form-opens"
                     type="datetime-local"
-                    defaultValue={form.settings?.opens_at || ""}
+                    defaultValue={readFormSettings(form).opens_at || ""}
                     onBlur={(e) => saveSettings.mutate({ opens_at: e.target.value || null })}
                   />
                 </div>
@@ -354,7 +355,7 @@ export default function EventFormBuilder({ embedded = false }: { embedded?: bool
                   <Input
                     id="form-closes"
                     type="datetime-local"
-                    defaultValue={form.settings?.closes_at || ""}
+                    defaultValue={readFormSettings(form).closes_at || ""}
                     onBlur={(e) => saveSettings.mutate({ closes_at: e.target.value || null })}
                   />
                 </div>

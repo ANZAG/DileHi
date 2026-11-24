@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ausJson } from "@/lib/json";
 import type { FormField } from "@/components/event-forms/types";
 import { moduleOn, type ModuleState } from "./useModule";
 
@@ -36,10 +37,10 @@ export function useProfilfelder() {
     queryFn: async (): Promise<Profilfeld[]> => {
       const { data, error } = await supabase.from("profile_fields").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return ((data ?? []) as Profilfeld[]).map((f) => ({
+      return (data ?? []).map((f) => ({
         ...f,
-        options: Array.isArray(f.options) ? f.options : [],
-        settings: (f.settings as Record<string, unknown>) ?? {},
+        options: Array.isArray(f.options) ? ausJson<string[]>(f.options) : [],
+        settings: ausJson<FormField["settings"] | null>(f.settings) ?? {},
       }));
     },
     staleTime: 5 * 60 * 1000,

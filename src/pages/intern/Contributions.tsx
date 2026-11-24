@@ -38,12 +38,7 @@ function useVereinskonto() {
         .select("org_name, bank_recipient, bank_iban, bank_bic")
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return data as {
-        org_name: string | null;
-        bank_recipient: string | null;
-        bank_iban: string | null;
-        bank_bic: string | null;
-      } | null;
+      return data;
     },
     staleTime: 60 * 60 * 1000,
   });
@@ -275,8 +270,8 @@ const Contributions = () => {
    * Beitrag", obwohl nur noch niemand einen eingetragen hat.
    */
   const satzFuer = (jahr: number, art: string | null | undefined) => {
-    const desJahres = rates.filter((r: any) => r.year === jahr);
-    const eigener = desJahres.find((r: any) => (r.category ?? "aktiv") === (art ?? "aktiv"));
+    const desJahres = rates.filter((r) => r.year === jahr);
+    const eigener = desJahres.find((r) => (r.category ?? "aktiv") === (art ?? "aktiv"));
     return eigener ?? desJahres[0];
   };
 
@@ -309,7 +304,7 @@ const Contributions = () => {
         updated_at: new Date().toISOString(),
       };
 
-      const existing = contributions.find((c: any) => c.user_id === params.userId);
+      const existing = contributions.find((c) => c.user_id === params.userId);
       if (existing) {
         const { error } = await supabase.from("contributions").update(row).eq("id", existing.id);
         if (error) throw error;
@@ -326,8 +321,8 @@ const Contributions = () => {
   });
 
   const memberRows: Eintrag[] = useMemo(() => {
-    return profiles.map((p: any) => {
-      const contrib = contributions.find((c: any) => c.user_id === p.id);
+    return profiles.map((p) => {
+      const contrib = contributions.find((c) => c.user_id === p.id);
       return {
         userId: p.id,
         membershipType: p.membership_type ?? null,
@@ -362,8 +357,8 @@ const Contributions = () => {
               const entryYear = myProfile?.entry_date ? parseInt(String(myProfile.entry_date).slice(0, 4)) : null;
               return entryYear ? y >= entryYear : true;
             }).map((y) => {
-              const yearRate = satzFuer(y, (myProfile as any)?.membership_type);
-              const myContrib = myContribs.find((c: any) => c.year === y);
+              const yearRate = satzFuer(y, myProfile?.membership_type);
+              const myContrib = myContribs.find((c) => c.year === y);
               const status = myContrib?.status || "offen";
               return (
                 <div key={y} className="flex items-center justify-between p-4 rounded-lg border bg-card">

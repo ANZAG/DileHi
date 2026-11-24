@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { de } from "date-fns/locale";
-import { useFormSettings } from "@/components/event-forms/formSettings";
+import { readFormSettings, useFormSettings } from "@/components/event-forms/formSettings";
 import { findFieldByRole, findFieldsByRole } from "@/components/event-forms/fieldRoles";
 import EvalHelperTasks, { type HelperTaskResult } from "@/components/evaluation/EvalHelperTasks";
 import EvalCatering from "@/components/evaluation/EvalCatering";
@@ -27,6 +27,7 @@ import {
   calcTentArea,
   calcClubTentArea,
   getClubTentDimensions,
+  alsFormField,
   type FormField,
   type FormResponse,
   type FormAnswer,
@@ -115,7 +116,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
         .eq("event_id", eventId!)
         .maybeSingle();
       if (error) throw error;
-      return data as any;
+      return data;
     },
     enabled: !!eventId,
   });
@@ -126,7 +127,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
   useEffect(() => {
     if (!form?.settings || settingsApplied.current === form.id) return;
     settingsApplied.current = form.id;
-    const s = form.settings as any;
+    const s = readFormSettings(form);
     setSpacing(s.spacing_m ?? 0);
     setSelectedClubTents(s.club_tents ?? []);
     setKitchenLead(s.kitchen_lead ?? "");
@@ -147,7 +148,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
         .eq("form_id", form!.id)
         .order("sort_order");
       if (error) throw error;
-      return data as FormField[];
+      return data.map(alsFormField);
     },
     enabled: !!form?.id,
   });
@@ -346,9 +347,9 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
     let poolTentArea = 0;
     for (const ptId of poolTentIds) {
       if (registeredMemberTentIds.has(ptId)) continue;
-      const pt = allMemberTents.find((t: any) => t.id === ptId);
+      const pt = allMemberTents.find((t) => t.id === ptId);
       if (!pt) continue;
-      const ownerName = (pt as any).profiles?.display_name || "Mitglied";
+      const ownerName = pt.profiles?.display_name || "Mitglied";
       let area = 0, w = 0, h = 0, innerW = 0, innerH = 0;
       if (pt.shape === "circle" && pt.diameter) {
         innerW = Number(pt.diameter); innerH = Number(pt.diameter);
@@ -496,7 +497,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
         case "tent": {
           const tents = value?.tents;
           if (Array.isArray(tents) && tents.length > 0) {
-            return tents.map((t: any) => {
+            return tents.map((t) => {
               const type = TENT_TYPES.find((tt) => tt.value === t.tent_type);
               const typeLabel = type?.label || t.tent_type || "Zelt";
               const dim = type?.shape === "circle"
@@ -576,12 +577,12 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
   };
 
   const savedGroupLink =
-    (form?.settings as any)?.group_link ?? (form?.settings as any)?.whatsapp_link ?? "";
+    readFormSettings(form).group_link ?? readFormSettings(form).whatsapp_link ?? "";
   const eventLeadName = eventLeadId
-    ? members.find((m: any) => m.id === eventLeadId)?.display_name
+    ? members.find((m) => m.id === eventLeadId)?.display_name
     : null;
   const creatorName = event?.created_by
-    ? members.find((m: any) => m.id === event.created_by)?.display_name
+    ? members.find((m) => m.id === event.created_by)?.display_name
     : null;
 
   // Eingebettet als Reiter in EventFormPage: Rahmen und Kopfzeile kommen von dort.
@@ -641,7 +642,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
                     <SelectValue placeholder="Ersteller" />
                   </SelectTrigger>
                   <SelectContent>
-                    {members.map((m: any) => (
+                    {members.map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -741,16 +742,16 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           <h3 className="font-semibold flex items-center gap-2"><Tent size={16} /> Zelte aus dem Pool</h3>
           <p className="text-xs text-muted-foreground">Zelte von Mitgliedern manuell für diese Veranstaltung hinzufügen. Bereits über Anmeldung ausgewählte Zelte sind markiert.</p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-            {allMemberTents.map((mt: any) => {
+            {allMemberTents.map((mt) => {
               const ownerName = mt.profiles?.display_name || "Mitglied";
               const typeLabel = TENT_TYPES.find((t) => t.value === mt.tent_type)?.label || mt.tent_type;
               const dimStr = mt.shape === "circle" && mt.diameter
                 ? `Ø${mt.diameter}m`
                 : mt.length && mt.width ? `${mt.length}×${mt.width}m` : "";
-              const selectedByRespondent = responses.some((r: any) => {
+              const selectedByRespondent = responses.some((r) => {
                 const tentField = findFieldByRole(fields, "lodging.tent");
                 if (!tentField) return false;
-                const tv = r.answers?.find((a: any) => a.field_id === tentField.id)?.value;
+                const tv = r.answers?.find((a) => a.field_id === tentField.id)?.value;
                 if (!tv?.tents) return false;
                 return tv.tents.some((t: any) => t.member_tent_id === mt.id);
               });
@@ -788,8 +789,8 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           <EventMapSettings
             eventId={eventId}
             formId={form.id}
-            mapImagePath={(form?.settings as any)?.map_image_path}
-            mapScale={(form?.settings as any)?.map_scale}
+            mapImagePath={readFormSettings(form).map_image_path}
+            mapScale={readFormSettings(form).map_scale}
             onChange={(patch) => doSaveSettings(patch)}
           />
         )}
@@ -808,11 +809,11 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           setVizHeight={setVizHeight}
           resetLayout={resetLayout}
           layoutVersion={layoutVersion}
-          savedPositions={(form?.settings as any)?.tent_positions}
+          savedPositions={readFormSettings(form).tent_positions}
           onPositionsChange={(positions) => doSaveSettings({ tent_positions: positions })}
           eventTitle={event?.title}
-          mapImagePath={(form?.settings as any)?.map_image_path}
-          mapScale={(form?.settings as any)?.map_scale}
+          mapImagePath={readFormSettings(form).map_image_path}
+          mapScale={readFormSettings(form).map_scale}
         />}
 
         <EvalResponsesTable
@@ -820,7 +821,7 @@ export default function EventFormEvaluation({ embedded = false }: { embedded?: b
           responses={responses}
           canDelete={canModerate || event?.created_by === user?.id}
           onDelete={(id) => deleteResponse.mutate(id)}
-          members={members as any}
+          members={members}
           formId={form?.id}
           canAssign={canModerate || event?.created_by === user?.id}
         />

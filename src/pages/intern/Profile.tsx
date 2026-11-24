@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { EINBLENDEN_SEITE } from "@/lib/einblenden";
 import { supabase } from "@/integrations/supabase/client";
+import { alsJson } from "@/lib/json";
 import { useAuth } from "@/hooks/useAuth";
 import PushToggle from "@/components/PushToggle";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, Download, MapPin, Tent, Plus, HelpCircle, Bell } from "lucide-react";
@@ -199,7 +200,8 @@ const Profile = () => {
         .eq("user_id", user!.id)
         .order("created_at");
       if (error) return [];
-      return data as MemberTent[];
+      const zeilen: MemberTent[] = data;
+      return zeilen;
     },
   });
 
@@ -249,17 +251,14 @@ const Profile = () => {
           phone: form.phone,
           membership_type: form.membershipType,
           contribution_interval: form.contributionInterval,
-          extra,
+          extra: alsJson(extra),
           show_on_map: form.showOnMap,
           notify_digest: form.notifyDigest,
           map_lat: form.showOnMap ? mapLat : null,
           map_lng: form.showOnMap ? mapLng : null,
           diet: form.diet || null,
           allergies: form.allergies || null,
-          // notify_digest steht noch nicht in der erzeugten types.ts – die
-          // entsteht erst bei der naechsten Neugenerierung. Danach kann die
-          // Zusicherung weg.
-        } as never)
+        })
         .eq("id", user.id);
       if (profileError) throw profileError;
 

@@ -34,7 +34,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
         .eq("group_id", groupId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data as unknown as GroupMember[];
+      return data;
     },
   });
 
@@ -56,7 +56,7 @@ const RepresentationDialog = ({ groupId, groupTitle, isReadOnly, onClose }: Prop
         .eq("group_id", groupId)
         .order("changed_at", { ascending: false });
       if (error) return [];
-      return data as unknown as RepresentationLogEntry[];
+      return data;
     },
   });
 

@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { alsJson } from "@/lib/json";
+import { alsJson, ausJson } from "@/lib/json";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 /**
@@ -68,7 +68,8 @@ export const slugify = (text: string) =>
 export async function fetchCategories(): Promise<ForumCategory[]> {
   const { data, error } = await supabase.from("forum_categories").select("*").order("sort_order");
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumCategory[];
+  const zeilen: ForumCategory[] = data ?? [];
+  return zeilen;
 }
 
 /** Wann jemand welches Thema zuletzt geöffnet hat, je Thema. */
@@ -79,7 +80,7 @@ export async function fetchReadState(userId: string): Promise<Record<string, str
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
   const gelesen: Record<string, string> = {};
-  for (const r of (data ?? []) as { thread_id: string; last_read_at: string }[]) {
+  for (const r of data ?? []) {
     gelesen[r.thread_id] = r.last_read_at;
   }
   return gelesen;
@@ -123,7 +124,8 @@ export async function fetchUnreadThreads(userId: string): Promise<ForumThread[]>
     fetchReadState(userId),
   ]);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as ForumThread[]).filter((t) => istUngelesen(t, gelesen[t.id]));
+  const zeilen: ForumThread[] = data ?? [];
+  return zeilen.filter((t) => istUngelesen(t, gelesen[t.id]));
 }
 
 export async function fetchThreads(categoryId: string): Promise<ForumThread[]> {
@@ -134,13 +136,15 @@ export async function fetchThreads(categoryId: string): Promise<ForumThread[]> {
     .order("is_pinned", { ascending: false })
     .order("last_post_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumThread[];
+  const zeilen: ForumThread[] = data ?? [];
+  return zeilen;
 }
 
 export async function fetchThread(id: string): Promise<ForumThread | null> {
   const { data, error } = await supabase.from("forum_threads").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
-  return (data ?? null) as ForumThread | null;
+  const zeile: ForumThread | null = data ?? null;
+  return zeile;
 }
 
 export async function fetchPosts(threadId: string): Promise<ForumPost[]> {
@@ -150,7 +154,7 @@ export async function fetchPosts(threadId: string): Promise<ForumPost[]> {
     .eq("thread_id", threadId)
     .order("created_at");
   if (error) throw new Error(error.message);
-  return (data ?? []) as ForumPost[];
+  return (data ?? []).map((p) => ({ ...p, payload: ausJson<ForumPost["payload"]>(p.payload) }));
 }
 
 export async function createThread(input: {
@@ -177,7 +181,8 @@ export async function createThread(input: {
     created_by: input.userId,
   });
   if (postError) throw new Error(postError.message);
-  return data as ForumThread;
+  const zeile: ForumThread = data;
+  return zeile;
 }
 
 export async function createPost(input: { threadId: string; body: string; userId: string }) {
@@ -247,7 +252,8 @@ export interface CategoryRoleRights {
 export async function fetchCategoryRights(): Promise<CategoryRoleRights[]> {
   const { data, error } = await supabase.from("forum_category_roles").select("*");
   if (error) throw new Error(error.message);
-  return (data ?? []) as CategoryRoleRights[];
+  const zeilen: CategoryRoleRights[] = data ?? [];
+  return zeilen;
 }
 
 export async function setCategoryRight(

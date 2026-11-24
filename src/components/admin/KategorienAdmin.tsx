@@ -38,7 +38,8 @@ export default function KategorienAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase.from("site_categories").select("*").order("sort_order");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Kategorie[];
+      const zeilen: Kategorie[] = data ?? [];
+      return zeilen;
     },
   });
 
@@ -54,7 +55,7 @@ export default function KategorienAdmin() {
       ]);
       const zaehler: Record<string, number> = {};
       for (const zeile of [...(galerien.data ?? []), ...(quellen.data ?? []), ...(highlights.data ?? [])]) {
-        const k = (zeile as { epoch?: string }).epoch;
+        const k = zeile.epoch;
         if (k) zaehler[k] = (zaehler[k] ?? 0) + 1;
       }
       return zaehler;

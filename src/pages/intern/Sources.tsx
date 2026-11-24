@@ -126,7 +126,7 @@ const Sources = () => {
         .eq("epoch", activeEpoch)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as SourceRow[];
+      return data ?? [];
     },
   });
 
@@ -483,7 +483,7 @@ const Sources = () => {
       toast({ title: "Quelle nicht gefunden", variant: "destructive" });
       return;
     }
-    await previewSourceFile({ ...(data as SourceRow), title: `${data.title} – PDF-Seite ${seite}` });
+    await previewSourceFile({ ...data, title: `${data.title} – PDF-Seite ${seite}` });
   };
 
   const searchResults = search

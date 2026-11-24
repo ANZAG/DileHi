@@ -71,7 +71,8 @@ export default function ForumThread() {
     queryKey: ["forum-members"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_member_directory");
-      return (data ?? []) as Member[];
+      const zeilen: Member[] = data ?? [];
+      return zeilen;
     },
   });
   const nameOf = (id: string) => members.find((m) => m.id === id)?.display_name ?? "Mitglied";

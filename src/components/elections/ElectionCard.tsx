@@ -142,7 +142,7 @@ const ElectionCard = ({ election, results, hasVoted, myVoteCount, totalMembers, 
       setVoteAllocation({});
       toast({ title: "Stimmen abgegeben" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       const msg = err?.message || "Fehler bei der Stimmabgabe";
       toast({ title: msg, variant: "destructive" });
     },

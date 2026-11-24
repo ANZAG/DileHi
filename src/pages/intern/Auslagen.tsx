@@ -13,7 +13,7 @@ import { SEITE } from "@/lib/layout";
 import { datumDe, heuteIso } from "@/lib/datum";
 import {
   belegPfad, euro, FREIBETRAG_VORGABE, KATEGORIE, PAUSCHALE, pauschaleStand, STATUS,
-  type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
+  alsAuslage, type Auslage, type Kategorie, type PauschalArt, type Pauschalzahlung,
 } from "@/hooks/useAuslagen";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
@@ -89,7 +89,7 @@ function useTermine() {
     queryFn: async (): Promise<Termin[]> => {
       const vorEinemJahr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
       const { data } = await supabase.from("events").select("id, title, start_date").gte("start_date", vorEinemJahr).order("start_date", { ascending: false }).limit(60);
-      return (data ?? []) as Termin[];
+      return data ?? [];
     },
   });
 }
@@ -99,7 +99,8 @@ function useMitglieder(enabled = true) {
     queryKey: ["mitglieder-verzeichnis"],
     queryFn: async (): Promise<Mitglied[]> => {
       const { data } = await supabase.rpc("get_member_directory");
-      return ((data ?? []) as Mitglied[]).sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
+      const zeilen: Mitglied[] = data ?? [];
+      return zeilen.sort((a, b) => a.display_name.localeCompare(b.display_name, "de"));
     },
     enabled,
   });
@@ -124,7 +125,7 @@ function MeineAuslagen() {
     queryFn: async (): Promise<Auslage[]> => {
       const { data, error } = await supabase.from("expense_claims").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Auslage[];
+      return (data ?? []).map(alsAuslage);
     },
     enabled: !!user,
   });
@@ -318,7 +319,7 @@ function Pruefen() {
     queryFn: async (): Promise<Auslage[]> => {
       const { data, error } = await supabase.from("expense_claims").select("*").order("created_at", { ascending: true });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Auslage[];
+      return (data ?? []).map(alsAuslage);
     },
   });
 
@@ -446,7 +447,7 @@ function Pauschalen() {
     queryFn: async (): Promise<Pauschalzahlung[]> => {
       const { data, error } = await supabase.from("volunteer_payments").select("*").order("paid_on", { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Pauschalzahlung[];
+      return (data ?? []).map((z) => ({ ...z, kind: z.kind as PauschalArt }));
     },
   });
 

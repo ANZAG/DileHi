@@ -91,7 +91,8 @@ const MemberApplicationsAdmin = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Application[];
+      const zeilen: Application[] = data ?? [];
+      return zeilen;
     },
   });
 
@@ -135,7 +136,7 @@ const MemberApplicationsAdmin = () => {
         description: `${app.first_name} ${app.last_name} wurde eingeladen, das Profil befüllt und der Antrag als PDF im Profil hinterlegt.`,
       });
     },
-    onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   const rejectMutation = useMutation({
@@ -158,7 +159,7 @@ const MemberApplicationsAdmin = () => {
       setRejectNotes("");
       toast({ title: "Antrag abgelehnt" });
     },
-    onError: (e: any) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Fehler", description: e.message, variant: "destructive" }),
   });
 
   if (isLoading) return <div className="text-sm text-muted-foreground py-6">Lade Anträge…</div>;

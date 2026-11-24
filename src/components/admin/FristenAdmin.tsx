@@ -121,7 +121,8 @@ export default function FristenAdmin() {
     queryFn: async (): Promise<Frist[]> => {
       const { data, error } = await supabase.from("club_deadlines").select("*").order("due_date");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Frist[];
+      // Die Kategorie ist in der Datenbank Text mit festem Wertevorrat.
+      return (data ?? []).map((f) => ({ ...f, category: f.category as Kategorie }));
     },
   });
 
@@ -129,7 +130,7 @@ export default function FristenAdmin() {
     queryKey: ["rollen-katalog"],
     queryFn: async (): Promise<{ key: string; label: string }[]> => {
       const { data } = await supabase.rpc("get_role_catalog");
-      return (data ?? []) as { key: string; label: string }[];
+      return data ?? [];
     },
   });
 

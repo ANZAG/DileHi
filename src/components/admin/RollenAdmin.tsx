@@ -55,7 +55,7 @@ export default function RollenAdmin() {
     queryFn: async (): Promise<Role[]> => {
       const { data, error } = await supabase.rpc("role_status");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Role[];
+      return data ?? [];
     },
   });
 

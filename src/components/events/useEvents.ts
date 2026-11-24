@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { readFormSettings } from "@/components/event-forms/formSettings";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +51,8 @@ export function useEvents() {
         .select("*")
         .order("start_date", { ascending: true });
       if (error) throw error;
-      return data as Event[];
+      const zeilen: Event[] = data;
+      return zeilen;
     },
   });
 
@@ -382,9 +384,9 @@ export function useEvents() {
     return eventForms
       .filter((f) => {
         if (!f.is_open || !f.public_token) return false;
-        const settings = f.settings as any;
-        const opensAt = settings?.opens_at ? new Date(settings.opens_at) : null;
-        const closesAt = settings?.closes_at ? new Date(settings.closes_at) : null;
+        const settings = readFormSettings(f);
+        const opensAt = settings.opens_at ? new Date(settings.opens_at) : null;
+        const closesAt = settings.closes_at ? new Date(settings.closes_at) : null;
         if (opensAt && now < opensAt) return false;
         if (closesAt && now > closesAt) return false;
         if (hasSubmittedForm(f.id)) return false;

@@ -40,7 +40,7 @@ export default function MeineEinwilligungen() {
     queryFn: async (): Promise<Einwilligung[]> => {
       const { data, error } = await supabase.from("member_consents").select("*").eq("user_id", user!.id);
       if (error) throw new Error(error.message);
-      return (data ?? []) as Einwilligung[];
+      return data ?? [];
     },
     enabled: !!user,
   });
@@ -50,7 +50,7 @@ export default function MeineEinwilligungen() {
     queryFn: async (): Promise<Notfallkontakt[]> => {
       const { data, error } = await supabase.from("member_emergency_contacts").select("*").eq("user_id", user!.id).order("created_at");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Notfallkontakt[];
+      return data ?? [];
     },
     enabled: !!user,
   });

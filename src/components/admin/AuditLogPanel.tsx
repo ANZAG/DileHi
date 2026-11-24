@@ -18,7 +18,8 @@ const AuditLogPanel = () => {
         .select("*")
         .order("deleted_at", { ascending: false });
       if (error) throw error;
-      return data as AuditLogEntry[];
+      const zeilen: AuditLogEntry[] = data;
+      return zeilen;
     },
   });
 
@@ -71,7 +72,7 @@ const AuditLogPanel = () => {
                 </p>
                 {snapshot && snapshot.length > 0 && (
                   <div className="mt-3 space-y-1">
-                    <p className="text-xs font-medium">Ergebnis ({entry.total_votes} Stimmen):</p>
+                    <p className="text-xs font-medium">Ergebnis ({entry.total_votes ?? 0} Stimmen):</p>
                     {snapshot.map((r, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
                         <span className="w-32 truncate">{r.candidate}</span>
