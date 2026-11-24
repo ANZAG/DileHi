@@ -179,7 +179,10 @@ export default function BildFeld({
           />
           <p className="mt-1 text-[11px] text-muted-foreground">
             {altGespeichert
-              ? "Beschreibt, was zu sehen ist. Die Angabe gehört zum Bild, nicht zur Seite."
+              // Auch auf den englischen und französischen Seiten ist es
+              // dasselbe Bild – seine Beschreibung wird deshalb nicht hier,
+              // sondern in der Tabelle unter der Seitenliste übersetzt.
+              ? "Beschreibt, was zu sehen ist. Die Angabe gehört zum Bild, nicht zur Seite. Auf Englisch und Französisch: Verwaltung → Seiten → Menü und Rahmen in anderen Sprachen."
               : "Wird gespeichert, sobald du das Feld verlässt."}
           </p>
         </div>

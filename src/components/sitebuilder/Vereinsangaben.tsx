@@ -1,4 +1,5 @@
 import { useBranding } from "@/hooks/useBranding";
+import { useSprache } from "@/hooks/useSprache";
 import { abstandKlasse, breitenKlasse, type Abstand, type Breite } from "./gestaltung";
 
 /**
@@ -16,6 +17,10 @@ import { abstandKlasse, breitenKlasse, type Abstand, type Breite } from "./gesta
  *
  * Der Standardtext drumherum bleibt gewöhnlicher Text im Editor. Was nicht
  * eingetragen ist, wird weggelassen statt leer angezeigt.
+ *
+ * Auf den übersetzten Seiten stehen die Beschriftungen in der Sprache der
+ * Seite (src/lib/texte.ts). Die Angaben selbst bleiben, wie sie eingetragen
+ * sind: Ein Registergericht heisst auf Französisch nicht anders.
  */
 export function Vereinsangaben({
   zweck, ueberschrift, breite, abstandOben, abstandUnten, abstand,
@@ -28,6 +33,7 @@ export function Vereinsangaben({
   abstand?: Abstand;
 }) {
   const b = useBranding();
+  const { t } = useSprache();
 
   const anschrift = [
     b.org_name,
@@ -39,43 +45,43 @@ export function Vereinsangaben({
   const zeilen: { titel?: string; werte: (string | null | undefined)[] }[] =
     zweck === "impressum"
       ? [
-          { titel: "Angaben gemäß § 5 DDG", werte: anschrift },
+          { titel: t.angabenDdg, werte: anschrift },
           {
-            titel: "Vereinsregister",
+            titel: t.vereinsregister,
             werte: [b.register_court, b.register_number].filter(Boolean).length
               // Beide Zeilen beschriftet – „Amtsgericht Wiesbaden" allein sagt
               // nicht, in welcher Eigenschaft es dasteht.
               ? [
-                  b.register_court && `Registergericht: ${b.register_court}`,
-                  b.register_number && `Registernummer: ${b.register_number}`,
+                  b.register_court && `${t.registergericht}: ${b.register_court}`,
+                  b.register_number && `${t.registernummer}: ${b.register_number}`,
                 ]
               : [],
           },
-          { titel: "Vertreten durch", werte: (b.board_members ?? "").split("\n").filter(Boolean) },
+          { titel: t.vertretenDurch, werte: (b.board_members ?? "").split("\n").filter(Boolean) },
           {
-            titel: "Kontakt",
+            titel: t.kontakt,
             werte: [
-              b.org_phone && `Telefon: ${b.org_phone}`,
-              b.org_email && `E-Mail: ${b.org_email}`,
+              b.org_phone && `${t.telefon}: ${b.org_phone}`,
+              b.org_email && `${t.email}: ${b.org_email}`,
             ],
           },
-          { titel: "Umsatzsteuer-Identifikationsnummer", werte: [b.vat_id] },
+          { titel: t.ustId, werte: [b.vat_id] },
         ]
       : zweck === "verantwortlich"
         ? [
             {
-              titel: "Verantwortliche Stelle im Sinne der DSGVO",
+              titel: t.verantwortlicheStelle,
               werte: [
                 ...anschrift,
-                b.org_phone && `Telefon: ${b.org_phone}`,
+                b.org_phone && `${t.telefon}: ${b.org_phone}`,
                 b.privacy_contact ?? b.org_email,
               ],
             },
-            { titel: "Datenschutzbeauftragter", werte: [b.privacy_officer] },
+            { titel: t.datenschutzbeauftragter, werte: [b.privacy_officer] },
           ]
         : [
             {
-              titel: "Hosting",
+              titel: t.hosting,
               werte: [b.hosting_provider, b.hosting_address].filter(Boolean),
             },
           ];

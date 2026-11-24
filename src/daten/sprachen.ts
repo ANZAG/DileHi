@@ -2,6 +2,7 @@ import type { Data } from "@puckeditor/core";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { alsJson, ausJson } from "@/lib/json";
+import type { Rahmenart, Rahmenstand } from "@/lib/rahmentexte";
 import { ZUSATZSPRACHEN, type Sprache, type Zusatzsprache } from "@/lib/sprachen.mjs";
 import { fetchPageBySlug, type SitePage } from "@/components/sitebuilder/api";
 
@@ -36,8 +37,10 @@ export const sprachSchluessel = {
   original: (pageId: string | undefined) => ["sprachen", "original", pageId] as const,
   /** Verwaltung: eine Sprachfassung mit Bausteinen. */
   fassung: (pageId: string | undefined, sprache: string | undefined) => ["sprachen", "fassung", pageId, sprache] as const,
-  /** Verwaltung: Menü und Rahmentexte mit allen Übersetzungen. */
+  /** Verwaltung: Präfix für die kurzen Texte mit allen Übersetzungen. */
   rahmenVerwaltung: () => ["sprachen", "rahmen-verwaltung"] as const,
+  /** … nur bestimmte Arten (die Tabelle unter der Quellenliste, unter der Galerie). */
+  rahmenVerwaltungVon: (arten: readonly string[] | undefined) => ["sprachen", "rahmen-verwaltung", arten ? [...arten].sort().join(",") : "alle"] as const,
 };
 
 export interface SeitenUebersetzung {
@@ -199,15 +202,34 @@ export async function ladeRahmentexte(sprache: Zusatzsprache): Promise<Record<st
 
 export type Rahmentext = Tables<"site_text_translations">;
 
-/** Verwaltung: die Menüpunkte und alle ihre Übersetzungen samt denen der Rahmentexte. */
-export async function ladeRahmenVerwaltung(): Promise<{ menue: Pick<Tables<"site_menu">, "id" | "label">[]; texte: Rahmentext[] }> {
-  const [menue, texte] = await Promise.all([
-    supabase.from("site_menu").select("id, label, area, sort_order").order("area").order("sort_order"),
-    supabase.from("site_text_translations").select("*"),
+/**
+ * Verwaltung: der deutsche Stand aller kurzen Texte ausserhalb der Seiten –
+ * Menüpunkte, Bildbeschreibungen, Besucherhinweise, Quellen – und alle ihre
+ * Übersetzungen. Die Vereinsangaben fehlen hier; die kennt `useBranding`.
+ *
+ * Mit `arten` nur, was gebraucht wird: Die Tabelle unter der Quellenliste
+ * muss nicht die ganze Galerie laden.
+ */
+export async function ladeRahmenVerwaltung(arten?: readonly Rahmenart[]): Promise<{ stand: Omit<Rahmenstand, "marke">; texte: Rahmentext[] }> {
+  const will = (art: Rahmenart) => !arten || arten.includes(art);
+  const leer = { data: [], error: null };
+  const [menue, bilder, galerie, besucher, quellen, texte] = await Promise.all([
+    will("menu") ? supabase.from("site_menu").select("id, label, area, sort_order").order("area").order("sort_order") : leer,
+    will("image") ? supabase.from("site_images").select("slot, label, alt_text").order("page").order("label") : leer,
+    will("gallery") ? supabase.from("gallery_images").select("id, alt_text, epoch").order("epoch").order("created_at", { ascending: false }) : leer,
+    will("visitor") ? supabase.from("epoch_visitor_items").select("id, text, epoch").order("epoch").order("sort_order") : leer,
+    will("source") ? supabase.from("epoch_sources").select("id, text, epoch").order("epoch").order("sort_order") : leer,
+    arten
+      ? supabase.from("site_text_translations").select("*").in("kind", [...arten])
+      : supabase.from("site_text_translations").select("*"),
   ]);
-  if (menue.error) throw menue.error;
-  if (texte.error) throw texte.error;
-  return { menue: menue.data, texte: texte.data };
+  for (const antwort of [menue, bilder, galerie, besucher, quellen, texte]) {
+    if (antwort.error) throw antwort.error;
+  }
+  return {
+    stand: { menue: menue.data, bilder: bilder.data, galerie: galerie.data, besucher: besucher.data, quellen: quellen.data },
+    texte: texte.data ?? [],
+  };
 }
 
 /** Einen Rahmentext von Hand sichern – damit ist er weder maschinell noch veraltet. */

@@ -22,22 +22,26 @@
 // geändert hat, bleibt deutsch und wird gemeldet, statt an die falsche Stelle
 // zu geraten.
 //
+// Neben den Seiten stehen unter „rahmen" die kurzen Texte, die zu keiner
+// Seite gehören: Menüpunkte, Untertitel und Fuss, Bildbeschreibungen,
+// Besucherhinweise, Quellen. Quellen, die nach einer Literaturangabe aussehen,
+// tragen den Vermerk „literaturangabe": Sie bleiben in der Regel, wie sie
+// sind – wer sie trotzdem ausfüllt, bekommt sie eingelesen.
+//
 // Was an einer Seite Text ist, weiss supabase/functions/_shared/seitentexte.mjs
 // – dasselbe Modul, das auch der Editor und die Übersetzungsfunktion nehmen.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { seiteZerlegen, seiteZusammensetzen } from "../supabase/functions/_shared/seitentexte.mjs";
+import { rahmentexteSammeln } from "../supabase/functions/_shared/rahmentexte.mjs";
 
 export const SPRACHEN = ["en", "fr"];
-/** Die öffentlichen Texte aus den Vereinsangaben (site_text_translations, kind „settings"). */
-export const RAHMENFELDER = ["org_tagline", "seo_description", "footer_navigation_label", "footer_legal_label"];
 
 const leer = () => Object.fromEntries(SPRACHEN.map((s) => [s, ""]));
-const hatBuchstaben = (t) => typeof t === "string" && /\p{L}/u.test(t);
 
 /** Die Datei zum Übersetzen – ohne Datei- und Netzzugriff, damit es sich prüfen lässt. */
-export function exportBauen({ seiten, menue, marke }) {
+export function exportBauen({ seiten, ...rahmen }) {
   return {
     hinweis: "„de“ ist das Original und bleibt, wie es ist. „en“ und „fr“ ausfüllen; leer heisst: nicht übersetzen. "
       + "In Texten der Art „html“ die Tags stehen lassen und nur den Text dazwischen übersetzen.",
@@ -46,10 +50,13 @@ export function exportBauen({ seiten, menue, marke }) {
       slug: seite.slug,
       texte: seiteZerlegen(seite).map((t) => ({ schluessel: t.schluessel, art: t.art, de: t.text, ...leer() })),
     })),
-    rahmen: [
-      ...(menue ?? []).filter((m) => hatBuchstaben(m.label)).map((m) => ({ schluessel: `menu:${m.id}`, de: m.label, ...leer() })),
-      ...RAHMENFELDER.filter((f) => hatBuchstaben(marke?.[f])).map((f) => ({ schluessel: `settings:${f}`, de: marke[f], ...leer() })),
-    ],
+    rahmen: rahmentexteSammeln(rahmen).map((z) => ({
+      schluessel: z.schluessel,
+      ...(z.ort ? { ort: z.ort } : {}),
+      ...(z.maschinell ? {} : { literaturangabe: true }),
+      de: z.text,
+      ...leer(),
+    })),
   };
 }
 
@@ -60,7 +67,7 @@ export function exportBauen({ seiten, menue, marke }) {
  * Eine Seite bekommt in einer Sprache nur dann eine Zeile, wenn wenigstens
  * ein Text übersetzt ist. `meldungen` nennt, was nicht passte.
  */
-export function importZeilen(datei, { seiten, menue, marke }, { maschinell = true } = {}) {
+export function importZeilen(datei, { seiten, ...rahmen }, { maschinell = true } = {}) {
   const meldungen = [];
   const seitenZeilen = [];
   const textZeilen = [];
@@ -101,10 +108,7 @@ export function importZeilen(datei, { seiten, menue, marke }, { maschinell = tru
     }
   }
 
-  const deutsch = new Map([
-    ...(menue ?? []).map((m) => [`menu:${m.id}`, m.label]),
-    ...RAHMENFELDER.map((f) => [`settings:${f}`, marke?.[f]]),
-  ]);
+  const deutsch = new Map(rahmentexteSammeln(rahmen).map((z) => [z.schluessel, z.text]));
   for (const t of Array.isArray(datei?.rahmen) ? datei.rahmen : []) {
     const trenner = String(t?.schluessel ?? "").indexOf(":");
     if (!deutsch.has(t?.schluessel) || deutsch.get(t.schluessel) !== t.de) {
@@ -140,12 +144,16 @@ async function anfrage(pfad, schluessel, init = {}) {
 
 /** Der heutige Stand: veröffentlichte Seiten, Menü, öffentliche Vereinsangaben. */
 async function standHolen(schluessel) {
-  const [seiten, menue, marke] = await Promise.all([
+  const [seiten, menue, marke, bilder, galerie, besucher, quellen] = await Promise.all([
     anfrage("site_pages?select=id,slug,title,content,seo_title,seo_description&is_published=eq.true&order=slug", schluessel),
     anfrage("site_menu?select=id,label&order=sort_order", schluessel),
     anfrage("rpc/public_branding", schluessel, { method: "POST", body: "{}" }),
+    anfrage("site_images?select=slot,label,alt_text&order=slot", schluessel),
+    anfrage("gallery_images?select=id,alt_text,epoch&order=epoch", schluessel),
+    anfrage("epoch_visitor_items?select=id,text,epoch&order=epoch,sort_order", schluessel),
+    anfrage("epoch_sources?select=id,text,epoch&order=epoch,sort_order", schluessel),
   ]);
-  return { seiten, menue, marke: Array.isArray(marke) ? marke[0] ?? {} : marke ?? {} };
+  return { seiten, menue, marke: Array.isArray(marke) ? marke[0] ?? {} : marke ?? {}, bilder, galerie, besucher, quellen };
 }
 
 async function main() {
@@ -176,7 +184,7 @@ async function main() {
     const inhalt = JSON.parse(readFileSync(datei, "utf8"));
     const { seitenZeilen, textZeilen, meldungen } = importZeilen(inhalt, await standHolen(schluessel), { maschinell: !schalter.has("--von-hand") });
     for (const m of meldungen) console.log(`Hinweis: ${m}`);
-    console.log(`${seitenZeilen.length} Sprachfassungen von Seiten, ${textZeilen.length} Menü- und Rahmentexte.`);
+    console.log(`${seitenZeilen.length} Sprachfassungen von Seiten, ${textZeilen.length} kurze Texte (Menü, Rahmen, Bilder, Besucherhinweise, Quellen).`);
     if (probe) {
       console.log("Probe: nichts geschrieben.");
       return;

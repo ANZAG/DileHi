@@ -29,6 +29,9 @@ import { NeuHier, SeitenTitel } from "@/components/onboarding/NeuHier";
  */
 const GalleryAdmin = lazyPage(() => import("@/components/admin/GalleryAdmin"));
 const SourcesAdmin = lazyPage(() => import("@/components/admin/SourcesAdmin"));
+// Die Übersetzungen der kurzen öffentlichen Texte – dieselbe Tabelle wie unter
+// der Seitenliste, hier jeweils nur für das, was der Reiter pflegt.
+const RahmentexteAdmin = lazyPage(() => import("@/components/admin/RahmentexteAdmin"));
 const VisitorHighlightsAdmin = lazyPage(() => import("@/components/admin/VisitorHighlightsAdmin"));
 const MemberRegistry = lazyPage(() => import("@/components/admin/MemberRegistry"));
 const ContactMessages = lazyPage(() => import("@/components/admin/ContactMessages"));
@@ -361,9 +364,15 @@ const Admin = () => {
           {activeTab === "einwilligungen" && hasPermission("consents.manage") && <EinwilligungenAdmin />}
           {activeTab === "module" && hasPermission("system.modules") && <ModuleAdmin />}
           {activeTab === "erstesschritte" && hasPermission("system.settings") && <OnboardingAdmin />}
-          {activeTab === "gallery" && hasPermission("gallery.manage") && <GalleryAdmin />}
-          {activeTab === "sources" && hasPermission("epoch_sources.manage") && <SourcesAdmin />}
-          {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && <VisitorHighlightsAdmin />}
+          {activeTab === "gallery" && hasPermission("gallery.manage") && (
+            <><GalleryAdmin /><RahmentexteAdmin arten={["gallery"]} titel="Bildbeschreibungen in anderen Sprachen" /></>
+          )}
+          {activeTab === "sources" && hasPermission("epoch_sources.manage") && (
+            <><SourcesAdmin /><RahmentexteAdmin arten={["source"]} titel="Quellen in anderen Sprachen" /></>
+          )}
+          {activeTab === "visitor" && hasPermission("visitor_highlights.manage") && (
+            <><VisitorHighlightsAdmin /><RahmentexteAdmin arten={["visitor"]} titel="Diese Aufzählung in anderen Sprachen" /></>
+          )}
           {activeTab === "personas" && hasPermission("personas.publish") && <PersonaPublishAdmin />}
           {activeTab === "embed" && hasPermission("system.integrations") && <EmbedAdmin />}
           {activeTab === "ablage" && hasPermission("system.integrations") && <FileStorageAdmin />}

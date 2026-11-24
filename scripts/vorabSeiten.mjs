@@ -239,6 +239,8 @@ export function dateiVon(slug, sprache = STANDARDSPRACHE) {
  * Seiten vorliegt – nur für sie gibt es Adressen und Regeln. Eine
  * Installation ohne Übersetzungen bleibt damit, wie sie war.
  */
+const VORAB_ARTEN = ["menu", "settings", "image"];
+
 export function sprachstand(seiten, uebersetzungen, texte) {
   const ids = new Set((Array.isArray(seiten) ? seiten : []).map((s) => s.id).filter(Boolean));
   const jeSprache = {};
@@ -250,6 +252,11 @@ export function sprachstand(seiten, uebersetzungen, texte) {
   const kurz = {};
   for (const t of Array.isArray(texte) ? texte : []) {
     if (!aktiv.includes(t?.lang) || typeof t.value !== "string" || !t.value.trim()) continue;
+    // In den Vorabstand jeder Seite nur, was beim ersten Zeichnen dasteht:
+    // Menü, Rahmen, Bildbeschreibungen. Quellen, Besucherhinweise und die
+    // Galerie holt die Anwendung nach – sonst trüge jede Seite die
+    // Beschreibungen aller Galeriebilder mit sich.
+    if (!VORAB_ARTEN.includes(t.kind)) continue;
     (kurz[t.lang] ??= {})[`${t.kind}:${t.ref}`] = t.value;
   }
   return { aktiv, seiten: jeSprache, texte: kurz };

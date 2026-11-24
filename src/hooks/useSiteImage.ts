@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import { useRahmentexte } from "@/hooks/useSprache";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { vorabzug } from "@/lib/vorabzug";
@@ -26,7 +28,21 @@ type SiteImageData = GespeichertesBild;
 
 /** Alle Bilder auf einmal – die Bausteine fragen daraus einzeln ab. */
 export function useSiteImages() {
+  // Auf /en/… und /fr/… die übersetzte Bildbeschreibung, wenn es eine gibt
+  // (site_text_translations, Art „image"). Das Bild selbst ist dasselbe.
+  const uebersetzt = useRahmentexte();
+  const inSprache = useCallback(
+    (bilder: Record<string, SiteImageData>) => {
+      const treffer = Object.keys(bilder).filter((slot) => uebersetzt[`image:${slot}`]);
+      if (treffer.length === 0) return bilder;
+      const neu = { ...bilder };
+      for (const slot of treffer) neu[slot] = { ...bilder[slot], alt: uebersetzt[`image:${slot}`] };
+      return neu;
+    },
+    [uebersetzt],
+  );
   return useQuery({
+    select: inSprache,
     queryKey: ["site_images"],
     queryFn: async () => {
       const { data, error } = await supabase

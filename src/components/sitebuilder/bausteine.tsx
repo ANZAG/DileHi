@@ -8,7 +8,9 @@ import {
   Calendar as CalendarIcon, MapPin as MapPinIcon,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enGB, fr } from "date-fns/locale";
+import { useRahmentexte, useSprache } from "@/hooks/useSprache";
+import { mitWerten } from "@/lib/texte";
 import { nochAktuellFilter } from "@/components/events/nochAktuell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteImage, useSiteImages } from "@/hooks/useSiteImage";
@@ -1733,8 +1735,10 @@ export function Galerie({
   epoche, ueberschrift, spalten, breite, abstandOben, abstandUnten, abstand,
 }: Gemeinsam & { epoche: string; ueberschrift?: string; spalten?: "zwei" | "drei" | "vier" }) {
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const { t } = useSprache();
+  const uebersetzt = useRahmentexte();
 
-  const { data: bilder = [] } = useQuery({
+  const { data: roh = [] } = useQuery({
     queryKey: ["gallery_images", epoche],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -1746,6 +1750,7 @@ export function Galerie({
       return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return {
+          id: img.id,
           src: urlData.publicUrl,
           alt: img.alt_text || "",
           breite: img.breite,
@@ -1757,6 +1762,12 @@ export function Galerie({
     },
     enabled: !!epoche,
   });
+  // Die Bildbeschreibung in der Sprache der Seite, wenn es eine gibt
+  // (site_text_translations, Art „gallery").
+  const bilder = useMemo(
+    () => roh.map((b) => ({ ...b, alt: uebersetzt[`gallery:${b.id}`] ?? b.alt })),
+    [roh, uebersetzt],
+  );
 
   const raster =
     spalten === "vier"
@@ -1773,7 +1784,7 @@ export function Galerie({
       {ueberschrift && <h2 className="font-serif text-2xl font-semibold mb-6">{ueberschrift}</h2>}
 
       {bilder.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Weitere Bilder folgen in Kürze.</p>
+        <p className="text-sm text-muted-foreground">{t.galerieLeer}</p>
       ) : (
         <div className={`grid ${raster} gap-3`}>
           {bilder.map((b, i) => (
@@ -1798,7 +1809,7 @@ export function Galerie({
           className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
         >
-          <button className="absolute top-4 right-4 text-foreground p-2 z-10" aria-label="Schließen">
+          <button className="absolute top-4 right-4 text-foreground p-2 z-10" aria-label={t.schliessen}>
             <X size={28} />
           </button>
           {bilder.length > 1 && (
@@ -1806,14 +1817,14 @@ export function Galerie({
               <button
                 onClick={(e) => { e.stopPropagation(); blaettern(-1); }}
                 className="absolute left-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
-                aria-label="Vorheriges Bild"
+                aria-label={t.vorherigesBild}
               >
                 <ChevronLeft size={32} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); blaettern(1); }}
                 className="absolute right-4 p-2 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
-                aria-label="Nächstes Bild"
+                aria-label={t.naechstesBild}
               >
                 <ChevronRight size={32} />
               </button>
@@ -1971,6 +1982,13 @@ export function Termine({
   /** Wie viele Jahre zurück zusätzlich gezeigt werden. 0 = nur Kommendes. */
   rueckschau?: number;
 }) {
+  // Das Datum in der Schreibweise der Sprache: „3. Mai 2026", „3 May 2026",
+  // „3 mai 2026". Die Titel der Termine kommen aus dem Mitgliederbereich und
+  // bleiben deutsch.
+  const { sprache, t: worte } = useSprache();
+  const locale = { de, en: enGB, fr }[sprache];
+  const tag = sprache === "de" ? "d. MMMM yyyy" : "d MMMM yyyy";
+  const kurz = sprache === "de" ? "d. MMM" : "d MMM";
   const jahr = new Date().getFullYear();
   const zurueck = Math.max(0, Math.min(20, rueckschau ?? 0));
 
@@ -2002,12 +2020,12 @@ export function Termine({
 
   const datum = (start: string, ende: string | null, ganztags: boolean) => {
     const a = parseISO(start);
-    if (!ganztags) return format(a, "d. MMMM yyyy, HH:mm 'Uhr'", { locale: de });
-    if (!ende) return format(a, "d. MMMM yyyy", { locale: de });
+    if (!ganztags) return `${format(a, tag, { locale })}, ${mitWerten(worte.uhrzeit, { zeit: format(a, "HH:mm") })}`;
+    if (!ende) return format(a, tag, { locale });
     const b = parseISO(ende);
     return format(a, "yyyy-MM") === format(b, "yyyy-MM")
-      ? `${format(a, "d.")}–${format(b, "d. MMMM yyyy", { locale: de })}`
-      : `${format(a, "d. MMM", { locale: de })} – ${format(b, "d. MMM yyyy", { locale: de })}`;
+      ? `${format(a, sprache === "de" ? "d." : "d")}–${format(b, tag, { locale })}`
+      : `${format(a, kurz, { locale })} – ${format(b, `${kurz} yyyy`, { locale })}`;
   };
 
   return (
@@ -2041,7 +2059,7 @@ export function Termine({
             >
               <div className="flex-shrink-0 w-12 text-center">
                 <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
-                  {format(parseISO(t.start_date), "MMM", { locale: de }).toUpperCase()}
+                  {format(parseISO(t.start_date), "MMM", { locale }).toUpperCase()}
                 </p>
                 <p className="font-serif text-2xl font-bold text-foreground leading-none">
                   {format(parseISO(t.start_date), "d")}
