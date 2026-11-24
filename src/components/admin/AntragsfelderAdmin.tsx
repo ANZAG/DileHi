@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { aufnahmeSchluessel, speichereAntragsfelder } from "@/daten/aufnahme";
 import { useToast } from "@/hooks/use-toast";
 import FieldListEditor from "@/components/event-forms/FieldListEditor";
 import FormFieldRenderer from "@/components/event-forms/FormFieldRenderer";
@@ -45,19 +45,12 @@ export default function AntragsfelderAdmin() {
 
   const speichern = useMutation({
     mutationFn: async () => {
-      const vorher = new Map(gespeichert.map((f) => [f.id, f]));
-      const jetzt = new Map(felder.map((f) => [f.id, f]));
-
       // Entfernte Felder: nur Zusatzfelder koennen ueberhaupt fehlen, die
       // Liste laesst tragende gar nicht erst loeschen.
-      const entfernt = [...vorher.keys()].filter((id) => !jetzt.has(id));
-      if (entfernt.length > 0) {
-        const { error } = await supabase.from("application_fields").delete().in("id", entfernt);
-        if (error) throw new Error(error.message);
-      }
-
-      for (const [i, feld] of felder.entries()) {
-        const daten = {
+      await speichereAntragsfelder(
+        gespeichert.map((f) => f.id),
+        felder.map((feld, i) => ({
+          id: feld.id,
           type: feld.type,
           label: feld.label,
           description: feld.description,
@@ -65,22 +58,12 @@ export default function AntragsfelderAdmin() {
           sort_order: (i + 1) * 10,
           options: feld.options ?? [],
           settings: feld.settings ?? {},
-        };
-        if (vorher.has(feld.id)) {
-          const { error } = await supabase.from("application_fields").update(daten).eq("id", feld.id);
-          if (error) throw new Error(error.message);
-        } else {
-          // Neue Felder sind immer Zusatzfelder – ein tragendes entsteht nur
-          // zusammen mit einer Spalte, und die legt eine Migration an.
-          const { error } = await supabase.from("application_fields")
-            .insert({ ...daten, column_name: null });
-          if (error) throw new Error(error.message);
-        }
-      }
+        })),
+      );
     },
     onSuccess: () => {
       setGeaendert(false);
-      queryClient.invalidateQueries({ queryKey: ["application-fields"] });
+      queryClient.invalidateQueries({ queryKey: aufnahmeSchluessel.felder() });
       toast({ title: "Gespeichert" });
     },
     onError: (err: Error) =>

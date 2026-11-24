@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
+import { aufnahmeSchluessel, entscheideAntrag, ladeAntragstexte, speichereAntragsfelder } from "@/daten/aufnahme";
+import { ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
 import { aendereEinstellungen, einstellungSchluessel, ladeErscheinungsbild, schalteModule } from "@/daten/einstellungen";
 import { fristSchluessel, ladeBescheidangaben, setzeFristErledigt, speichereFrist } from "@/daten/fristen";
 import { kategorieSchluessel, legeKategorieAn, zaehleKategorieVerwendung } from "@/daten/kategorien";
@@ -181,5 +183,91 @@ describe("Die selbst angelegten Profilfelder", () => {
     const aufrufe = datenbank();
     await speichereProfilfelder(["a"], [{ id: "a", type: "text", label: "A" }]);
     expect(aufrufe.map((a) => a.was)).toEqual(["update profile_fields"]);
+  });
+});
+
+describe("Die Schlüssel von Website und Aufnahme", () => {
+  it("trennen das Menü der Verwaltung vom fertigen Menü der Seite – und erneuern beide zusammen", () => {
+    // Verschieden geformt: hier die Zeilen der Tabelle, dort Einträge je Bereich.
+    expect(websiteSchluessel.menuezeilen()).not.toEqual(websiteSchluessel.menueFertig());
+    const qc = new QueryClient();
+    qc.setQueryData(websiteSchluessel.menuezeilen(), []);
+    qc.setQueryData(websiteSchluessel.menueFertig(), {});
+    qc.setQueryData(websiteSchluessel.seiten(), []);
+    qc.invalidateQueries({ queryKey: websiteSchluessel.menue() });
+    expect(qc.getQueryState(websiteSchluessel.menuezeilen())?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(websiteSchluessel.menueFertig())?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(websiteSchluessel.seiten())?.isInvalidated).toBe(false);
+  });
+
+  it("erreichen mit der Galerie auch die Listen der Bausteine", () => {
+    // Der Baukasten liest noch selbst unter ["gallery_images", kategorie].
+    const qc = new QueryClient();
+    qc.setQueryData(["gallery_images", "napoleonik"], []);
+    qc.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
+    expect(qc.getQueryState(["gallery_images", "napoleonik"])?.isInvalidated).toBe(true);
+    // Die Liste der Verwaltung kann keine Kategorie treffen, wie auch immer die heisst.
+    expect(websiteSchluessel.galerie()[0]).not.toBe("gallery_images");
+  });
+
+  it("erneuern mit einem geänderten Text des Antrags auch den Antrag selbst", () => {
+    // Vorher „pdf-texts" und „pdf-texts-oeffentlich": Nach dem Speichern las
+    // der Aufnahmeantrag bis zu eine Stunde lang den alten Text.
+    const qc = new QueryClient();
+    qc.setQueryData(aufnahmeSchluessel.textzeilen(), []);
+    qc.setQueryData(aufnahmeSchluessel.texteNachKennung(), {});
+    qc.invalidateQueries({ queryKey: aufnahmeSchluessel.texte() });
+    expect(qc.getQueryCache().getAll().every((q) => q.state.isInvalidated)).toBe(true);
+  });
+});
+
+describe("Das Menü", () => {
+  it("löst Seiten in Adressen auf und fragt ohne Seiten nicht", async () => {
+    const aufrufe = datenbank({ "select site_pages": { data: [{ id: "s1", slug: "ueber-uns" }] } });
+    expect(await ladeSeitenadressen([])).toEqual(new Map());
+    expect(aufrufe).toHaveLength(0);
+    expect(await ladeSeitenadressen(["s1"])).toEqual(new Map([["s1", "/ueber-uns"]]));
+  });
+
+  it("meldet, wenn die Adressen nicht lesbar sind, statt Einträge ohne Ziel zu bauen", async () => {
+    datenbank({ "select site_pages": { data: null, error: { message: "weg" } } });
+    await expect(ladeSeitenadressen(["s1"])).rejects.toMatchObject({ message: "weg" });
+  });
+});
+
+describe("Ein Aufnahmeantrag", () => {
+  const jetzt = new Date("2026-11-24T08:00:00Z");
+
+  it("wird mit Entscheider und Zeitpunkt genehmigt – ein früherer Vermerk bleibt stehen", async () => {
+    const aufrufe = datenbank();
+    await entscheideAntrag("a1", { status: "approved", von: "vera" }, jetzt);
+    expect(aufrufe[0].wert).toEqual({ status: "approved", reviewed_by: "vera", reviewed_at: "2026-11-24T08:00:00.000Z" });
+    expect(filterVon(aufrufe[0])).toEqual(['id eq "a1"']);
+  });
+
+  it("wird mit Vermerk abgelehnt, ein leerer Vermerk ausdrücklich gelöscht", async () => {
+    const aufrufe = datenbank();
+    await entscheideAntrag("a1", { status: "rejected", von: "vera", vermerk: null }, jetzt);
+    expect(aufrufe[0].wert).toMatchObject({ status: "rejected", review_notes: null });
+  });
+
+  it("bekommt neue Felder nur als Zusatzfelder ohne Spalte", async () => {
+    const aufrufe = datenbank();
+    await speichereAntragsfelder(["kern", "weg"], [
+      { id: "kern", type: "text", label: "Vorname" },
+      { id: "neu", type: "text", label: "Wie hast du uns gefunden?" },
+    ]);
+    expect(aufrufe.map((a) => a.was)).toEqual([
+      "delete application_fields",
+      "update application_fields",
+      "insert application_fields",
+    ]);
+    expect(filterVon(aufrufe[0])).toEqual(['id in ["weg"]']);
+    expect(aufrufe[2].wert).toEqual({ type: "text", label: "Wie hast du uns gefunden?", column_name: null });
+  });
+
+  it("liefert seine Texte nach Kennung", async () => {
+    datenbank({ "select pdf_texts": { data: [{ key: "datenschutz", title: "Datenschutz", body: "…" }] } });
+    expect(await ladeAntragstexte()).toEqual({ datenschutz: { title: "Datenschutz", body: "…" } });
   });
 });

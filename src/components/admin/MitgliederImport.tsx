@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2, Upload } from "l
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { beitragsstufenSchluessel, ladeAngeboteneBeitragsstufen } from "@/daten/beitragsstufen";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { invokeFunction } from "@/lib/functionError";
 import {
@@ -48,17 +48,13 @@ export default function MitgliederImport({ rollen, standardRolle }: { rollen: { 
   const [ergebnisse, setErgebnisse] = useState<Ergebnis[]>([]);
 
   const { data: mitgliedsarten = [] } = useQuery({
-    queryKey: ["import", "mitgliedsarten"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contribution_categories").select("key, label").eq("is_active", true).order("sort_order");
-      return data ?? [];
-    },
+    queryKey: beitragsstufenSchluessel.angebotene(),
+    queryFn: ladeAngeboteneBeitragsstufen,
     enabled: offen,
   });
 
   const { data: vorhanden, isLoading: adressenLaden } = useQuery({
-    queryKey: ["import", "vorhandene-adressen"],
+    queryKey: mitgliedSchluessel.vorhandeneAdressen(),
     queryFn: async () => {
       const r = await invokeFunction<Record<string, string>>("manage-member", { body: { action: "get_emails", userIds: [] } });
       return new Set(Object.values(r).map((e) => e.toLowerCase()));

@@ -69,6 +69,8 @@ export const mitgliedSchluessel = {
   /** Die Mitgliederliste der Verwaltung. */
   liste: () => ["mitglieder", "liste"] as const,
   emails: () => ["mitglieder", "emails"] as const,
+  /** Alle schon vergebenen Mailadressen, kleingeschrieben – für die Prüfung beim Import. */
+  vorhandeneAdressen: () => ["mitglieder", "vorhandene-adressen"] as const,
   /** Die hochgeladenen Mitgliedsanträge eines Mitglieds – für Verwaltung und eigenes Profil. */
   antragsdateien: (userId: string | undefined) => ["mitglieder", "antragsdateien", userId] as const,
   profil: (userId: string | undefined) => ["mitglieder", "profil", userId] as const,

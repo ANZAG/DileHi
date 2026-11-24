@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeNamen, wahlSchluessel } from "@/daten/wahlen";
+import {
+  ladeKontaktantworten, ladeKontaktnachrichten, loescheKontaktnachricht, websiteSchluessel,
+} from "@/daten/website";
 import { invokeFunction } from "@/lib/functionError";
 import { useAuth } from "@/hooks/useAuth";
 import { useWoerter } from "@/hooks/useBranding";
@@ -21,48 +24,25 @@ const ContactMessages = () => {
   const [sending, setSending] = useState(false);
 
   const { data: contactMessages = [] } = useQuery({
-    queryKey: ["contact_messages"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contact_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) return [];
-      return data;
-    },
+    queryKey: websiteSchluessel.nachrichten(),
+    queryFn: ladeKontaktnachrichten,
   });
 
   const { data: allReplies = [] } = useQuery({
-    queryKey: ["contact_replies"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contact_replies")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) return [];
-      return data;
-    },
+    queryKey: websiteSchluessel.antworten(),
+    queryFn: ladeKontaktantworten,
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles_for_replies"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name");
-      if (error) return [];
-      return data;
-    },
+    queryKey: wahlSchluessel.namen(),
+    queryFn: ladeNamen,
   });
 
   const deleteContactMessage = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contact_messages").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: loescheKontaktnachricht,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact_messages"] });
-      queryClient.invalidateQueries({ queryKey: ["contact_replies"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.nachrichten() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.antworten() });
     },
   });
 
@@ -77,7 +57,7 @@ const ContactMessages = () => {
       toast({ title: "Antwort gesendet" });
       setReplyTo(null);
       setReplyText("");
-      queryClient.invalidateQueries({ queryKey: ["contact_replies"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.antworten() });
     } catch (err) {
       toast({ title: "Fehler beim Senden", description: (err as Error).message, variant: "destructive" });
     } finally {

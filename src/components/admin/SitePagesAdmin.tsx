@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, Globe, FileText, ExternalLink, Settings2 } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeSeoOrganisation, websiteSchluessel } from "@/daten/website";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -39,7 +39,7 @@ export default function SitePagesAdmin() {
   const darfLayout = hasPermission("site.layout_edit");
 
   const { data: seiten = [], isLoading } = useQuery({
-    queryKey: ["site-pages"],
+    queryKey: websiteSchluessel.seiten(),
     queryFn: fetchPages,
   });
 
@@ -52,7 +52,7 @@ export default function SitePagesAdmin() {
     retry: false,
   });
 
-  const frisch = () => queryClient.invalidateQueries({ queryKey: ["site-pages"] });
+  const frisch = () => queryClient.invalidateQueries({ queryKey: websiteSchluessel.seiten() });
 
   const neu = useMutation({
     mutationFn: () => createPage({ title: titel.trim(), slug: adresse.trim() || slugify(titel) }),
@@ -247,12 +247,8 @@ export default function SitePagesAdmin() {
  */
 function OrganisationHinweis({ eigeneId, gewaehlt }: { eigeneId: string; gewaehlt: string }) {
   const { data: seiten = [] } = useQuery({
-    queryKey: ["seo-organisation"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("seo_organization_pages");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: websiteSchluessel.seoOrganisation(),
+    queryFn: ladeSeoOrganisation,
     enabled: gewaehlt === "organisation",
   });
 

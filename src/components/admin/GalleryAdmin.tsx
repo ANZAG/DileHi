@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereGaleriebild, ladeGalerie, legeGaleriebildAn, loescheGaleriebild, websiteSchluessel,
+} from "@/daten/website";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
@@ -41,13 +44,9 @@ const GalleryAdmin = () => {
   const [editAltText, setEditAltText] = useState("");
 
   const { data: images = [], isLoading } = useQuery({
-    queryKey: ["gallery_images_admin"],
+    queryKey: websiteSchluessel.galerie(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_images")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) return [];
+      const data = await ladeGalerie();
       return data.map((img) => {
         const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(img.storage_path);
         return { ...img, publicUrl: urlData.publicUrl };
@@ -70,17 +69,16 @@ const GalleryAdmin = () => {
       // Samt kleineren Fassungen für das Handy (src/lib/bildfassungen.mjs).
       const masse = await bildAblegen(path, webpFile);
 
-      const { error: dbErr } = await supabase.from("gallery_images").insert({
+      await legeGaleriebildAn({
         storage_path: path,
         ...masse,
         alt_text: altText || file.name.replace(/\.[^/.]+$/, ""),
         epoch: selectedEpoch,
         created_by: user.id,
       });
-      if (dbErr) throw dbErr;
 
-      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerie() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
       setAltText("");
       toast({ title: "Bild hochgeladen", description: "Automatisch zu WebP konvertiert" });
     } catch (err: any) {
@@ -90,35 +88,27 @@ const GalleryAdmin = () => {
   };
 
   const updateEpoch = useMutation({
-    mutationFn: async ({ id, epoch }: { id: string; epoch: string }) => {
-      const { error } = await supabase.from("gallery_images").update({ epoch }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, epoch }: { id: string; epoch: string }) => aendereGaleriebild(id, { epoch }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerie() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
     },
   });
 
   const updateShowSubtitle = useMutation({
-    mutationFn: async ({ id, show_subtitle }: { id: string; show_subtitle: boolean }) => {
-      const { error } = await supabase.from("gallery_images").update({ show_subtitle }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, show_subtitle }: { id: string; show_subtitle: boolean }) =>
+      aendereGaleriebild(id, { show_subtitle }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerie() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
     },
   });
 
   const updateAltText = useMutation({
-    mutationFn: async ({ id, alt_text }: { id: string; alt_text: string }) => {
-      const { error } = await supabase.from("gallery_images").update({ alt_text }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, alt_text }: { id: string; alt_text: string }) => aendereGaleriebild(id, { alt_text }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerie() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
       setEditingId(null);
       toast({ title: "Beschreibung aktualisiert" });
     },
@@ -127,12 +117,11 @@ const GalleryAdmin = () => {
   const deleteImage = useMutation({
     mutationFn: async ({ id, storagePath, fassungen }: { id: string; storagePath: string; fassungen?: number[] }) => {
       await bildEntfernen(storagePath, fassungen);
-      const { error } = await supabase.from("gallery_images").delete().eq("id", id);
-      if (error) throw error;
+      await loescheGaleriebild(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gallery_images_admin"] });
-      queryClient.invalidateQueries({ queryKey: ["gallery_images"] });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerie() });
+      queryClient.invalidateQueries({ queryKey: websiteSchluessel.galerieDerBausteine() });
       toast({ title: "Bild gelöscht" });
     },
   });

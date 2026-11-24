@@ -15,6 +15,8 @@ export const beitragsstufenSchluessel = {
   alle: ["beitragsstufen"] as const,
   /** Alle Stufen mit Namen – auch nicht mehr angebotene. */
   stufen: () => ["beitragsstufen", "stufen"] as const,
+  /** Nur die angebotenen, Schlüssel und Name – für die Zuordnung beim Import. */
+  angebotene: () => ["beitragsstufen", "angebotene"] as const,
   /** Die Stufen mit dem, was die Verwaltung wissen muss: wie viele Mitglieder, ab wann entfernt. */
   status: () => ["beitragsstufen", "status"] as const,
   /** Wie der Verein Beiträge erhebt und was er im Aufnahmeantrag anbietet. */
@@ -25,6 +27,16 @@ export async function ladeBeitragsstufen(): Promise<Beitragsstufe[]> {
   const { data, error } = await supabase
     .from("contribution_categories")
     .select("key, label, description, sort_order, is_active, removed_from")
+    .order("sort_order");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function ladeAngeboteneBeitragsstufen(): Promise<Pick<Beitragsstufe, "key" | "label">[]> {
+  const { data, error } = await supabase
+    .from("contribution_categories")
+    .select("key, label")
+    .eq("is_active", true)
     .order("sort_order");
   if (error) throw error;
   return data ?? [];

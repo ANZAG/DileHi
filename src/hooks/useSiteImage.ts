@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ladeSeitenbilder, websiteSchluessel } from "@/daten/website";
 import { vorabzug } from "@/lib/vorabzug";
 import type { GespeichertesBild } from "@/components/SpeicherBild";
 
@@ -27,12 +28,9 @@ type SiteImageData = GespeichertesBild;
 /** Alle Bilder auf einmal – die Bausteine fragen daraus einzeln ab. */
 export function useSiteImages() {
   return useQuery({
-    queryKey: ["site_images"],
+    queryKey: websiteSchluessel.bilder(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("site_images")
-        .select("*");
-      if (error) return {} as Record<string, SiteImageData>;
+      const data = await ladeSeitenbilder();
 
       const map: Record<string, SiteImageData> = {};
       for (const img of data) {
