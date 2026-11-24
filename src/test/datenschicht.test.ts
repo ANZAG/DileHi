@@ -3,10 +3,14 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { auslagenSchluessel } from "@/daten/auslagen";
 import { beschlussSchluessel } from "@/daten/beschluesse";
+import { bibliothekSchluessel } from "@/daten/bibliothek";
+import { einstellungSchluessel } from "@/daten/einstellungen";
+import { epochenSchluessel } from "@/daten/epochen";
 import { einwilligungSchluessel } from "@/daten/einwilligungen";
 import { inventarSchluessel } from "@/daten/inventar";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
 import { nachweisSchluessel } from "@/daten/nachweise";
+import { quellenSchluessel } from "@/daten/quellen";
 import { sprachSchluessel } from "@/daten/sprachen";
 import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
@@ -108,6 +112,42 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       "src/components/admin/EinwilligungenAdmin.tsx",
       ...quelltexte("src/components/einwilligungen"),
     ],
+  },
+  {
+    // Ohne src/lib/scan: Dort steht der Text der Quellen (quelltext.ts) neben
+    // reinem Bildcode; die drei Aufrufe sind schon Funktionen mit Fehlerprüfung.
+    name: "quellen",
+    schluessel: quellenSchluessel,
+    dateien: [
+      "src/pages/intern/Sources.tsx",
+      "src/pages/intern/Scannen.tsx",
+      "src/components/admin/FileStorageAdmin.tsx",
+      ...quelltexte("src/components/scan"),
+    ],
+  },
+  {
+    name: "epochen",
+    schluessel: epochenSchluessel,
+    dateien: [
+      "src/components/admin/SourcesAdmin.tsx",
+      "src/components/admin/VisitorHighlightsAdmin.tsx",
+      ...quelltexte("src/components/epochs"),
+    ],
+  },
+  {
+    name: "bibliothek",
+    schluessel: bibliothekSchluessel,
+    dateien: [
+      "src/hooks/useBibliothek.ts",
+      ...quelltexte("src/pages/intern/bibliothek"),
+      ...quelltexte("src/components/bibliothek"),
+    ],
+  },
+  {
+    // Erst die Dateiablage; der Rest der Vereinsangaben folgt mit der Verwaltung.
+    name: "einstellungen",
+    schluessel: einstellungSchluessel,
+    dateien: ["src/pages/intern/Admin.tsx"],
   },
 ];
 

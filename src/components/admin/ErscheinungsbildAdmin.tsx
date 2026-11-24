@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel } from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, useWoerter } from "@/hooks/useBranding";
 import { useAuth } from "@/hooks/useAuth";
@@ -179,8 +180,7 @@ export default function ErscheinungsbildAdmin({ teil = "erscheinungsbild" }: {
       // weg darf – die Verwaltung zeigt diese Jahreszahl an.
       queryClient.invalidateQueries({ queryKey: ["beitragsstufen-status"] });
       // Quellensammlung und Eingangskorb fragen die Dateiablage getrennt ab.
-      queryClient.invalidateQueries({ queryKey: ["file-storage-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["file-storage"] });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.alle });
       // Die Gemeinnützigkeit schaltet Bereiche frei oder ab.
       queryClient.invalidateQueries({ queryKey: ["module"] });
       queryClient.invalidateQueries({ queryKey: ["bescheid"] });

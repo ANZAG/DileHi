@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileSearch, Loader2 } from "lucide-react";
+import { quellenSchluessel } from "@/daten/quellen";
 import { ausschnittTeile, imTextSuchen, type TextTreffer } from "@/lib/scan/quelltext";
 
 /**
@@ -23,7 +24,7 @@ export function TextTrefferListe({ suche, epochName, onOeffnen }: Props) {
   }, [suche]);
 
   const { data: treffer = [], isFetching, error } = useQuery({
-    queryKey: ["source-text-search", verzoegert],
+    queryKey: quellenSchluessel.textsuche(verzoegert),
     enabled: verzoegert.length >= 3,
     queryFn: () => imTextSuchen(verzoegert),
   });
