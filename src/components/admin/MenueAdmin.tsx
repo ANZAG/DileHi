@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { aendereEinstellungen, einstellungSchluessel, useEinstellungen } from "@/daten/einstellungen";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
@@ -327,30 +328,22 @@ function FussUeberschrift({ spalte, hinweis }: {
   const queryClient = useQueryClient();
   const [wert, setWert] = useState("");
 
-  const { data } = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
-      if (error) throw new Error(error.message);
-      return data;
-    },
-  });
+  const { data } = useEinstellungen();
 
   const gespeichert = data?.[spalte] ?? "";
   useEffect(() => setWert(gespeichert), [gespeichert, spalte]);
 
   const speichern = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const text = wert.trim();
-      const { error } = await supabase.from("app_settings")
-        .update(spalte === "footer_navigation_label" ? { footer_navigation_label: text } : { footer_legal_label: text })
-        .eq("id", true);
-      if (error) throw new Error(error.message);
+      return aendereEinstellungen(
+        spalte === "footer_navigation_label" ? { footer_navigation_label: text } : { footer_legal_label: text },
+      );
     },
     onSuccess: () => {
       toast({ title: "Gespeichert" });
-      queryClient.invalidateQueries({ queryKey: ["app-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.vereinsangaben() });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.erscheinungsbild() });
     },
     onError: (err: Error) =>
       toast({ title: "Nicht gespeichert", description: err.message, variant: "destructive" }),

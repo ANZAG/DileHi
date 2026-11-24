@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeLoeschprotokoll, ladeNamen, wahlSchluessel } from "@/daten/wahlen";
 import { FileText } from "lucide-react";
 import type { AuditLogEntry } from "@/components/elections/types";
 
@@ -11,25 +11,13 @@ const formatTimestamp = (iso: string) => {
 
 const AuditLogPanel = () => {
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ["audit_log"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("election_audit_log")
-        .select("*")
-        .order("deleted_at", { ascending: false });
-      if (error) throw error;
-      const zeilen: AuditLogEntry[] = data;
-      return zeilen;
-    },
+    queryKey: wahlSchluessel.loeschprotokoll(),
+    queryFn: (): Promise<AuditLogEntry[]> => ladeLoeschprotokoll(),
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles_for_audit"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("id, display_name");
-      if (error) return [];
-      return data;
-    },
+    queryKey: wahlSchluessel.namen(),
+    queryFn: ladeNamen,
   });
 
   const getDisplayName = (userId: string) =>

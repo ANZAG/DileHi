@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel, ladeModulstand } from "@/daten/einstellungen";
 
 /**
  * Welche Module diese Installation anbietet.
@@ -39,12 +39,8 @@ export interface ModuleState {
 
 export function useModule() {
   return useQuery({
-    queryKey: ["module"],
-    queryFn: async (): Promise<ModuleState[]> => {
-      const { data, error } = await supabase.rpc("module_status");
-      if (error) throw new Error(error.message);
-      return (data ?? []).map((m) => ({ ...m, kind: m.kind as ModuleState["kind"] }));
-    },
+    queryKey: einstellungSchluessel.module(),
+    queryFn: ladeModulstand,
     // Module aendern sich fast nie und werden auf jeder Seite gebraucht.
     staleTime: 60 * 60 * 1000,
     retry: 1,

@@ -3,6 +3,7 @@ import { vorabzug } from "@/lib/vorabzug";
 import { useQuery } from "@tanstack/react-query";
 import { woerter, type Words } from "@/lib/organisationsform";
 import { supabase } from "@/integrations/supabase/client";
+import { einstellungSchluessel, ladeErscheinungsbild } from "@/daten/einstellungen";
 import { surfaceColors, hexToHsl, hslToTokens, isDark, readableInk } from "@/lib/farben";
 import { loadFonts, schriftStapel } from "@/lib/schriften";
 import { iconLinks } from "@/lib/zeichen";
@@ -124,11 +125,9 @@ function oeffentlicheAdresse(pfad: string | null): string | null {
  */
 export function useBranding() {
   const { data } = useQuery({
-    queryKey: ["branding"],
+    queryKey: einstellungSchluessel.erscheinungsbild(),
     queryFn: async (): Promise<Branding> => {
-      const { data, error } = await supabase.rpc("public_branding");
-      if (error) throw new Error(error.message);
-      const row = data?.[0];
+      const row = await ladeErscheinungsbild();
       return row ? { ...VORGABE, ...row } : VORGABE;
     },
     // Der Stand vom Bauen, damit die Seite nicht mit den Vorgaben beginnt.

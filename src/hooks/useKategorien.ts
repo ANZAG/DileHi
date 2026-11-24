@@ -1,5 +1,6 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { kategorieAuswahl, leereAuswahlMerker } from "@/components/sitebuilder/auswahl";
+import { kategorieSchluessel } from "@/daten/kategorien";
 
 export interface Kategorie {
   value: string;
@@ -34,7 +35,7 @@ const NOTNAGEL: Kategorie[] = [];
  * ganze Seite neu lud. Ein Schlüssel, der an zwei Stellen abgeschrieben wird,
  * ist genau so lange richtig, bis jemand einen davon ändert.
  */
-export const KATEGORIEN_SCHLUESSEL = ["kategorien-auswahl"] as const;
+export const KATEGORIEN_SCHLUESSEL = kategorieSchluessel.auswahl();
 
 export function useKategorien(): Kategorie[] {
   const { data } = useQuery({
@@ -59,7 +60,6 @@ export function useKategorien(): Kategorie[] {
  */
 export function kategorienAktualisieren(qc: QueryClient) {
   leereAuswahlMerker("kategorien");
-  qc.invalidateQueries({ queryKey: KATEGORIEN_SCHLUESSEL });
-  // Die Verwaltungsliste selbst liest direkt aus der Tabelle.
-  qc.invalidateQueries({ queryKey: ["site-categories"] });
+  // Die Auswahl, die Liste der Verwaltung und die Zählung der Verwendung.
+  qc.invalidateQueries({ queryKey: kategorieSchluessel.alle });
 }

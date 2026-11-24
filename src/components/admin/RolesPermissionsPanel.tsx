@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useRollenkatalog } from "@/daten/mitglieder";
+import { ladeRechtekatalog, ladeRollenrechte, rollenSchluessel, setzeRollenrecht } from "@/daten/rollen";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -15,22 +15,15 @@ const RolesPermissionsPanel = () => {
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
 
   const { data: rolePermissions = [], isLoading: rpLoading } = useQuery({
-    queryKey: ["role_permissions"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("role_permissions").select("*");
-      if (error) throw error;
-      return data;
-    },
+    queryKey: rollenSchluessel.rechte(),
+    queryFn: ladeRollenrechte,
   });
 
   const { data: roleCatalog = [], isLoading: rcLoading } = useRollenkatalog();
 
   const { data: permCatalog = [], isLoading: pcLoading } = useQuery({
-    queryKey: ["permission_catalog"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_permission_catalog");
-      return data ?? [];
-    },
+    queryKey: rollenSchluessel.rechtekatalog(),
+    queryFn: ladeRechtekatalog,
   });
 
   const isLoading = rpLoading || rcLoading || pcLoading;
@@ -39,21 +32,8 @@ const RolesPermissionsPanel = () => {
     // Der Rollenschluessel ist seit dem Umbau ein freier Text: Welche Rollen es
     // gibt, entscheidet der Verein. Vorher stand hier eine Aufzaehlung unserer
     // sechs Aemter, die jede neue Rolle abgelehnt haette.
-    mutationFn: async ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) => {
-      if (granted) {
-        const { error } = await supabase
-          .from("role_permissions")
-          .insert({ role, permission, granted: true });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("role_permissions")
-          .delete()
-          .eq("role", role)
-          .eq("permission", permission);
-        if (error) throw error;
-      }
-    },
+    mutationFn: ({ role, permission, granted }: { role: string; permission: string; granted: boolean }) =>
+      setzeRollenrecht(role, permission, granted),
     onMutate: ({ role, permission }) => {
       setPendingToggles((prev) => new Set(prev).add(`${role}:${permission}`));
     },
@@ -63,7 +43,7 @@ const RolesPermissionsPanel = () => {
         next.delete(`${role}:${permission}`);
         return next;
       });
-      queryClient.invalidateQueries({ queryKey: ["role_permissions"] });
+      queryClient.invalidateQueries({ queryKey: rollenSchluessel.rechte() });
     },
     onError: (err) => {
       toast({ title: "Fehler", description: (err as Error).message, variant: "destructive" });

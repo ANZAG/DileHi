@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeStandardrolle, rollenSchluessel } from "@/daten/rollen";
 
 /**
  * Die Rolle, die ein neu eingeladenes Mitglied bekommt.
@@ -15,21 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function useDefaultRole(): string {
   const { data } = useQuery({
-    queryKey: ["default-role"],
-    queryFn: async (): Promise<string> => {
-      const { data: einstellung } = await supabase
-        .from("app_settings")
-        .select("default_role")
-        .maybeSingle();
-      if (einstellung?.default_role) return einstellung.default_role as string;
-
-      const { data: katalog } = await supabase
-        .from("role_catalog")
-        .select("key")
-        .order("sort_order", { ascending: false })
-        .limit(1);
-      return (katalog?.[0]?.key as string) ?? "";
-    },
+    queryKey: rollenSchluessel.standardrolle(),
+    queryFn: ladeStandardrolle,
     staleTime: 10 * 60 * 1000,
   });
   return data ?? "";

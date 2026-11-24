@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, CheckCircle2, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { aendereEinstellungen, einstellungSchluessel } from "@/daten/einstellungen";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
@@ -46,7 +46,7 @@ export default function Einrichtungsprozess({
   const [laeuft, setLaeuft] = useState(false);
 
   const { data: befund, refetch } = useQuery({
-    queryKey: ["einrichtung-status"],
+    queryKey: einstellungSchluessel.einrichtung(),
     queryFn: async () => await invokeFunction<Findings>("einrichtung-status", { body: {} }),
     staleTime: 0,
   });
@@ -62,10 +62,9 @@ export default function Einrichtungsprozess({
     try {
       const patch: TablesUpdate<"app_settings"> = { setup_step: bis };
       if (fertig) patch.setup_done_at = new Date().toISOString();
-      const { error } = await supabase.from("app_settings").update(patch).eq("id", true);
-      if (error) throw new Error(error.message);
+      await aendereEinstellungen(patch);
       await refetch();
-      queryClient.invalidateQueries({ queryKey: ["branding"] });
+      queryClient.invalidateQueries({ queryKey: einstellungSchluessel.erscheinungsbild() });
     } catch (e) {
       toast({ title: "Ging nicht", description: (e as Error).message, variant: "destructive" });
     } finally {

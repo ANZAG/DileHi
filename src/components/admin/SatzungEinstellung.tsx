@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  aendereEinstellungen, einstellungSchluessel, ladeSatzungAuswahl, useEinstellungen,
+} from "@/daten/einstellungen";
 import { useToast } from "@/hooks/use-toast";
 import { useWoerter } from "@/hooks/useBranding";
 import { useDokumentkategorien } from "@/hooks/useDokumentkategorien";
@@ -34,15 +36,7 @@ export default function SatzungEinstellung() {
   const qc = useQueryClient();
   const [entwurf, setEntwurf] = useState<Stand | null>(null);
 
-  const { data } = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("*").maybeSingle();
-      if (error) throw new Error(error.message);
-      const zeile: Stand | null = data;
-      return zeile;
-    },
-  });
+  const { data } = useEinstellungen();
 
   useEffect(() => {
     if (data) {
@@ -61,22 +55,15 @@ export default function SatzungEinstellung() {
   const { data: dokumente = [] } = useQuery({
     // Die Auswahl hängt an der Ablage: Wer sie umstellt, bekommt sofort die
     // Dokumente, die dort liegen.
-    queryKey: ["satzung-auswahl", entwurf?.statutes_category],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("statutes_options");
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryKey: einstellungSchluessel.satzungAuswahl(entwurf?.statutes_category),
+    queryFn: ladeSatzungAuswahl,
   });
 
   const speichern = useMutation({
-    mutationFn: async (werte: Stand) => {
-      const { error } = await supabase.from("app_settings").update(werte).eq("id", true);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: (werte: Stand) => aendereEinstellungen(werte),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["app-settings"] });
-      qc.invalidateQueries({ queryKey: ["branding"] });
+      qc.invalidateQueries({ queryKey: einstellungSchluessel.vereinsangaben() });
+      qc.invalidateQueries({ queryKey: einstellungSchluessel.erscheinungsbild() });
       toast({ title: "Gespeichert" });
     },
     onError: (err: Error) =>
