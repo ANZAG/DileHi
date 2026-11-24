@@ -12,6 +12,8 @@
  * auffindbarkeit.d.mts.
  */
 
+import { seitentexte, sprachPfad } from "./sprachen.mjs";
+
 /** Die Startseite liegt unter der blanken Adresse, nicht unter /startseite. */
 export function pfadVon(slug) {
   return slug === "startseite" ? "/" : `/${slug}`;
@@ -247,8 +249,11 @@ export function seitenBeschreibung(seite, marke) {
  * Web-Adresse des Vereins – weiss die Anwendung aus den Vereinsangaben besser
  * als der Mensch vor dem Formular. In der Seitenverwaltung wird nur gewählt,
  * um welche Art Seite es sich handelt.
+ *
+ * `seite` und `marke` kommen schon in der Sprache herein, in der die Seite
+ * dasteht; `sprache` braucht es nur für ihre Adresse.
  */
-export function strukturierteDaten(seite, marke) {
+export function strukturierteDaten(seite, marke, sprache = "de") {
   if (seite?.seo_type === "keine") return undefined;
 
   const web = basisVon(marke);
@@ -267,7 +272,8 @@ export function strukturierteDaten(seite, marke) {
       addressCountry: marke.org_country ?? "DE",
     }
     : undefined;
-  const adresse = web ? `${web}${pfadVon(seite?.slug)}` : undefined;
+  // Die Adresse der Sprachfassung, um die es geht – nicht die des Originals.
+  const adresse = web ? `${web}${sprachPfad(pfadVon(seite?.slug), sprache)}` : undefined;
   const name = !leer(seite?.seo_title) ? seite.seo_title : seite?.title;
 
   switch (seite?.seo_type) {
@@ -326,14 +332,15 @@ export function strukturierteDaten(seite, marke) {
 /**
  * Die Kontaktseite ist keine Baukastenseite, steht aber im Menü und in der
  * Sitemap. Ihre Worte stehen hier, damit das Vorab-HTML dasselbe sagt wie die
- * Anwendung (src/pages/Kontakt.tsx).
+ * Anwendung (src/pages/Kontakt.tsx) – in jeder Sprache (sprachen.mjs).
  */
-export function kontaktSeite(marke) {
+export function kontaktSeite(marke, sprache = "de") {
   const kurz = String(marke?.org_short_name || marke?.org_name || "").trim();
+  const t = seitentexte(sprache);
   return {
-    titel: kurz ? `Kontakt – ${kurz}` : "Kontakt",
-    beschreibung: "Fragen an uns oder Interesse mitzumachen? Schreib uns eine Nachricht.",
-    ueberschrift: "Kontakt aufnehmen",
-    text: "Hast du Fragen, Anregungen oder Interesse an einer Mitgliedschaft? Schreib uns eine Nachricht!",
+    titel: kurz ? `${t.kontaktTitel} – ${kurz}` : t.kontaktTitel,
+    beschreibung: t.kontaktBeschreibung,
+    ueberschrift: t.kontaktUeberschrift,
+    text: t.kontaktText,
   };
 }

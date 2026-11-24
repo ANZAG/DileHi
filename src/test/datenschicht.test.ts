@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { mitgliedSchluessel } from "@/daten/mitglieder";
+import { sprachSchluessel } from "@/daten/sprachen";
 import { veranstaltungSchluessel } from "@/daten/veranstaltungen";
 import { wahlSchluessel } from "@/daten/wahlen";
 
@@ -46,6 +47,22 @@ const BEREICHE: { name: string; schluessel: Schluesselsatz; dateien: string[] }[
       "src/pages/intern/Profile.tsx",
       "src/pages/intern/Contributions.tsx",
       "src/pages/intern/MemberMap.tsx",
+    ],
+  },
+  {
+    // Die Sprachfassungen der öffentlichen Seite (en, fr). Das Deutsche –
+    // site_pages, Menü, Vereinsangaben – ist noch nicht umgezogen.
+    name: "sprachen",
+    schluessel: sprachSchluessel,
+    dateien: [
+      "src/pages/SeiteAnzeigen.tsx",
+      "src/pages/intern/UebersetzungsEditor.tsx",
+      "src/hooks/useSprache.ts",
+      "src/hooks/useSiteMenuInSprache.ts",
+      "src/components/Sprachwahl.tsx",
+      "src/components/SprachWeiche.tsx",
+      "src/components/admin/RahmentexteAdmin.tsx",
+      "src/components/admin/SprachfassungenZeile.tsx",
     ],
   },
 ];

@@ -12,6 +12,12 @@
 // Adresse aus; die Anwendung startet darin wie bisher und ersetzt den Text
 // durch die gewohnte Seite.
 //
+// Seit November 2026 auch je Sprache: Eine übersetzte Seite bekommt unter
+// _vorab/en/ bzw. _vorab/fr/ ihre eigene Datei, mit `lang`, eigenem Canonical
+// und den hreflang-Angaben aller Fassungen. Eine Seite ohne Übersetzung
+// antwortet unter /en/… mit ihrem deutschen HTML – dessen Canonical zeigt auf
+// die deutsche Adresse, und angeboten wird die Adresse nirgends.
+//
 // Hier stehen nur Funktionen ohne Datei- und Netzzugriff, damit sie sich
 // prüfen lassen (src/test/vorabSeiten.test.ts). Das Abholen und Schreiben
 // macht scripts/vorabzug.mjs.
@@ -21,6 +27,10 @@ import {
   strukturierteDaten, vereinsBeschreibung,
 } from "../src/lib/auffindbarkeit.mjs";
 import { srcsetVon } from "../src/lib/bildfassungen.mjs";
+import {
+  SPRACHNAMEN, SPRACHRAUM, STANDARDSPRACHE, ZUSATZSPRACHEN, seitentexte, sprachPfad, sprachfassungen,
+} from "../src/lib/sprachen.mjs";
+import { zieleUmrechnen } from "../supabase/functions/_shared/seitentexte.mjs";
 
 /** Das Verzeichnis im Build, in dem die fertigen Seiten liegen. */
 export const VORAB_ORDNER = "_vorab";
@@ -202,14 +212,63 @@ export function mitModulVorladen(vorlage, manifest, quelle) {
 }
 
 /** Die Seite so, wie die Anwendung sie abfragt – für den sofortigen Start. */
-export function seitenStand(seite) {
+export function seitenStand(seite, { sprache = STANDARDSPRACHE, sprachen = [] } = {}) {
   const { slug, title, content, seo_title, seo_description, seo_type, noindex } = seite;
-  return { slug, title, content, seo_title, seo_description, seo_type, noindex, is_published: true };
+  return {
+    slug, title, content, seo_title, seo_description, seo_type, noindex, is_published: true,
+    // In welcher Sprache der Text dasteht und welche es sonst gibt – damit
+    // die Anwendung weiss, ob dieser Stand zur aufgerufenen Adresse passt
+    // (src/pages/SeiteAnzeigen.tsx).
+    ...(sprache !== STANDARDSPRACHE ? { sprache } : {}),
+    ...(sprachen.length ? { sprachen } : {}),
+  };
 }
 
 /** Wo die fertige Datei einer Seite im Build liegt, relativ zu dist/. */
-export function dateiVon(slug) {
-  return `${VORAB_ORDNER}/${slug}.html`;
+export function dateiVon(slug, sprache = STANDARDSPRACHE) {
+  return sprache === STANDARDSPRACHE ? `${VORAB_ORDNER}/${slug}.html` : `${VORAB_ORDNER}/${sprache}/${slug}.html`;
+}
+
+// ── Sprachen ────────────────────────────────────────────────────────────────
+
+/**
+ * Die Übersetzungen, sortiert: je Sprache die Seiten (nach ihrer id) und die
+ * kurzen Texte von Menü und Rahmen (Schlüssel wie in useRahmentexte).
+ *
+ * `aktiv` sind die Sprachen, in denen wenigstens eine der veröffentlichten
+ * Seiten vorliegt – nur für sie gibt es Adressen und Regeln. Eine
+ * Installation ohne Übersetzungen bleibt damit, wie sie war.
+ */
+export function sprachstand(seiten, uebersetzungen, texte) {
+  const ids = new Set((Array.isArray(seiten) ? seiten : []).map((s) => s.id).filter(Boolean));
+  const jeSprache = {};
+  for (const u of Array.isArray(uebersetzungen) ? uebersetzungen : []) {
+    if (!ZUSATZSPRACHEN.includes(u?.lang) || !ids.has(u.page_id) || !u.content || !String(u.title ?? "").trim()) continue;
+    (jeSprache[u.lang] ??= {})[u.page_id] = u;
+  }
+  const aktiv = ZUSATZSPRACHEN.filter((s) => jeSprache[s]);
+  const kurz = {};
+  for (const t of Array.isArray(texte) ? texte : []) {
+    if (!aktiv.includes(t?.lang) || typeof t.value !== "string" || !t.value.trim()) continue;
+    (kurz[t.lang] ??= {})[`${t.kind}:${t.ref}`] = t.value;
+  }
+  return { aktiv, seiten: jeSprache, texte: kurz };
+}
+
+/** Die Seite mit den Texten ihrer Übersetzung – wie `mitUebersetzung` in der Anwendung. */
+export function seiteInSprache(seite, uebersetzung) {
+  const { title, content, seo_title, seo_description } = uebersetzung;
+  return { ...seite, title, content, seo_title: seo_title ?? null, seo_description: seo_description ?? null };
+}
+
+/** Die Vereinsangaben mit übersetztem Untertitel und übersetzter Beschreibung. */
+export function markeInSprache(marke, texte) {
+  if (!marke || !texte) return marke;
+  return {
+    ...marke,
+    org_tagline: texte["settings:org_tagline"] ?? marke.org_tagline,
+    seo_description: texte["settings:seo_description"] ?? marke.seo_description,
+  };
 }
 
 /**
@@ -235,14 +294,20 @@ export function kopfSetzen(vorlage, { titel, beschreibung }) {
 }
 
 /** Der sichtbare Rahmen um den Text: Menü, Inhalt, Fuss mit Anschrift. */
-export function koerper({ marke, menue, inhalt }) {
+export function koerper({ marke, menue, inhalt, sprache = STANDARDSPRACHE, texte, fassungen = [] }) {
   const zeilen = Array.isArray(menue?.zeilen) ? menue.zeilen : [];
+  const worte = seitentexte(sprache);
   const ziel = (z) => z.href || (z.page_id && menue?.seiten?.[z.page_id]) || null;
   const verweise = (bereich) => zeilen
     .filter((z) => z && z.is_visible !== false && !z.parent_id && (bereich === "header" ? z.area === "header" : z.area !== "header"))
-    .map((z) => ({ text: z.label, href: ziel(z) }))
+    .map((z) => ({ text: texte?.[`menu:${z.id}`] ?? z.label, href: ziel(z) }))
     .filter((v) => v.text && typeof v.href === "string" && /^(\/|https?:)/.test(v.href))
-    .map((v) => `<a href="${html(v.href)}">${html(v.text)}</a>`);
+    // Das Menü bleibt in der Sprache der Seite (wie useSiteMenuInSprache).
+    .map((v) => `<a href="${html(sprachPfad(v.href, sprache))}">${html(v.text)}</a>`);
+  // Die anderen Fassungen dieser Seite – auch für Leser ohne JavaScript.
+  const andere = fassungen
+    .filter((f) => f.hreflang !== "x-default" && f.hreflang !== sprache)
+    .map((f) => `<a href="${html(f.href)}" hreflang="${html(f.hreflang)}" lang="${html(f.hreflang)}">${html(SPRACHNAMEN[f.hreflang] ?? f.hreflang)}</a>`);
 
   const name = marke?.org_name ?? "";
   const anschrift = [
@@ -255,15 +320,16 @@ export function koerper({ marke, menue, inhalt }) {
   const fuss = verweise("footer");
   return [
     `<div class="vorab-inhalt">`,
-    `<header><p><a href="/">${html(marke?.org_short_name || name)}</a></p>`,
-    kopf.length ? `<nav aria-label="Hauptmenü">${kopf.join(" · ")}</nav>` : "",
+    `<header><p><a href="${html(sprachPfad("/", sprache))}">${html(marke?.org_short_name || name)}</a></p>`,
+    kopf.length ? `<nav aria-label="${html(worte.hauptmenue)}">${kopf.join(" · ")}</nav>` : "",
+    andere.length ? `<p>${andere.join(" · ")}</p>` : "",
     `</header>`,
     `<main>`,
     inhalt,
     `</main>`,
     `<footer>`,
     name ? `<p>${[html(name), anschrift, mail].filter(Boolean).join(" · ")}</p>` : "",
-    fuss.length ? `<nav aria-label="Rechtliches">${fuss.join(" · ")}</nav>` : "",
+    fuss.length ? `<nav aria-label="${html(worte.rechtliches)}">${fuss.join(" · ")}</nav>` : "",
     `</footer>`,
     `</div>`,
   ].filter(Boolean).join("\n");
@@ -278,15 +344,29 @@ export function koerper({ marke, menue, inhalt }) {
  * jeder Seite kurz eine schmucklose Textfassung auf. Wer kein JavaScript
  * ausführt, setzt die Klasse nie und liest den Text.
  */
-export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "website", noindex = false, jsonLd, inhalt, vorladen }) {
+export function dokument(vorlage, {
+  titel, beschreibung, kanonisch, typ = "website", noindex = false, jsonLd, inhalt, vorladen,
+  sprache = STANDARDSPRACHE, fassungen = [],
+}) {
   let seite = kopfSetzen(vorlage, { titel, beschreibung });
   seite = seite.replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${html(typ)}$2`);
+  if (sprache !== STANDARDSPRACHE) {
+    // Die Sprache des Dokuments: Daran entscheiden Vorleseprogramme die
+    // Aussprache und Suchmaschinen, wem sie die Seite zeigen.
+    seite = seite
+      .replace(/(<html\b[^>]*\slang=")[^"]*(")/, `$1${html(sprache)}$2`)
+      .replace(/(<meta property="og:locale" content=")[^"]*(")/, `$1${html(SPRACHRAUM[sprache] ?? sprache)}$2`);
+  }
 
   const kopfzeilen = [
     `<script>document.documentElement.classList.add("mit-js")</script>`,
     `<style>.mit-js .vorab-inhalt{display:none}.vorab-inhalt{max-width:46rem;margin:0 auto;padding:1.5rem 1rem;line-height:1.6}</style>`,
     kanonisch ? `<link rel="canonical" href="${html(kanonisch)}" data-rh="true" />` : "",
     kanonisch ? `<meta property="og:url" content="${html(kanonisch)}" data-rh="true" />` : "",
+    // Jede Fassung nennt alle – sich selbst eingeschlossen –, sonst gelten
+    // die Angaben für Suchmaschinen nicht. Nicht bei noindex: Eine Seite, die
+    // nicht gefunden werden soll, bietet auch keine Fassungen an.
+    ...(noindex ? [] : fassungen.map((f) => `<link rel="alternate" hreflang="${html(f.hreflang)}" href="${html(f.href)}" data-rh="true" />`)),
     noindex ? `<meta name="robots" content="noindex, nofollow" data-rh="true" />` : "",
     jsonLd ? `<script type="application/ld+json" data-rh="true">${skriptJson(jsonLd)}</script>` : "",
     // Das Kopfbild ist auf dem Handy das grösste Element (LCP). Ohne diesen
@@ -302,33 +382,54 @@ export function dokument(vorlage, { titel, beschreibung, kanonisch, typ = "websi
   return seite;
 }
 
-/** Eine Baukastenseite als fertiges Dokument. */
-export function seitenDokument(vorlage, { seite, marke, menue, bilder }) {
+/**
+ * Eine Baukastenseite als fertiges Dokument.
+ *
+ * `seite` kommt schon in der Sprache herein, in der sie dastehen soll
+ * (seiteInSprache). `sprachen` sind die Sprachen neben Deutsch, in denen es
+ * sie gibt; `texte` die übersetzten Menüpunkte und Rahmentexte der Sprache.
+ */
+export function seitenDokument(vorlage, { seite, marke, menue, bilder, sprache = STANDARDSPRACHE, sprachen = [], texte }) {
   const basis = basisVon(marke);
-  const { html: text, hatH1 } = seitenInhalt(seite.content);
+  const eigene = markeInSprache(marke, texte);
+  // Verweise im Text bleiben in der Sprache, wie in der Anwendung.
+  const daten = sprache === STANDARDSPRACHE ? seite.content : zieleUmrechnen(seite.content, (z) => sprachPfad(z, sprache));
+  const { html: text, hatH1 } = seitenInhalt(daten);
   const kopf = hatH1 ? "" : `<h1>${html(seite.title)}</h1>\n`;
+  const fassungen = sprachfassungen(basis, pfadVon(seite.slug), sprachen);
   return dokument(vorlage, {
-    titel: seitenTitel(seite, marke),
-    beschreibung: seitenBeschreibung(seite, marke),
-    kanonisch: basis ? `${basis}${pfadVon(seite.slug)}` : undefined,
+    titel: seitenTitel(seite, eigene),
+    beschreibung: seitenBeschreibung(seite, eigene),
+    kanonisch: basis ? `${basis}${sprachPfad(pfadVon(seite.slug), sprache)}` : undefined,
     typ: seite.seo_type === "organisation" ? "website" : "article",
     noindex: Boolean(seite.noindex),
-    jsonLd: strukturierteDaten(seite, marke),
+    jsonLd: strukturierteDaten(seite, eigene, sprache),
     vorladen: titelbild(seite.content, bilder),
-    inhalt: koerper({ marke, menue, inhalt: `<article>\n${kopf}${text}\n</article>` }),
+    sprache,
+    fassungen,
+    inhalt: koerper({ marke: eigene, menue, sprache, texte, fassungen, inhalt: `<article>\n${kopf}${text}\n</article>` }),
   });
 }
 
-/** Die Kontaktseite als fertiges Dokument. */
-export function kontaktDokument(vorlage, { marke, menue }) {
+/**
+ * Die Kontaktseite als fertiges Dokument. Sie ist keine Baukastenseite und
+ * braucht keine Übersetzung aus der Datenbank: Ihre Worte kennt die Anwendung
+ * in jeder Sprache. `sprachen` sind die Sprachen, die die Seite überhaupt
+ * anbietet.
+ */
+export function kontaktDokument(vorlage, { marke, menue, sprache = STANDARDSPRACHE, sprachen = [], texte }) {
   const basis = basisVon(marke);
-  const k = kontaktSeite(marke);
+  const eigene = markeInSprache(marke, texte);
+  const k = kontaktSeite(eigene, sprache);
   const mail = marke?.org_email ? `\n<p><a href="mailto:${html(marke.org_email)}">${html(marke.org_email)}</a></p>` : "";
+  const fassungen = sprachfassungen(basis, "/kontakt", sprachen);
   return dokument(vorlage, {
     titel: k.titel,
     beschreibung: k.beschreibung,
-    kanonisch: basis ? `${basis}/kontakt` : undefined,
-    inhalt: koerper({ marke, menue, inhalt: `<article>\n<h1>${html(k.ueberschrift)}</h1>\n<p>${html(k.text)}</p>${mail}\n</article>` }),
+    kanonisch: basis ? `${basis}${sprachPfad("/kontakt", sprache)}` : undefined,
+    sprache,
+    fassungen,
+    inhalt: koerper({ marke: eigene, menue, sprache, texte, fassungen, inhalt: `<article>\n<h1>${html(k.ueberschrift)}</h1>\n<p>${html(k.text)}</p>${mail}\n</article>` }),
   });
 }
 
@@ -405,6 +506,15 @@ export async function hauptadressePruefen(adresse, holen = fetch) {
 
 const regex = (t) => t.replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&");
 
+/**
+ * `sprachen` ordnet jeder angebotenen Sprache die Seiten zu, die in ihr eine
+ * eigene Datei haben ({ en: ["startseite", "verein"] }). Zurück kommen nur
+ * bekannte Sprachen, in fester Reihenfolge.
+ */
+const sprachfolge = (sprachen) => ZUSATZSPRACHEN
+  .filter((s) => Array.isArray(sprachen?.[s]))
+  .map((s) => [s, sprachen[s]]);
+
 /** Apache: andere Schreibweise der Domain → Hauptadresse, dauerhaft. */
 export function apacheHauptadresse(paar) {
   if (!paar) return "";
@@ -424,7 +534,7 @@ export function apacheHauptadresse(paar) {
  * Ohne `mit404` endet der Block vor der Fehlerregel, und es bleibt bei der
  * Auffangregel aus public/.htaccess (Anwendung mit 200).
  */
-export function apacheSeiten(slugs, { mit404 = true } = {}) {
+export function apacheSeiten(slugs, { mit404 = true, sprachen = {} } = {}) {
   const zeilen = [
     "  # Vom Bau eingesetzt (scripts/vorabzug.mjs): Seiten mit fertigem HTML.",
     "  # Wer kein JavaScript ausfuehrt, liest hier trotzdem den Text der Seite.",
@@ -432,6 +542,17 @@ export function apacheSeiten(slugs, { mit404 = true } = {}) {
   for (const slug of slugs) {
     const muster = slug === "startseite" ? "^$" : `^${regex(slug)}/?$`;
     zeilen.push(`  RewriteRule ${muster} ${dateiVon(slug)} [L]`);
+  }
+  for (const [sprache, eigene] of sprachfolge(sprachen)) {
+    zeilen.push(
+      "",
+      `  # Dieselben Seiten unter /${sprache}/. Ohne Uebersetzung antwortet die deutsche`,
+      "  # Datei: Ihr Canonical zeigt auf die deutsche Adresse.",
+    );
+    for (const slug of slugs) {
+      const muster = slug === "startseite" ? `^${sprache}/?$` : `^${sprache}/${regex(slug)}/?$`;
+      zeilen.push(`  RewriteRule ${muster} ${dateiVon(slug, eigene.includes(slug) ? sprache : STANDARDSPRACHE)} [L]`);
+    }
   }
   if (!mit404) return zeilen.join("\n");
   zeilen.push(
@@ -459,11 +580,14 @@ export function apacheSeiten(slugs, { mit404 = true } = {}) {
  * Netlify und Cloudflare Pages: dieselben Seiten. Ein 404 mit der Anwendung
  * kennt Cloudflare in _redirects nicht; dort bleibt es bei der Auffangregel.
  */
-export function redirectsSeiten(slugs) {
+export function redirectsSeiten(slugs, { sprachen = {} } = {}) {
   return [
     "# Vom Bau eingesetzt (scripts/vorabzug.mjs): Seiten mit fertigem HTML.",
     // „200!" bei der Startseite: Für „/" liegt eine index.html da, und ohne
     // das Ausrufezeichen ginge die Datei der Regel vor.
     ...slugs.map((slug) => `${pfadVon(slug).padEnd(30)} /${dateiVon(slug)}  ${slug === "startseite" ? "200!" : "200"}`),
+    // Dieselben Seiten je Sprache; ohne Übersetzung die deutsche Datei.
+    ...sprachfolge(sprachen).flatMap(([sprache, eigene]) => slugs.map((slug) =>
+      `${sprachPfad(pfadVon(slug), sprache).padEnd(30)} /${dateiVon(slug, eigene.includes(slug) ? sprache : STANDARDSPRACHE)}  200`)),
   ].join("\n");
 }

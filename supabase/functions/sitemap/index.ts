@@ -16,6 +16,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
  * Deshalb hier: veröffentlichte Seiten aus der Datenbank, Domain aus den
  * Vereinsangaben. Kein Eingriff nötig, wenn sich etwas ändert.
  *
+ * Seit es die Seite auch auf Englisch und Französisch gibt
+ * (site_page_translations), steht jede Sprachfassung als eigene Adresse darin
+ * und nennt die anderen (`xhtml:link`, hreflang). Eine Seite ohne Übersetzung
+ * steht nur mit ihrer deutschen Adresse da.
+ *
  * Ohne hinterlegte Adresse gibt es keine Sitemap, sondern 404 – eine Sitemap
  * mit halben Adressen ist schlechter als keine.
  */
@@ -48,6 +53,26 @@ function gewicht(slug: string): { freq: string; prio: string } {
   return { freq: "monthly", prio: "0.7" };
 }
 
+/** Die Sprachen neben Deutsch – wie ZUSATZSPRACHEN in src/lib/sprachen.mjs. */
+const SPRACHEN = ["en", "fr"];
+
+/** Dieselbe Adresse in einer anderen Sprache (sprachPfad in sprachen.mjs). */
+function inSprache(pfad: string, sprache: string): string {
+  return sprache === "de" ? pfad : `/${sprache}${pfad}`;
+}
+
+/**
+ * Die Einträge einer Seite: je Fassung einer, jeder mit allen Fassungen.
+ * `pfad` ist die deutsche Adresse ohne Domain („" für die Startseite).
+ */
+function eintraegeVon(basis: string, pfad: string, sprachen: string[], rest: string): string[] {
+  const fassungen = sprachen.length === 0 ? "" : [
+    ...["de", ...sprachen].map((s) => [s, inSprache(pfad, s)]),
+    ["x-default", pfad],
+  ].map(([s, p]) => `<xhtml:link rel="alternate" hreflang="${s}" href="${xml(basis + p)}"/>`).join("");
+  return ["de", ...sprachen].map((s) => `  <url><loc>${xml(basis + inSprache(pfad, s))}</loc>${fassungen}${rest}</url>`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: KOPF });
 
@@ -56,14 +81,26 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
-  const [{ data: einstellungen }, { data: seiten }] = await Promise.all([
+  const [{ data: einstellungen }, { data: seiten }, { data: uebersetzungen }] = await Promise.all([
     supabase.from("app_settings").select("website_url").eq("id", true).maybeSingle(),
     supabase
       .from("site_pages")
-      .select("slug, updated_at, noindex")
+      .select("id, slug, updated_at, noindex")
       .eq("is_published", true)
       .order("slug"),
+    // Gibt es die Tabelle noch nicht, kommt hier nichts – dann nur Deutsch.
+    supabase.from("site_page_translations").select("page_id, lang").not("content", "is", null),
   ]);
+
+  const sichtbar = (seiten ?? []).filter((s) => !s.noindex);
+  /** Seite → Sprachen, in denen sie vorliegt. */
+  const fassungen = new Map<string, string[]>();
+  for (const u of uebersetzungen ?? []) {
+    if (!SPRACHEN.includes(u.lang)) continue;
+    fassungen.set(u.page_id, [...(fassungen.get(u.page_id) ?? []), u.lang]);
+  }
+  // Angeboten wird eine Sprache, sobald eine sichtbare Seite in ihr vorliegt.
+  const angeboten = SPRACHEN.filter((s) => sichtbar.some((p) => fassungen.get(p.id)?.includes(s)));
 
   const basis = (einstellungen?.website_url ?? "").replace(/\/+$/, "");
   if (!basis) {
@@ -73,31 +110,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  const eintraege = (seiten ?? [])
-    .filter((s) => !s.noindex)
-    .map((s) => {
-      // Die Startseite liegt unter der blanken Adresse, nicht unter /startseite.
-      const pfad = s.slug === "startseite" ? "" : `/${s.slug}`;
-      const { freq, prio } = gewicht(s.slug);
-      const datum = s.updated_at ? String(s.updated_at).slice(0, 10) : null;
-      return [
-        "  <url>",
-        `<loc>${xml(basis + pfad)}</loc>`,
-        datum ? `<lastmod>${datum}</lastmod>` : "",
-        `<changefreq>${freq}</changefreq>`,
-        `<priority>${prio}</priority>`,
-        "</url>",
-      ].join("");
-    });
+  const eintraege = sichtbar.flatMap((s) => {
+    // Die Startseite liegt unter der blanken Adresse, nicht unter /startseite.
+    const pfad = s.slug === "startseite" ? "" : `/${s.slug}`;
+    const { freq, prio } = gewicht(s.slug);
+    const datum = s.updated_at ? String(s.updated_at).slice(0, 10) : null;
+    const rest = [
+      datum ? `<lastmod>${datum}</lastmod>` : "",
+      `<changefreq>${freq}</changefreq>`,
+      `<priority>${prio}</priority>`,
+    ].join("");
+    return eintraegeVon(basis, pfad, SPRACHEN.filter((l) => fassungen.get(s.id)?.includes(l)), rest);
+  });
 
-  // Der Kontakt ist keine Baukastenseite, gehört aber in die Sitemap.
-  eintraege.push(
-    `  <url><loc>${xml(basis + "/kontakt")}</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>`
-  );
+  // Der Kontakt ist keine Baukastenseite, gehört aber in die Sitemap – in
+  // jeder angebotenen Sprache, seine Worte kennt die Anwendung selbst.
+  eintraege.push(...eintraegeVon(basis, "/kontakt", angeboten, "<changefreq>yearly</changefreq><priority>0.5</priority>"));
 
   const body = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ...eintraege,
     "</urlset>",
     "",

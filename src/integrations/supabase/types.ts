@@ -3725,6 +3725,59 @@ export type Database = {
           },
         ]
       }
+      site_page_translations: {
+        Row: {
+          content: Json | null
+          is_machine: boolean
+          is_stale: boolean
+          lang: string
+          page_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seo_description: string | null
+          seo_title: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json | null
+          is_machine?: boolean
+          is_stale?: boolean
+          lang: string
+          page_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json | null
+          is_machine?: boolean
+          is_stale?: boolean
+          lang?: string
+          page_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_page_translations_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "site_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_pages: {
         Row: {
           content: Json | null
@@ -3779,6 +3832,39 @@ export type Database = {
           title?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      site_text_translations: {
+        Row: {
+          is_machine: boolean
+          is_stale: boolean
+          kind: string
+          lang: string
+          ref: string
+          reviewed_at: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          is_machine?: boolean
+          is_stale?: boolean
+          kind: string
+          lang: string
+          ref: string
+          reviewed_at?: string | null
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          is_machine?: boolean
+          is_stale?: boolean
+          kind?: string
+          lang?: string
+          ref?: string
+          reviewed_at?: string | null
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }
@@ -4421,6 +4507,7 @@ export type Database = {
       }
       setup_needed: { Args: never; Returns: boolean }
       setup_status: { Args: never; Returns: Json }
+      site_languages: { Args: never; Returns: string[] }
       source_text_files: {
         Args: never
         Returns: {

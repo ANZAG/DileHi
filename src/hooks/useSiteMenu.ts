@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { vorabzug } from "@/lib/vorabzug";
 
 export interface MenuEintrag {
+  /** Die Zeile in site_menu – daran hängt die Übersetzung des Namens. */
+  id?: string;
   path: string;
   label: string;
   opensNew?: boolean;
@@ -74,7 +76,7 @@ function menueBauen(zeilen: Zeile[], seiten: Map<string, string>): Record<MenuBe
     const path = z.page_id ? seiten.get(z.page_id) : z.href;
     // Ein Menüpunkt ohne Ziel ist ein Link ins Leere – lieber weglassen.
     if (!path) return null;
-    return { path, label: z.label, opensNew: z.opens_new };
+    return { id: z.id, path, label: z.label, opensNew: z.opens_new };
   };
 
   const bauen = (fuer: MenuBereich): MenuEintrag[] => {
