@@ -16,7 +16,7 @@ import { Hilfe } from "@/components/Hilfe";
 import {
   createPage, deletePage, fetchPages, slugify, updatePageMeta, type SitePage,
 } from "@/components/sitebuilder/api";
-import { fetchSprachstaende } from "@/components/sitebuilder/uebersetzungen";
+import { ladeSprachstaende, sprachSchluessel } from "@/daten/sprachen";
 import SprachfassungenZeile from "./SprachfassungenZeile";
 import RahmentexteAdmin from "./RahmentexteAdmin";
 
@@ -45,8 +45,11 @@ export default function SitePagesAdmin() {
 
   // Der Stand der Sprachfassungen (en, fr) je Seite – siehe SprachfassungenZeile.
   const { data: sprachstaende = [] } = useQuery({
-    queryKey: ["site-page-translations"],
-    queryFn: fetchSprachstaende,
+    queryKey: sprachSchluessel.staende(),
+    queryFn: ladeSprachstaende,
+    // Fehlt die Tabelle noch (Migration nicht eingespielt), bleibt die Liste
+    // ohne Stände – nach einem Versuch, nicht nach vieren.
+    retry: false,
   });
 
   const frisch = () => queryClient.invalidateQueries({ queryKey: ["site-pages"] });

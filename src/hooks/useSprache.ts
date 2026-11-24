@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeAngeboteneSprachen, ladeRahmentexte, sprachSchluessel } from "@/daten/sprachen";
 import {
   ZUSATZSPRACHEN, istSprache, sprachPfad, spracheVonPfad, type Sprache, type Zusatzsprache,
 } from "@/lib/sprachen.mjs";
@@ -61,13 +61,9 @@ const nurZusatz = (werte: unknown): Zusatzsprache[] =>
  * bleibt dann schlicht deutsch.
  */
 export function useAngeboteneSprachen(): { sprachen: Zusatzsprache[]; bekannt: boolean } {
-  const { data } = useQuery({
-    queryKey: ["site-languages"],
-    queryFn: async (): Promise<Zusatzsprache[]> => {
-      const { data, error } = await supabase.rpc("site_languages");
-      if (error) return [];
-      return nurZusatz(data);
-    },
+  const { data, isPending } = useQuery({
+    queryKey: sprachSchluessel.angeboten(),
+    queryFn: ladeAngeboteneSprachen,
     initialData: () => {
       const v = vorabzug()?.sprachen;
       return Array.isArray(v) ? nurZusatz(v) : undefined;
@@ -76,7 +72,8 @@ export function useAngeboteneSprachen(): { sprachen: Zusatzsprache[]; bekannt: b
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });
-  return { sprachen: data ?? [], bekannt: data !== undefined };
+  // Auch eine gescheiterte Abfrage ist eine Auskunft: keine Sprachen.
+  return { sprachen: data ?? [], bekannt: !isPending };
 }
 
 /**
@@ -87,16 +84,10 @@ export function useAngeboteneSprachen(): { sprachen: Zusatzsprache[]; bekannt: b
 export function useRahmentexte(): Record<string, string> {
   const { sprache } = useSprache();
   const { data } = useQuery({
-    queryKey: ["site-texte", sprache],
+    queryKey: sprachSchluessel.rahmentexteIn(sprache),
     enabled: sprache !== "de",
-    queryFn: async (): Promise<Record<string, string>> => {
-      const { data, error } = await supabase
-        .from("site_text_translations")
-        .select("kind, ref, value")
-        .eq("lang", sprache);
-      if (error) return {};
-      return Object.fromEntries((data ?? []).map((z) => [`${z.kind}:${z.ref}`, z.value]));
-    },
+    // Scheitert die Abfrage, bleibt `data` leer und das Menü deutsch.
+    queryFn: () => ladeRahmentexte(sprache as Zusatzsprache),
     initialData: () => vorabzug()?.texte?.[sprache],
     initialDataUpdatedAt: 0,
     staleTime: 60 * 60 * 1000,

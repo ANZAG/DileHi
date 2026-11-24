@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { ladeRahmenVerwaltung, loescheRahmentext, sichereRahmentext, sprachSchluessel } from "@/daten/sprachen";
 import { useBranding } from "@/hooks/useBranding";
 import { useToast } from "@/hooks/use-toast";
 import { invokeFunction } from "@/lib/functionError";
@@ -34,19 +34,11 @@ export default function RahmentexteAdmin() {
   const [offen, setOffen] = useState(false);
   const [werte, setWerte] = useState<Record<string, string>>({});
 
-  const { data } = useQuery({
-    queryKey: ["site-texte-verwaltung"],
+  const { data, error: ladefehler } = useQuery({
+    queryKey: sprachSchluessel.rahmenVerwaltung(),
     enabled: offen,
-    queryFn: async () => {
-      const [menue, texte] = await Promise.all([
-        supabase.from("site_menu").select("id, label, area, sort_order").order("area").order("sort_order"),
-        supabase.from("site_text_translations").select("*"),
-      ]);
-      if (menue.error) throw new Error(menue.error.message);
-      // Fehlt die Tabelle noch (Migration nicht eingespielt), ist das die Auskunft.
-      if (texte.error) throw new Error(`Die Übersetzungen sind nicht erreichbar (${texte.error.message}). Ist die Migration „mehrsprachig“ eingespielt?`);
-      return { menue: menue.data ?? [], texte: texte.data ?? [] };
-    },
+    queryFn: ladeRahmenVerwaltung,
+    retry: false,
   });
 
   useEffect(() => {
@@ -55,8 +47,8 @@ export default function RahmentexteAdmin() {
   }, [data]);
 
   const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["site-texte-verwaltung"] });
-    queryClient.invalidateQueries({ queryKey: ["site-texte"] });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.rahmenVerwaltung() });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.rahmentexte() });
   };
 
   const zeilen = [
@@ -78,10 +70,8 @@ export default function RahmentexteAdmin() {
           // maschineller Text als von Hand gesichert.
           if (alt && alt.value === neu && !alt.is_stale) continue;
           if (!alt && neu === "") continue;
-          const { error } = neu === ""
-            ? await supabase.from("site_text_translations").delete().eq("kind", kind).eq("ref", ref).eq("lang", lang)
-            : await supabase.from("site_text_translations").upsert({ kind, ref, lang, value: neu, is_machine: false, is_stale: false });
-          if (error) throw new Error(error.message);
+          if (neu === "") await loescheRahmentext(kind, ref, lang);
+          else await sichereRahmentext(kind, ref, lang, neu);
         }
       }
     },
@@ -120,7 +110,12 @@ export default function RahmentexteAdmin() {
             Die Namen der Menüpunkte und die kurzen Texte, die auf jeder öffentlichen Seite stehen.
             Ein leeres Feld heisst: Dort bleibt das Deutsche stehen.
           </p>
-          {!data ? (
+          {ladefehler ? (
+            // Fehlt die Tabelle noch, ist das die Auskunft, die weiterhilft.
+            <p className="text-sm text-destructive">
+              Die Übersetzungen sind nicht erreichbar ({ladefehler.message}). Ist die Migration „mehrsprachig“ eingespielt?
+            </p>
+          ) : !data ? (
             <p className="text-sm text-muted-foreground">Lade …</p>
           ) : (
             <div className="overflow-x-auto">

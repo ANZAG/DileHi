@@ -165,7 +165,7 @@ und wird gemeldet. Ein leeres Feld bleibt deutsch.
 | Feste Worte in drei Sprachen | `src/lib/texte.ts` |
 | Sprache der Adresse, gemerkte Wahl, angebotene Sprachen | `src/hooks/useSprache.ts` |
 | Sprachwahl, Weiche beim Ankommen | `src/components/Sprachwahl.tsx`, `SprachWeiche.tsx` |
-| Seite in ihrer Sprache, Rückfall auf Deutsch | `src/pages/SeiteAnzeigen.tsx`, `src/components/sitebuilder/uebersetzungen.ts` |
+| Seite in ihrer Sprache, Rückfall auf Deutsch | `src/pages/SeiteAnzeigen.tsx`, `src/daten/sprachen.ts` |
 | Was an einer Seite Text ist | `supabase/functions/_shared/seitentexte.mjs` |
 | Übersetzen mit DeepL | `supabase/functions/translate-page`, `_shared/deepl.ts` |
 | Vorab-HTML, `hreflang`, Serverregeln | `scripts/vorabSeiten.mjs`, `scripts/vorabzug.mjs` |

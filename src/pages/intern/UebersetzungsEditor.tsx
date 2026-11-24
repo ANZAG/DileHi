@@ -12,8 +12,8 @@ import { configFuer, rechteFuer } from "@/components/sitebuilder/puckConfig";
 import { WOERTERBUCH } from "@/components/sitebuilder/woerterbuch";
 import { fetchPageById, LEERE_SEITE } from "@/components/sitebuilder/api";
 import {
-  deleteUebersetzung, fetchUebersetzung, saveUebersetzung, sprachstand, SPRACHSTAND_WORTE,
-} from "@/components/sitebuilder/uebersetzungen";
+  ladeUebersetzung, loescheUebersetzung, sichereUebersetzung, sprachSchluessel, sprachstand, SPRACHSTAND_WORTE,
+} from "@/daten/sprachen";
 import { invokeFunction } from "@/lib/functionError";
 import { SPRACHNAMEN, ZUSATZSPRACHEN, sprachPfad, type Zusatzsprache } from "@/lib/sprachen.mjs";
 import { pfadVon } from "@/lib/auffindbarkeit.mjs";
@@ -48,13 +48,13 @@ export default function UebersetzungsEditor() {
   const darf = darfInhalt || darfLayout;
 
   const { data: page, isLoading: seiteLaedt } = useQuery({
-    queryKey: ["site-page", pageId],
+    queryKey: sprachSchluessel.original(pageId),
     queryFn: () => fetchPageById(pageId!),
     enabled: !!pageId && darf,
   });
   const { data: fassung, isLoading: fassungLaedt } = useQuery({
-    queryKey: ["site-page-translation", pageId, sprache],
-    queryFn: () => fetchUebersetzung(pageId!, sprache as Zusatzsprache),
+    queryKey: sprachSchluessel.fassung(pageId, sprache),
+    queryFn: () => ladeUebersetzung(pageId!, sprache as Zusatzsprache),
     enabled: !!pageId && !!sprache && darf,
   });
 
@@ -87,14 +87,15 @@ export default function UebersetzungsEditor() {
   }, [page, fassung, fassungLaedt]);
 
   const frisch = () => {
-    queryClient.invalidateQueries({ queryKey: ["site-page-translation", pageId, sprache] });
-    queryClient.invalidateQueries({ queryKey: ["site-page-translations"] });
-    queryClient.invalidateQueries({ queryKey: ["site-languages"] });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.fassung(pageId, sprache) });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.staende() });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.angeboten() });
+    queryClient.invalidateQueries({ queryKey: sprachSchluessel.seiten() });
   };
 
   const sichern = useMutation({
     mutationFn: ({ daten, geprueft }: { daten: Data; geprueft: boolean }) =>
-      saveUebersetzung(pageId!, sprache as Zusatzsprache, {
+      sichereUebersetzung(pageId!, sprache as Zusatzsprache, {
         title: titel.trim() || page!.title,
         content: daten,
         seo_title: suchtitel.trim() || null,
@@ -119,7 +120,7 @@ export default function UebersetzungsEditor() {
   });
 
   const entfernen = useMutation({
-    mutationFn: () => deleteUebersetzung(pageId!, sprache as Zusatzsprache),
+    mutationFn: () => loescheUebersetzung(pageId!, sprache as Zusatzsprache),
     onSuccess: () => {
       toast({ title: "Sprachfassung gelöscht", description: "Unter dieser Adresse erscheint wieder die deutsche Seite." });
       frisch();

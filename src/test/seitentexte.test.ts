@@ -158,7 +158,7 @@ describe("Die Liste der Textfelder", () => {
 
 describe("Stand einer Sprachfassung", () => {
   it("veraltet geht vor geprüft, geprüft vor maschinell", async () => {
-    const { sprachstand } = await import("@/components/sitebuilder/uebersetzungen");
+    const { sprachstand } = await import("@/daten/sprachen");
     expect(sprachstand(null)).toBe("fehlt");
     expect(sprachstand({ is_machine: true, is_stale: false, reviewed_at: null })).toBe("maschinell");
     expect(sprachstand({ is_machine: false, is_stale: false, reviewed_at: null })).toBe("ungeprueft");

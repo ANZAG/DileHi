@@ -5,7 +5,7 @@ import SEO from "@/components/SEO";
 import NotFound from "@/pages/NotFound";
 import SeitenRenderer, { type SeitenDaten } from "@/components/sitebuilder/SeitenRenderer";
 import type { SitePage } from "@/components/sitebuilder/api";
-import { fetchSeiteInSprache, type SeiteInSprache } from "@/components/sitebuilder/uebersetzungen";
+import { ladeSeiteInSprache, sprachSchluessel, type SeiteInSprache } from "@/daten/sprachen";
 import { useBranding } from "@/hooks/useBranding";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";
 import { pfadVon, seitenBeschreibung, seitenTitel, strukturierteDaten } from "@/lib/auffindbarkeit.mjs";
@@ -51,8 +51,8 @@ export default function SeiteAnzeigen({ slug: fest }: { slug?: string } = {}) {
   const slug = fest ?? pfadOhneSprache(`/${pfad ?? ""}`).replace(/^\/+|\/+$/g, "");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["site-page-slug", slug, sprache],
-    queryFn: () => fetchSeiteInSprache(slug, sprache),
+    queryKey: sprachSchluessel.seite(slug, sprache),
+    queryFn: () => ladeSeiteInSprache(slug, sprache),
     enabled: slug !== "",
     // Im fertigen HTML einer Seite steht sie selbst schon (scripts/vorabzug.mjs).
     // Damit zeigt die Anwendung sie sofort, statt erst die Datenbank zu

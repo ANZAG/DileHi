@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { SPRACHNAMEN, ZUSATZSPRACHEN } from "@/lib/sprachen.mjs";
-import { sprachstand, SPRACHSTAND_WORTE, type SeitenUebersetzung, type Sprachstand } from "@/components/sitebuilder/uebersetzungen";
+import { sprachstand, SPRACHSTAND_WORTE, type SeitenUebersetzung, type Sprachstand } from "@/daten/sprachen";
 
 type Kurzstand = Pick<SeitenUebersetzung, "page_id" | "lang" | "is_machine" | "is_stale" | "reviewed_at">;
 
