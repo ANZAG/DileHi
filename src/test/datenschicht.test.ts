@@ -44,15 +44,14 @@ const DARF_ABFRAGEN: string[] = [];
 const DARF_SCHLUESSEL_SCHREIBEN: string[] = [];
 
 /** Die Schlüsselsätze aller Module: Jede Datei in `src/daten`, die einen `…Schluessel` exportiert. */
-const module = await Promise.all(
-  quelltexte("src/daten").map(async (pfad) => {
-    const exporte: Record<string, unknown> = await import(`@/daten/${pfad.slice("src/daten/".length).replace(/\.tsx?$/, "")}`);
+const module = Object.entries(import.meta.glob<Record<string, unknown>>("../daten/*.ts", { eager: true })).map(
+  ([datei, exporte]) => {
     // Ein Schlüsselsatz ist ein Objekt; Funktionen wie `ladeFormularMitSchluessel` sind keiner.
     const saetze = Object.entries(exporte).filter(
       ([name, wert]) => /Schluessel$/.test(name) && typeof wert === "object" && wert !== null,
     );
-    return { pfad, saetze: saetze as [string, Schluesselsatz][] };
-  }),
+    return { pfad: datei.replace("../", "src/"), saetze: saetze as [string, Schluesselsatz][] };
+  },
 );
 const SAETZE = module.flatMap((m) => m.saetze.map(([name, schluessel]) => ({ name, schluessel, pfad: m.pfad })));
 
