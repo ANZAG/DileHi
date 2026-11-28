@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ladeMenuezeilen, ladeSeitenadressen, websiteSchluessel } from "@/daten/website";
 import { vorabzug } from "@/lib/vorabzug";
+import { sicheresZiel } from "@/lib/linkziel";
 
 export interface MenuEintrag {
   /** Die Zeile in site_menu – daran hängt die Übersetzung des Namens. */
@@ -73,7 +74,9 @@ const FALLBACK: Record<MenuBereich, MenuEintrag[]> = {
  */
 function menueBauen(zeilen: Zeile[], seiten: Map<string, string>): Record<MenuBereich, MenuEintrag[]> {
   const zuEintrag = (z: Zeile): MenuEintrag | null => {
-    const path = z.page_id ? seiten.get(z.page_id) : z.href;
+    // Eigene Adressen nur, wenn sie harmlos sind: kein `javascript:` im Menü
+    // jeder Seite (siehe lib/linkziel).
+    const path = z.page_id ? seiten.get(z.page_id) : sicheresZiel(z.href);
     // Ein Menüpunkt ohne Ziel ist ein Link ins Leere – lieber weglassen.
     if (!path) return null;
     return { id: z.id, path, label: z.label, opensNew: z.opens_new };
