@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSiteImage } from "@/hooks/useSiteImage";
 import { SpeicherBild } from "@/components/SpeicherBild";
 import { useBranding } from "@/hooks/useBranding";
+import { istFremdeAdresse, sicheresZiel } from "@/lib/linkziel";
 import { FARBGRUND, abstandKlasse, flaechenKlasse, type Abstand, type Hintergrund } from "./gestaltung";
 
 /**
@@ -29,10 +30,11 @@ function Aktionsknopf({ beschriftung, ziel, klasse }: {
   beschriftung: string; ziel?: string; klasse: string;
 }) {
   const k = `inline-flex items-center px-6 py-3 rounded-md font-medium transition-colors ${klasse}`;
-  if (!ziel) return <span className={k}>{beschriftung}</span>;
-  return ziel.startsWith("http")
-    ? <a href={ziel} target="_blank" rel="noreferrer" className={k}>{beschriftung}</a>
-    : <Link to={ziel} className={k}>{beschriftung}</Link>;
+  const sicher = sicheresZiel(ziel);
+  if (!sicher) return <span className={k}>{beschriftung}</span>;
+  return istFremdeAdresse(sicher)
+    ? <a href={sicher} target="_blank" rel="noreferrer" className={k}>{beschriftung}</a>
+    : <Link to={sicher} className={k}>{beschriftung}</Link>;
 }
 
 // ── Willkommensbereich ──────────────────────────────────────────────────────
@@ -269,8 +271,9 @@ function Kachel({ punkt, gross }: { punkt: Punkt; gross?: boolean }) {
     </>
   );
   const klasse = "group block relative rounded-lg overflow-hidden aspect-[16/9]";
-  return punkt.ziel
-    ? <Link to={punkt.ziel} className={klasse}>{inhalt}</Link>
+  const sicher = sicheresZiel(punkt.ziel);
+  return sicher
+    ? <Link to={sicher} className={klasse}>{inhalt}</Link>
     : <div className={klasse}>{inhalt}</div>;
 }
 

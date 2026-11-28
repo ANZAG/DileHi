@@ -11,6 +11,7 @@ import { format, parseISO } from "date-fns";
 import { de, enGB, fr } from "date-fns/locale";
 import { useRahmentexte, useSprache } from "@/hooks/useSprache";
 import { mitWerten } from "@/lib/texte";
+import { istFremdeAdresse, sicheresZiel } from "@/lib/linkziel";
 import { ladeOeffentlicheTermine, veranstaltungSchluessel, type OeffentlicherTermin } from "@/daten/veranstaltungen";
 import { ladeGalerieVon, websiteSchluessel } from "@/daten/website";
 import { supabase } from "@/integrations/supabase/client";
@@ -1651,13 +1652,15 @@ function Karte({ titel, text, bildSchluessel, ziel }: {
     </div>
   );
 
-  if (!ziel) return inhalt;
+  // Nur harmlose Ziele: kein `javascript:` (siehe lib/linkziel).
+  const sicher = sicheresZiel(ziel);
+  if (!sicher) return inhalt;
   // Fremde Adressen als normaler Link, eigene über den Router – sonst lädt die
   // ganze Anwendung bei jedem internen Klick neu.
-  return ziel.startsWith("http") ? (
-    <a href={ziel} target="_blank" rel="noreferrer">{inhalt}</a>
+  return istFremdeAdresse(sicher) ? (
+    <a href={sicher} target="_blank" rel="noreferrer">{inhalt}</a>
   ) : (
-    <Link to={ziel}>{inhalt}</Link>
+    <Link to={sicher}>{inhalt}</Link>
   );
 }
 
@@ -1678,6 +1681,7 @@ export function Knopf({
     verweis: "text-primary hover:underline",
   };
   const lage = { links: "justify-start", mitte: "justify-center", rechts: "justify-end" };
+  const sicher = sicheresZiel(ziel);
   // „Verweis" ist ein Link im Fliesstext, kein Knopf: keine Polsterung, keine
   // kleinere Schrift. Genau so steht „Zur Kontaktseite →" im Original – als
   // Knopf gesetzt sah es aus wie eine zweite Schaltflaeche.
@@ -1691,10 +1695,10 @@ export function Knopf({
   return (
     <div className={`${breitenKlasse(breite)} ${abstandKlasse(abstandOben, abstandUnten, abstand ?? "klein")}`}>
       <div className={`flex ${lage[ausrichtung] ?? lage.links}`}>
-        {ziel?.startsWith("http") ? (
-          <a href={ziel} target="_blank" rel="noreferrer" className={klasse}>{beschriftung}</a>
+        {sicher && istFremdeAdresse(sicher) ? (
+          <a href={sicher} target="_blank" rel="noreferrer" className={klasse}>{beschriftung}</a>
         ) : (
-          <Link to={ziel || "/"} className={klasse}>{beschriftung}</Link>
+          <Link to={sicher || "/"} className={klasse}>{beschriftung}</Link>
         )}
       </div>
     </div>
@@ -1920,8 +1924,9 @@ function LogoBild({ bildSchluessel, name, ziel, hoehe }: {
         hover:opacity-100 hover:grayscale-0 transition-all`}
     />
   );
-  if (!ziel) return img;
-  return <a href={ziel} target="_blank" rel="noreferrer" title={name}>{img}</a>;
+  const sicher = sicheresZiel(ziel);
+  if (!sicher) return img;
+  return <a href={sicher} target="_blank" rel="noreferrer" title={name}>{img}</a>;
 }
 
 // ── Darstellungen ───────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import { Link } from "react-router-dom";
+import { istFremdeAdresse, sicheresZiel } from "@/lib/linkziel";
 import { BookOpen, Info, Lightbulb, Users, Star, ShieldCheck } from "lucide-react";
 import { abstandKlasse, breitenKlasse, type Abstand, type Breite } from "./gestaltung";
 
@@ -53,6 +54,8 @@ export function Hinweiskasten({
   abstand?: Abstand;
 }) {
   const Symbol = SYMBOLE[symbol] ?? null;
+  // Nur harmlose Ziele: kein `javascript:` (siehe lib/linkziel).
+  const sicher = sicheresZiel(ziel);
 
   // Drei Ausprägungen, alle drei gibt es im Original:
   //   „hinweis"   – der grosse Kasten mit Symbol („Was ist Living History?")
@@ -121,16 +124,16 @@ export function Hinweiskasten({
             {text}
             {knopf && (
               <p className="mt-4">
-                {ziel?.startsWith("http") ? (
+                {sicher && istFremdeAdresse(sicher) ? (
                   <a
-                    href={ziel} target="_blank" rel="noreferrer"
+                    href={sicher} target="_blank" rel="noreferrer"
                     className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity text-sm"
                   >
                     {knopf}
                   </a>
                 ) : (
                   <Link
-                    to={ziel || "/"}
+                    to={sicher || "/"}
                     className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition-opacity text-sm"
                   >
                     {knopf}

@@ -51,6 +51,18 @@ export default function PersonaPublishAdmin() {
       let publicPaths: string[] = [];
 
       if (next) {
+        // Kopiert wird mit den Leserechten der freigebenden Person. Deshalb nur
+        // aus dem Ordner der Person, der die Darstellung gehört – nie etwa
+        // einen Mitgliedsantrag, den jemand als „Bild“ eingetragen hat. Die
+        // Datenbank lässt solche Pfade inzwischen gar nicht mehr zu
+        // (20261128100000); das hier fängt alte Zeilen ab.
+        const ordner = `personas/${persona.user_id}/`;
+        const fremd = (persona.images ?? []).filter(
+          (p) => !p.startsWith(ordner) || p.slice(ordner.length).includes("/") || p.includes("..")
+        );
+        if (fremd.length > 0) {
+          throw new Error("Diese Darstellung verweist auf Dateien außerhalb ihres Ordners und wird nicht freigegeben.");
+        }
         for (const path of persona.images ?? []) {
           const target = `personas/${persona.id}/${path.split("/").pop()}`;
           const { error: dl } = await supabase.storage
